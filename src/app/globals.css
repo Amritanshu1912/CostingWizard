@@ -1,0 +1,282 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+
+@custom-variant dark (&:is(.dark *));
+
+:root {
+  /* Beach-inspired color scheme - ocean blues, coral accents, sandy beiges */
+  --background: oklch(0.98 0.008 200); /* Soft ocean mist */
+  --foreground: oklch(0.25 0.02 220); /* Deep ocean blue */
+  --card: oklch(0.99 0.005 200); /* Pure sea foam */
+  --card-foreground: oklch(0.25 0.02 220);
+  --popover: oklch(0.99 0.005 200);
+  --popover-foreground: oklch(0.25 0.02 220);
+  --primary: oklch(0.55 0.12 200); /* Ocean blue */
+  --primary-foreground: oklch(0.98 0.008 200);
+  --secondary: oklch(0.92 0.02 180); /* Seafoam green */
+  --secondary-foreground: oklch(0.25 0.02 220);
+  --muted: oklch(0.94 0.015 190); /* Light sea breeze */
+  --muted-foreground: oklch(0.45 0.02 210);
+  --accent: oklch(0.68 0.15 25); /* Coral accent */
+  --accent-foreground: oklch(0.98 0.008 200);
+  --destructive: oklch(0.58 0.18 15); /* Sunset coral */
+  --destructive-foreground: oklch(0.98 0.008 200);
+  --border: oklch(0.88 0.02 190); /* Soft wave */
+  --input: oklch(0.88 0.02 190);
+  --ring: oklch(0.55 0.12 200);
+  --chart-1: oklch(0.55 0.12 200); /* Ocean blue */
+  --chart-2: oklch(0.68 0.15 25); /* Coral */
+  --chart-3: oklch(0.62 0.1 180); /* Seafoam */
+  --chart-4: oklch(0.75 0.08 45); /* Sandy beige */
+  --chart-5: oklch(0.45 0.08 160); /* Teal */
+  --radius: 0.75rem; /* Softer, more organic radius */
+  --sidebar: oklch(0.96 0.01 195); /* Light ocean mist */
+  --sidebar-foreground: oklch(0.25 0.02 220);
+  --sidebar-primary: oklch(0.55 0.12 200);
+  --sidebar-primary-foreground: oklch(0.98 0.008 200);
+  --sidebar-accent: oklch(0.92 0.02 180);
+  --sidebar-accent-foreground: oklch(0.25 0.02 220);
+  --sidebar-border: oklch(0.88 0.02 190);
+  --sidebar-ring: oklch(0.55 0.12 200);
+}
+
+.dark {
+  /* Dark beach theme - deep ocean night with coral highlights */
+  --background: oklch(0.12 0.02 220); /* Deep ocean night */
+  --foreground: oklch(0.92 0.01 190); /* Sea foam white */
+  --card: oklch(0.15 0.02 220); /* Deeper ocean */
+  --card-foreground: oklch(0.92 0.01 190);
+  --popover: oklch(0.15 0.02 220);
+  --popover-foreground: oklch(0.92 0.01 190);
+  --primary: oklch(0.65 0.12 200); /* Bright ocean blue */
+  --primary-foreground: oklch(0.12 0.02 220);
+  --secondary: oklch(0.22 0.03 180); /* Dark seafoam */
+  --secondary-foreground: oklch(0.92 0.01 190);
+  --muted: oklch(0.18 0.02 210); /* Dark sea breeze */
+  --muted-foreground: oklch(0.65 0.02 200);
+  --accent: oklch(0.72 0.15 25); /* Bright coral */
+  --accent-foreground: oklch(0.12 0.02 220);
+  --destructive: oklch(0.68 0.18 15); /* Bright sunset coral */
+  --destructive-foreground: oklch(0.92 0.01 190);
+  --border: oklch(0.25 0.02 210); /* Dark wave */
+  --input: oklch(0.25 0.02 210);
+  --ring: oklch(0.65 0.12 200);
+  --chart-1: oklch(0.65 0.12 200); /* Bright ocean */
+  --chart-2: oklch(0.72 0.15 25); /* Bright coral */
+  --chart-3: oklch(0.68 0.1 180); /* Bright seafoam */
+  --chart-4: oklch(0.78 0.08 45); /* Light sandy */
+  --chart-5: oklch(0.55 0.08 160); /* Bright teal */
+  --sidebar: oklch(0.18 0.02 215); /* Dark ocean mist */
+  --sidebar-foreground: oklch(0.92 0.01 190);
+  --sidebar-primary: oklch(0.65 0.12 200);
+  --sidebar-primary-foreground: oklch(0.12 0.02 220);
+  --sidebar-accent: oklch(0.22 0.03 180);
+  --sidebar-accent-foreground: oklch(0.92 0.01 190);
+  --sidebar-border: oklch(0.25 0.02 210);
+  --sidebar-ring: oklch(0.65 0.12 200);
+}
+
+@theme inline {
+  --font-sans: var(--font-sans);
+  --font-mono: var(--font-mono);
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
+  --color-chart-3: var(--chart-3);
+  --color-chart-4: var(--chart-4);
+  --color-chart-5: var(--chart-5);
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-ring: var(--sidebar-ring);
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+
+  body {
+    @apply bg-background text-foreground;
+    font-feature-settings: "rlig" 1, "calt" 1;
+    /* Added subtle beach-inspired background texture */
+    background-image: radial-gradient(circle at 25% 25%, oklch(0.99 0.01 200) 0%, transparent 50%),
+      radial-gradient(circle at 75% 75%, oklch(0.98 0.01 180) 0%, transparent 50%);
+  }
+}
+
+/* Custom scrollbar with beach theme */
+::-webkit-scrollbar {
+  width: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: hsl(var(--color-muted));
+}
+
+::-webkit-scrollbar-thumb {
+  background: hsl(var(--color-primary));
+  border-radius: 6px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: hsl(var(--color-accent));
+}
+
+/* Beach-inspired animations */
+@keyframes waveIn {
+  from {
+    opacity: 0;
+    transform: translateY(20px) scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes ripple {
+  0% {
+    transform: scale(0);
+    opacity: 1;
+  }
+  100% {
+    transform: scale(4);
+    opacity: 0;
+  }
+}
+
+.animate-wave-in {
+  animation: waveIn 0.4s ease-out;
+}
+
+.animate-ripple {
+  animation: ripple 0.6s ease-out;
+}
+
+/* Enhanced card styling with beach aesthetics */
+.card-enhanced {
+  @apply border border-border/40 hover:border-primary/40 transition-all duration-300 shadow-sm hover:shadow-lg;
+  /* Added subtle wave-like shadow */
+  box-shadow: 0 1px 3px oklch(0.55 0.12 200 / 0.1), 0 1px 2px oklch(0.55 0.12 200 / 0.06);
+}
+
+.card-enhanced:hover {
+  box-shadow: 0 4px 6px oklch(0.55 0.12 200 / 0.1), 0 2px 4px oklch(0.55 0.12 200 / 0.06);
+}
+
+/* Form styling with beach theme */
+.form-section {
+  @apply space-y-4 p-6 border border-border/50 rounded-xl bg-card shadow-sm;
+  /* Added subtle ocean gradient background */
+  background: linear-gradient(135deg, hsl(var(--color-card)) 0%, oklch(0.99 0.005 190) 100%);
+}
+
+/* Table enhancements with wave-like borders */
+.table-enhanced {
+  @apply border border-border/50 rounded-xl overflow-hidden shadow-sm;
+  background: linear-gradient(to bottom, hsl(var(--color-card)) 0%, oklch(0.99 0.003 195) 100%);
+}
+
+/* Beach-themed button styles */
+.btn-primary {
+  @apply bg-primary hover:bg-primary/90 text-primary-foreground border border-primary/20 shadow-sm hover:shadow-md transition-all duration-300 rounded-lg;
+  /* Added coral accent on hover */
+  position: relative;
+  overflow: hidden;
+}
+
+.btn-primary:hover {
+  box-shadow: 0 4px 12px oklch(0.55 0.12 200 / 0.25);
+}
+
+.btn-secondary {
+  @apply bg-secondary hover:bg-secondary/90 text-secondary-foreground border border-secondary/20 shadow-sm hover:shadow-md transition-all duration-300 rounded-lg;
+}
+
+/* Beach-inspired status indicators */
+.status-active {
+  @apply bg-accent/15 text-accent-foreground border border-accent/30 font-medium rounded-full px-3 py-1;
+  /* Added coral glow effect */
+  box-shadow: 0 0 0 1px oklch(0.68 0.15 25 / 0.1);
+}
+
+.status-pending {
+  @apply bg-muted text-muted-foreground border border-border/50 font-medium rounded-full px-3 py-1;
+}
+
+.status-inactive {
+  @apply bg-destructive/15 text-destructive border border-destructive/30 font-medium rounded-full px-3 py-1;
+}
+
+/* Beach gradient utilities */
+.gradient-ocean {
+  background: linear-gradient(135deg, hsl(var(--color-primary)) 0%, hsl(var(--color-secondary)) 100%);
+}
+
+.gradient-coral {
+  background: linear-gradient(135deg, hsl(var(--color-accent)) 0%, oklch(0.75 0.12 35) 100%);
+}
+
+.gradient-beach {
+  background: linear-gradient(135deg, oklch(0.92 0.02 180) 0%, oklch(0.75 0.08 45) 100%);
+}
+
+/* Enhanced focus states with ocean theme */
+.focus-enhanced:focus {
+  @apply outline-none ring-2 ring-primary/50 ring-offset-2 ring-offset-background;
+  /* Removed the weird ripple animation effect */
+}
+
+/* Improved text contrast with beach theme */
+.text-contrast-high {
+  @apply text-foreground;
+}
+
+.text-contrast-medium {
+  @apply text-muted-foreground;
+}
+
+.text-contrast-low {
+  @apply text-muted-foreground/70;
+}
+
+/* Beach-inspired utility classes */
+.ocean-glow {
+  box-shadow: 0 0 20px oklch(0.55 0.12 200 / 0.3);
+}
+
+.coral-glow {
+  box-shadow: 0 0 20px oklch(0.68 0.15 25 / 0.3);
+}
+
+.wave-border {
+  border-image: linear-gradient(90deg, hsl(var(--color-primary)), hsl(var(--color-secondary)), hsl(var(--color-accent)))
+    1;
+}

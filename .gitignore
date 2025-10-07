@@ -1,0 +1,75 @@
+# ===========================================
+# 🧠 Core Node / Next.js / Frontend Ignores
+# ===========================================
+
+# Dependencies
+node_modules/
+
+# Build output
+.next/
+out/
+dist/
+
+# TypeScript build info
+*.tsbuildinfo
+
+# Local environment variables
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# ===========================================
+# ⚙️ Logs & Cache
+# ===========================================
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+*.log
+
+# Next.js cache
+.next/cache/
+.vercel/
+
+# Editor / OS generated junk
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
+
+# ===========================================
+# 🧰 Tooling / Miscellaneous
+# ===========================================
+# Optional lockfiles — keep only the one you actually use
+package-lock.json
+yarn.lock
+
+# If you're fully using pnpm, commit this (remove only if not using pnpm)
+# pnpm-lock.yaml
+
+# PostCSS / Tailwind cache
+.postcss-cache/
+.tailwind-cache/
+
+# ===========================================
+# 🧑‍💻 IDEs & Editors
+# ===========================================
+# VSCode
+.vscode/*
+!.vscode/settings.json
+!.vscode/extensions.json
+!.vscode/tasks.json
+
+# JetBrains IDEs
+.idea/
+
+# ===========================================
+# 🧪 Testing / Temp Files (if added later)
+# ===========================================
+coverage/
+*.spec.ts
+*.test.ts
+temp/
+tmp/
