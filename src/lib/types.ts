@@ -1,9 +1,27 @@
-// from analytics chart 
-export interface AnalyticsChartsProps {
-    type: "materials" | "formulations" | "production" | "procurement";
+// ============================================================================
+// BASE TYPES
+// ============================================================================
+
+export interface BaseEntity {
+    id: string;
+    createdAt: string;
+    updatedAt?: string;
 }
 
-// from category manager
+export interface BulkDiscount {
+    quantity: number;
+    discount: number; // percentage
+}
+
+export interface MoneyValue {
+    amount: number;
+    currency?: string; // default: INR
+}
+
+// ============================================================================
+// CATEGORIES
+// ============================================================================
+
 export interface Category {
     id: string;
     name: string;
@@ -16,192 +34,166 @@ export interface CategoryManagerProps {
     onCategoriesChange: (categories: Category[]) => void;
 }
 
-// from cost-calculator
+// ============================================================================
+// MATERIALS
+// ============================================================================
 
-export interface Material {
-    id: string
-    name: string
-    price: number
-    category: string
-    minOrder?: number
-    bulkDiscount?: { quantity: number; discount: number }[]
-}
-
-export interface CalculatorIngredient {
-    materialId: string
-    materialName: string
-    quantity: number
-    unitPrice: number
-    totalCost: number
-    percentage: number
-}
-
-export interface OptimizationSuggestion {
-    type: "substitute" | "bulk" | "supplier" | "formula"
-    title: string
-    description: string
-    savings: number
-    impact: "low" | "medium" | "high"
-    confidence: number
-}
-
-// from formulation calculator
-
-export interface FormulationMaterial {
-    id: string;
+export interface Material extends BaseEntity {
     name: string;
-    quantity: number;
-    cost: number;
-}
-
-export interface SavedFormulation {
-    id: string;
-    name: string;
-    materials: FormulationMaterial[];
-    totalCost: number;
-    totalWeight: number;
-    timestamp: number;
-}
-
-// from formulations manager
-export interface ProductIngredient {
-    material_id: string;
-    material_name: string;
-    qty_kg: number;
-    cost_per_kg: number;
-    total_cost: number;
-}
-
-export interface Product {
-    id: string;
-    product_name: string;
-    description?: string;
-    composition: ProductIngredient[];
-    total_cost_per_kg: number;
-    selling_price_per_kg: number;
-    profit_margin: number;
-    batch_size_kg: number;
-    status: "active" | "draft" | "discontinued";
-}
-
-// from material manager
-export interface RawMaterial {
-    id: string;
-    material: string;
-    price_per_kg: number;
-    tax: number;
-    price_with_tax_per_kg: number;
-    supplier_id: string;
     category: string;
+    pricePerKg: number;
+    tax?: number;
+    priceWithTax?: number;
+    supplierId?: string;
+    minOrder?: number;
+    unit?: string; // default: kg
+    bulkDiscounts?: BulkDiscount[];
+    status?: "active" | "low-stock" | "out-of-stock";
     notes?: string;
-    status: "active" | "low-stock" | "out-of-stock";
 }
 
-// from procurement-manager
-export interface Supplier {
-    id: string
-    name: string
-    contact: string
-    phone: string
-    rating: number
-    materials: SupplierMaterial[]
-    performance: {
-        onTimeDelivery: number
-        qualityScore: number
-        priceCompetitiveness: number
-    }
-}
+// ============================================================================
+// SUPPLIERS
+// ============================================================================
 
-export interface SupplierMaterial {
-    material_id: string
-    material_name: string
-    price_per_kg: number
-    moq: number
-    lead_time_days: number
-    availability: "in-stock" | "limited" | "out-of-stock"
-}
-
-export interface PurchaseOrder {
-    id: string
-    supplier_id: string
-    supplier_name: string
-    items: OrderItem[]
-    total_cost: number
-    status: "draft" | "sent" | "confirmed" | "delivered" | "cancelled"
-    order_date: string
-    expected_delivery: string
-}
-
-export interface OrderItem {
-    material_id: string
-    material_name: string
-    quantity: number
-    unit_price: number
-    total_price: number
-}
-
-// from production-planning
-export interface ProductionItem {
-    product_id: string;
-    product_name: string;
-    quantity_kg: number;
-    cost_per_kg: number;
-    total_cost: number;
-    materials_required: MaterialRequirement[];
-}
-
-export interface MaterialRequirement {
-    material_id: string;
-    material_name: string;
-    required_qty: number;
-    available_qty: number;
-    shortage: number;
-    cost_per_kg: number;
-    total_cost: number;
-}
-
-export interface ProductionPlan {
-    id: string;
-    plan_name: string;
-    description?: string;
-    start_date: string;
-    end_date: string;
-    products: ProductionItem[];
-    total_cost: number;
-    total_revenue: number;
-    total_profit: number;
-    status: "draft" | "scheduled" | "in-progress" | "completed" | "cancelled";
-    progress: number;
-}
-
-// from Supplier Management
-export interface Supplier2 {
-    id: string;
+export interface Supplier extends BaseEntity {
     name: string;
     contactPerson: string;
     email: string;
     phone: string;
-    address: string;
+    address?: string;
     rating: number;
     isActive: boolean;
     paymentTerms: string;
     leadTime: number; // in days
-    notes: string;
-    createdAt: string;
+    notes?: string;
+    performance?: {
+        onTimeDelivery: number;
+        qualityScore: number;
+        priceCompetitiveness: number;
+    };
 }
 
-export interface SupplierMaterial2 {
-    id: string;
+export interface SupplierMaterial extends BaseEntity {
     supplierId: string;
+    materialId?: string; // optional if material doesn't exist in main materials yet
     materialName: string;
     materialCategory: string;
     unitPrice: number;
     currency: string;
     moq: number; // minimum order quantity
     unit: string; // kg, liters, pieces, etc.
-    bulkDiscounts: { quantity: number; discount: number }[];
+    bulkDiscounts?: BulkDiscount[];
     leadTime: number;
     availability: "in-stock" | "limited" | "out-of-stock";
     lastUpdated: string;
-    notes: string;
+    notes?: string;
+}
+
+// ============================================================================
+// PRODUCTS & FORMULATIONS
+// ============================================================================
+
+export interface ProductIngredient {
+    materialId: string;
+    materialName: string;
+    quantity: number; // in kg or specified unit
+    costPerKg: number;
+    totalCost: number;
+    percentage?: number; // for calculator/display purposes
+}
+
+export interface Product extends BaseEntity {
+    name: string;
+    description?: string;
+    ingredients: ProductIngredient[];
+    totalCostPerKg: number;
+    sellingPricePerKg?: number;
+    profitMargin?: number;
+    batchSizeKg?: number;
+    status: "draft" | "active" | "discontinued";
+}
+
+// ============================================================================
+// PROCUREMENT & ORDERS
+// ============================================================================
+
+export interface OrderItem {
+    materialId: string;
+    materialName: string;
+    quantity: number;
+    unitPrice: number;
+    totalPrice: number;
+}
+
+export interface PurchaseOrder extends BaseEntity {
+    supplierId: string;
+    supplierName: string;
+    items: OrderItem[];
+    totalCost: number;
+    status: "draft" | "sent" | "confirmed" | "delivered" | "cancelled";
+    orderDate: string;
+    expectedDelivery: string;
+}
+
+// ============================================================================
+// PRODUCTION PLANNING
+// ============================================================================
+
+export interface MaterialRequirement {
+    materialId: string;
+    materialName: string;
+    requiredQty: number;
+    availableQty: number;
+    shortage: number;
+    costPerKg: number;
+    totalCost: number;
+}
+
+export interface ProductionItem {
+    productId: string;
+    productName: string;
+    quantityKg: number;
+    costPerKg: number;
+    totalCost: number;
+    materialsRequired: MaterialRequirement[];
+}
+
+export interface ProductionPlan extends BaseEntity {
+    planName: string;
+    description?: string;
+    startDate: string;
+    endDate: string;
+    products: ProductionItem[];
+    totalCost: number;
+    totalRevenue: number;
+    totalProfit: number;
+    status: "draft" | "scheduled" | "in-progress" | "completed" | "cancelled";
+    progress: number; // 0-100
+}
+
+// ============================================================================
+// OPTIMIZATION & ANALYTICS
+// ============================================================================
+
+export interface OptimizationSuggestion {
+    type: "substitute" | "bulk" | "supplier" | "formula";
+    title: string;
+    description: string;
+    savings: number;
+    impact: "low" | "medium" | "high";
+    confidence: number; // 0-100
+}
+
+export interface ScenarioData {
+    name: string;
+    batchSize: number;
+    totalCost: number;
+    costPerKg: number;
+    margin: number;
+    price: number;
+}
+
+export interface AnalyticsChartsProps {
+    type: "materials" | "formulations" | "production" | "procurement";
 }
