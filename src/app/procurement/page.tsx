@@ -1,6 +1,6 @@
-import { Sidebar } from "@/components/sidebar"
-import { Header } from "@/components/header"
-import { ProcurementManager } from "@/components/procurement-manager"
+import { Sidebar } from "@/components/sidebar";
+import { Header } from "@/components/header";
+import { ProcurementManager } from "@/app/procurement/components/procurement-manager";
 
 export default function ProcurementPage() {
   return (
@@ -13,5 +13,5 @@ export default function ProcurementPage() {
         </main>
       </div>
     </div>
-  )
+  );
 }

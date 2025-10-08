@@ -109,7 +109,7 @@ export function ProductionPlanning() {
       quantity_kg: newProduct.quantity_kg,
       cost_per_kg: product.cost_per_kg,
       total_cost: newProduct.quantity_kg * product.cost_per_kg,
-      materials_required: [], // Would be calculated based on product formulation
+      materials_required: [], // Would be calculated based on product recipe
     };
 
     setNewPlan({

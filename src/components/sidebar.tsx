@@ -28,8 +28,8 @@ const navigation = [
     icon: Package,
   },
   {
-    name: "Product Formulations",
-    href: "/formulations",
+    name: "Product Recipes",
+    href: "/recipes",
     icon: Flask,
   },
   {

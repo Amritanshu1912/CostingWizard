@@ -388,50 +388,63 @@ export const PRODUCTS: Product[] = [
         name: "Premium Floor Cleaner",
         description: "High-performance floor cleaning solution",
         ingredients: [
+            // Ingredients kept in 'kg' as they appear to be solids/powders
             {
+                id: "1-1", // Unique ID
                 materialId: "6",
                 materialName: "NaCl",
                 quantity: 0.35,
+                unit: "kg",
                 costPerKg: 6,
                 totalCost: 2.1,
                 percentage: 35,
             },
             {
+                id: "1-2", // Unique ID
                 materialId: "7",
                 materialName: "Dolamite",
                 quantity: 0.25,
+                unit: "kg",
                 costPerKg: 5.25,
                 totalCost: 1.31,
                 percentage: 25,
             },
             {
+                id: "1-3", // Unique ID
                 materialId: "8",
                 materialName: "Soda Ash",
                 quantity: 0.22,
+                unit: "kg",
                 costPerKg: 40.95,
                 totalCost: 9.01,
                 percentage: 22,
             },
             {
+                id: "1-4", // Unique ID
                 materialId: "2",
                 materialName: "Acid Slurry 90%",
                 quantity: 0.08,
+                unit: "kg",
                 costPerKg: 122.85,
                 totalCost: 9.83,
                 percentage: 8,
             },
             {
+                id: "1-5", // Unique ID
                 materialId: "4",
                 materialName: "Caustic Soda",
                 quantity: 0.018,
+                unit: "kg",
                 costPerKg: 59.85,
                 totalCost: 1.08,
                 percentage: 1.8,
             },
             {
+                id: "1-6", // Unique ID
                 materialId: "9",
                 materialName: "AOS Powder 96%",
                 quantity: 0.025,
+                unit: "kg",
                 costPerKg: 155.4,
                 totalCost: 3.89,
                 percentage: 2.5,
@@ -447,36 +460,45 @@ export const PRODUCTS: Product[] = [
     {
         id: "2",
         name: "Bathroom Cleaner Pro",
-        description: "Powerful bathroom cleaning formula",
+        description: "Powerful bathroom cleaning recipe",
         ingredients: [
             {
+                id: "2-1", // Corrected ID
                 materialId: "5",
                 materialName: "Citric Acid",
                 quantity: 0.15,
+                unit: "kg",
                 costPerKg: 97.65,
                 totalCost: 14.65,
                 percentage: 15,
             },
             {
+                id: "2-2", // Corrected ID
                 materialId: "4",
                 materialName: "Caustic Soda",
                 quantity: 0.05,
+                unit: "kg", // Added unit
                 costPerKg: 59.85,
                 totalCost: 2.99,
                 percentage: 5,
             },
             {
+                id: "2-3", // Corrected ID
                 materialId: "2",
                 materialName: "Acid Slurry 90%",
                 quantity: 0.12,
+                unit: "L", // Using Litres (L), assuming density near 1
                 costPerKg: 122.85,
                 totalCost: 14.74,
                 percentage: 12,
             },
             {
+                id: "2-4", // Corrected ID
                 materialId: "1",
                 materialName: "Acid Blue Color",
-                quantity: 0.001,
+                // Quantity changed from 0.001 kg to 1 g (same weight)
+                quantity: 1,
+                unit: "g", // Changed to grams
                 costPerKg: 1680,
                 totalCost: 1.68,
                 percentage: 0.1,
@@ -495,25 +517,33 @@ export const PRODUCTS: Product[] = [
         description: "Streak-free glass cleaning solution",
         ingredients: [
             {
+                id: "3-1", // Added ID
                 materialId: "2",
                 materialName: "Acid Slurry 90%",
                 quantity: 0.1,
+                unit: "L", // Added unit (L)
                 costPerKg: 122.85,
                 totalCost: 12.29,
                 percentage: 10,
             },
             {
+                id: "3-2", // Added ID
                 materialId: "6",
                 materialName: "NaCl",
-                quantity: 0.05,
+                // Quantity changed from 0.05 kg to 50 g (same weight)
+                quantity: 50,
+                unit: "g", // Added unit (g)
                 costPerKg: 6,
                 totalCost: 0.3,
                 percentage: 5,
             },
             {
+                id: "3-3", // Added ID
                 materialId: "1",
                 materialName: "Acid Blue Color",
-                quantity: 0.002,
+                // Quantity changed from 0.002 kg to 2 mL (same weight assumed for color)
+                quantity: 2,
+                unit: "mL", // Added unit (mL)
                 costPerKg: 1680,
                 totalCost: 3.36,
                 percentage: 0.2,
@@ -532,25 +562,31 @@ export const PRODUCTS: Product[] = [
         description: "Heavy-duty kitchen cleaning solution",
         ingredients: [
             {
+                id: "4-1", // Added ID
                 materialId: "4",
                 materialName: "Caustic Soda",
                 quantity: 0.2,
+                unit: "kg", // Added unit
                 costPerKg: 59.85,
                 totalCost: 11.97,
                 percentage: 20,
             },
             {
+                id: "4-2", // Added ID
                 materialId: "8",
                 materialName: "Soda Ash",
                 quantity: 0.15,
+                unit: "kg", // Added unit
                 costPerKg: 40.95,
                 totalCost: 6.14,
                 percentage: 15,
             },
             {
+                id: "4-3", // Added ID
                 materialId: "9",
                 materialName: "AOS Powder 96%",
                 quantity: 0.08,
+                unit: "kg", // Added unit
                 costPerKg: 155.4,
                 totalCost: 12.43,
                 percentage: 8,
@@ -745,73 +781,86 @@ export const PRODUCTION_PLANS: ProductionPlan[] = [
 export const PURCHASE_ORDERS: PurchaseOrder[] = [
     {
         id: "PO-001",
+        orderId: "PO-001",
         supplierId: "1",
         supplierName: "ChemCorp Industries",
         items: [
             {
+                id: "PO001-I1", // Added unique ID
                 materialId: "1",
                 materialName: "Acid Blue Color",
                 quantity: 50,
-                unitPrice: 1650,
-                totalPrice: 82500,
+                unit: "kg", // Added unit
+                costPerKg: 1650,
+                totalCost: 82500,
             },
             {
+                id: "PO001-I2", // Added unique ID
                 materialId: "5",
                 materialName: "Citric Acid",
                 quantity: 100,
-                unitPrice: 95,
-                totalPrice: 9500,
+                unit: "kg", // Added unit
+                costPerKg: 95,
+                totalCost: 9500,
             },
         ],
         totalCost: 92000,
         status: "confirmed",
-        orderDate: "2024-01-15",
-        expectedDelivery: "2024-01-22",
+        dateCreated: "2024-01-15", // Renamed from orderDate
+        deliveryDate: "2024-01-22", // Renamed from expectedDelivery
         createdAt: "2024-01-15",
     },
     {
         id: "PO-002",
+        orderId: "PO-002",
         supplierId: "2",
         supplierName: "ColorTech Solutions",
         items: [
             {
+                id: "PO002-I1", // Added unique ID
                 materialId: "9",
                 materialName: "AOS Powder 96%",
                 quantity: 75,
-                unitPrice: 152,
-                totalPrice: 11400,
+                unit: "kg", // Added unit
+                costPerKg: 152,
+                totalCost: 11400,
             },
         ],
         totalCost: 11400,
-        status: "sent",
-        orderDate: "2024-01-18",
-        expectedDelivery: "2024-01-25",
+        status: "submitted",
+        dateCreated: "2024-01-18", // Renamed from orderDate
+        deliveryDate: "2024-01-25", // Renamed from expectedDelivery
         createdAt: "2024-01-18",
     },
     {
         id: "PO-003",
+        orderId: "PO-003",
         supplierId: "3",
         supplierName: "BulkChem Traders",
         items: [
             {
+                id: "PO003-I1", // Added unique ID
                 materialId: "6",
                 materialName: "NaCl",
                 quantity: 1000,
-                unitPrice: 5.8,
-                totalPrice: 5800,
+                unit: "kg", // Added unit
+                costPerKg: 5.8,
+                totalCost: 5800,
             },
             {
+                id: "PO003-I2", // Added unique ID
                 materialId: "8",
                 materialName: "Soda Ash",
                 quantity: 500,
-                unitPrice: 39,
-                totalPrice: 19500,
+                unit: "kg", // Added unit
+                costPerKg: 39,
+                totalCost: 19500,
             },
         ],
         totalCost: 25300,
         status: "delivered",
-        orderDate: "2024-01-10",
-        expectedDelivery: "2024-01-17",
+        dateCreated: "2024-01-10", // Renamed from orderDate
+        deliveryDate: "2024-01-17", // Renamed from expectedDelivery
         createdAt: "2024-01-10",
     },
 ];
@@ -913,8 +962,8 @@ export const quickActions = [
     },
     {
         title: "Create Product",
-        description: "Design new product formulations",
-        href: "/formulations",
+        description: "Design new product recipes",
+        href: "/recipes",
         icon: Flask,
     },
     {

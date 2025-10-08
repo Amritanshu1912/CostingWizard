@@ -47,7 +47,7 @@ interface SavedData {
   timestamp: number;
   size: string;
   type:
-    | "formulation"
+    | "recipe"
     | "production-plan"
     | "supplier"
     | "cost-analysis"
@@ -103,7 +103,7 @@ export function DataPersistenceManager() {
 
   const getDataName = (key: string): string => {
     const nameMap: Record<string, string> = {
-      formulations: "Product Formulations",
+      recipes: "Product Recipes",
       "production-plans": "Production Plans",
       suppliers: "Supplier Data",
       "cost-analysis": "Cost Analysis",
@@ -118,7 +118,7 @@ export function DataPersistenceManager() {
   };
 
   const getDataType = (key: string): SavedData["type"] => {
-    if (key.includes("formulation")) return "formulation";
+    if (key.includes("recipe")) return "recipe";
     if (key.includes("production")) return "production-plan";
     if (key.includes("supplier")) return "supplier";
     if (key.includes("cost")) return "cost-analysis";
@@ -142,7 +142,7 @@ export function DataPersistenceManager() {
       SavedData["type"],
       "default" | "destructive" | "outline" | "secondary"
     > = {
-      formulation: "default",
+      recipe: "default",
       "production-plan": "secondary",
       supplier: "outline",
       "cost-analysis": "destructive",
@@ -153,7 +153,7 @@ export function DataPersistenceManager() {
 
   const getTypeIcon = (type: SavedData["type"]) => {
     const icons = {
-      formulation: FileText,
+      recipe: FileText,
       "production-plan": Database,
       supplier: Database,
       "cost-analysis": Database,
@@ -638,7 +638,7 @@ export function DataPersistenceManager() {
                   What gets saved automatically:
                 </h4>
                 <ul className="text-sm text-muted-foreground space-y-1">
-                  <li>• Product formulations and recipes</li>
+                  <li>• Product recipes and recipes</li>
                   <li>• Production plans and schedules</li>
                   <li>• Supplier information and contacts</li>
                   <li>• Cost analysis and calculations</li>

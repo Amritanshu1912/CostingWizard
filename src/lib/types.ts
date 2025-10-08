@@ -91,16 +91,18 @@ export interface SupplierMaterial extends BaseEntity {
 }
 
 // ============================================================================
-// PRODUCTS & FORMULATIONS
+// PRODUCTS & Recipes
 // ============================================================================
 
 export interface ProductIngredient {
+    id: string; // New: Unique ID for the ingredient instance
     materialId: string;
     materialName: string;
-    quantity: number; // in kg or specified unit
+    quantity: number;
+    unit: string; // New: e.g., "kg", "g", "L", "mL"
     costPerKg: number;
     totalCost: number;
-    percentage?: number; // for calculator/display purposes
+    percentage?: number;
 }
 
 export interface Product extends BaseEntity {
@@ -118,22 +120,26 @@ export interface Product extends BaseEntity {
 // PROCUREMENT & ORDERS
 // ============================================================================
 
-export interface OrderItem {
+export interface PurchaseOrderItem {
+    id: string;
     materialId: string;
     materialName: string;
     quantity: number;
-    unitPrice: number;
-    totalPrice: number;
+    unit: string;
+    costPerKg: number;
+    totalCost: number;
 }
 
 export interface PurchaseOrder extends BaseEntity {
+    id: string;
+    orderId: string;
     supplierId: string;
     supplierName: string;
-    items: OrderItem[];
+    items: PurchaseOrderItem[];
     totalCost: number;
-    status: "draft" | "sent" | "confirmed" | "delivered" | "cancelled";
-    orderDate: string;
-    expectedDelivery: string;
+    status: "draft" | "submitted" | "pending" | "confirmed" | "shipped" | "delivered" | "cancelled";
+    dateCreated: string;
+    deliveryDate: string;
 }
 
 // ============================================================================
@@ -177,7 +183,7 @@ export interface ProductionPlan extends BaseEntity {
 // ============================================================================
 
 export interface OptimizationSuggestion {
-    type: "substitute" | "bulk" | "supplier" | "formula";
+    type: "substitute" | "bulk" | "supplier" | "recipe";
     title: string;
     description: string;
     savings: number;
@@ -195,5 +201,5 @@ export interface ScenarioData {
 }
 
 export interface AnalyticsChartsProps {
-    type: "materials" | "formulations" | "production" | "procurement";
+    type: "materials" | "recipes" | "production" | "procurement";
 }
