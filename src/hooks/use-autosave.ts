@@ -3,16 +3,25 @@
 import { useEffect, useRef, useCallback } from "react"
 import { toast } from "sonner"
 
-interface AutosaveOptions {
+// Make the interface generic
+interface AutosaveOptions<T> {
   key: string
-  data: any
+  data: T
   delay?: number
   enabled?: boolean
   onSave?: () => void
   onError?: (error: Error) => void
 }
 
-export function useAutosave({ key, data, delay = 2000, enabled = true, onSave, onError }: AutosaveOptions) {
+// Make the function generic
+export function useAutosave<T>({
+  key,
+  data,
+  delay = 2000,
+  enabled = true,
+  onSave,
+  onError
+}: AutosaveOptions<T>) {
   const timeoutRef = useRef<NodeJS.Timeout | null>(null)
   const lastSavedRef = useRef<string>("")
 

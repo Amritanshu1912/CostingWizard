@@ -1,42 +1,67 @@
 "use client";
 
 import React from "react";
-
 import { useAutosave } from "@/hooks/use-autosave";
 import { useLocalStorage } from "@/hooks/use-local-storage";
-import { sampleMaterials } from "@/lib/constants";
-import type { FormulationMaterial, SavedFormulation } from "@/lib/types";
+import { MATERIALS } from "@/lib/constants";
+import type { Product, ProductIngredient } from "@/lib/types";
+
+type CurrentFormulationData = Pick<
+  Product,
+  "ingredients" | "totalCostPerKg" | "batchSizeKg"
+>;
 
 export function FormulationCalculator() {
-  const [savedFormulations, setSavedFormulations] = useLocalStorage<
-    SavedFormulation[]
-  >("formulations", []);
+  // Remove the generic type from useLocalStorage and let TypeScript infer it
+  const [savedFormulations, setSavedFormulations] = useLocalStorage(
+    "formulations",
+    [] as Product[] // Type the initial value instead
+  );
+
   const [materials, setMaterials] = useLocalStorage(
     "materials",
-    sampleMaterials
+    MATERIALS // TypeScript will infer the type from MATERIALS
   );
-  const [currentMaterials, setCurrentMaterials] = React.useState<
-    FormulationMaterial[]
-  >([]);
-  const [totalCost, setTotalCost] = React.useState(0);
-  const [totalWeight, setTotalWeight] = React.useState(0);
 
-  useAutosave({
+  const [currentIngredients, setCurrentIngredients] = React.useState<
+    ProductIngredient[]
+  >([]);
+
+  const [totalCostPerKg, setTotalCostPerKg] = React.useState(0);
+  const [batchSizeKg, setBatchSizeKg] = React.useState(0);
+
+  useAutosave<CurrentFormulationData>({
     key: "current-formulation",
-    data: { materials: currentMaterials, totalCost, totalWeight },
-    enabled: currentMaterials.length > 0,
+    data: {
+      ingredients: currentIngredients,
+      totalCostPerKg: totalCostPerKg,
+      batchSizeKg: batchSizeKg,
+    },
+    enabled: currentIngredients.length > 0,
     onSave: () => {
-      // Optional: Update saved formulations list
-      const timestamp = Date.now();
-      const formulation = {
-        id: timestamp.toString(),
-        name: `Formulation ${new Date().toLocaleString()}`,
-        materials: currentMaterials,
-        totalCost,
-        totalWeight,
-        timestamp,
+      const timestamp = Date.now().toString();
+      const formulation: Product = {
+        id: timestamp,
+        createdAt: new Date().toISOString(),
+        name: `Draft Formulation ${new Date().toLocaleString()}`,
+        status: "draft",
+        ingredients: currentIngredients,
+        totalCostPerKg: totalCostPerKg,
+        batchSizeKg: batchSizeKg,
       };
-      setSavedFormulations((prev) => [formulation, ...prev.slice(0, 9)]); // Keep last 10
+
+      // Remove the explicit type from 'prev' - TypeScript will infer it
+      setSavedFormulations((prev) => [formulation, ...prev.slice(0, 9)]);
     },
   });
+
+  return (
+    <div>
+      <h1>Formulation Calculator</h1>
+      <p>
+        Total Cost per Kg: {totalCostPerKg.toFixed(2)} | Batch Size:{" "}
+        {batchSizeKg.toFixed(2)} Kg
+      </p>
+    </div>
+  );
 }
