@@ -178,7 +178,7 @@ export function AnalyticsCharts({ type }: AnalyticsChartsProps) {
     </div>
   );
 
-  const renderFormulationsAnalytics = () => (
+  const renderRecipesAnalytics = () => (
     <div className="space-y-6">
       {/* Cost Breakdown */}
       <Card className="card-enhanced">
@@ -572,7 +572,7 @@ export function AnalyticsCharts({ type }: AnalyticsChartsProps) {
 
       <TabsContent value="overview">
         {type === "materials" && renderMaterialsAnalytics()}
-        {type === "formulations" && renderFormulationsAnalytics()}
+        {type === "recipes" && renderRecipesAnalytics()}
         {type === "production" && renderProductionAnalytics()}
         {type === "procurement" && renderProcurementAnalytics()}
       </TabsContent>

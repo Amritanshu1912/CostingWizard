@@ -125,7 +125,7 @@ export function IngredientsTable({
 
   return (
     <div className="space-y-4">
-      <h4 className="font-medium text-foreground">Formula Composition</h4>
+      <h4 className="font-medium text-foreground">Recipe Composition</h4>
       <div className="overflow-x-auto">
         <Table className="table-enhanced">
           <TableHeader>
@@ -304,7 +304,7 @@ export function OptimizationSuggestions({
           No Optimization Suggestions
         </h3>
         <p className="text-muted-foreground">
-          Add ingredients to your formula to get AI-powered optimization
+          Add ingredients to your recipe to get AI-powered optimization
           suggestions.
         </p>
       </div>

@@ -37,8 +37,13 @@ import {
   OptimizationSuggestions,
   ScenarioComparison,
   BatchPlanning,
-} from "@/components/calculator-components";
+} from "@/components/cost-calculator-components";
 import { ScenarioData } from "@/lib/types";
+import {
+  INGREDIENT_UNITS as UNITS,
+  convertToKilograms,
+} from "@/lib/recipe-constants"; // Assuming this utility is saved in src/lib/recipe-constants.ts
+import type { IngredientUnitValue } from "@/lib/recipe-constants";
 
 export function CostCalculator() {
   // State management
@@ -47,8 +52,9 @@ export function CostCalculator() {
     MARGIN_CONFIG.DEFAULT
   );
   const [ingredients, setIngredients] = useState<ProductIngredient[]>([]);
-  const [selectedMaterial, setSelectedMaterial] = useState("");
-  const [quantity, setQuantity] = useState(0);
+  const [selectedMaterial, setSelectedMaterial] = useState<string>("");
+  const [quantity, setQuantity] = useState<number>(0);
+  const [unit, setUnit] = useState<string>(UNITS[0].value);
   const [optimizationEnabled, setOptimizationEnabled] = useState(true);
   const [scenarios, setScenarios] = useState<ScenarioData[]>([]);
 
@@ -67,25 +73,49 @@ export function CostCalculator() {
       ? ((suggestedPrice - costPerKg) / suggestedPrice) * 100
       : 0;
 
+  // Function to calculate cost using the new utility
+  const calculateIngredientCost = (
+    quantity: number,
+    unit: IngredientUnitValue,
+    costPerKg: number
+  ): number => {
+    const quantityInKg = convertToKilograms(quantity, unit);
+    return quantityInKg * costPerKg;
+  };
+
   // Add ingredient handler
   const addIngredient = () => {
-    if (!selectedMaterial || quantity <= 0 || isNaN(quantity)) return;
+    // Validation now checks for the 'unit' state variable
+    if (!selectedMaterial || quantity <= 0 || isNaN(quantity) || !unit) return;
 
     const material = MATERIALS.find((m) => m.id === selectedMaterial);
     if (!material) return;
 
+    // --- FIXED CALCULATION ---
+    const totalCost = calculateIngredientCost(
+      quantity,
+      unit as IngredientUnitValue,
+      material.pricePerKg || 0
+    );
+
     const newIngredient: ProductIngredient = {
+      // 1. Add unique ID for client-side state management
+      id: crypto.randomUUID(),
       materialId: material.id,
       materialName: material.name,
       quantity: Number(quantity) || 0,
+      // 2. Add the selected unit
+      unit: unit,
       costPerKg: material.pricePerKg || 0,
-      totalCost: (Number(quantity) || 0) * (material.pricePerKg || 0),
+      totalCost: totalCost, // Using the fixed calculation
       percentage: 0,
     };
 
     updateIngredientsWithPercentages([...ingredients, newIngredient]);
     setSelectedMaterial("");
     setQuantity(0);
+    // Reset unit back to default after adding ingredient
+    setUnit(UNITS[0].value); // Reset to the default unit
   };
 
   // Remove ingredient handler
@@ -173,21 +203,21 @@ export function CostCalculator() {
       }
     });
 
-    // Formula optimization
+    // Recipe optimization
     if (
       ingredients.length >
-        OPTIMIZATION_THRESHOLDS.MIN_INGREDIENTS_FOR_FORMULA_OPT &&
+        OPTIMIZATION_THRESHOLDS.MIN_INGREDIENTS_FOR_RECIPE_OPT &&
       totalCost > 0
     ) {
-      const formulaOptimization =
-        totalCost * OPTIMIZATION_THRESHOLDS.FORMULA_OPTIMIZATION_RATE;
-      if (formulaOptimization > 0 && !isNaN(formulaOptimization)) {
+      const recipeOptimization =
+        totalCost * OPTIMIZATION_THRESHOLDS.RECIPE_OPTIMIZATION_RATE;
+      if (recipeOptimization > 0 && !isNaN(recipeOptimization)) {
         suggestions.push({
-          type: "formula",
-          title: "Formula Optimization",
+          type: "recipe",
+          title: "Recipe Optimization",
           description:
             "AI analysis suggests potential ingredient ratio adjustments for cost reduction.",
-          savings: formulaOptimization,
+          savings: recipeOptimization,
           impact: "medium",
           confidence: 82,
         });
@@ -205,7 +235,7 @@ export function CostCalculator() {
     }
 
     const baseScenario: ScenarioData = {
-      name: "Current Formula",
+      name: "Current Recipe",
       batchSize,
       totalCost,
       costPerKg,
@@ -290,7 +320,7 @@ export function CostCalculator() {
                   <span>Cost Calculator</span>
                 </CardTitle>
                 <CardDescription>
-                  Build your product formulation and calculate costs
+                  Build your product recipe and calculate costs
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-6">
