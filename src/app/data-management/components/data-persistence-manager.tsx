@@ -1,17 +1,8 @@
 "use client";
 
 import type React from "react";
-
 import { useState, useEffect } from "react";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import {
   Dialog,
   DialogContent,
@@ -20,40 +11,14 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
 import { toast } from "sonner";
-import {
-  Download,
-  Upload,
-  Trash2,
-  Clock,
-  Database,
-  FileText,
-  AlertCircle,
-  CheckCircle,
-  RefreshCw,
-} from "lucide-react";
-
-interface SavedData {
-  key: string;
-  name: string;
-  timestamp: number;
-  size: string;
-  type:
-    | "recipe"
-    | "production-plan"
-    | "supplier"
-    | "cost-analysis"
-    | "settings";
-  data: any;
-}
+import { Download, Upload, RefreshCw } from "lucide-react";
+import type { SavedData } from "./data-management-types";
+import { getDataName, getDataType, formatBytes } from "./data-management-utils";
+import { StatsCards } from "./StatsCards";
+import { SavedDataTable } from "./SavedDataTable";
+import { AutosaveSettings } from "./AutosaveSettings";
+import { ExportDialog } from "./ExportDialog";
 
 export function DataPersistenceManager() {
   const [savedData, setSavedData] = useState<SavedData[]>([]);
@@ -99,67 +64,6 @@ export function DataPersistenceManager() {
     // Sort by timestamp (newest first)
     data.sort((a, b) => b.timestamp - a.timestamp);
     setSavedData(data);
-  };
-
-  const getDataName = (key: string): string => {
-    const nameMap: Record<string, string> = {
-      recipes: "Product Recipes",
-      "production-plans": "Production Plans",
-      suppliers: "Supplier Data",
-      "cost-analysis": "Cost Analysis",
-      "user-settings": "User Settings",
-      "material-inventory": "Material Inventory",
-      "procurement-orders": "Purchase Orders",
-    };
-    return (
-      nameMap[key] ||
-      key.replace(/-/g, " ").replace(/\b\w/g, (l) => l.toUpperCase())
-    );
-  };
-
-  const getDataType = (key: string): SavedData["type"] => {
-    if (key.includes("recipe")) return "recipe";
-    if (key.includes("production")) return "production-plan";
-    if (key.includes("supplier")) return "supplier";
-    if (key.includes("cost")) return "cost-analysis";
-    return "settings";
-  };
-
-  const formatBytes = (bytes: number): string => {
-    if (bytes === 0) return "0 Bytes";
-    const k = 1024;
-    const sizes = ["Bytes", "KB", "MB", "GB"];
-    const i = Math.floor(Math.log(bytes) / Math.log(k));
-    return (
-      Number.parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + " " + sizes[i]
-    );
-  };
-
-  const getTypeColor = (
-    type: SavedData["type"]
-  ): "default" | "destructive" | "outline" | "secondary" => {
-    const colors: Record<
-      SavedData["type"],
-      "default" | "destructive" | "outline" | "secondary"
-    > = {
-      recipe: "default",
-      "production-plan": "secondary",
-      supplier: "outline",
-      "cost-analysis": "destructive",
-      settings: "outline",
-    };
-    return colors[type] || "outline";
-  };
-
-  const getTypeIcon = (type: SavedData["type"]) => {
-    const icons = {
-      recipe: FileText,
-      "production-plan": Database,
-      supplier: Database,
-      "cost-analysis": Database,
-      settings: Database,
-    };
-    return icons[type] || Database;
   };
 
   const handleExportData = (item: SavedData) => {
@@ -301,11 +205,6 @@ export function DataPersistenceManager() {
     toast.success(`Autosave ${!autosaveEnabled ? "enabled" : "disabled"}`);
   };
 
-  const totalSize = savedData.reduce((sum, item) => {
-    const bytes = new Blob([JSON.stringify(item.data)]).size;
-    return sum + bytes;
-  }, 0);
-
   return (
     <div className="space-y-6 animate-wave-in">
       {/* Header */}
@@ -373,314 +272,31 @@ export function DataPersistenceManager() {
             </DialogContent>
           </Dialog>
 
-          <Dialog
+          <ExportDialog
             open={isExportDialogOpen}
             onOpenChange={setIsExportDialogOpen}
-          >
-            <DialogTrigger asChild>
-              <Button className="bg-accent hover:bg-accent/90">
-                <Download className="h-4 w-4 mr-2" />
-                Export All
-              </Button>
-            </DialogTrigger>
-            <DialogContent>
-              <DialogHeader>
-                <DialogTitle>Export All Data</DialogTitle>
-                <DialogDescription>
-                  Download a complete backup of all your saved data
-                </DialogDescription>
-              </DialogHeader>
-              <div className="space-y-4">
-                <div className="bg-muted/50 rounded-lg p-4">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="font-medium">Complete Backup</p>
-                      <p className="text-sm text-muted-foreground">
-                        {savedData.length} items • {formatBytes(totalSize)}
-                      </p>
-                    </div>
-                    <Database className="h-8 w-8 text-primary" />
-                  </div>
-                </div>
-                <div className="flex gap-3">
-                  <Button
-                    onClick={handleExportAll}
-                    className="flex-1 bg-accent hover:bg-accent/90"
-                  >
-                    Download Backup
-                  </Button>
-                  <Button
-                    variant="outline"
-                    onClick={() => setIsExportDialogOpen(false)}
-                    className="flex-1"
-                  >
-                    Cancel
-                  </Button>
-                </div>
-              </div>
-            </DialogContent>
-          </Dialog>
+            savedData={savedData}
+            onExportAll={handleExportAll}
+          />
         </div>
       </div>
 
       {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-        <Card className="card-enhanced">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">
-              Saved Items
-            </CardTitle>
-            <Database className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-foreground">
-              {savedData.length}
-            </div>
-            <div className="text-xs text-muted-foreground">data entries</div>
-          </CardContent>
-        </Card>
-
-        <Card className="card-enhanced">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">
-              Storage Used
-            </CardTitle>
-            <FileText className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-foreground">
-              {formatBytes(totalSize)}
-            </div>
-            <div className="text-xs text-muted-foreground">local storage</div>
-          </CardContent>
-        </Card>
-
-        <Card className="card-enhanced">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">
-              Autosave Status
-            </CardTitle>
-            {autosaveEnabled ? (
-              <CheckCircle className="h-4 w-4 text-green-600" />
-            ) : (
-              <AlertCircle className="h-4 w-4 text-destructive" />
-            )}
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-foreground">
-              {autosaveEnabled ? "Active" : "Disabled"}
-            </div>
-            <div className="text-xs text-muted-foreground">
-              {autosaveEnabled ? "saves every 2 seconds" : "manual save only"}
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className="card-enhanced">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">
-              Last Backup
-            </CardTitle>
-            <Clock className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-foreground">
-              {savedData.length > 0 ? "Today" : "Never"}
-            </div>
-            <div className="text-xs text-muted-foreground">
-              {savedData.length > 0
-                ? new Date(
-                    Math.max(...savedData.map((d) => d.timestamp))
-                  ).toLocaleDateString()
-                : "no backups yet"}
-            </div>
-          </CardContent>
-        </Card>
-      </div>
+      <StatsCards savedData={savedData} autosaveEnabled={autosaveEnabled} />
 
       {/* Saved Data Table */}
-      <Card className="card-enhanced">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Database className="h-5 w-5 text-primary" />
-            Saved Data
-          </CardTitle>
-          <CardDescription>
-            Manage your locally saved data and create backups
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          {savedData.length === 0 ? (
-            <div className="text-center py-12">
-              <Database className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-              <h3 className="text-lg font-medium text-foreground mb-2">
-                No Saved Data
-              </h3>
-              <p className="text-muted-foreground">
-                Start using the application to automatically save your work
-              </p>
-            </div>
-          ) : (
-            <div className="space-y-4">
-              <div className="flex justify-between items-center">
-                <p className="text-sm text-muted-foreground">
-                  {savedData.length} items saved locally
-                </p>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={handleClearAllData}
-                  className="text-destructive hover:text-destructive bg-transparent"
-                >
-                  <Trash2 className="h-4 w-4 mr-2" />
-                  Clear All
-                </Button>
-              </div>
-
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Name</TableHead>
-                    <TableHead>Type</TableHead>
-                    <TableHead>Size</TableHead>
-                    <TableHead>Last Modified</TableHead>
-                    <TableHead>Actions</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {savedData.map((item) => {
-                    const TypeIcon = getTypeIcon(item.type);
-                    return (
-                      <TableRow key={item.key}>
-                        <TableCell>
-                          <div className="flex items-center gap-2">
-                            <TypeIcon className="h-4 w-4 text-muted-foreground" />
-                            <span className="font-medium">{item.name}</span>
-                          </div>
-                        </TableCell>
-                        <TableCell>
-                          <Badge variant={getTypeColor(item.type)}>
-                            {item.type.replace("-", " ")}
-                          </Badge>
-                        </TableCell>
-                        <TableCell className="text-muted-foreground">
-                          {item.size}
-                        </TableCell>
-                        <TableCell className="text-muted-foreground">
-                          {new Date(item.timestamp).toLocaleString()}
-                        </TableCell>
-                        <TableCell>
-                          <div className="flex gap-2">
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={() => handleExportData(item)}
-                              className="h-8 w-8 p-0"
-                            >
-                              <Download className="h-3 w-3" />
-                            </Button>
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={() => handleDeleteData(item.key)}
-                              className="h-8 w-8 p-0 text-destructive hover:text-destructive"
-                            >
-                              <Trash2 className="h-3 w-3" />
-                            </Button>
-                          </div>
-                        </TableCell>
-                      </TableRow>
-                    );
-                  })}
-                </TableBody>
-              </Table>
-            </div>
-          )}
-        </CardContent>
-      </Card>
+      <SavedDataTable
+        savedData={savedData}
+        onExportData={handleExportData}
+        onDeleteData={handleDeleteData}
+        onClearAllData={handleClearAllData}
+      />
 
       {/* Autosave Settings */}
-      <Card className="card-enhanced">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <RefreshCw className="h-5 w-5 text-secondary" />
-            Autosave Settings
-          </CardTitle>
-          <CardDescription>
-            Configure automatic data saving preferences
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div className="space-y-4">
-              <div className="flex items-center justify-between p-4 rounded-lg border bg-card">
-                <div>
-                  <h4 className="font-medium text-foreground">
-                    Enable Autosave
-                  </h4>
-                  <p className="text-sm text-muted-foreground">
-                    Automatically save your work every 2 seconds
-                  </p>
-                </div>
-                <Button
-                  variant={autosaveEnabled ? "default" : "outline"}
-                  onClick={toggleAutosave}
-                  className={
-                    autosaveEnabled ? "bg-green-600 hover:bg-green-700" : ""
-                  }
-                >
-                  {autosaveEnabled ? "Enabled" : "Disabled"}
-                </Button>
-              </div>
-
-              <div className="p-4 rounded-lg border bg-muted/20">
-                <h4 className="font-medium text-foreground mb-2">
-                  What gets saved automatically:
-                </h4>
-                <ul className="text-sm text-muted-foreground space-y-1">
-                  <li>• Product recipes and recipes</li>
-                  <li>• Production plans and schedules</li>
-                  <li>• Supplier information and contacts</li>
-                  <li>• Cost analysis and calculations</li>
-                  <li>• User preferences and settings</li>
-                </ul>
-              </div>
-            </div>
-
-            <div className="space-y-4">
-              <div className="p-4 rounded-lg bg-accent/10 border border-accent/20">
-                <div className="flex items-start gap-3">
-                  <CheckCircle className="h-5 w-5 text-accent flex-shrink-0 mt-0.5" />
-                  <div>
-                    <h4 className="font-medium text-foreground mb-1">
-                      Data Security
-                    </h4>
-                    <p className="text-sm text-muted-foreground">
-                      All data is stored locally in your browser. Nothing is
-                      sent to external servers.
-                    </p>
-                  </div>
-                </div>
-              </div>
-
-              <div className="p-4 rounded-lg bg-primary/10 border border-primary/20">
-                <div className="flex items-start gap-3">
-                  <AlertCircle className="h-5 w-5 text-primary flex-shrink-0 mt-0.5" />
-                  <div>
-                    <h4 className="font-medium text-foreground mb-1">
-                      Backup Recommendation
-                    </h4>
-                    <p className="text-sm text-muted-foreground">
-                      Export your data regularly to prevent loss when clearing
-                      browser data.
-                    </p>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
+      <AutosaveSettings
+        autosaveEnabled={autosaveEnabled}
+        onToggleAutosave={toggleAutosave}
+      />
     </div>
   );
 }

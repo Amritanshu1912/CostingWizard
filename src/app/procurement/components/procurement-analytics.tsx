@@ -23,8 +23,13 @@ import {
   Legend,
   ResponsiveContainer,
 } from "recharts";
+import {
+  procurementCostSavings,
+  procurementLeadTime,
+  procurementQualityScore,
+} from "./procurement-constants";
 
-interface AnalyticsTabProps {
+interface ProcurementAnalyticsProps {
   metrics: any[];
   monthlySpendData: any[];
   supplierPerformanceData: any[];
@@ -32,13 +37,13 @@ interface AnalyticsTabProps {
   orderStatusData: any[];
 }
 
-export function AnalyticsTab({
+export function ProcurementAnalytics({
   metrics,
   monthlySpendData,
   supplierPerformanceData,
   materialCostData,
   orderStatusData,
-}: AnalyticsTabProps) {
+}: ProcurementAnalyticsProps) {
   return (
     <div className="space-y-6">
       {/* Comprehensive Analytics */}
@@ -173,7 +178,7 @@ export function AnalyticsTab({
               <YAxis stroke="hsl(var(--muted-foreground))" />
               <Tooltip
                 contentStyle={{
-                  backgroundColor: "hasl(var(--card))",
+                  backgroundColor: "hsl(var(--card))",
                   border: "1px solid hsl(var(--border))",
                   borderRadius: "8px",
                 }}
@@ -209,10 +214,12 @@ export function AnalyticsTab({
             <CardDescription>This quarter vs last quarter</CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-accent">₹12,450</div>
+            <div className="text-2xl font-bold text-accent">
+              {procurementCostSavings.value}
+            </div>
             <div className="flex items-center text-sm text-green-600 mt-1">
               <TrendingUp className="h-4 w-4 mr-1" />
-              +8.5% improvement
+              {procurementCostSavings.change}
             </div>
           </CardContent>
         </Card>
@@ -223,10 +230,12 @@ export function AnalyticsTab({
             <CardDescription>Across all suppliers</CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-primary">6.8 days</div>
+            <div className="text-2xl font-bold text-primary">
+              {procurementLeadTime.value}
+            </div>
             <div className="flex items-center text-sm text-green-600 mt-1">
               <TrendingUp className="h-4 w-4 mr-1" />
-              -1.2 days vs last month
+              {procurementLeadTime.change}
             </div>
           </CardContent>
         </Card>
@@ -237,10 +246,12 @@ export function AnalyticsTab({
             <CardDescription>Average across suppliers</CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-secondary">87.3%</div>
+            <div className="text-2xl font-bold text-secondary">
+              {procurementQualityScore.value}
+            </div>
             <div className="flex items-center text-sm text-green-600 mt-1">
               <TrendingUp className="h-4 w-4 mr-1" />
-              +2.1% this month
+              {procurementQualityScore.change}
             </div>
           </CardContent>
         </Card>

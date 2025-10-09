@@ -280,3 +280,18 @@ export const ORDER_STATUS_DATA = [
   { name: "Sent", value: 20, color: "#f59e0b" },
   { name: "Cancelled", value: 5, color: "#ef4444" },
 ];
+
+export const procurementCostSavings = {
+  value: "₹12,450",
+  change: "+8.5% improvement",
+};
+
+export const procurementLeadTime = {
+  value: "6.8 days",
+  change: "-1.2 days vs last month",
+};
+
+export const procurementQualityScore = {
+  value: "87.3%",
+  change: "+2.1% this month",
+};

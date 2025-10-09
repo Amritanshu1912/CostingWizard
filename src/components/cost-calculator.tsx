@@ -36,14 +36,13 @@ import {
   CostAnalysis,
   OptimizationSuggestions,
   ScenarioComparison,
-  BatchPlanning,
 } from "@/components/cost-calculator-components";
 import { ScenarioData } from "@/lib/types";
 import {
   INGREDIENT_UNITS as UNITS,
   convertToKilograms,
-} from "@/lib/recipe-constants"; // Assuming this utility is saved in src/lib/recipe-constants.ts
-import type { IngredientUnitValue } from "@/lib/recipe-constants";
+} from "@/app/recipes/components/recipes-constants"; // Assuming this utility is saved in src/lib/recipe-constants.ts
+import type { IngredientUnitValue } from "@/app/recipes/components/recipes-constants";
 
 export function CostCalculator() {
   // State management
@@ -302,11 +301,10 @@ export function CostCalculator() {
   return (
     <div className="space-y-6">
       <Tabs defaultValue="calculator" className="space-y-6">
-        <TabsList className="grid w-full grid-cols-4">
+        <TabsList className="grid w-full grid-cols-3">
           <TabsTrigger value="calculator">Calculator</TabsTrigger>
           <TabsTrigger value="optimization">Optimization</TabsTrigger>
           <TabsTrigger value="scenarios">Scenarios</TabsTrigger>
-          <TabsTrigger value="batch">Batch Planning</TabsTrigger>
         </TabsList>
 
         {/* CALCULATOR TAB */}
@@ -496,27 +494,6 @@ export function CostCalculator() {
                   </p>
                 </div>
               )}
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        {/* BATCH PLANNING TAB */}
-        <TabsContent value="batch" className="space-y-6">
-          <Card className="card-enhanced">
-            <CardHeader>
-              <CardTitle className="flex items-center space-x-2 text-foreground">
-                <Package className="h-5 w-5 text-primary" />
-                <span>Batch Planning</span>
-              </CardTitle>
-              <CardDescription>
-                Optimize batch sizes and production planning
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <BatchPlanning
-                batchSize={batchSize}
-                onBatchSizeChange={setBatchSize}
-              />
             </CardContent>
           </Card>
         </TabsContent>

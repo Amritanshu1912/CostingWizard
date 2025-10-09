@@ -26,7 +26,7 @@ import { AddSupplierDialog, OrderDialog } from "./procurement-dialogs";
 import { SuppliersTab } from "./procurement-suppliers-tab";
 import { OrdersTab } from "./procurement-orders-tab";
 import { MoqAnalysisTab } from "./procurement-moq-analysis-tab";
-import { AnalyticsTab } from "./procurement-analytics-tab";
+import { ProcurementAnalytics } from "./procurement-analytics";
 
 export function ProcurementManager() {
   const [suppliers, setSuppliers] = useLocalStorage<Supplier[]>(
@@ -190,7 +190,7 @@ export function ProcurementManager() {
         </TabsContent>
 
         <TabsContent value="analytics" className="space-y-6">
-          <AnalyticsTab
+          <ProcurementAnalytics
             metrics={metrics}
             monthlySpendData={monthlySpendData}
             supplierPerformanceData={supplierPerformanceData}
