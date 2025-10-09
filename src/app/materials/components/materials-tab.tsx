@@ -8,6 +8,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import {
   Select,
@@ -17,8 +18,8 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { SortableTable } from "@/components/ui/sortable-table";
-import { Search } from "lucide-react";
-import { MaterialsOverview } from "./materials-overview";
+import { MetricCard } from "@/components/ui/metric-card";
+import { Search, Package, TrendingUp, BarChart3 } from "lucide-react";
 
 interface MaterialsTabProps {
   totalMaterials: number;
@@ -51,18 +52,59 @@ export function MaterialsTab({
 }: MaterialsTabProps) {
   return (
     <div className="space-y-6">
-      <MaterialsOverview
-        materials={materials}
-        totalMaterials={totalMaterials}
-        avgPrice={avgPrice}
-        highestPrice={highestPrice}
-        avgTax={avgTax}
-      />
+      {/* Quick Stats */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        <MetricCard
+          title="Total Materials"
+          value={totalMaterials}
+          icon={Package}
+          iconClassName="text-primary"
+          trend={{
+            value: "+12%",
+            isPositive: true,
+            label: "from last month",
+          }}
+        />
 
-      {/* Filters */}
+        <MetricCard
+          title="Avg Price (with tax)"
+          value={`₹${avgPrice.toFixed(2)}`}
+          icon={BarChart3}
+          iconClassName="text-primary"
+          trend={{
+            value: "+5.2%",
+            isPositive: true,
+            label: "from last month",
+          }}
+        />
+
+        <MetricCard
+          title="Highest Price"
+          value={`₹${highestPrice.toFixed(2)}`}
+          icon={TrendingUp}
+          iconClassName="text-primary"
+          description="per kg"
+        />
+
+        <MetricCard
+          title="Avg Tax Rate"
+          value={`${avgTax.toFixed(1)}%`}
+          icon={BarChart3}
+          iconClassName="text-primary"
+          description="average across all materials"
+        />
+      </div>
+
+      {/* Materials Table */}
       <Card className="card-enhanced">
-        <CardContent className="pt-6">
-          <div className="flex flex-col sm:flex-row gap-4">
+        <CardHeader>
+          <CardTitle className="text-foreground">Materials Inventory</CardTitle>
+          <CardDescription>
+            Manage your raw materials and pricing
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="flex flex-col sm:flex-row gap-4 mb-6">
             <div className="relative flex-1">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
               <Input
@@ -86,18 +128,6 @@ export function MaterialsTab({
               </SelectContent>
             </Select>
           </div>
-        </CardContent>
-      </Card>
-
-      {/* Materials Table */}
-      <Card className="card-enhanced">
-        <CardHeader>
-          <CardTitle className="text-foreground">Materials Inventory</CardTitle>
-          <CardDescription>
-            Manage your raw materials and pricing
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
           <SortableTable
             data={filteredMaterials}
             columns={materialColumns}

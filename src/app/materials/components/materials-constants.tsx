@@ -36,43 +36,54 @@ export const materialUsage = [
 
 export const materialsKeyMetrics = [
   {
+    type: "progress",
     title: "Price Volatility",
     value: "+5.2%",
     icon: TrendingUp,
     iconClassName: "text-accent",
     progress: {
-      value: 65,
+      current: 65,
+      max: 100,
       label: "Above average",
+      color: "warning" as const,
     },
   },
   {
+    type: "progress",
     title: "Cost Efficiency",
     value: "89%",
     icon: Target,
     iconClassName: "text-primary",
     progress: {
-      value: 89,
+      current: 89,
+      max: 100,
       label: "Excellent",
+      color: "success" as const,
     },
   },
   {
+    type: "badge",
     title: "Stock Alerts",
     value: 3,
     icon: AlertTriangle,
     iconClassName: "text-destructive",
-    badge: {
-      text: "Low Stock",
-      variant: "destructive" as const,
-    },
+    badges: [
+      {
+        text: "Low Stock",
+        variant: "destructive" as const,
+      },
+    ],
   },
   {
+    type: "standard",
     title: "Total Value",
     value: "₹5.2L",
     icon: DollarSign,
     iconClassName: "text-accent",
     trend: {
-      value: "+12% this month",
-      positive: true,
+      value: "+12%",
+      isPositive: true,
+      label: "this month",
     },
   },
 ];

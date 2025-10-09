@@ -9,7 +9,11 @@ import {
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
-import { MetricCard } from "@/components/ui/metric-card";
+import {
+  MetricCard,
+  MetricCardWithProgress,
+  MetricCardWithBadge,
+} from "@/components/ui/metric-card";
 import {
   LineChart,
   Line,
@@ -39,18 +43,41 @@ export function MaterialsAnalytics() {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
           {materialsKeyMetrics.map((metric) => {
             const Icon = metric.icon;
-            return (
-              <MetricCard
-                key={metric.title}
-                title={metric.title}
-                value={metric.value}
-                icon={Icon}
-                iconClassName={metric.iconClassName}
-                progress={metric.progress}
-                badge={metric.badge}
-                trend={metric.trend}
-              />
-            );
+            if (metric.type === "progress") {
+              return (
+                <MetricCardWithProgress
+                  key={metric.title}
+                  title={metric.title}
+                  value={metric.value}
+                  icon={Icon}
+                  iconClassName={metric.iconClassName}
+                  progress={metric.progress!}
+                />
+              );
+            } else if (metric.type === "badge") {
+              return (
+                <MetricCardWithBadge
+                  key={metric.title}
+                  title={metric.title}
+                  value={metric.value}
+                  icon={Icon}
+                  iconClassName={metric.iconClassName}
+                  badges={metric.badges!}
+                />
+              );
+            } else {
+              return (
+                <MetricCard
+                  key={metric.title}
+                  title={metric.title}
+                  value={metric.value}
+                  icon={Icon}
+                  iconClassName={metric.iconClassName}
+                  trend={metric.trend}
+                />
+              );
+            }
+            return null;
           })}
         </div>
 

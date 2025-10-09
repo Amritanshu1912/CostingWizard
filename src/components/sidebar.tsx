@@ -43,7 +43,12 @@ const navigation = [
     icon: ShoppingCart,
   },
   {
-    name: "Data Mgmt",
+    name: "Supplier Management",
+    href: "/supplier-management",
+    icon: Package,
+  },
+  {
+    name: "Data Management",
     href: "/data-management",
     icon: ShoppingCart,
   },

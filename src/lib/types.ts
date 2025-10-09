@@ -57,6 +57,7 @@ export interface Material extends BaseEntity {
 // ============================================================================
 
 export interface Supplier extends BaseEntity {
+    id: string;
     name: string;
     contactPerson: string;
     email: string;
@@ -75,6 +76,7 @@ export interface Supplier extends BaseEntity {
 }
 
 export interface SupplierMaterial extends BaseEntity {
+    id: string;
     supplierId: string;
     materialId?: string; // optional if material doesn't exist in main materials yet
     materialName: string;
@@ -200,6 +202,4 @@ export interface ScenarioData {
     price: number;
 }
 
-export interface AnalyticsChartsProps {
-    type: "materials" | "recipes" | "production" | "procurement";
-}
+
