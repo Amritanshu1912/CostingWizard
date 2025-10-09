@@ -15,7 +15,7 @@ import { MaterialsTab } from "./materials-tab";
 import type { Category, Material } from "@/lib/types";
 import { MATERIALS, CATEGORIES } from "@/lib/constants";
 import { MATERIAL_COLUMNS } from "./material-columns";
-import { AnalyticsCharts } from "@/components/analytics-charts";
+import { MaterialsAnalytics } from "./materials-analytics";
 import {
   Card,
   CardHeader,
@@ -147,7 +147,7 @@ export function MaterialsManager() {
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <AnalyticsCharts type="materials" />
+              <MaterialsAnalytics />
             </CardContent>
           </Card>
         </TabsContent>
