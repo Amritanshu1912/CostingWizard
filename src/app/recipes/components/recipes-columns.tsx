@@ -9,7 +9,6 @@ import React from "react";
 // Extend Product type for the table display to include derived fields
 type RecipeTableRow = Product & {
   ingredientsCount: number;
-  batchTotalCost: number; // Derived field for table display
 };
 
 // Helper function to format currency
@@ -31,14 +30,6 @@ export const RECIPE_COLUMNS = ({
     ),
   },
   {
-    key: "batchSizeKg",
-    label: "Batch Size (kg)",
-    // FIX: Using optional chaining and fallback for safety
-    render: (value: number | undefined) => (
-      <span className="text-muted-foreground">{value || 0} kg</span>
-    ),
-  },
-  {
     key: "totalCostPerKg",
     label: "Cost per kg",
     // FIX: Using optional chaining and fallback for safety
@@ -46,13 +37,6 @@ export const RECIPE_COLUMNS = ({
       <span className="text-foreground font-medium">
         {formatCurrency(value || 0)}
       </span>
-    ),
-  },
-  {
-    key: "batchTotalCost", // Derived field
-    label: "Batch Cost",
-    render: (value: number) => (
-      <span className="text-foreground">{formatCurrency(value)}</span>
     ),
   },
   {
@@ -80,7 +64,9 @@ export const RECIPE_COLUMNS = ({
     key: "profitMargin",
     label: "Profit Margin",
     render: (value: number | undefined) => (
-      <span className="text-accent font-medium">{(value || 0).toFixed(1)}%</span>
+      <span className="text-accent font-medium">
+        {(value || 0).toFixed(1)}%
+      </span>
     ),
   },
   {
@@ -99,6 +85,24 @@ export const RECIPE_COLUMNS = ({
       >
         {value.charAt(0).toUpperCase() + value.slice(1)}
       </Badge>
+    ),
+  },
+  {
+    key: "createdAt",
+    label: "Date Created",
+    render: (value: string) => (
+      <span className="text-muted-foreground">
+        {new Date(value).toLocaleDateString()}
+      </span>
+    ),
+  },
+  {
+    key: "updatedAt",
+    label: "Date Updated",
+    render: (value: string | undefined) => (
+      <span className="text-muted-foreground">
+        {value ? new Date(value).toLocaleDateString() : "-"}
+      </span>
     ),
   },
   {

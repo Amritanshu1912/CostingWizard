@@ -15,21 +15,19 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
 import { Plus } from "lucide-react";
 
-import { AnalyticsCharts } from "@/components/analytics-charts";
+import { RecipesAnalytics } from "./recipes-analytics";
 import { CostCalculator } from "@/components/cost-calculator";
-import { RecipeProductDialog } from "./RecipeProductDialog";
-import { RecipeStats } from "./recipe-stats";
-import { RecipeOverviewList } from "./recipe-overview-list";
-import { RecipeTableSection } from "./recipe-table-section";
+import { RecipeProductDialog } from "./recipes-dialog";
+import { RecipeStats } from "./recipes-stats";
+import { RecipeTableSection } from "./recipes-table-section";
 
 import type { Product } from "@/lib/types";
 import { PRODUCTS } from "@/lib/constants";
-import { RECIPE_COLUMNS } from "./recipe-columns";
+import { RECIPE_COLUMNS } from "./recipes-columns";
 
 // Helper type to align with the columns definition
 type RecipeTableRow = Product & {
   ingredientsCount: number;
-  batchTotalCost: number;
 };
 
 export function RecipeManager() {
@@ -39,20 +37,13 @@ export function RecipeManager() {
   const [isAddMode, setIsAddMode] = useState(false);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
 
-  // --- Optimization: Memoize the filtered products list and DERIVE batchTotalCost ---
+  // --- Optimization: Memoize the filtered products list ---
   const filteredProducts: RecipeTableRow[] = useMemo(() => {
     return products
-      .map((p) => {
-        const batchSize = p.batchSizeKg || 1;
-        const costPerKg = p.totalCostPerKg || 0;
-
-        return {
-          ...p,
-          ingredientsCount: p.ingredients.length,
-          // DERIVED FIELD for the table: total cost for the specific batch size
-          batchTotalCost: batchSize * costPerKg,
-        } as RecipeTableRow;
-      })
+      .map((p) => ({
+        ...p,
+        ingredientsCount: p.ingredients.length,
+      }))
       .filter((product) =>
         product.name.toLowerCase().includes(searchTerm.toLowerCase())
       );
@@ -68,7 +59,6 @@ export function RecipeManager() {
         avgCostPerKg: 0,
         avgProfitMargin: 0,
         totalPortfolioValue: 0,
-        highestBatchTotalCost: 0,
         totalIngredients: 0,
       };
     }
@@ -82,13 +72,8 @@ export function RecipeManager() {
       totalRecipes;
 
     const totalPortfolioValue = products.reduce(
-      (sum, p) => sum + ((p.sellingPricePerKg || 0) * (p.batchSizeKg || 0)),
+      (sum, p) => sum + (p.sellingPricePerKg || 0) * (p.batchSizeKg || 0),
       0
-    );
-
-    // FIX: Calculate the highest cost based on the derived total batch cost
-    const highestBatchTotalCost = Math.max(
-      ...products.map((p) => (p.batchSizeKg || 0) * (p.totalCostPerKg || 0))
     );
 
     const totalIngredients = products.reduce(
@@ -101,7 +86,6 @@ export function RecipeManager() {
       avgCostPerKg,
       avgProfitMargin,
       totalPortfolioValue,
-      highestBatchTotalCost,
       totalIngredients,
     };
   }, [products]);
@@ -111,7 +95,6 @@ export function RecipeManager() {
     avgCostPerKg,
     avgProfitMargin,
     totalPortfolioValue,
-    highestBatchTotalCost,
     totalIngredients,
   } = quickStats;
 
@@ -174,30 +157,23 @@ export function RecipeManager() {
         </div>
       </div>
 
-      <Tabs defaultValue="overview" className="space-y-6">
-        <TabsList className="grid w-full grid-cols-4">
-          <TabsTrigger value="overview">Overview</TabsTrigger>
+      <Tabs defaultValue="recipes" className="space-y-6">
+        <TabsList className="grid w-full grid-cols-3">
           <TabsTrigger value="recipes">Recipes</TabsTrigger>
           <TabsTrigger value="calculator">Calculator</TabsTrigger>
           <TabsTrigger value="analytics">Analytics</TabsTrigger>
         </TabsList>
 
-        <TabsContent value="overview" className="space-y-6">
+        <TabsContent value="recipes" className="space-y-6">
           {/* Quick Stats */}
           <RecipeStats
             totalRecipes={totalRecipes}
             avgCostPerKg={avgCostPerKg}
             avgProfitMargin={avgProfitMargin}
             totalPortfolioValue={totalPortfolioValue}
-            highestBatchTotalCost={highestBatchTotalCost}
             totalIngredients={totalIngredients}
           />
 
-          {/* Recent Recipes */}
-          <RecipeOverviewList products={products} />
-        </TabsContent>
-
-        <TabsContent value="recipes" className="space-y-6">
           <RecipeTableSection
             searchTerm={searchTerm}
             onSearchChange={setSearchTerm}
@@ -233,7 +209,7 @@ export function RecipeManager() {
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <AnalyticsCharts type="recipes" />
+              <RecipesAnalytics />
             </CardContent>
           </Card>
         </TabsContent>

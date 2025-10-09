@@ -37,7 +37,7 @@ import {
   convertToKilograms,
   DEFAULT_INGREDIENT_UNIT,
   IngredientUnitValue,
-} from "@/lib/recipe-constants"; // NEW IMPORT
+} from "./recipes-constants"; // NEW IMPORT
 
 // NOTE TO USER: Please ensure your ProductIngredient interface (in types.ts)
 // now includes the 'id: string' and 'unit: string' fields.

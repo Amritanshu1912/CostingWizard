@@ -1,6 +1,6 @@
 import { Sidebar } from "@/components/sidebar";
 import { Header } from "@/components/header";
-import { RecipeManager } from "@/app/recipes/components/recipe-manager";
+import { RecipeManager } from "@/app/recipes/components/recipes-manager";
 
 export default function RecipesPage() {
   return (
