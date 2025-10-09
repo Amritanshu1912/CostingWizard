@@ -9,12 +9,12 @@ import { toast } from "sonner";
 import { Plus } from "lucide-react";
 
 import { CategoryManager } from "@/components/category-manager";
-import { MaterialDialog } from "./material-dialog";
+import { MaterialDialog } from "./materials-dialog";
 import { MaterialsTab } from "./materials-tab";
 
 import type { Category, Material } from "@/lib/types";
 import { MATERIALS, CATEGORIES } from "@/lib/constants";
-import { MATERIAL_COLUMNS } from "./material-columns";
+import { MATERIAL_COLUMNS } from "./materials-columns";
 import { MaterialsAnalytics } from "./materials-analytics";
 import {
   Card,
