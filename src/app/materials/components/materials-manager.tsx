@@ -11,11 +11,30 @@ import { Plus } from "lucide-react";
 import { CategoryManager } from "@/components/category-manager";
 import { MaterialDialog } from "./materials-dialog";
 import { MaterialsTab } from "./materials-tab";
+import { MaterialsFilters } from "./MaterialsFilters";
+import { MaterialsTable } from "./MaterialsTable";
+import { PriceComparison } from "./PriceComparison";
+import { AddMaterialDialog } from "./AddMaterialDialogFromSupplierPage";
 
-import type { Category, Material } from "@/lib/types";
-import { MATERIALS, CATEGORIES } from "@/lib/constants";
+import type {
+  Category,
+  Material,
+  Supplier,
+  SupplierMaterial,
+} from "@/lib/types";
+import {
+  MATERIALS,
+  CATEGORIES,
+  SUPPLIERS,
+  SUPPLIER_MATERIALS,
+} from "@/lib/constants";
 import { MATERIAL_COLUMNS } from "./materials-columns";
 import { MaterialsAnalytics } from "./materials-analytics";
+import { useLocalStorage } from "@/hooks/use-local-storage";
+import {
+  DEFAULT_MATERIAL_FORM,
+  MATERIAL_CATEGORIES,
+} from "./materials-constants";
 import {
   Card,
   CardHeader,
@@ -35,6 +54,23 @@ export function MaterialsManager() {
   // We use a separate boolean for the Add button trigger for cleaner UX.
   const [isAddMode, setIsAddMode] = useState(false);
   const [editingMaterial, setEditingMaterial] = useState<Material | null>(null);
+
+  // Supplier materials state
+  const [suppliers, setSuppliers] = useLocalStorage("suppliers", SUPPLIERS);
+  const [supplierMaterials, setSupplierMaterials] = useLocalStorage(
+    "supplier-materials",
+    SUPPLIER_MATERIALS
+  );
+  const [supplierSearchTerm, setSupplierSearchTerm] = useState("");
+  const [selectedSupplierCategory, setSelectedSupplierCategory] =
+    useState("all");
+  const [selectedSupplier, setSelectedSupplier] = useState("all");
+  const [showAddSupplierMaterial, setShowAddSupplierMaterial] = useState(false);
+  const [editingSupplierMaterial, setEditingSupplierMaterial] =
+    useState<SupplierMaterial | null>(null);
+  const [newSupplierMaterial, setNewSupplierMaterial] = useState<
+    Partial<SupplierMaterial>
+  >(DEFAULT_MATERIAL_FORM);
 
   const filteredMaterials = materials.filter((material) => {
     const matchesSearch = material.name
@@ -82,6 +118,54 @@ export function MaterialsManager() {
     setEditingMaterial(null);
   };
 
+  // Supplier materials logic
+  const filteredSupplierMaterials = supplierMaterials.filter((material) => {
+    const supplier = suppliers.find((s) => s.id === material.supplierId);
+    const matchesSearch =
+      material.materialName
+        .toLowerCase()
+        .includes(supplierSearchTerm.toLowerCase()) ||
+      supplier?.name.toLowerCase().includes(supplierSearchTerm.toLowerCase());
+    const matchesCategory =
+      selectedSupplierCategory === "all" ||
+      material.materialCategory === selectedSupplierCategory;
+    const matchesSupplier =
+      selectedSupplier === "all" || material.supplierId === selectedSupplier;
+    return matchesSearch && matchesCategory && matchesSupplier;
+  });
+
+  const addSupplierMaterial = () => {
+    if (
+      !newSupplierMaterial.supplierId ||
+      !newSupplierMaterial.materialName ||
+      !newSupplierMaterial.unitPrice
+    )
+      return;
+    const material: SupplierMaterial = {
+      id: Date.now().toString(),
+      supplierId: newSupplierMaterial.supplierId,
+      materialName: newSupplierMaterial.materialName,
+      materialCategory: newSupplierMaterial.materialCategory || "Other",
+      unitPrice: newSupplierMaterial.unitPrice,
+      currency: newSupplierMaterial.currency || "INR",
+      moq: newSupplierMaterial.moq || 1,
+      unit: newSupplierMaterial.unit || "kg",
+      bulkDiscounts: newSupplierMaterial.bulkDiscounts || [],
+      leadTime: newSupplierMaterial.leadTime || 7,
+      availability: newSupplierMaterial.availability || "in-stock",
+      lastUpdated: new Date().toISOString().split("T")[0],
+      notes: newSupplierMaterial.notes || "",
+      createdAt: new Date().toISOString().split("T")[0],
+    };
+    setSupplierMaterials([...supplierMaterials, material]);
+    setNewSupplierMaterial(DEFAULT_MATERIAL_FORM);
+    setShowAddSupplierMaterial(false);
+  };
+
+  const deleteSupplierMaterial = (id: string) => {
+    setSupplierMaterials(supplierMaterials.filter((m) => m.id !== id));
+  };
+
   // Material Columns are now imported
   const materialColumns = MATERIAL_COLUMNS({
     onEdit: handleEdit,
@@ -106,6 +190,14 @@ export function MaterialsManager() {
             onCategoriesChange={setCategories}
           />
           <Button
+            variant="outline"
+            className="btn-secondary w-full sm:w-auto"
+            onClick={() => setShowAddSupplierMaterial(true)}
+          >
+            <Plus className="h-4 w-4 mr-2" />
+            <span className="truncate">Add Supplier Material</span>
+          </Button>
+          <Button
             className="btn-secondary w-full sm:w-auto"
             onClick={() => setIsAddMode(true)}
           >
@@ -116,8 +208,12 @@ export function MaterialsManager() {
       </div>
 
       <Tabs defaultValue="materials" className="space-y-6">
-        <TabsList className="grid w-full grid-cols-2">
+        <TabsList className="grid w-full grid-cols-4">
           <TabsTrigger value="materials">Materials</TabsTrigger>
+          <TabsTrigger value="supplier-materials">
+            Supplier Materials
+          </TabsTrigger>
+          <TabsTrigger value="price-comparison">Price Comparison</TabsTrigger>
           <TabsTrigger value="analytics">Analytics</TabsTrigger>
         </TabsList>
 
@@ -138,6 +234,32 @@ export function MaterialsManager() {
           />
         </TabsContent>
 
+        <TabsContent value="supplier-materials" className="space-y-6">
+          <MaterialsFilters
+            searchTerm={supplierSearchTerm}
+            setSearchTerm={setSupplierSearchTerm}
+            selectedCategory={selectedSupplierCategory}
+            setSelectedCategory={setSelectedSupplierCategory}
+            selectedSupplier={selectedSupplier}
+            setSelectedSupplier={setSelectedSupplier}
+            suppliers={suppliers}
+            categories={[...MATERIAL_CATEGORIES]}
+          />
+          <MaterialsTable
+            filteredMaterials={filteredSupplierMaterials}
+            suppliers={suppliers}
+            onEditMaterial={setEditingSupplierMaterial}
+            onDeleteMaterial={deleteSupplierMaterial}
+          />
+        </TabsContent>
+
+        <TabsContent value="price-comparison" className="space-y-6">
+          <PriceComparison
+            supplierMaterials={supplierMaterials}
+            suppliers={suppliers}
+          />
+        </TabsContent>
+
         <TabsContent value="analytics" className="space-y-6">
           <Card className="border-2">
             <CardHeader>
@@ -152,6 +274,16 @@ export function MaterialsManager() {
           </Card>
         </TabsContent>
       </Tabs>
+
+      {/* Add Supplier Material Dialog */}
+      <AddMaterialDialog
+        open={showAddSupplierMaterial}
+        onOpenChange={setShowAddSupplierMaterial}
+        newMaterial={newSupplierMaterial}
+        setNewMaterial={setNewSupplierMaterial}
+        addMaterial={addSupplierMaterial}
+        suppliers={suppliers}
+      />
 
       {/* Unified Material Dialog */}
       <MaterialDialog
