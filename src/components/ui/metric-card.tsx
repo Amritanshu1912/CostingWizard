@@ -82,7 +82,7 @@ export function MetricCard({
               !iconClassName.includes("text-") && "from-primary/10 to-primary/5"
             )}
           >
-            <Icon className={cn("h-6 w-6", iconClassName)} />
+            <Icon className={cn("h-8 w-8", iconClassName)} />
           </div>
         </div>
 

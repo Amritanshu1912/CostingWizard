@@ -121,10 +121,14 @@ export function RecipesAnalytics() {
               />
               <Tooltip
                 contentStyle={{
-                  backgroundColor: "hsl(var(--card))",
+                  backgroundColor: "rgba(0,0,0 0.3)",
+                  backdropFilter: "blur(4px)",
                   border: "1px solid hsl(var(--border))",
                   borderRadius: "8px",
+                }}
+                itemStyle={{
                   color: "hsl(var(--foreground))",
+                  fontWeight: 400,
                 }}
               />
               <Legend />
@@ -202,7 +206,7 @@ export function RecipesAnalytics() {
                             style={{
                               margin: 0,
                               fontWeight: "bold",
-                              color: "white",
+                              color: "black",
                             }}
                           >
                             {label}

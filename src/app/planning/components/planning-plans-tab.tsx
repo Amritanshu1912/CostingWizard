@@ -9,6 +9,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
+import { Progress } from "@/components/ui/progress";
 import {
   Table,
   TableBody,
@@ -17,9 +18,17 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Edit, Trash2, Search } from "lucide-react";
+import {
+  Edit,
+  Trash2,
+  Search,
+  Calendar,
+  Factory,
+  TrendingUp,
+} from "lucide-react";
 import { ProductionPlan } from "@/lib/types";
 import { STATUS_CONFIG } from "./planning-constants";
+import { MetricCard } from "@/components/ui/metric-card";
 
 interface ProductionPlanningPlansTabProps {
   plans: ProductionPlan[];
@@ -36,12 +45,121 @@ export function ProductionPlanningPlansTab({
     plan.planName.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
+  const totalPlans = plans.length;
+  const activePlans = plans.filter((p) => p.status === "in-progress").length;
+  const totalValue = plans.reduce((sum, p) => sum + p.totalRevenue, 0);
+  const avgProfit =
+    plans.reduce((sum, p) => sum + (p.totalProfit / p.totalRevenue) * 100, 0) /
+    plans.length;
+
   return (
     <div className="space-y-6">
-      {/* Search */}
+      {/* Quick Stats */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        <MetricCard
+          title="Total Plans"
+          value={totalPlans}
+          icon={Calendar}
+          trend={{ value: "+2", isPositive: true, label: "this month" }}
+        />
+        <MetricCard
+          title="Active Plans"
+          value={activePlans}
+          icon={Factory}
+          description="currently in production"
+        />
+        <MetricCard
+          title="Total Value"
+          value={`₹${totalValue.toFixed(0)}`}
+          icon={TrendingUp}
+          description="expected revenue"
+        />
+        <MetricCard
+          title="Avg Profit Margin"
+          value={`${avgProfit.toFixed(1)}%`}
+          icon={TrendingUp}
+          description="across all plans"
+        />
+      </div>
+
+      {/* Active Plans */}
       <Card className="border-2">
-        <CardContent className="pt-6">
-          <div className="relative">
+        <CardHeader>
+          <CardTitle>Active Production Plans</CardTitle>
+          <CardDescription>
+            Current production schedules and progress
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-4">
+            {plans
+              .filter(
+                (p) => p.status === "in-progress" || p.status === "scheduled"
+              )
+              .map((plan) => {
+                const statusConfig =
+                  STATUS_CONFIG[plan.status] || STATUS_CONFIG.draft;
+                const StatusIcon = statusConfig.icon;
+                return (
+                  <div
+                    key={plan.id}
+                    className="flex items-center justify-between p-4 rounded-lg bg-muted/50 border"
+                  >
+                    <div className="flex items-center space-x-4 flex-1">
+                      <StatusIcon className="h-5 w-5 text-primary" />
+                      <div className="flex-1">
+                        <div className="font-medium text-foreground">
+                          {plan.planName}
+                        </div>
+                        <div className="text-sm text-muted-foreground">
+                          {plan.products.length} products • {plan.startDate} to{" "}
+                          {plan.endDate}
+                        </div>
+                        {plan.status === "in-progress" && (
+                          <div className="mt-2">
+                            <div className="flex justify-between text-xs mb-1">
+                              <span>Progress</span>
+                              <span>{plan.progress}%</span>
+                            </div>
+                            <Progress value={plan.progress} className="h-2" />
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                    <div className="flex items-center space-x-6">
+                      <div className="text-right">
+                        <div className="font-medium text-foreground">
+                          ₹{plan.totalCost.toFixed(0)}
+                        </div>
+                        <div className="text-xs text-muted-foreground">
+                          total cost
+                        </div>
+                      </div>
+                      <div className="text-right">
+                        <div className="font-medium text-green-600">
+                          ₹{plan.totalProfit.toFixed(0)}
+                        </div>
+                        <div className="text-xs text-muted-foreground">
+                          expected profit
+                        </div>
+                      </div>
+                      <Badge variant={statusConfig.color}>{plan.status}</Badge>
+                    </div>
+                  </div>
+                );
+              })}
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Production Plans */}
+      <Card className="border-2">
+        <CardHeader>
+          <CardTitle>Production Plans</CardTitle>
+          <CardDescription>Manage your production schedules</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="relative mb-4">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
             <Input
               placeholder="Search production plans..."
@@ -50,16 +168,6 @@ export function ProductionPlanningPlansTab({
               className="pl-10"
             />
           </div>
-        </CardContent>
-      </Card>
-
-      {/* Plans Table */}
-      <Card className="border-2">
-        <CardHeader>
-          <CardTitle>Production Plans</CardTitle>
-          <CardDescription>Manage your production schedules</CardDescription>
-        </CardHeader>
-        <CardContent>
           <Table>
             <TableHeader>
               <TableRow>
