@@ -10,14 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
+import { SortableTable } from "@/components/ui/sortable-table";
 import {
   Edit,
   Trash2,
@@ -33,11 +26,13 @@ import { MetricCard } from "@/components/ui/metric-card";
 interface ProductionPlanningPlansTabProps {
   plans: ProductionPlan[];
   onDeletePlan: (id: string) => void;
+  onEditPlan: (plan: ProductionPlan) => void;
 }
 
 export function ProductionPlanningPlansTab({
   plans,
   onDeletePlan,
+  onEditPlan,
 }: ProductionPlanningPlansTabProps) {
   const [searchTerm, setSearchTerm] = useState("");
 
@@ -168,64 +163,95 @@ export function ProductionPlanningPlansTab({
               className="pl-10"
             />
           </div>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Plan Name</TableHead>
-                <TableHead>Duration</TableHead>
-                <TableHead>Products</TableHead>
-                <TableHead>Total Cost</TableHead>
-                <TableHead>Expected Revenue</TableHead>
-                <TableHead>Profit</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead>Actions</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {filteredPlans.map((plan) => {
-                const statusConfig =
-                  STATUS_CONFIG[plan.status] || STATUS_CONFIG.draft;
-                return (
-                  <TableRow key={plan.id}>
-                    <TableCell className="font-medium">
-                      {plan.planName}
-                    </TableCell>
-                    <TableCell>
-                      {plan.startDate} to {plan.endDate}
-                    </TableCell>
-                    <TableCell>{plan.products.length} items</TableCell>
-                    <TableCell>₹{plan.totalCost.toFixed(2)}</TableCell>
-                    <TableCell>₹{plan.totalRevenue.toFixed(2)}</TableCell>
-                    <TableCell className="text-green-600">
-                      ₹{plan.totalProfit.toFixed(2)}
-                    </TableCell>
-                    <TableCell>
-                      <Badge variant={statusConfig.color}>{plan.status}</Badge>
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex space-x-2">
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          className="h-8 w-8 p-0 bg-transparent"
-                        >
-                          <Edit className="h-3 w-3" />
-                        </Button>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => onDeletePlan(plan.id)}
-                          className="h-8 w-8 p-0 text-destructive hover:text-destructive"
-                        >
-                          <Trash2 className="h-3 w-3" />
-                        </Button>
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                );
-              })}
-            </TableBody>
-          </Table>
+          <SortableTable
+            data={filteredPlans}
+            columns={[
+              {
+                key: "planName",
+                label: "Plan Name",
+                sortable: true,
+                render: (value: string) => (
+                  <span className="font-medium">{value}</span>
+                ),
+              },
+              {
+                key: "duration",
+                label: "Duration",
+                sortable: true,
+                render: (value: any, row: ProductionPlan) => (
+                  <span>
+                    {row.startDate} to {row.endDate}
+                  </span>
+                ),
+              },
+              {
+                key: "products",
+                label: "Products",
+                sortable: true,
+                render: (value: any, row: ProductionPlan) => (
+                  <span>{row.products.length} items</span>
+                ),
+              },
+              {
+                key: "totalCost",
+                label: "Total Cost",
+                sortable: true,
+                render: (value: number) => <span>₹{value.toFixed(2)}</span>,
+              },
+              {
+                key: "totalRevenue",
+                label: "Expected Revenue",
+                sortable: true,
+                render: (value: number) => <span>₹{value.toFixed(2)}</span>,
+              },
+              {
+                key: "totalProfit",
+                label: "Profit",
+                sortable: true,
+                render: (value: number) => (
+                  <span className="text-green-600">₹{value.toFixed(2)}</span>
+                ),
+              },
+              {
+                key: "status",
+                label: "Status",
+                sortable: true,
+                render: (value: string) => {
+                  const statusConfig =
+                    STATUS_CONFIG[value as keyof typeof STATUS_CONFIG] ||
+                    STATUS_CONFIG.draft;
+                  return <Badge variant={statusConfig.color}>{value}</Badge>;
+                },
+              },
+              {
+                key: "actions",
+                label: "Actions",
+                sortable: false,
+                render: (value: any, row: ProductionPlan) => (
+                  <div className="flex space-x-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => onEditPlan(row)}
+                      className="h-8 w-8 p-0 bg-transparent"
+                    >
+                      <Edit className="h-3 w-3" />
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => onDeletePlan(row.id)}
+                      className="h-8 w-8 p-0 text-destructive hover:text-destructive"
+                    >
+                      <Trash2 className="h-3 w-3" />
+                    </Button>
+                  </div>
+                ),
+              },
+            ]}
+            className="table-enhanced"
+            showSerialNumber={true}
+          />
         </CardContent>
       </Card>
     </div>

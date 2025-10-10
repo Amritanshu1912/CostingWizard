@@ -7,14 +7,7 @@ import {
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
+import { SortableTable } from "@/components/ui/sortable-table";
 import { Progress } from "@/components/ui/progress";
 import {
   AlertTriangle,
@@ -208,54 +201,79 @@ export function ProductionPlanningMaterialsTab({
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Material</TableHead>
-                <TableHead>Required</TableHead>
-                <TableHead>Available</TableHead>
-                <TableHead>Shortage</TableHead>
-                <TableHead>Cost per kg</TableHead>
-                <TableHead>Procurement Cost</TableHead>
-                <TableHead>Priority</TableHead>
-                <TableHead>Action</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {plans
-                .flatMap((plan) =>
-                  plan.products.flatMap((product) => product.materialsRequired)
-                )
-                .filter((material) => material.shortage > 0)
-                .map((material, index) => (
-                  <TableRow key={index}>
-                    <TableCell className="font-medium">
-                      {material.materialName}
-                    </TableCell>
-                    <TableCell>{material.requiredQty} kg</TableCell>
-                    <TableCell>{material.availableQty} kg</TableCell>
-                    <TableCell className="text-destructive font-medium">
-                      {material.shortage} kg
-                    </TableCell>
-                    <TableCell>₹{material.costPerKg.toFixed(2)}</TableCell>
-                    <TableCell className="font-medium">
-                      ₹{(material.shortage * material.costPerKg).toFixed(2)}
-                    </TableCell>
-                    <TableCell>
-                      <Badge variant="destructive">High</Badge>
-                    </TableCell>
-                    <TableCell>
-                      <Button
-                        size="sm"
-                        className="bg-accent hover:bg-accent/90"
-                      >
-                        Order Now
-                      </Button>
-                    </TableCell>
-                  </TableRow>
-                ))}
-            </TableBody>
-          </Table>
+          <SortableTable
+            data={plans
+              .flatMap((plan) =>
+                plan.products.flatMap((product) => product.materialsRequired)
+              )
+              .filter((material) => material.shortage > 0)}
+            columns={[
+              {
+                key: "materialName",
+                label: "Material",
+                sortable: true,
+                render: (value: string) => (
+                  <span className="font-medium">{value}</span>
+                ),
+              },
+              {
+                key: "requiredQty",
+                label: "Required",
+                sortable: true,
+                render: (value: number) => <span>{value} kg</span>,
+              },
+              {
+                key: "availableQty",
+                label: "Available",
+                sortable: true,
+                render: (value: number) => <span>{value} kg</span>,
+              },
+              {
+                key: "shortage",
+                label: "Shortage",
+                sortable: true,
+                render: (value: number) => (
+                  <span className="text-destructive font-medium">
+                    {value} kg
+                  </span>
+                ),
+              },
+              {
+                key: "costPerKg",
+                label: "Cost per kg",
+                sortable: true,
+                render: (value: number) => <span>₹{value.toFixed(2)}</span>,
+              },
+              {
+                key: "procurementCost",
+                label: "Procurement Cost",
+                sortable: true,
+                render: (value: any, row: any) => (
+                  <span className="font-medium">
+                    ₹{(row.shortage * row.costPerKg).toFixed(2)}
+                  </span>
+                ),
+              },
+              {
+                key: "priority",
+                label: "Priority",
+                sortable: false,
+                render: () => <Badge variant="destructive">High</Badge>,
+              },
+              {
+                key: "action",
+                label: "Action",
+                sortable: false,
+                render: () => (
+                  <Button size="sm" className="bg-accent hover:bg-accent/90">
+                    Order Now
+                  </Button>
+                ),
+              },
+            ]}
+            className="table-enhanced"
+            showSerialNumber={true}
+          />
         </CardContent>
       </Card>
 

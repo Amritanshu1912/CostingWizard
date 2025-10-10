@@ -16,6 +16,7 @@ export function ProductionPlanning() {
   const [plans, setPlans] = useState<ProductionPlan[]>(PRODUCTION_PLANS);
   const [searchTerm, setSearchTerm] = useState("");
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
+  const [editingPlan, setEditingPlan] = useState<ProductionPlan | null>(null);
 
   const filteredPlans = plans.filter((plan) =>
     plan.planName.toLowerCase().includes(searchTerm.toLowerCase())
@@ -24,6 +25,17 @@ export function ProductionPlanning() {
   const handleCreatePlan = (plan: ProductionPlan) => {
     setPlans([...plans, plan]);
     setIsCreateDialogOpen(false);
+  };
+
+  const handleUpdatePlan = (updatedPlan: ProductionPlan) => {
+    setPlans(plans.map((p) => (p.id === updatedPlan.id ? updatedPlan : p)));
+    setEditingPlan(null);
+    setIsCreateDialogOpen(false);
+  };
+
+  const handleEditClick = (plan: ProductionPlan) => {
+    setEditingPlan(plan);
+    setIsCreateDialogOpen(true);
   };
 
   const handleDeletePlan = (id: string) => {
@@ -64,6 +76,7 @@ export function ProductionPlanning() {
           <ProductionPlanningPlansTab
             plans={filteredPlans}
             onDeletePlan={handleDeletePlan}
+            onEditPlan={handleEditClick}
           />
         </TabsContent>
 
@@ -80,6 +93,8 @@ export function ProductionPlanning() {
         isOpen={isCreateDialogOpen}
         onOpenChange={setIsCreateDialogOpen}
         onCreatePlan={handleCreatePlan}
+        initialPlan={editingPlan}
+        onEditPlan={handleUpdatePlan}
       />
     </div>
   );

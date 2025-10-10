@@ -1,12 +1,24 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { SortableTable } from "@/components/ui/sortable-table";
 import { Plus, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { ProductionItem } from "@/lib/types";
@@ -16,6 +28,8 @@ interface ProductionPlanningCreateDialogProps {
   isOpen: boolean;
   onOpenChange: (open: boolean) => void;
   onCreatePlan: (plan: any) => void;
+  initialPlan?: any;
+  onEditPlan?: (plan: any) => void;
 }
 
 interface NewPlan {
@@ -35,6 +49,8 @@ export function ProductionPlanningCreateDialog({
   isOpen,
   onOpenChange,
   onCreatePlan,
+  initialPlan,
+  onEditPlan,
 }: ProductionPlanningCreateDialogProps) {
   const [newPlan, setNewPlan] = useState<NewPlan>({
     planName: "",
@@ -48,6 +64,27 @@ export function ProductionPlanningCreateDialog({
     productId: "",
     quantityKg: 0,
   });
+
+  // Populate form when editing
+  useEffect(() => {
+    if (initialPlan) {
+      setNewPlan({
+        planName: initialPlan.planName,
+        description: initialPlan.description || "",
+        startDate: initialPlan.startDate,
+        endDate: initialPlan.endDate,
+        products: initialPlan.products,
+      });
+    } else {
+      setNewPlan({
+        planName: "",
+        description: "",
+        startDate: "",
+        endDate: "",
+        products: [],
+      });
+    }
+  }, [initialPlan]);
 
   const handleAddProduct = () => {
     if (!newProduct.productId || newProduct.quantityKg <= 0) {
@@ -84,26 +121,32 @@ export function ProductionPlanningCreateDialog({
     const totalCost = products.reduce((sum, p) => sum + p.totalCost, 0);
     const totalRevenue = products.reduce((sum, p) => {
       const product = PRODUCTS.find((ap) => ap.id === p.productId);
-      return sum + (product ? p.quantityKg * (product.sellingPricePerKg || 0) : 0);
+      return (
+        sum + (product ? p.quantityKg * (product.sellingPricePerKg || 0) : 0)
+      );
     }, 0);
     return { totalCost, totalRevenue, totalProfit: totalRevenue - totalCost };
   };
 
-  const handleCreatePlan = () => {
+  const handleSavePlan = () => {
     if (
       !newPlan.planName ||
       !newPlan.startDate ||
       !newPlan.endDate ||
       newPlan.products.length === 0
     ) {
-      toast.error("Please fill in all required fields and add at least one product");
+      toast.error(
+        "Please fill in all required fields and add at least one product"
+      );
       return;
     }
 
-    const { totalCost, totalRevenue, totalProfit } = calculatePlanTotals(newPlan.products);
+    const { totalCost, totalRevenue, totalProfit } = calculatePlanTotals(
+      newPlan.products
+    );
 
     const plan = {
-      id: Date.now().toString(),
+      id: initialPlan?.id || Date.now().toString(),
       planName: newPlan.planName,
       description: newPlan.description,
       startDate: newPlan.startDate,
@@ -112,11 +155,17 @@ export function ProductionPlanningCreateDialog({
       totalCost,
       totalRevenue,
       totalProfit,
-      status: "draft",
-      progress: 0,
+      status: initialPlan?.status || "draft",
+      progress: initialPlan?.progress || 0,
     };
 
-    onCreatePlan(plan);
+    if (initialPlan && onEditPlan) {
+      onEditPlan(plan);
+      toast.success("Production plan updated successfully");
+    } else {
+      onCreatePlan(plan);
+      toast.success("Production plan created successfully");
+    }
 
     setNewPlan({
       planName: "",
@@ -126,16 +175,19 @@ export function ProductionPlanningCreateDialog({
       products: [],
     });
     onOpenChange(false);
-    toast.success("Production plan created successfully");
   };
 
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>Create Production Plan</DialogTitle>
+          <DialogTitle>
+            {initialPlan ? "Edit Production Plan" : "Create Production Plan"}
+          </DialogTitle>
           <DialogDescription>
-            Plan your production schedule and calculate material requirements
+            {initialPlan
+              ? "Update your production schedule"
+              : "Plan your production schedule and calculate material requirements"}
           </DialogDescription>
         </DialogHeader>
         <div className="space-y-6">
@@ -146,7 +198,9 @@ export function ProductionPlanningCreateDialog({
               <Input
                 id="plan-name"
                 value={newPlan.planName}
-                onChange={(e) => setNewPlan({ ...newPlan, planName: e.target.value })}
+                onChange={(e) =>
+                  setNewPlan({ ...newPlan, planName: e.target.value })
+                }
                 placeholder="Enter plan name"
               />
             </div>
@@ -157,7 +211,9 @@ export function ProductionPlanningCreateDialog({
                   id="start-date"
                   type="date"
                   value={newPlan.startDate}
-                  onChange={(e) => setNewPlan({ ...newPlan, startDate: e.target.value })}
+                  onChange={(e) =>
+                    setNewPlan({ ...newPlan, startDate: e.target.value })
+                  }
                 />
               </div>
               <div>
@@ -166,7 +222,9 @@ export function ProductionPlanningCreateDialog({
                   id="end-date"
                   type="date"
                   value={newPlan.endDate}
-                  onChange={(e) => setNewPlan({ ...newPlan, endDate: e.target.value })}
+                  onChange={(e) =>
+                    setNewPlan({ ...newPlan, endDate: e.target.value })
+                  }
                 />
               </div>
             </div>
@@ -177,7 +235,9 @@ export function ProductionPlanningCreateDialog({
             <Textarea
               id="description"
               value={newPlan.description}
-              onChange={(e) => setNewPlan({ ...newPlan, description: e.target.value })}
+              onChange={(e) =>
+                setNewPlan({ ...newPlan, description: e.target.value })
+              }
               placeholder="Plan description..."
             />
           </div>
@@ -193,7 +253,9 @@ export function ProductionPlanningCreateDialog({
                   <Label>Product</Label>
                   <Select
                     value={newProduct.productId}
-                    onValueChange={(value: string) => setNewProduct({ ...newProduct, productId: value })}
+                    onValueChange={(value: string) =>
+                      setNewProduct({ ...newProduct, productId: value })
+                    }
                   >
                     <SelectTrigger>
                       <SelectValue placeholder="Select product" />
@@ -212,11 +274,19 @@ export function ProductionPlanningCreateDialog({
                   <Input
                     type="number"
                     value={newProduct.quantityKg}
-                    onChange={(e) => setNewProduct({ ...newProduct, quantityKg: Number(e.target.value) })}
+                    onChange={(e) =>
+                      setNewProduct({
+                        ...newProduct,
+                        quantityKg: Number(e.target.value),
+                      })
+                    }
                     placeholder="0"
                   />
                 </div>
-                <Button onClick={handleAddProduct} className="bg-secondary hover:bg-secondary/90">
+                <Button
+                  onClick={handleAddProduct}
+                  className="bg-secondary hover:bg-secondary/90"
+                >
                   <Plus className="h-4 w-4" />
                 </Button>
               </div>
@@ -230,37 +300,62 @@ export function ProductionPlanningCreateDialog({
                 <CardTitle className="text-lg">Production Items</CardTitle>
               </CardHeader>
               <CardContent>
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Product</TableHead>
-                      <TableHead>Quantity (kg)</TableHead>
-                      <TableHead>Cost per kg</TableHead>
-                      <TableHead>Total Cost</TableHead>
-                      <TableHead>Action</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {newPlan.products.map((product, index) => (
-                      <TableRow key={index}>
-                        <TableCell className="font-medium">{product.productName}</TableCell>
-                        <TableCell>{product.quantityKg}</TableCell>
-                        <TableCell>₹{product.costPerKg.toFixed(2)}</TableCell>
-                        <TableCell>₹{product.totalCost.toFixed(2)}</TableCell>
-                        <TableCell>
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => handleRemoveProduct(index)}
-                            className="h-8 w-8 p-0 text-destructive hover:text-destructive"
-                          >
-                            <Trash2 className="h-3 w-3" />
-                          </Button>
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
+                <SortableTable
+                  data={newPlan.products}
+                  columns={[
+                    {
+                      key: "productName",
+                      label: "Product",
+                      sortable: true,
+                      render: (value: string) => (
+                        <span className="font-medium">{value}</span>
+                      ),
+                    },
+                    {
+                      key: "quantityKg",
+                      label: "Quantity (kg)",
+                      sortable: true,
+                      render: (value: number) => <span>{value}</span>,
+                    },
+                    {
+                      key: "costPerKg",
+                      label: "Cost per kg",
+                      sortable: true,
+                      render: (value: number) => (
+                        <span>₹{value.toFixed(2)}</span>
+                      ),
+                    },
+                    {
+                      key: "totalCost",
+                      label: "Total Cost",
+                      sortable: true,
+                      render: (value: number) => (
+                        <span>₹{value.toFixed(2)}</span>
+                      ),
+                    },
+                    {
+                      key: "action",
+                      label: "Action",
+                      sortable: false,
+                      render: (
+                        value: any,
+                        row: ProductionItem,
+                        index: number
+                      ) => (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleRemoveProduct(index)}
+                          className="h-8 w-8 p-0 text-destructive hover:text-destructive"
+                        >
+                          <Trash2 className="h-3 w-3" />
+                        </Button>
+                      ),
+                    },
+                  ]}
+                  className="table-enhanced"
+                  showSerialNumber={true}
+                />
               </CardContent>
             </Card>
           )}
@@ -273,19 +368,28 @@ export function ProductionPlanningCreateDialog({
                   <div>
                     <Label>Total Cost</Label>
                     <div className="text-2xl font-bold text-foreground">
-                      ₹{calculatePlanTotals(newPlan.products).totalCost.toFixed(2)}
+                      ₹
+                      {calculatePlanTotals(newPlan.products).totalCost.toFixed(
+                        2
+                      )}
                     </div>
                   </div>
                   <div>
                     <Label>Expected Revenue</Label>
                     <div className="text-2xl font-bold text-foreground">
-                      ₹{calculatePlanTotals(newPlan.products).totalRevenue.toFixed(2)}
+                      ₹
+                      {calculatePlanTotals(
+                        newPlan.products
+                      ).totalRevenue.toFixed(2)}
                     </div>
                   </div>
                   <div>
                     <Label>Expected Profit</Label>
                     <div className="text-2xl font-bold text-green-600">
-                      ₹{calculatePlanTotals(newPlan.products).totalProfit.toFixed(2)}
+                      ₹
+                      {calculatePlanTotals(
+                        newPlan.products
+                      ).totalProfit.toFixed(2)}
                     </div>
                   </div>
                 </div>
@@ -294,10 +398,17 @@ export function ProductionPlanningCreateDialog({
           )}
 
           <div className="flex space-x-2">
-            <Button onClick={handleCreatePlan} className="flex-1 bg-secondary hover:bg-secondary/90">
-              Create Plan
+            <Button
+              onClick={handleSavePlan}
+              className="flex-1 bg-secondary hover:bg-secondary/90"
+            >
+              {initialPlan ? "Update Plan" : "Create Plan"}
             </Button>
-            <Button variant="outline" onClick={() => onOpenChange(false)} className="flex-1">
+            <Button
+              variant="outline"
+              onClick={() => onOpenChange(false)}
+              className="flex-1"
+            >
               Cancel
             </Button>
           </div>
