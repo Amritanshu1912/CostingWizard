@@ -23,17 +23,17 @@ const navigation = [
     icon: BarChart3,
   },
   {
-    name: "Raw Materials",
+    name: "Materials",
     href: "/materials",
     icon: Package,
   },
   {
-    name: "Product Recipes",
+    name: "Recipes",
     href: "/recipes",
     icon: Flask,
   },
   {
-    name: "Production Planning",
+    name: "Planning",
     href: "/planning",
     icon: Calendar,
   },
@@ -41,11 +41,6 @@ const navigation = [
     name: "Procurement",
     href: "/procurement",
     icon: ShoppingCart,
-  },
-  {
-    name: "Supplier Management",
-    href: "/supplier-management",
-    icon: Package,
   },
   {
     name: "Data Management",
@@ -62,7 +57,7 @@ export function Sidebar() {
     <div
       className={cn(
         "relative flex flex-col bg-sidebar border-r border-sidebar-border transition-all duration-300 shadow-sm",
-        isCollapsed ? "w-16" : "w-64"
+        isCollapsed ? "w-16" : "w-60"
       )}
     >
       {/* Header */}
@@ -70,7 +65,7 @@ export function Sidebar() {
         {!isCollapsed && (
           <div className="flex items-center space-x-2">
             <div className="w-8 h-8 gradient-primary rounded-lg flex items-center justify-center text-primary-foreground">
-              <Flask />
+              <Flask className="text-primary-foreground" />
             </div>
             <span className="font-bold text-lg text-sidebar-foreground">
               CostWizard
