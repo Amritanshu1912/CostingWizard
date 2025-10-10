@@ -21,7 +21,7 @@ import {
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
 import { Plus, XCircle } from "lucide-react";
-import { ORDER_STATUS_MAP } from "./procurement-constants"; // Assuming constants are in the same folder
+import { ORDER_STATUS_MAP, PAYMENT_TERMS } from "./procurement-constants"; // Assuming constants are in the same folder
 import type {
   PurchaseOrder,
   Supplier,
@@ -29,6 +29,8 @@ import type {
   PurchaseOrderItem,
 } from "@/lib/types";
 import { MATERIALS, SUPPLIERS } from "@/lib/constants";
+// import {} from "./supplier-management-constants";
+import { Switch } from "@/components/ui/switch";
 
 // ============================================================================
 // ADD SUPPLIER DIALOG
@@ -37,7 +39,9 @@ import { MATERIALS, SUPPLIERS } from "@/lib/constants";
 interface AddSupplierDialogProps {
   isOpen: boolean;
   setIsOpen: (isOpen: boolean) => void;
-  onSave: (newSupplier: Supplier) => void;
+  onSave: (supplier: Supplier) => void;
+  isEdit?: boolean;
+  initialData?: Supplier | null;
 }
 
 const initialSupplierState = {
@@ -46,22 +50,43 @@ const initialSupplierState = {
   email: "",
   phone: "",
   address: "",
-  rating: 3, // Default to average rating
+  rating: 5, // Default to high rating
+  paymentTerms: "30 days",
+  leadTime: 7,
+  isActive: true,
+  notes: "",
 };
 
-export const AddSupplierDialog: React.FC<AddSupplierDialogProps> = ({
+export const AddSupplierDialog = ({
   isOpen,
   setIsOpen,
   onSave,
-}) => {
+  isEdit = false,
+  initialData = null,
+}: AddSupplierDialogProps) => {
   const [supplierData, setSupplierData] = useState(initialSupplierState);
 
   // Reset form when dialog opens
   useEffect(() => {
     if (isOpen) {
-      setSupplierData(initialSupplierState);
+      if (isEdit && initialData) {
+        setSupplierData({
+          name: initialData.name || "",
+          contactPerson: initialData.contactPerson || "",
+          email: initialData.email || "",
+          phone: initialData.phone || "",
+          address: initialData.address || "",
+          rating: initialData.rating || 5,
+          paymentTerms: initialData.paymentTerms || "30 days",
+          leadTime: initialData.leadTime || 7,
+          isActive: initialData.isActive ?? true,
+          notes: initialData.notes || "",
+        });
+      } else {
+        setSupplierData(initialSupplierState);
+      }
     }
-  }, [isOpen]);
+  }, [isOpen, isEdit, initialData]);
 
   const handleChange = (
     field: keyof typeof initialSupplierState,
@@ -71,97 +96,164 @@ export const AddSupplierDialog: React.FC<AddSupplierDialogProps> = ({
   };
 
   const handleSave = () => {
-    if (!supplierData.name || !supplierData.email) {
-      toast.error("Supplier Name and Email are required.");
+    if (!supplierData.name || !supplierData.contactPerson) {
+      toast.error("Supplier Name and Contact Person are required.");
       return;
     }
 
-    const newSupplier: Supplier = {
-      ...supplierData,
-      id: crypto.randomUUID(),
-      isActive: true,
-      paymentTerms: "30 days", // Default value
-      leadTime: 7, // Default value
-      createdAt: new Date().toISOString(),
+    const supplier: Supplier = {
+      id: isEdit && initialData ? initialData.id : crypto.randomUUID(),
+      name: supplierData.name,
+      contactPerson: supplierData.contactPerson,
+      email: supplierData.email,
+      phone: supplierData.phone,
+      address: supplierData.address,
+      rating: supplierData.rating,
+      isActive: supplierData.isActive,
+      paymentTerms: supplierData.paymentTerms,
+      leadTime: supplierData.leadTime,
+      notes: supplierData.notes,
+      performance:
+        isEdit && initialData
+          ? initialData.performance
+          : {
+              onTimeDelivery: 95,
+              qualityScore: 90,
+              priceCompetitiveness: 85,
+            },
+      createdAt:
+        isEdit && initialData
+          ? initialData.createdAt
+          : new Date().toISOString().split("T")[0],
     };
 
-    onSave(newSupplier);
-    toast.success(`Supplier "${newSupplier.name}" added successfully!`);
+    onSave(supplier);
+    toast.success(
+      `Supplier "${supplier.name}" ${
+        isEdit ? "updated" : "added"
+      } successfully!`
+    );
     setIsOpen(false);
   };
 
   return (
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
-      <DialogContent className="max-w-2xl">
+      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>Add New Supplier</DialogTitle>
+          <DialogTitle>
+            {isEdit ? "Edit Supplier" : "Add New Supplier"}
+          </DialogTitle>
           <DialogDescription>
-            Enter the details for the new supplier.
+            {isEdit
+              ? "Update the supplier details."
+              : "Enter the details for the new supplier."}
           </DialogDescription>
         </DialogHeader>
-        <div className="grid grid-cols-2 gap-4 py-4">
-          <div className="space-y-2">
-            <Label htmlFor="supplier-name">Supplier Name</Label>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <Label>Supplier Name *</Label>
             <Input
-              id="supplier-name"
               value={supplierData.name}
               onChange={(e) => handleChange("name", e.target.value)}
-              placeholder="e.g., ChemCorp Industries"
+              placeholder="Enter supplier name"
+              className="focus-enhanced"
             />
           </div>
-          <div className="space-y-2">
-            <Label htmlFor="contact-person">Contact Person</Label>
+          <div>
+            <Label>Contact Person *</Label>
             <Input
-              id="contact-person"
               value={supplierData.contactPerson}
               onChange={(e) => handleChange("contactPerson", e.target.value)}
-              placeholder="e.g., Rajesh Kumar"
+              placeholder="Enter contact person"
+              className="focus-enhanced"
             />
           </div>
-          <div className="space-y-2">
-            <Label htmlFor="contact-email">Contact Email</Label>
+          <div>
+            <Label>Email</Label>
             <Input
-              id="contact-email"
               type="email"
               value={supplierData.email}
               onChange={(e) => handleChange("email", e.target.value)}
-              placeholder="contact@supplier.com"
+              placeholder="Enter email"
+              className="focus-enhanced"
             />
           </div>
-          <div className="space-y-2">
-            <Label htmlFor="phone">Phone Number</Label>
+          <div>
+            <Label>Phone</Label>
             <Input
-              id="phone"
               value={supplierData.phone}
               onChange={(e) => handleChange("phone", e.target.value)}
-              placeholder="+91-XXXXXXXXXX"
+              placeholder="Enter phone number"
+              className="focus-enhanced"
             />
           </div>
-          <div className="space-y-2">
-            <Label htmlFor="rating">Initial Rating</Label>
+          <div>
+            <Label>Payment Terms</Label>
             <Select
-              value={String(supplierData.rating)}
-              onValueChange={(value) => handleChange("rating", Number(value))}
+              value={supplierData.paymentTerms}
+              onValueChange={(value: any) =>
+                handleChange("paymentTerms", value)
+              }
             >
-              <SelectTrigger>
-                <SelectValue placeholder="Select rating" />
+              <SelectTrigger className="focus-enhanced">
+                <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="5">5 Stars - Excellent</SelectItem>
-                <SelectItem value="4">4 Stars - Good</SelectItem>
-                <SelectItem value="3">3 Stars - Average</SelectItem>
-                <SelectItem value="2">2 Stars - Below Average</SelectItem>
-                <SelectItem value="1">1 Star - Poor</SelectItem>
+                {PAYMENT_TERMS.map((term) => (
+                  <SelectItem key={term} value={term}>
+                    {term}
+                  </SelectItem>
+                ))}
               </SelectContent>
             </Select>
           </div>
-          <div className="col-span-2 space-y-2">
-            <Label htmlFor="address">Address</Label>
+          <div>
+            <Label>Lead Time (days)</Label>
+            <Input
+              type="number"
+              min="1"
+              value={supplierData.leadTime}
+              onChange={(e) => handleChange("leadTime", Number(e.target.value))}
+              className="focus-enhanced"
+            />
+          </div>
+          <div>
+            <Label>Rating (1-5)</Label>
+            <Input
+              type="number"
+              min="1"
+              max="5"
+              step="0.1"
+              value={supplierData.rating}
+              onChange={(e) => handleChange("rating", Number(e.target.value))}
+              className="focus-enhanced"
+            />
+          </div>
+          <div className="flex items-center space-x-2">
+            <Switch
+              checked={supplierData.isActive}
+              onCheckedChange={(checked: any) =>
+                handleChange("isActive", checked)
+              }
+            />
+            <Label>Active Supplier</Label>
+          </div>
+          <div className="md:col-span-2">
+            <Label>Address</Label>
             <Textarea
-              id="address"
               value={supplierData.address}
               onChange={(e) => handleChange("address", e.target.value)}
               placeholder="Enter complete address"
+              className="focus-enhanced"
+            />
+          </div>
+          <div className="md:col-span-2">
+            <Label>Notes</Label>
+            <Textarea
+              value={supplierData.notes}
+              onChange={(e) => handleChange("notes", e.target.value)}
+              placeholder="Additional notes about the supplier"
+              className="focus-enhanced"
             />
           </div>
         </div>
@@ -173,7 +265,7 @@ export const AddSupplierDialog: React.FC<AddSupplierDialogProps> = ({
             onClick={handleSave}
             className="bg-primary hover:bg-primary/90"
           >
-            Add Supplier
+            {isEdit ? "Save Changes" : "Add Supplier"}
           </Button>
         </div>
       </DialogContent>
@@ -300,7 +392,7 @@ export const OrderDialog: React.FC<OrderDialogProps> = ({
 
   return (
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
-      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="min-w-4xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="text-xl">
             {initialOrder ? "Edit Purchase Order" : "Create New Purchase Order"}

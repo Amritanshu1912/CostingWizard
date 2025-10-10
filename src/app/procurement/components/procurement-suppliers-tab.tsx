@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import {
   Card,
   CardContent,
@@ -10,25 +11,52 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { Star, Package, Search } from "lucide-react";
-import type { Supplier } from "@/lib/types";
+import { Progress } from "@/components/ui/progress";
+import { Star, Package, Search, Edit, Trash2, Plus } from "lucide-react";
+import type { Supplier, SupplierMaterial } from "@/lib/types";
+import { SUPPLIER_MATERIALS } from "@/lib/constants";
+
+import { AddSupplierDialog } from "./procurement-dialogs";
 import { SuppliersTable } from "./procurement-tables";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 interface SuppliersTabProps {
   suppliers: Supplier[];
-  filteredSuppliers: Supplier[];
-  searchTerm: string;
-  setSearchTerm: (term: string) => void;
   materialsBySupplier: Record<string, number>;
+  supplierMaterials: SupplierMaterial[];
+  onAddSupplier: (supplier: Supplier) => void;
+  onEditSupplier: (supplier: Supplier) => void;
+  onDeleteSupplier: (id: string) => void;
 }
 
 export function SuppliersTab({
   suppliers,
-  filteredSuppliers,
-  searchTerm,
-  setSearchTerm,
   materialsBySupplier,
+  supplierMaterials,
+  onAddSupplier,
+  onEditSupplier,
+  onDeleteSupplier,
 }: SuppliersTabProps) {
+  const [searchTerm, setSearchTerm] = useState("");
+  const [showAddSupplier, setShowAddSupplier] = useState(false);
+  const [editingSupplier, setEditingSupplier] = useState<Supplier | null>(null);
+  const [deleteSupplierId, setDeleteSupplierId] = useState<string | null>(null);
+
+  const filteredSuppliers = suppliers.filter(
+    (supplier) =>
+      supplier.name.toLowerCase().includes(searchTerm.toLowerCase()) &&
+      supplier.isActive !== false
+  );
+
   return (
     <div className="space-y-6">
       {/* Top Suppliers */}
@@ -105,10 +133,25 @@ export function SuppliersTab({
         </CardContent>
       </Card>
 
-      {/* Search */}
+      {/* Suppliers Table */}
       <Card className="border-2">
-        <CardContent className="pt-6">
-          <div className="relative">
+        <CardHeader>
+          <div className="flex justify-between items-center">
+            <div>
+              <CardTitle>Supplier Directory</CardTitle>
+              <CardDescription>
+                Manage your supplier relationships and materials
+              </CardDescription>
+            </div>
+            <div className="flex gap-2">
+              <Button onClick={() => setShowAddSupplier(true)}>
+                Add Supplier
+              </Button>
+            </div>
+          </div>
+        </CardHeader>
+        <CardContent>
+          <div className="relative mb-4">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
             <Input
               placeholder="Search suppliers..."
@@ -117,21 +160,59 @@ export function SuppliersTab({
               className="pl-10"
             />
           </div>
+          <SuppliersTable
+            suppliers={filteredSuppliers}
+            showIndex
+            onEdit={(supplier) => {
+              setEditingSupplier(supplier);
+              setShowAddSupplier(true);
+            }}
+            onDelete={(supplier) => setDeleteSupplierId(supplier.id)}
+          />
         </CardContent>
       </Card>
 
-      {/* Suppliers Table */}
-      <Card className="border-2">
-        <CardHeader>
-          <CardTitle>Supplier Directory</CardTitle>
-          <CardDescription>
-            Manage your supplier relationships and materials
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <SuppliersTable suppliers={filteredSuppliers} />
-        </CardContent>
-      </Card>
+      <AlertDialog
+        open={!!deleteSupplierId}
+        onOpenChange={() => setDeleteSupplierId(null)}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Confirm Delete</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete this supplier? This action will
+              mark the supplier as inactive.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => {
+                if (deleteSupplierId) onDeleteSupplier(deleteSupplierId);
+                setDeleteSupplierId(null);
+              }}
+            >
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <AddSupplierDialog
+        isOpen={showAddSupplier}
+        setIsOpen={setShowAddSupplier}
+        isEdit={!!editingSupplier}
+        initialData={editingSupplier}
+        onSave={(supplier) => {
+          if (editingSupplier) {
+            onEditSupplier(supplier);
+          } else {
+            onAddSupplier(supplier);
+          }
+          setEditingSupplier(null);
+          setShowAddSupplier(false);
+        }}
+      />
     </div>
   );
 }

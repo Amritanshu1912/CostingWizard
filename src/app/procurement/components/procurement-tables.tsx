@@ -1,14 +1,8 @@
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
-import { Star } from "lucide-react";
+import { SortableTable } from "@/components/ui/sortable-table";
+import { Star, Edit, Trash2 } from "lucide-react";
 import { SUPPLIER_MATERIALS } from "@/lib/constants";
 import type { Supplier, PurchaseOrder } from "@/lib/types";
 import {
@@ -19,79 +13,142 @@ import {
 
 interface SuppliersTableProps {
   suppliers: Supplier[];
+  showIndex?: boolean;
+  onEdit?: (supplier: Supplier) => void;
+  onDelete?: (supplier: Supplier) => void;
 }
 
-export function SuppliersTable({ suppliers }: SuppliersTableProps) {
+export function SuppliersTable({
+  suppliers,
+  showIndex = false,
+  onEdit,
+  onDelete,
+}: SuppliersTableProps) {
+  const columns = [
+    {
+      key: "name",
+      label: "Supplier",
+      sortable: true,
+      render: (value: string) => <span className="font-medium">{value}</span>,
+    },
+    {
+      key: "contact",
+      label: "Contact",
+      sortable: true,
+      render: (value: any, row: Supplier) => (
+        <div className="text-sm">
+          <div>{row.contactPerson}</div>
+          <div className="text-muted-foreground">{row.phone}</div>
+        </div>
+      ),
+    },
+    {
+      key: "materials",
+      label: "Materials",
+      sortable: true,
+      render: (value: any, row: Supplier) => {
+        const count = (SUPPLIER_MATERIALS || []).filter(
+          (m) => m.supplierId === row.id
+        ).length;
+        return `${count} items`;
+      },
+    },
+    {
+      key: "rating",
+      label: "Rating",
+      sortable: true,
+      render: (value: number) => (
+        <div className="flex items-center space-x-1">
+          <Star className="h-4 w-4 text-yellow-500 fill-current" />
+          <span>{value}</span>
+        </div>
+      ),
+    },
+    {
+      key: "onTime",
+      label: "On-time Delivery",
+      sortable: true,
+      render: (value: any, row: Supplier) => (
+        <div className="flex items-center space-x-2">
+          <Progress
+            value={row.performance?.onTimeDelivery}
+            className="w-16 h-2"
+          />
+          <span className="text-sm">{row.performance?.onTimeDelivery}%</span>
+        </div>
+      ),
+    },
+    {
+      key: "quality",
+      label: "Quality Score",
+      sortable: true,
+      render: (value: any, row: Supplier) => (
+        <div className="flex items-center space-x-2">
+          <Progress
+            value={row.performance?.qualityScore}
+            className="w-16 h-2"
+          />
+          <span className="text-sm">{row.performance?.qualityScore}%</span>
+        </div>
+      ),
+    },
+    {
+      key: "price",
+      label: "Price Competitiveness",
+      sortable: true,
+      render: (value: any, row: Supplier) => (
+        <div className="flex items-center space-x-2">
+          <Progress
+            value={row.performance?.priceCompetitiveness}
+            className="w-16 h-2"
+          />
+          <span className="text-sm">
+            {row.performance?.priceCompetitiveness}%
+          </span>
+        </div>
+      ),
+    },
+    ...(onEdit || onDelete
+      ? [
+          {
+            key: "actions",
+            label: "Actions",
+            sortable: false,
+            render: (value: any, row: Supplier) => (
+              <div className="flex space-x-2">
+                {onEdit && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => onEdit(row)}
+                  >
+                    <Edit className="h-3 w-3" />
+                  </Button>
+                )}
+                {onDelete && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => onDelete(row)}
+                    className="text-destructive hover:text-destructive"
+                  >
+                    <Trash2 className="h-3 w-3" />
+                  </Button>
+                )}
+              </div>
+            ),
+          },
+        ]
+      : []),
+  ];
+
   return (
-    <Table>
-      <TableHeader>
-        <TableRow>
-          {SUPPLIER_COLUMNS.map((col) => (
-            <TableHead key={col.key}>{col.header}</TableHead>
-          ))}
-        </TableRow>
-      </TableHeader>
-      <TableBody>
-        {suppliers.map((supplier) => (
-          <TableRow key={supplier.id}>
-            <TableCell className="font-medium">{supplier.name}</TableCell>
-            <TableCell>
-              <div className="text-sm">
-                <div>{supplier.contactPerson}</div>
-                <div className="text-muted-foreground">{supplier.phone}</div>
-              </div>
-            </TableCell>
-            <TableCell>
-              {
-                (SUPPLIER_MATERIALS || []).filter(
-                  (m) => m.supplierId === supplier.id
-                ).length
-              }{" "}
-              items
-            </TableCell>
-            <TableCell>
-              <div className="flex items-center space-x-1">
-                <Star className="h-4 w-4 text-yellow-500 fill-current" />
-                <span>{supplier.rating}</span>
-              </div>
-            </TableCell>
-            <TableCell>
-              <div className="flex items-center space-x-2">
-                <Progress
-                  value={supplier.performance?.onTimeDelivery}
-                  className="w-16 h-2"
-                />
-                <span className="text-sm">
-                  {supplier.performance?.onTimeDelivery}%
-                </span>
-              </div>
-            </TableCell>
-            <TableCell>
-              <div className="flex items-center space-x-2">
-                <Progress
-                  value={supplier.performance?.qualityScore}
-                  className="w-16 h-2"
-                />
-                <span className="text-sm">
-                  {supplier.performance?.qualityScore}%
-                </span>
-              </div>
-            </TableCell>
-            <TableCell>
-              <div className="flex items-center space-x-2">
-                <Progress
-                  value={supplier.performance?.priceCompetitiveness}
-                  className="w-16 h-2"
-                />
-                <span className="text-sm">
-                  {supplier.performance?.priceCompetitiveness}%
-                </span>
-              </div>
-            </TableCell>
-          </TableRow>
-        ))}
-      </TableBody>
-    </Table>
+    <SortableTable
+      data={suppliers}
+      columns={columns}
+      className="table-enhanced"
+      showSerialNumber={showIndex}
+    />
   );
 }
 
@@ -100,38 +157,63 @@ interface OrdersTableProps {
 }
 
 export function OrdersTable({ orders }: OrdersTableProps) {
+  const columns = [
+    {
+      key: "id",
+      label: "Order ID",
+      sortable: true,
+      render: (value: string) => <span className="font-medium">{value}</span>,
+    },
+    {
+      key: "supplierName",
+      label: "Supplier",
+      sortable: true,
+    },
+    {
+      key: "items",
+      label: "Items",
+      sortable: true,
+      render: (value: any[], row: PurchaseOrder) => `${value.length} items`,
+    },
+    {
+      key: "dateCreated",
+      label: "Order Date",
+      sortable: true,
+    },
+    {
+      key: "deliveryDate",
+      label: "Expected Delivery",
+      sortable: true,
+    },
+    {
+      key: "totalCost",
+      label: "Total Value",
+      sortable: true,
+      render: (value: number) => `₹${value.toFixed(2)}`,
+    },
+    {
+      key: "status",
+      label: "Status",
+      sortable: true,
+      render: (value: string) => {
+        const statusInfo =
+          ORDER_STATUS_MAP[value as keyof typeof ORDER_STATUS_MAP];
+        return (
+          <Badge variant={statusInfo?.variant || "default"}>
+            {statusInfo?.icon && <statusInfo.icon className="mr-1 h-4 w-4" />}
+            {statusInfo?.label || value}
+          </Badge>
+        );
+      },
+    },
+  ];
+
   return (
-    <Table>
-      <TableHeader>
-        <TableRow>
-          {PURCHASE_ORDER_COLUMNS.map((col) => (
-            <TableHead key={col.key}>{col.header}</TableHead>
-          ))}
-        </TableRow>
-      </TableHeader>
-      <TableBody>
-        {orders.map((order) => {
-          const statusInfo = ORDER_STATUS_MAP[order.status];
-          return (
-            <TableRow key={order.id}>
-              <TableCell className="font-medium">{order.id}</TableCell>
-              <TableCell>{order.supplierName}</TableCell>
-              <TableCell>{order.items.length} items</TableCell>
-              <TableCell>{order.dateCreated}</TableCell>
-              <TableCell>{order.deliveryDate}</TableCell>
-              <TableCell>₹{order.totalCost.toFixed(2)}</TableCell>
-              <TableCell>
-                <Badge variant={statusInfo?.variant || "default"}>
-                  {statusInfo?.icon && (
-                    <statusInfo.icon className="mr-1 h-4 w-4" />
-                  )}
-                  {statusInfo?.label || order.status}
-                </Badge>
-              </TableCell>
-            </TableRow>
-          );
-        })}
-      </TableBody>
-    </Table>
+    <SortableTable
+      data={orders}
+      columns={columns}
+      className="table-enhanced"
+      showSerialNumber={false}
+    />
   );
 }

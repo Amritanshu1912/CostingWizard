@@ -1,4 +1,4 @@
-import { SUPPLIERS } from "@/lib/constants";
+import { SUPPLIERS, CHART_COLORS } from "@/lib/constants";
 import { Supplier } from "@/lib/types";
 import {
   DollarSign,
@@ -12,6 +12,7 @@ import {
   Package,
   ShoppingCart,
   TrendingUp,
+  Star,
 } from "lucide-react";
 import { useState } from "react";
 
@@ -58,6 +59,15 @@ export const SUMMARY_METRICS = [
     icon: Clock,
     color: "text-muted-foreground",
     description: "across all suppliers",
+  },
+  {
+    title: "On-time Delivery Rate",
+    value: "89%",
+    change: "+2.1%",
+    trend: "up" as const,
+    icon: CheckCircle,
+    color: "text-green-600",
+    description: "last 30 days",
   },
 ];
 
@@ -170,30 +180,37 @@ export const SUPPLIER_COLUMNS = [
   {
     key: "name",
     header: "Supplier",
+    sortable: true,
   },
   {
     key: "contact",
     header: "Contact",
+    sortable: true,
   },
   {
     key: "materials",
     header: "Materials",
+    sortable: true,
   },
   {
     key: "rating",
     header: "Rating",
+    sortable: true,
   },
   {
     key: "onTime",
     header: "On-time Delivery",
+    sortable: true,
   },
   {
     key: "quality",
     header: "Quality Score",
+    sortable: true,
   },
   {
     key: "price",
     header: "Price Competitiveness",
+    sortable: true,
   },
 ];
 
@@ -204,30 +221,37 @@ export const PURCHASE_ORDER_COLUMNS = [
   {
     key: "id",
     header: "Order ID",
+    sortable: true,
   },
   {
     key: "supplierName",
     header: "Supplier",
+    sortable: true,
   },
   {
     key: "items",
     header: "Items",
+    sortable: true,
   },
   {
     key: "dateCreated",
     header: "Order Date",
+    sortable: true,
   },
   {
     key: "deliveryDate",
     header: "Expected Delivery",
+    sortable: true,
   },
   {
     key: "totalCost",
     header: "Total Value",
+    sortable: true,
   },
   {
     key: "status",
     header: "Status",
+    sortable: true,
   },
 ];
 
@@ -281,17 +305,102 @@ export const ORDER_STATUS_DATA = [
   { name: "Cancelled", value: 5, color: "#ef4444" },
 ];
 
-export const procurementCostSavings = {
-  value: "₹12,450",
-  change: "+8.5% improvement",
+/**
+ * Data for Spend by Supplier bar chart.
+ */
+export const SPEND_BY_SUPPLIER_DATA = [
+  { supplier: "ChemCorp Industries", spend: 125000, orders: 45 },
+  { supplier: "ColorTech Solutions", spend: 98000, orders: 38 },
+  { supplier: "BulkChem Traders", spend: 152000, orders: 52 },
+];
+
+/**
+ * Data for Order Volume Trends line chart.
+ */
+export const ORDER_VOLUME_TRENDS_DATA = [
+  { month: "Jan", orders: 12, value: 45000 },
+  { month: "Feb", orders: 15, value: 52000 },
+  { month: "Mar", orders: 13, value: 48000 },
+  { month: "Apr", orders: 18, value: 61000 },
+  { month: "May", orders: 16, value: 58000 },
+  { month: "Jun", orders: 20, value: 67000 },
+];
+
+/**
+ * Data for Material Cost Breakdown bar chart.
+ */
+export const MATERIAL_COST_BREAKDOWN_DATA = [
+  { material: "Acid Blue Color", cost: 82500 },
+  { material: "Citric Acid", cost: 9500 },
+  { material: "AOS Powder 96%", cost: 11400 },
+  { material: "NaCl", cost: 5800 },
+  { material: "Soda Ash", cost: 19500 },
+];
+
+/**
+ * Data for Delivery Time Trends line chart.
+ */
+export const DELIVERY_TIME_TRENDS_DATA = [
+  { month: "Jan", avgDeliveryTime: 6.8 },
+  { month: "Feb", avgDeliveryTime: 7.2 },
+  { month: "Mar", avgDeliveryTime: 6.5 },
+  { month: "Apr", avgDeliveryTime: 6.9 },
+  { month: "May", avgDeliveryTime: 6.3 },
+  { month: "Jun", avgDeliveryTime: 6.7 },
+];
+
+export const MATERIAL_CATEGORIES = [
+  "Acids",
+  "Bases",
+  "Colors",
+  "Salts",
+  "Thickeners",
+  "Bottles",
+  "Labels",
+  "Other",
+] as const;
+
+export const PAYMENT_TERMS = [
+  "15 days",
+  "30 days",
+  "45 days",
+  "60 days",
+  "Advance",
+] as const;
+
+export const CURRENCIES = ["INR", "USD", "EUR"] as const;
+
+export const UNITS = ["kg", "liters", "pieces", "meters"] as const;
+
+export const AVAILABILITY_OPTIONS = [
+  "in-stock",
+  "limited",
+  "out-of-stock",
+] as const;
+
+export const DEFAULT_SUPPLIER_FORM = {
+  name: "",
+  contactPerson: "",
+  email: "",
+  phone: "",
+  address: "",
+  rating: 5,
+  isActive: true,
+  paymentTerms: "30 days" as const,
+  leadTime: 7,
+  notes: "",
 };
 
-export const procurementLeadTime = {
-  value: "6.8 days",
-  change: "-1.2 days vs last month",
-};
-
-export const procurementQualityScore = {
-  value: "87.3%",
-  change: "+2.1% this month",
+export const DEFAULT_MATERIAL_FORM = {
+  supplierId: "",
+  materialName: "",
+  materialCategory: "",
+  unitPrice: 0,
+  currency: "INR" as const,
+  moq: 1,
+  unit: "kg" as const,
+  bulkDiscounts: [],
+  leadTime: 7,
+  availability: "in-stock" as const,
+  notes: "",
 };

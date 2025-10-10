@@ -21,8 +21,7 @@ import {
   ORDER_STATUS_DATA,
   getSupplierPerformanceData,
 } from "./procurement-constants";
-import { SuppliersTable, OrdersTable } from "./procurement-tables";
-import { AddSupplierDialog, OrderDialog } from "./procurement-dialogs";
+import { OrderDialog } from "./procurement-dialogs";
 import { SuppliersTab } from "./procurement-suppliers-tab";
 import { OrdersTab } from "./procurement-orders-tab";
 import { MoqAnalysisTab } from "./procurement-moq-analysis-tab";
@@ -131,25 +130,12 @@ export function ProcurementManager() {
           </p>
         </div>
         <div className="flex gap-3">
-          <AddSupplierDialog
-            isOpen={isAddSupplierOpen}
-            setIsOpen={setIsAddSupplierOpen}
-            onSave={handleAddSupplier}
-          />
           <OrderDialog
             isOpen={isCreateOrderOpen}
             setIsOpen={setIsCreateOrderOpen}
             initialOrder={editingOrder}
             onSave={handleSaveOrder}
           />
-          <Button
-            variant="outline"
-            className="bg-secondary hover:bg-secondary/90"
-            onClick={() => setIsAddSupplierOpen(true)}
-          >
-            <Plus className="h-4 w-4 mr-2" />
-            Add Supplier
-          </Button>
           <Button
             className="bg-accent hover:bg-accent/90"
             onClick={() => {
@@ -174,10 +160,21 @@ export function ProcurementManager() {
         <TabsContent value="suppliers" className="space-y-6">
           <SuppliersTab
             suppliers={suppliers}
-            filteredSuppliers={filteredSuppliers}
-            searchTerm={searchTerm}
-            setSearchTerm={setSearchTerm}
             materialsBySupplier={materialsBySupplier}
+            supplierMaterials={SUPPLIER_MATERIALS}
+            onAddSupplier={handleAddSupplier}
+            onEditSupplier={(supplier) =>
+              setSuppliers(
+                suppliers.map((s) => (s.id === supplier.id ? supplier : s))
+              )
+            }
+            onDeleteSupplier={(id) =>
+              setSuppliers(
+                suppliers.map((s) =>
+                  s.id === id ? { ...s, isActive: false } : s
+                )
+              )
+            }
           />
         </TabsContent>
 
