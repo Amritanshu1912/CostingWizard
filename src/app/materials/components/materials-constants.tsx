@@ -201,11 +201,13 @@ export const DEFAULT_MATERIAL_FORM = {
   materialName: "",
   materialCategory: "",
   unitPrice: 0,
+  tax: 0,
   currency: "INR" as const,
   moq: 1,
   unit: "kg" as const,
   bulkDiscounts: [],
   leadTime: 7,
   availability: "in-stock" as const,
+  transportationCost: 0,
   notes: "",
 };

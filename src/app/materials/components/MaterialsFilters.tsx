@@ -37,75 +37,60 @@ export function MaterialsFilters({
   categories,
 }: MaterialsFiltersProps) {
   return (
-    <Card className="card-enhanced">
-      <CardContent className="pt-6">
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-          <div>
-            <Label>Search Materials</Label>
-            <div className="relative">
-              <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-              <Input
-                placeholder="Search materials or suppliers..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-10 focus-enhanced"
-              />
-            </div>
-          </div>
-          <div>
-            <Label>Category</Label>
-            <Select
-              value={selectedCategory}
-              onValueChange={setSelectedCategory}
-            >
-              <SelectTrigger className="focus-enhanced">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Categories</SelectItem>
-                {categories.map((category) => (
-                  <SelectItem key={category} value={category}>
-                    {category}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-          <div>
-            <Label>Supplier</Label>
-            <Select
-              value={selectedSupplier}
-              onValueChange={setSelectedSupplier}
-            >
-              <SelectTrigger className="focus-enhanced">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Suppliers</SelectItem>
-                {suppliers.map((supplier) => (
-                  <SelectItem key={supplier.id} value={supplier.id}>
-                    {supplier.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-          <div className="flex items-end">
-            <Button
-              variant="outline"
-              className="w-full bg-transparent"
-              onClick={() => {
-                setSearchTerm("");
-                setSelectedCategory("all");
-                setSelectedSupplier("all");
-              }}
-            >
-              <Filter className="h-4 w-4 mr-2" />
-              Clear Filters
-            </Button>
-          </div>
+    <div className="flex mb-6 gap-4">
+      <div className="flex-1">
+        <div className="relative">
+          <Search className="absolute left-3 top-3 h-4 text-muted-foreground" />
+          <Input
+            placeholder="Search materials or suppliers..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="pl-10 focus-enhanced"
+          />
         </div>
-      </CardContent>
-    </Card>
+      </div>
+      <Select value={selectedCategory} onValueChange={setSelectedCategory}>
+        <SelectTrigger className="focus-enhanced">
+          <SelectValue />
+        </SelectTrigger>
+        <SelectContent>
+          <SelectItem value="all">All Categories</SelectItem>
+          {categories.map((category) => (
+            <SelectItem key={category} value={category}>
+              {category}
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
+
+      <Select value={selectedSupplier} onValueChange={setSelectedSupplier}>
+        <SelectTrigger className="focus-enhanced">
+          <SelectValue />
+        </SelectTrigger>
+        <SelectContent>
+          <SelectItem value="all">All Suppliers</SelectItem>
+          {suppliers.map((supplier) => (
+            <SelectItem key={supplier.id} value={supplier.id}>
+              {supplier.name}
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
+
+      <div className="flex items-end">
+        <Button
+          variant="outline"
+          className="w-full bg-transparent"
+          onClick={() => {
+            setSearchTerm("");
+            setSelectedCategory("all");
+            setSelectedSupplier("all");
+          }}
+        >
+          <Filter className="h-4 w-4 mr-2" />
+          Clear Filters
+        </Button>
+      </div>
+    </div>
   );
 }
