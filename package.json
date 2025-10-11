@@ -43,6 +43,7 @@
     "clsx": "^2.1.1",
     "cmdk": "latest",
     "date-fns": "4.1.0",
+    "dexie": "^4.2.1",
     "embla-carousel-react": "latest",
     "geist": "^1.5.1",
     "input-otp": "latest",
