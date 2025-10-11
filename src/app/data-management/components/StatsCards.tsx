@@ -11,6 +11,7 @@ import {
 } from "lucide-react";
 import type { SavedData } from "./data-management-types";
 import { formatBytes } from "./data-management-utils";
+import { formatDate } from "@/lib/utils";
 
 interface StatsCardsProps {
   savedData: SavedData[];
@@ -89,9 +90,9 @@ export function StatsCards({ savedData, autosaveEnabled }: StatsCardsProps) {
           </div>
           <div className="text-xs text-muted-foreground">
             {savedData.length > 0
-              ? new Date(
-                  Math.max(...savedData.map((d) => d.timestamp))
-                ).toLocaleDateString()
+              ? formatDate(
+                  new Date(Math.max(...savedData.map((d) => d.timestamp)))
+                )
               : "no backups yet"}
           </div>
         </CardContent>

@@ -13,6 +13,7 @@ import {
 } from "@/components/ui/dialog";
 import { toast } from "sonner";
 import { Download, Upload, RefreshCw } from "lucide-react";
+import { db } from "@/lib/db";
 import type { SavedData } from "./data-management-types";
 import { getDataName, getDataType, formatBytes } from "./data-management-utils";
 import { StatsCards } from "./StatsCards";
@@ -30,45 +31,73 @@ export function DataPersistenceManager() {
     loadSavedData();
   }, []);
 
-  const loadSavedData = () => {
+  const loadSavedData = async () => {
     if (typeof window === "undefined") return;
 
-    const data: SavedData[] = [];
-    const keys = Object.keys(localStorage);
+    try {
+      const data: SavedData[] = [];
 
-    keys.forEach((key) => {
-      if (key.endsWith("_timestamp")) return;
+      // Get data from IndexedDB tables
+      const tables = [
+        { name: "categories", table: db.categories },
+        { name: "materials", table: db.materials },
+        { name: "suppliers", table: db.suppliers },
+        { name: "supplierMaterials", table: db.supplierMaterials },
+        { name: "products", table: db.products },
+        { name: "productionPlans", table: db.productionPlans },
+        { name: "purchaseOrders", table: db.purchaseOrders },
+        { name: "packaging", table: db.packaging },
+        { name: "supplierPackaging", table: db.supplierPackaging },
+        { name: "labels", table: db.labels },
+        { name: "supplierLabels", table: db.supplierLabels },
+        { name: "inventoryItems", table: db.inventoryItems },
+        { name: "inventoryTransactions", table: db.inventoryTransactions },
+        { name: "transportationCosts", table: db.transportationCosts },
+        { name: "recipeVariants", table: db.recipeVariants },
+      ];
 
-      try {
-        const item = localStorage.getItem(key);
-        const timestamp = localStorage.getItem(`${key}_timestamp`);
+      for (const { name, table } of tables) {
+        try {
+          const items = await table.toArray();
+          if (items.length > 0) {
+            const serialized = JSON.stringify(items);
+            const size = new Blob([serialized]).size;
+            const latestTimestamp = items.reduce(
+              (max, item) =>
+                Math.max(
+                  max,
+                  new Date(item.updatedAt || item.createdAt).getTime()
+                ),
+              0
+            );
 
-        if (item && timestamp) {
-          const parsedData = JSON.parse(item);
-          const size = new Blob([item]).size;
-
-          data.push({
-            key,
-            name: getDataName(key),
-            timestamp: Number.parseInt(timestamp),
-            size: formatBytes(size),
-            type: getDataType(key),
-            data: parsedData,
-          });
+            data.push({
+              key: name,
+              name: getDataName(name),
+              timestamp: latestTimestamp,
+              size: formatBytes(size),
+              type: getDataType(name),
+              data: items,
+            });
+          }
+        } catch (error) {
+          console.error(`Error loading table ${name}:`, error);
         }
-      } catch (error) {
-        console.error(`Error loading data for key ${key}:`, error);
       }
-    });
 
-    // Sort by timestamp (newest first)
-    data.sort((a, b) => b.timestamp - a.timestamp);
-    setSavedData(data);
+      // Sort by timestamp (newest first)
+      data.sort((a, b) => b.timestamp - a.timestamp);
+      setSavedData(data);
+    } catch (error) {
+      console.error("Error loading data from IndexedDB:", error);
+      toast.error("Failed to load data");
+    }
   };
 
   const handleExportData = (item: SavedData) => {
     try {
       const exportData = {
+        table: item.key,
         name: item.name,
         type: item.type,
         timestamp: item.timestamp,
@@ -81,7 +110,7 @@ export function DataPersistenceManager() {
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
-      a.download = `${item.name.toLowerCase().replace(/\s+/g, "-")}-${
+      a.download = `${item.key}-${
         new Date(item.timestamp).toISOString().split("T")[0]
       }.json`;
       document.body.appendChild(a);
@@ -96,10 +125,10 @@ export function DataPersistenceManager() {
     }
   };
 
-  const handleExportAll = () => {
+  const handleExportAll = async () => {
     try {
       const allData = savedData.map((item) => ({
-        key: item.key,
+        table: item.key,
         name: item.name,
         type: item.type,
         timestamp: item.timestamp,
@@ -109,6 +138,7 @@ export function DataPersistenceManager() {
       const exportData = {
         exportDate: new Date().toISOString(),
         version: "1.0",
+        database: "CostingWizardDB",
         data: allData,
       };
 
@@ -134,36 +164,53 @@ export function DataPersistenceManager() {
     }
   };
 
-  const handleImportData = (event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleImportData = async (
+    event: React.ChangeEvent<HTMLInputElement>
+  ) => {
     const file = event.target.files?.[0];
     if (!file) return;
 
     const reader = new FileReader();
-    reader.onload = (e) => {
+    reader.onload = async (e) => {
       try {
         const importData = JSON.parse(e.target?.result as string);
 
-        if (importData.data && Array.isArray(importData.data)) {
-          // Bulk import
-          importData.data.forEach((item: any) => {
-            localStorage.setItem(item.key, JSON.stringify(item.data));
-            localStorage.setItem(
-              `${item.key}_timestamp`,
-              item.timestamp.toString()
+        if (
+          importData.database === "CostingWizardDB" &&
+          importData.data &&
+          Array.isArray(importData.data)
+        ) {
+          // Bulk import from backup
+          for (const item of importData.data) {
+            const tableName = item.table;
+            const table = (db as any)[tableName];
+            if (table && item.data && Array.isArray(item.data)) {
+              await table.clear();
+              await table.bulkAdd(item.data);
+            }
+          }
+          toast.success(`Imported ${importData.data.length} tables`);
+        } else if (
+          importData.table &&
+          importData.data &&
+          Array.isArray(importData.data)
+        ) {
+          // Single table import
+          const table = (db as any)[importData.table];
+          if (table) {
+            await table.clear();
+            await table.bulkAdd(importData.data);
+            toast.success(
+              `Imported ${importData.data.length} items to ${importData.table}`
             );
-          });
-          toast.success(`Imported ${importData.data.length} data items`);
-        } else if (importData.type && importData.data) {
-          // Single item import
-          const key = `imported-${importData.type}-${Date.now()}`;
-          localStorage.setItem(key, JSON.stringify(importData.data));
-          localStorage.setItem(`${key}_timestamp`, Date.now().toString());
-          toast.success("Data imported successfully");
+          } else {
+            throw new Error(`Unknown table: ${importData.table}`);
+          }
         } else {
           throw new Error("Invalid file format");
         }
 
-        loadSavedData();
+        await loadSavedData();
         setIsImportDialogOpen(false);
       } catch (error) {
         console.error("Import failed:", error);
@@ -173,25 +220,31 @@ export function DataPersistenceManager() {
     reader.readAsText(file);
   };
 
-  const handleDeleteData = (key: string) => {
+  const handleDeleteData = async (key: string) => {
     try {
-      localStorage.removeItem(key);
-      localStorage.removeItem(`${key}_timestamp`);
-      loadSavedData();
-      toast.success("Data deleted successfully");
+      const table = (db as any)[key];
+      if (table) {
+        await table.clear();
+        await loadSavedData();
+        toast.success("Table cleared successfully");
+      } else {
+        throw new Error(`Unknown table: ${key}`);
+      }
     } catch (error) {
       console.error("Delete failed:", error);
       toast.error("Failed to delete data");
     }
   };
 
-  const handleClearAllData = () => {
+  const handleClearAllData = async () => {
     try {
-      savedData.forEach((item) => {
-        localStorage.removeItem(item.key);
-        localStorage.removeItem(`${item.key}_timestamp`);
-      });
-      loadSavedData();
+      for (const item of savedData) {
+        const table = (db as any)[item.key];
+        if (table) {
+          await table.clear();
+        }
+      }
+      await loadSavedData();
       toast.success("All data cleared successfully");
     } catch (error) {
       console.error("Clear all failed:", error);

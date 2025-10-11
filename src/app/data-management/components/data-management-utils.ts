@@ -19,9 +19,17 @@ export const getDataName = (key: string): string => {
 };
 
 export const getDataType = (key: string): DataType => {
-    if (key.includes("recipe")) return "recipe";
-    if (key.includes("production")) return "production-plan";
-    if (key.includes("supplier")) return "supplier";
+    if (key === "products" || key.includes("recipe")) return "recipe";
+    if (key === "productionPlans" || key.includes("production")) return "production-plan";
+    if (key === "suppliers" || key === "supplierMaterials" || key.includes("supplier")) return "supplier";
+    if (key === "materials") return "material";
+    if (key === "packaging" || key === "supplierPackaging") return "packaging";
+    if (key === "labels" || key === "supplierLabels") return "label";
+    if (key === "inventoryItems" || key === "inventoryTransactions") return "inventory";
+    if (key === "transportationCosts") return "transport";
+    if (key === "recipeVariants") return "recipe-variant";
+    if (key === "purchaseOrders") return "purchase-order";
+    if (key === "categories") return "category";
     if (key.includes("cost")) return "cost-analysis";
     return "settings";
 };
@@ -31,8 +39,16 @@ export const getTypeIcon = (type: DataType) => {
         recipe: "FileText",
         "production-plan": "Database",
         supplier: "Database",
-        "cost-analysis": "Database",
-        settings: "Database",
+        material: "Package",
+        packaging: "Box",
+        label: "Tag",
+        inventory: "Archive",
+        transport: "Truck",
+        "recipe-variant": "FileText",
+        "purchase-order": "ShoppingCart",
+        category: "Folder",
+        "cost-analysis": "TrendingUp",
+        settings: "Settings",
     };
     return icons[type] || "Database";
 };
