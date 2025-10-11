@@ -5,40 +5,39 @@ import { toast } from "sonner"
 
 // Make the interface generic
 interface AutosaveOptions<T> {
-  key: string
   data: T
   delay?: number
   enabled?: boolean
-  onSave?: () => void
+  onSave?: () => Promise<void> | void
   onError?: (error: Error) => void
+  serialize?: (data: T) => string
+  compare?: (a: string, b: string) => boolean
 }
 
 // Make the function generic
 export function useAutosave<T>({
-  key,
   data,
   delay = 2000,
   enabled = true,
   onSave,
-  onError
+  onError,
+  serialize = JSON.stringify,
+  compare = (a, b) => a === b
 }: AutosaveOptions<T>) {
   const timeoutRef = useRef<NodeJS.Timeout | null>(null)
   const lastSavedRef = useRef<string>("")
 
   const saveData = useCallback(async () => {
     try {
-      const serializedData = JSON.stringify(data)
+      const serializedData = serialize(data)
 
       // Only save if data has actually changed
-      if (serializedData === lastSavedRef.current) {
+      if (compare(serializedData, lastSavedRef.current)) {
         return
       }
 
-      localStorage.setItem(key, serializedData)
-      localStorage.setItem(`${key}_timestamp`, Date.now().toString())
+      await onSave?.()
       lastSavedRef.current = serializedData
-
-      onSave?.()
 
       // Show subtle save indicator
       toast.success("Data saved automatically", {
@@ -50,7 +49,7 @@ export function useAutosave<T>({
       onError?.(error as Error)
       toast.error("Failed to save data automatically")
     }
-  }, [key, data, onSave, onError])
+  }, [data, onSave, onError, serialize, compare])
 
   useEffect(() => {
     if (!enabled || !data) return
