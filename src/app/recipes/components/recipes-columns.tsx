@@ -5,6 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Edit, Trash2 } from "lucide-react";
 import React from "react";
+import { formatDate } from "@/lib/utils";
 
 // Extend Product type for the table display to include derived fields
 type RecipeTableRow = Product & {
@@ -91,9 +92,7 @@ export const RECIPE_COLUMNS = ({
     key: "createdAt",
     label: "Date Created",
     render: (value: string) => (
-      <span className="text-muted-foreground">
-        {new Date(value).toLocaleDateString()}
-      </span>
+      <span className="text-muted-foreground">{formatDate(value)}</span>
     ),
   },
   {
@@ -101,7 +100,7 @@ export const RECIPE_COLUMNS = ({
     label: "Date Updated",
     render: (value: string | undefined) => (
       <span className="text-muted-foreground">
-        {value ? new Date(value).toLocaleDateString() : "-"}
+        {value ? formatDate(value) : "-"}
       </span>
     ),
   },
