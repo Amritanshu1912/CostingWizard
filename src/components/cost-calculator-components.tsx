@@ -12,18 +12,12 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
+import { SortableTable } from "@/components/ui/sortable-table";
 import { Slider } from "@/components/ui/slider";
 import { Minus, Plus, Target, TrendingUp, Package, Zap } from "lucide-react";
 import {
   Material,
+  SupplierMaterial,
   ProductIngredient,
   OptimizationSuggestion,
   ScenarioData,
@@ -40,7 +34,7 @@ import {
 // ============================================================================
 
 interface IngredientFormProps {
-  materials: Material[];
+  materials: SupplierMaterial[];
   selectedMaterial: string;
   quantity: number;
   onMaterialChange: (materialId: string) => void;
@@ -69,7 +63,7 @@ export function IngredientForm({
             <SelectContent>
               {materials.map((material) => (
                 <SelectItem key={material.id} value={material.id}>
-                  {material.name} - ₹{material.pricePerKg}/kg
+                  {material.materialName} - ₹{material.unitPrice}/kg
                 </SelectItem>
               ))}
             </SelectContent>
@@ -119,65 +113,72 @@ export function IngredientsTable({
   return (
     <div className="space-y-4">
       <h4 className="font-medium text-foreground">Recipe Composition</h4>
-      <div className="overflow-x-auto">
-        <Table className="table-enhanced">
-          <TableHeader>
-            <TableRow>
-              <TableHead className="text-foreground font-medium">#</TableHead>
-              <TableHead className="text-foreground font-medium">
-                Material
-              </TableHead>
-              <TableHead className="text-foreground font-medium">
-                Qty (kg)
-              </TableHead>
-              <TableHead className="text-foreground font-medium">
-                Price/kg
-              </TableHead>
-              <TableHead className="text-foreground font-medium">
-                Total
-              </TableHead>
-              <TableHead className="text-foreground font-medium">%</TableHead>
-              <TableHead className="text-foreground font-medium">
-                Action
-              </TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {ingredients.map((ingredient, index) => (
-              <TableRow key={index} className="hover:bg-muted/30">
-                <TableCell className="text-muted-foreground font-medium">
-                  {index + 1}
-                </TableCell>
-                <TableCell className="font-medium text-foreground">
-                  {ingredient.materialName}
-                </TableCell>
-                <TableCell className="text-muted-foreground">
-                  {ingredient.quantity.toFixed(3)}
-                </TableCell>
-                <TableCell className="text-foreground">
-                  ₹{ingredient.costPerKg.toFixed(2)}
-                </TableCell>
-                <TableCell className="text-foreground font-medium">
-                  ₹{ingredient.totalCost.toFixed(2)}
-                </TableCell>
-                <TableCell className="text-accent font-medium">
-                  {(ingredient.percentage || 0).toFixed(1)}%
-                </TableCell>
-                <TableCell>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => onRemoveIngredient(index)}
-                    className="h-8 w-8 p-0 text-destructive hover:text-destructive hover:bg-destructive/10"
-                  >
-                    <Minus className="h-3 w-3" />
-                  </Button>
-                </TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-      </div>
+      <SortableTable
+        data={ingredients}
+        columns={[
+          {
+            key: "materialName",
+            label: "Material",
+            sortable: true,
+            render: (value: string) => (
+              <span className="font-medium text-foreground">{value}</span>
+            ),
+          },
+          {
+            key: "quantity",
+            label: "Qty (kg)",
+            sortable: true,
+            render: (value: number) => (
+              <span className="text-muted-foreground">{value.toFixed(3)}</span>
+            ),
+          },
+          {
+            key: "costPerKg",
+            label: "Price/kg",
+            sortable: true,
+            render: (value: number) => (
+              <span className="text-foreground">₹{value.toFixed(2)}</span>
+            ),
+          },
+          {
+            key: "totalCost",
+            label: "Total",
+            sortable: true,
+            render: (value: number) => (
+              <span className="text-foreground font-medium">
+                ₹{value.toFixed(2)}
+              </span>
+            ),
+          },
+          {
+            key: "percentage",
+            label: "%",
+            sortable: true,
+            render: (value: number) => (
+              <span className="text-accent font-medium">
+                {(value || 0).toFixed(1)}%
+              </span>
+            ),
+          },
+          {
+            key: "actions",
+            label: "Action",
+            sortable: false,
+            render: (value: any, row: ProductIngredient, index: number) => (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => onRemoveIngredient(index)}
+                className="h-8 w-8 p-0 text-destructive hover:text-destructive hover:bg-destructive/10"
+              >
+                <Minus className="h-3 w-3" />
+              </Button>
+            ),
+          },
+        ]}
+        className="table-enhanced"
+        showSerialNumber={true}
+      />
     </div>
   );
 }
@@ -389,57 +390,60 @@ export function ScenarioComparison({ scenarios }: ScenarioComparisonProps) {
   }
 
   return (
-    <div className="overflow-x-auto">
-      <Table className="table-enhanced">
-        <TableHeader>
-          <TableRow>
-            <TableHead className="text-foreground font-medium">#</TableHead>
-            <TableHead className="text-foreground font-medium">
-              Scenario
-            </TableHead>
-            <TableHead className="text-foreground font-medium">
-              Batch Size
-            </TableHead>
-            <TableHead className="text-foreground font-medium">
-              Total Cost
-            </TableHead>
-            <TableHead className="text-foreground font-medium">
-              Cost/kg
-            </TableHead>
-            <TableHead className="text-foreground font-medium">
-              Margin
-            </TableHead>
-            <TableHead className="text-foreground font-medium">Price</TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {scenarios.map((scenario, index) => (
-            <TableRow key={index} className="hover:bg-muted/30">
-              <TableCell className="text-muted-foreground font-medium">
-                {index + 1}
-              </TableCell>
-              <TableCell className="font-medium text-foreground">
-                {scenario.name}
-              </TableCell>
-              <TableCell className="text-muted-foreground">
-                {scenario.batchSize}kg
-              </TableCell>
-              <TableCell className="text-foreground">
-                ₹{scenario.totalCost.toFixed(2)}
-              </TableCell>
-              <TableCell className="text-foreground">
-                ₹{scenario.costPerKg.toFixed(2)}
-              </TableCell>
-              <TableCell className="text-accent font-medium">
-                {scenario.margin.toFixed(1)}%
-              </TableCell>
-              <TableCell className="text-foreground">
-                ₹{scenario.price.toFixed(2)}
-              </TableCell>
-            </TableRow>
-          ))}
-        </TableBody>
-      </Table>
-    </div>
+    <SortableTable
+      data={scenarios}
+      columns={[
+        {
+          key: "name",
+          label: "Scenario",
+          sortable: true,
+          render: (value: string) => (
+            <span className="font-medium text-foreground">{value}</span>
+          ),
+        },
+        {
+          key: "batchSize",
+          label: "Batch Size",
+          sortable: true,
+          render: (value: number) => (
+            <span className="text-muted-foreground">{value}kg</span>
+          ),
+        },
+        {
+          key: "totalCost",
+          label: "Total Cost",
+          sortable: true,
+          render: (value: number) => (
+            <span className="text-foreground">₹{value.toFixed(2)}</span>
+          ),
+        },
+        {
+          key: "costPerKg",
+          label: "Cost/kg",
+          sortable: true,
+          render: (value: number) => (
+            <span className="text-foreground">₹{value.toFixed(2)}</span>
+          ),
+        },
+        {
+          key: "margin",
+          label: "Margin",
+          sortable: true,
+          render: (value: number) => (
+            <span className="text-accent font-medium">{value.toFixed(1)}%</span>
+          ),
+        },
+        {
+          key: "price",
+          label: "Price",
+          sortable: true,
+          render: (value: number) => (
+            <span className="text-foreground">₹{value.toFixed(2)}</span>
+          ),
+        },
+      ]}
+      className="table-enhanced"
+      showSerialNumber={true}
+    />
   );
 }
