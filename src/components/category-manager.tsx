@@ -18,7 +18,9 @@ import type { Category, CategoryManagerProps } from "@/lib/types";
 
 export function CategoryManager({
   categories,
-  onCategoriesChange,
+  addCategory,
+  updateCategory,
+  deleteCategory,
 }: CategoryManagerProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [editingCategory, setEditingCategory] = useState<Category | null>(null);
@@ -39,14 +41,15 @@ export function CategoryManager({
       return;
     }
 
-    const category: Category = {
-      id: Date.now().toString(),
+    const categoryData = {
       name: newCategory.name.trim(),
       description: newCategory.description.trim(),
+      createdAt: new Date().toISOString(),
     };
 
-    onCategoriesChange([...categories, category]);
+    addCategory(categoryData);
     setNewCategory({ name: "", description: "" });
+    setIsOpen(false);
     toast.success("Category added successfully");
   };
 
@@ -60,17 +63,20 @@ export function CategoryManager({
       return;
     }
 
-    const updatedCategories = categories.map((cat) =>
-      cat.id === editingCategory.id ? editingCategory : cat
-    );
+    const updatedCategory = {
+      ...editingCategory,
+      name: editingCategory.name.trim(),
+      description: editingCategory.description?.trim() || "",
+      updatedAt: new Date().toISOString(),
+    };
 
-    onCategoriesChange(updatedCategories);
+    updateCategory(updatedCategory);
     setEditingCategory(null);
     toast.success("Category updated successfully");
   };
 
   const handleDeleteCategory = (id: string) => {
-    onCategoriesChange(categories.filter((cat) => cat.id !== id));
+    deleteCategory(id);
     toast.success("Category deleted successfully");
   };
 
