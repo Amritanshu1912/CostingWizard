@@ -14,6 +14,7 @@ import {
   ShoppingCart,
   Menu,
   X,
+  Box,
 } from "lucide-react";
 
 const navigation = [
@@ -26,6 +27,11 @@ const navigation = [
     name: "Materials",
     href: "/materials",
     icon: Package,
+  },
+  {
+    name: "Packaging",
+    href: "/packaging",
+    icon: Box,
   },
   {
     name: "Recipes",
