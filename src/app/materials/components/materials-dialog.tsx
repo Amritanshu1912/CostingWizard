@@ -7,7 +7,6 @@ import {
   DialogDescription,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -26,7 +25,6 @@ import {
   UNITS,
   AVAILABILITY_OPTIONS,
 } from "./materials-constants";
-import { Package } from "lucide-react";
 
 interface MaterialDialogProps {
   open: boolean;
@@ -38,10 +36,6 @@ interface MaterialDialogProps {
   onSubmit: () => void;
   isEditing: boolean;
   suppliers: Supplier[];
-  materials: Material[];
-  addMaterialEntry: (
-    material: Omit<Material, "id" | "createdAt">
-  ) => Promise<string>;
 }
 
 export function MaterialDialog({
@@ -52,8 +46,6 @@ export function MaterialDialog({
   onSubmit,
   isEditing,
   suppliers,
-  materials,
-  addMaterialEntry,
 }: MaterialDialogProps) {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>

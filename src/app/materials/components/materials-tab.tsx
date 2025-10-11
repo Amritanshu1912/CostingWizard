@@ -9,7 +9,6 @@ interface MaterialsTabProps {
   avgPrice: number;
   highestPrice: number;
   avgTax: number;
-  materials: SupplierMaterial[];
   searchTerm: string;
   onSearchChange: (value: string) => void;
   selectedCategory: string;
@@ -28,7 +27,6 @@ export function MaterialsTab({
   avgPrice,
   highestPrice,
   avgTax,
-  materials,
   searchTerm,
   onSearchChange,
   selectedCategory,

@@ -12,13 +12,7 @@ import { MaterialDialog } from "./materials-dialog";
 import { MaterialsTab } from "./materials-tab";
 import { PriceComparison } from "./PriceComparison";
 import { MaterialsAnalytics } from "./materials-analytics";
-
-import type {
-  Category,
-  Material,
-  Supplier,
-  SupplierMaterial,
-} from "@/lib/types";
+import type { SupplierMaterial } from "@/lib/types";
 import {
   MATERIALS,
   CATEGORIES,
@@ -26,10 +20,7 @@ import {
   SUPPLIER_MATERIALS,
 } from "@/lib/constants";
 import { useDexieTable } from "@/hooks/use-dexie-table";
-import {
-  DEFAULT_MATERIAL_FORM,
-  MATERIAL_CATEGORIES,
-} from "./materials-constants";
+import { DEFAULT_MATERIAL_FORM } from "./materials-constants";
 import {
   Card,
   CardHeader,
@@ -40,10 +31,6 @@ import {
 import { db } from "@/lib/db";
 
 export function MaterialsManager() {
-  const [supplierSearchTerm, setSupplierSearchTerm] = useState("");
-  const [selectedSupplierCategory, setSelectedSupplierCategory] =
-    useState("all");
-  const [selectedSupplier, setSelectedSupplier] = useState("all");
   const [showAddSupplierMaterial, setShowAddSupplierMaterial] = useState(false);
   const [editingSupplierMaterial, setEditingSupplierMaterial] =
     useState<SupplierMaterial | null>(null);
@@ -241,7 +228,6 @@ export function MaterialsManager() {
             avgPrice={avgPrice}
             highestPrice={highestPrice}
             avgTax={avgTax}
-            materials={supplierMaterials}
             searchTerm={materialsSearchTerm}
             onSearchChange={setMaterialsSearchTerm}
             selectedCategory={selectedMaterialsCategory}
@@ -301,8 +287,6 @@ export function MaterialsManager() {
         }
         isEditing={!!editingSupplierMaterial}
         suppliers={suppliers}
-        materials={materials}
-        addMaterialEntry={addMaterial}
       />
     </div>
   );

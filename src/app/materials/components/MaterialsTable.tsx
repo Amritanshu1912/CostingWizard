@@ -89,7 +89,7 @@ const MATERIAL_COLUMNS = ({
   },
   {
     key: "leadTime",
-    label: "Lead Time (days)",
+    label: "Lead Time",
     render: (value: number) => (
       <span className="text-muted-foreground">{value}</span>
     ),
