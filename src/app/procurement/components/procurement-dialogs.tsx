@@ -28,7 +28,7 @@ import type {
   Material,
   PurchaseOrderItem,
 } from "@/lib/types";
-import { MATERIALS, SUPPLIERS } from "@/lib/constants";
+import { MATERIALS, SUPPLIERS, SUPPLIER_MATERIALS } from "@/lib/constants";
 // import {} from "./supplier-management-constants";
 import { Switch } from "@/components/ui/switch";
 
@@ -311,6 +311,7 @@ export const OrderDialog: React.FC<OrderDialogProps> = ({
   );
   const materials = MATERIALS;
   const suppliers = SUPPLIERS;
+  const supplierMaterials = SUPPLIER_MATERIALS;
 
   useEffect(() => {
     if (isOpen) {
@@ -335,7 +336,11 @@ export const OrderDialog: React.FC<OrderDialogProps> = ({
     if (key === "materialId" && typeof value === "string") {
       const material = materials.find((m) => m.id === value);
       itemToUpdate.materialName = material?.name || "";
-      itemToUpdate.costPerKg = material?.pricePerKg || 0;
+      // Find supplier material for this material and supplier
+      const supplierMaterial = supplierMaterials.find(
+        (sm) => sm.materialId === value && sm.supplierId === order.supplierId
+      );
+      itemToUpdate.costPerKg = supplierMaterial?.unitPrice || 0;
     }
 
     itemToUpdate.totalCost = itemToUpdate.quantity * itemToUpdate.costPerKg;

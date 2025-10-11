@@ -349,6 +349,43 @@ export const DELIVERY_TIME_TRENDS_DATA = [
   { month: "Jun", avgDeliveryTime: 6.7 },
 ];
 
+/**
+ * Combined data for Order Volume and Delivery Time Trends ComposedChart.
+ */
+export const COMBINED_TRENDS_DATA = ORDER_VOLUME_TRENDS_DATA.map(
+  (item, index) => ({
+    ...item,
+    deliveryTime: DELIVERY_TIME_TRENDS_DATA[index].avgDeliveryTime,
+  })
+);
+
+/**
+ * AI Insights for Procurement Analytics.
+ */
+export const AI_INSIGHTS = [
+  {
+    title: "Supplier Performance Optimization",
+    description:
+      "Based on current data, switching 20% of orders to top-performing suppliers could reduce costs by 15%.",
+    impact: "High",
+    confidence: 92,
+  },
+  {
+    title: "Inventory Risk Alert",
+    description:
+      "Low stock levels for Citric Acid detected. Recommend increasing MOQ for next order.",
+    impact: "Medium",
+    confidence: 87,
+  },
+  {
+    title: "Cost Trend Analysis",
+    description:
+      "Material costs have increased 8% over the last quarter. Consider bulk purchasing to lock in prices.",
+    impact: "High",
+    confidence: 95,
+  },
+];
+
 export const MATERIAL_CATEGORIES = [
   "Acids",
   "Bases",
