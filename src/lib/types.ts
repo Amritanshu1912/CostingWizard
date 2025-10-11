@@ -22,8 +22,7 @@ export interface MoneyValue {
 // CATEGORIES
 // ============================================================================
 
-export interface Category {
-    id: string;
+export interface Category extends BaseEntity {
     name: string;
     description?: string;
     color?: string;
@@ -31,25 +30,9 @@ export interface Category {
 
 export interface CategoryManagerProps {
     categories: Category[];
-    onCategoriesChange: (categories: Category[]) => void;
-}
-
-// ============================================================================
-// MATERIALS
-// ============================================================================
-
-export interface Material extends BaseEntity {
-    name: string;
-    category: string;
-    pricePerKg: number;
-    tax?: number;
-    priceWithTax?: number;
-    supplierId?: string;
-    minOrder?: number;
-    unit?: string; // default: kg
-    bulkDiscounts?: BulkDiscount[];
-    status?: "active" | "low-stock" | "out-of-stock";
-    notes?: string;
+    addCategory: (category: Omit<Category, 'id'>) => void;
+    updateCategory: (category: Category) => void;
+    deleteCategory: (id: string) => void;
 }
 
 // ============================================================================
@@ -75,20 +58,31 @@ export interface Supplier extends BaseEntity {
     };
 }
 
+// ============================================================================
+// MATERIALS
+// ============================================================================
+
+export interface Material extends BaseEntity {
+    name: string;
+    category: string;
+    unit?: string; // default: kg
+    notes?: string;
+}
+
 export interface SupplierMaterial extends BaseEntity {
-    id: string;
     supplierId: string;
     materialId?: string; // optional if material doesn't exist in main materials yet
     materialName: string;
     materialCategory: string;
-    unitPrice: number;
-    currency: string;
-    moq: number; // minimum order quantity
     unit: string; // kg, liters, pieces, etc.
+    unitPrice: number;
+    tax: number;
+    priceWithTax: number;
+    moq?: number; // minimum order quantity
     bulkDiscounts?: BulkDiscount[];
-    leadTime: number;
-    availability: "in-stock" | "limited" | "out-of-stock";
-    lastUpdated: string;
+    leadTime?: number;
+    availability?: "in-stock" | "limited" | "out-of-stock";
+    transportationCost?: number;
     notes?: string;
 }
 
@@ -181,11 +175,178 @@ export interface ProductionPlan extends BaseEntity {
 }
 
 // ============================================================================
+// PACKAGING
+// ============================================================================
+
+export interface Packaging extends BaseEntity {
+    name: string;
+    type: "bottle" | "container" | "box" | "other";
+    size: string; // e.g., "500ml", "1L"
+    material: string; // e.g., "PET", "HDPE", "Glass"
+    supplierId?: string;
+    unitPrice: number;
+    currency: string;
+    moq: number;
+    unit: string; // "pieces", "boxes", etc.
+    bulkDiscounts?: BulkDiscount[];
+    leadTime: number;
+    availability: "in-stock" | "limited" | "out-of-stock";
+    notes?: string;
+}
+
+export interface SupplierPackaging extends BaseEntity {
+    supplierId: string;
+    packagingId?: string;
+    packagingName: string;
+    packagingType: string;
+    size: string;
+    unitPrice: number;
+    currency: string;
+    moq: number;
+    unit: string;
+    bulkDiscounts?: BulkDiscount[];
+    leadTime: number;
+    availability: "in-stock" | "limited" | "out-of-stock";
+    lastUpdated: string;
+    notes?: string;
+}
+
+// ============================================================================
+// LABELS
+// ============================================================================
+
+export interface Label extends BaseEntity {
+    name: string;
+    type: "sticker" | "label" | "tag";
+    printingType: "bw" | "color" | "foil" | "embossed";
+    material: "paper" | "vinyl" | "plastic" | "other";
+    shape: "rectangular" | "circular" | "custom";
+    colors: string[];
+    size: string; // e.g., "50x30mm"
+    supplierId?: string;
+    unitPrice: number;
+    currency: string;
+    moq: number;
+    unit: string; // "pieces", "sheets", etc.
+    bulkDiscounts?: BulkDiscount[];
+    leadTime: number;
+    availability: "in-stock" | "limited" | "out-of-stock";
+    notes?: string;
+}
+
+export interface SupplierLabel extends BaseEntity {
+    supplierId: string;
+    labelId?: string;
+    labelName: string;
+    labelType: string;
+    printingType: string;
+    material: string;
+    shape: string;
+    colors: string[];
+    size: string;
+    unitPrice: number;
+    currency: string;
+    moq: number;
+    unit: string;
+    bulkDiscounts?: BulkDiscount[];
+    leadTime: number;
+    availability: "in-stock" | "limited" | "out-of-stock";
+    lastUpdated: string;
+    notes?: string;
+}
+
+// ============================================================================
+// INVENTORY
+// ============================================================================
+
+export interface InventoryItem extends BaseEntity {
+    itemType: "material" | "packaging" | "label";
+    itemId: string; // references Material.id, Packaging.id, or Label.id
+    itemName: string;
+    currentStock: number;
+    unit: string;
+    minStockLevel: number;
+    maxStockLevel?: number;
+    location?: string;
+    lastUpdated: string;
+    status: "in-stock" | "low-stock" | "out-of-stock" | "overstock";
+    notes?: string;
+}
+
+export interface InventoryTransaction extends BaseEntity {
+    inventoryItemId: string;
+    type: "in" | "out" | "adjustment";
+    quantity: number;
+    reason: string;
+    reference?: string; // e.g., order ID, production plan ID
+    performedBy?: string;
+    notes?: string;
+}
+
+// ============================================================================
+// TRANSPORTATION COSTS
+// ============================================================================
+
+export interface TransportationCost extends BaseEntity {
+    supplierId: string;
+    region: string; // e.g., "Mumbai", "Delhi", "International"
+    costPerKg: number;
+    currency: string;
+    minOrderValue?: number;
+    maxWeight?: number;
+    leadTime: number; // additional days
+    notes?: string;
+}
+
+// ============================================================================
+// RECIPE TWEAKER
+// ============================================================================
+
+export interface RecipeVariant extends BaseEntity {
+    originalRecipeId: string;
+    name: string;
+    description?: string;
+    ingredients: ProductIngredient[];
+    totalCostPerKg: number;
+    sellingPricePerKg?: number;
+    profitMargin?: number;
+    notes?: string;
+    isActive: boolean;
+}
+
+// ============================================================================
+// EXTENDED ENTITIES
+// ============================================================================
+
+export interface SupplierMaterialExtended extends SupplierMaterial {
+    transportationCost?: number;
+}
+
+export interface ProductionPlanExtended extends ProductionPlan {
+    packagingSelections: {
+        productId: string;
+        packagingId: string;
+        quantity: number;
+    }[];
+    labelSelections: {
+        productId: string;
+        labelId: string;
+        quantity: number;
+    }[];
+    inventoryChecked: boolean;
+    procurementRequired: {
+        materials: MaterialRequirement[];
+        packaging: { packagingId: string; packagingName: string; requiredQty: number; availableQty: number; shortage: number }[];
+        labels: { labelId: string; labelName: string; requiredQty: number; availableQty: number; shortage: number }[];
+    };
+}
+
+// ============================================================================
 // OPTIMIZATION & ANALYTICS
 // ============================================================================
 
 export interface OptimizationSuggestion {
-    type: "substitute" | "bulk" | "supplier" | "recipe";
+    type: "substitute" | "bulk" | "supplier" | "recipe" | "packaging" | "transport";
     title: string;
     description: string;
     savings: number;
