@@ -5,32 +5,48 @@
 
 :root {
   /* Beach-inspired color scheme - ocean blues, coral accents, sandy beiges */
-  --background: oklch(0.98 0.008 200); /* Soft ocean mist */
-  --foreground: oklch(0.25 0.02 220); /* Deep ocean blue */
-  --card: oklch(0.99 0.005 200); /* Pure sea foam */
+  --background: oklch(0.98 0.008 200);
+  /* Soft ocean mist */
+  --foreground: oklch(0.25 0.02 220);
+  /* Deep ocean blue */
+  --card: oklch(0.99 0.005 200);
+  /* Pure sea foam */
   --card-foreground: oklch(0.25 0.02 220);
   --popover: oklch(0.99 0.005 200);
   --popover-foreground: oklch(0.25 0.02 220);
-  --primary: oklch(0.55 0.12 200); /* Ocean blue */
+  --primary: oklch(0.55 0.12 200);
+  /* Ocean blue */
   --primary-foreground: oklch(0.98 0.008 200);
-  --secondary: oklch(0.92 0.02 180); /* Seafoam green */
+  --secondary: oklch(0.92 0.02 180);
+  /* Seafoam green */
   --secondary-foreground: oklch(0.25 0.02 220);
-  --muted: oklch(0.94 0.015 190); /* Light sea breeze */
+  --muted: oklch(0.94 0.015 190);
+  /* Light sea breeze */
   --muted-foreground: oklch(0.45 0.02 210);
-  --accent: oklch(0.68 0.15 25); /* Coral accent */
+  --accent: oklch(0.68 0.15 25);
+  /* Coral accent */
   --accent-foreground: oklch(0.98 0.008 200);
-  --destructive: oklch(0.58 0.18 15); /* Sunset coral */
+  --destructive: oklch(0.58 0.18 15);
+  /* Sunset coral */
   --destructive-foreground: oklch(0.98 0.008 200);
-  --border: oklch(0.88 0.02 190); /* Soft wave */
+  --border: oklch(0.88 0.02 190);
+  /* Soft wave */
   --input: oklch(0.88 0.02 190);
   --ring: oklch(0.55 0.12 200);
-  --chart-1: oklch(0.55 0.12 200); /* Ocean blue */
-  --chart-2: oklch(0.68 0.15 25); /* Coral */
-  --chart-3: oklch(0.62 0.1 180); /* Seafoam */
-  --chart-4: oklch(0.75 0.08 45); /* Sandy beige */
-  --chart-5: oklch(0.45 0.08 160); /* Teal */
-  --radius: 0.75rem; /* Softer, more organic radius */
-  --sidebar: oklch(0.96 0.01 195); /* Light ocean mist */
+  --chart-1: oklch(0.55 0.12 200);
+  /* Ocean blue */
+  --chart-2: oklch(0.68 0.15 25);
+  /* Coral */
+  --chart-3: oklch(0.62 0.1 180);
+  /* Seafoam */
+  --chart-4: oklch(0.75 0.08 45);
+  /* Sandy beige */
+  --chart-5: oklch(0.45 0.08 160);
+  /* Teal */
+  --radius: 0.75rem;
+  /* Softer, more organic radius */
+  --sidebar: oklch(0.96 0.01 195);
+  /* Light ocean mist */
   --sidebar-foreground: oklch(0.25 0.02 220);
   --sidebar-primary: oklch(0.55 0.12 200);
   --sidebar-primary-foreground: oklch(0.98 0.008 200);
@@ -42,31 +58,46 @@
 
 .dark {
   /* Dark beach theme - deep ocean night with coral highlights */
-  --background: oklch(0.12 0.02 220); /* Deep ocean night */
-  --foreground: oklch(0.92 0.01 190); /* Sea foam white */
-  --card: oklch(0.15 0.02 220); /* Deeper ocean */
+  --background: oklch(0.12 0.02 220);
+  /* Deep ocean night */
+  --foreground: oklch(0.92 0.01 190);
+  /* Sea foam white */
+  --card: oklch(0.15 0.02 220);
+  /* Deeper ocean */
   --card-foreground: oklch(0.92 0.01 190);
   --popover: oklch(0.15 0.02 220);
   --popover-foreground: oklch(0.92 0.01 190);
-  --primary: oklch(0.65 0.12 200); /* Bright ocean blue */
+  --primary: oklch(0.65 0.12 200);
+  /* Bright ocean blue */
   --primary-foreground: oklch(0.12 0.02 220);
-  --secondary: oklch(0.22 0.03 180); /* Dark seafoam */
+  --secondary: oklch(0.22 0.03 180);
+  /* Dark seafoam */
   --secondary-foreground: oklch(0.92 0.01 190);
-  --muted: oklch(0.18 0.02 210); /* Dark sea breeze */
+  --muted: oklch(0.18 0.02 210);
+  /* Dark sea breeze */
   --muted-foreground: oklch(0.65 0.02 200);
-  --accent: oklch(0.72 0.15 25); /* Bright coral */
+  --accent: oklch(0.72 0.15 25);
+  /* Bright coral */
   --accent-foreground: oklch(0.12 0.02 220);
-  --destructive: oklch(0.68 0.18 15); /* Bright sunset coral */
+  --destructive: oklch(0.68 0.18 15);
+  /* Bright sunset coral */
   --destructive-foreground: oklch(0.92 0.01 190);
-  --border: oklch(0.25 0.02 210); /* Dark wave */
+  --border: oklch(0.25 0.02 210);
+  /* Dark wave */
   --input: oklch(0.25 0.02 210);
   --ring: oklch(0.65 0.12 200);
-  --chart-1: oklch(0.65 0.12 200); /* Bright ocean */
-  --chart-2: oklch(0.72 0.15 25); /* Bright coral */
-  --chart-3: oklch(0.68 0.1 180); /* Bright seafoam */
-  --chart-4: oklch(0.78 0.08 45); /* Light sandy */
-  --chart-5: oklch(0.55 0.08 160); /* Bright teal */
-  --sidebar: oklch(0.18 0.02 215); /* Dark ocean mist */
+  --chart-1: oklch(0.65 0.12 200);
+  /* Bright ocean */
+  --chart-2: oklch(0.72 0.15 25);
+  /* Bright coral */
+  --chart-3: oklch(0.68 0.1 180);
+  /* Bright seafoam */
+  --chart-4: oklch(0.78 0.08 45);
+  /* Light sandy */
+  --chart-5: oklch(0.55 0.08 160);
+  /* Bright teal */
+  --sidebar: oklch(0.18 0.02 215);
+  /* Dark ocean mist */
   --sidebar-foreground: oklch(0.92 0.01 190);
   --sidebar-primary: oklch(0.65 0.12 200);
   --sidebar-primary-foreground: oklch(0.12 0.02 220);
@@ -155,6 +186,7 @@
     opacity: 0;
     transform: translateY(20px) scale(0.95);
   }
+
   to {
     opacity: 1;
     transform: translateY(0) scale(1);
@@ -166,6 +198,7 @@
     transform: scale(0);
     opacity: 1;
   }
+
   100% {
     transform: scale(4);
     opacity: 0;
@@ -250,7 +283,7 @@
 
 /* Enhanced focus states with ocean theme */
 .focus-enhanced:focus {
-  @apply outline-none ring-2 ring-primary/50 ring-offset-2 ring-offset-background;
+  @apply outline-none ring-1 ring-primary/50 ring-offset-1 ring-offset-background;
   /* Removed the weird ripple animation effect */
 }
 
@@ -277,6 +310,25 @@
 }
 
 .wave-border {
-  border-image: linear-gradient(90deg, hsl(var(--color-primary)), hsl(var(--color-secondary)), hsl(var(--color-accent)))
-    1;
+  border-image: linear-gradient(90deg, hsl(var(--color-primary)), hsl(var(--color-secondary)), hsl(var(--color-accent))) 1;
+}
+
+.dialog-section {
+  @apply bg-muted/30 rounded-xl p-4 md:p-6 space-y-4 border border-border/50;
+}
+
+.section-header {
+  @apply flex items-center gap-2 text-sm font-medium text-muted-foreground uppercase tracking-wide;
+}
+
+.focus-enhanced {
+  @apply focus:ring-2 focus:ring-primary/30 focus:ring-offset-1 transition-all duration-200;
+}
+
+.btn-primary {
+  @apply bg-primary text-primary-foreground hover:bg-primary/90 transition-all duration-200 shadow-sm;
+}
+
+.dialog-scroll {
+  @apply max-h-[80vh] overflow-y-auto px-1;
 }
