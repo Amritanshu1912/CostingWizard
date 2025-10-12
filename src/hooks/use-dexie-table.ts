@@ -1,113 +1,88 @@
-import { useState, useEffect, useCallback } from 'react';
-import { Table } from 'dexie';
-import { db, dbUtils } from '@/lib/db';
-import { toast } from 'sonner';
+// hooks/use-dexie-table.ts
+import { useLiveQuery } from "dexie-react-hooks";
+import type { Table } from "dexie";
+import { nanoid } from "nanoid";
 
-export function useDexieTable<T extends { id: string }>(table: Table<T>, initialData: T[] = []) {
-    const [data, setData] = useState<T[]>(initialData);
-    const [loading, setLoading] = useState(true);
+/**
+ * Generic hook for Dexie table operations with real-time updates
+ * @param table - Dexie table instance
+ * @param initialData - Default data to populate on first load
+ */
+export function useDexieTable<T extends { id: string; createdAt: string }>(
+    table: Table<T>,
+    initialData: Omit<T, "id" | "createdAt">[] = []
+) {
+    // Real-time reactive query
+    const data = useLiveQuery(async () => {
+        const items = await table.toArray();
 
-    // Load data from DB on mount
-    useEffect(() => {
-        const loadData = async () => {
-            try {
-                const items = await dbUtils.getAll(table);
-                setData(items);
-            } catch (error) {
-                console.error('Error loading data:', error);
-                toast.error('Failed to load data');
-            } finally {
-                setLoading(false);
-            }
-        };
-        loadData();
-    }, [table]);
-
-    const addItem = useCallback(async (item: Omit<T, 'id' | 'createdAt'>) => {
-        try {
-            const id = await dbUtils.add(table, item as T);
-            const newItem = { ...item, id, createdAt: new Date().toISOString() } as unknown as T;
-            setData(prev => [...prev, newItem]);
-            toast.success('Item added successfully');
-            return id;
-        } catch (error) {
-            console.error('Error adding item:', error);
-            toast.error('Failed to add item');
-            throw error;
-        }
-    }, [table]);
-
-    const updateItem = useCallback(async (item: T) => {
-        try {
-            await dbUtils.update(table, item);
-            setData(prev => prev.map(i => i.id === item.id ? item : i));
-            toast.success('Item updated successfully');
-        } catch (error) {
-            console.error('Error updating item:', error);
-            toast.error('Failed to update item');
-            throw error;
-        }
-    }, [table]);
-
-    const deleteItem = useCallback(async (id: string) => {
-        try {
-            await dbUtils.delete(table, id);
-            setData(prev => prev.filter(i => i.id !== id));
-            toast.success('Item deleted successfully');
-        } catch (error) {
-            console.error('Error deleting item:', error);
-            toast.error('Failed to delete item');
-            throw error;
-        }
-    }, [table]);
-
-    const bulkAdd = useCallback(async (items: Omit<T, 'id' | 'createdAt'>[]) => {
-        try {
-            const newItems = items.map(item => ({
+        // Populate initial data if table is empty
+        if (items.length === 0 && initialData.length > 0) {
+            const now = new Date().toISOString();
+            const itemsToAdd = initialData.map((item) => ({
                 ...item,
-                id: Date.now().toString() + Math.random(),
-                createdAt: new Date().toISOString()
-            } as unknown as T));
-            await dbUtils.bulkAdd(table, newItems);
-            setData(prev => [...prev, ...newItems]);
-            toast.success(`${items.length} items added successfully`);
-        } catch (error) {
-            console.error('Error bulk adding items:', error);
-            toast.error('Failed to add items');
-            throw error;
-        }
-    }, [table]);
+                id: nanoid(),
+                createdAt: now,
+            })) as T[];
 
-    const bulkUpdate = useCallback(async (items: T[]) => {
-        try {
-            await dbUtils.bulkUpdate(table, items);
-            setData(prev => {
-                const updated = [...prev];
-                items.forEach(item => {
-                    const index = updated.findIndex(i => i.id === item.id);
-                    if (index !== -1) updated[index] = item;
-                });
-                return updated;
-            });
-            toast.success(`${items.length} items updated successfully`);
-        } catch (error) {
-            console.error('Error bulk updating items:', error);
-            toast.error('Failed to update items');
-            throw error;
+            await table.bulkAdd(itemsToAdd);
+            return itemsToAdd;
         }
-    }, [table]);
+
+        return items;
+    }, []);
+
+    // Add item
+    const addItem = async (item: Omit<T, "id" | "createdAt">) => {
+        const now = new Date().toISOString();
+        const id = nanoid();
+
+        await table.add({
+            ...item,
+            id,
+            createdAt: now,
+        } as T);
+
+        return id;
+    };
+
+    // Update item
+    const updateItem = async (updates: Partial<T> & { id: string }) => {
+        const now = new Date().toISOString();
+        const { id, ...updateData } = updates;
+        await table.update(id, {
+            ...updateData,
+            updatedAt: now,
+        } as any);
+    };
+    // Delete item
+    const deleteItem = async (id: string) => {
+        await table.delete(id);
+    };
+
+    // Bulk operations
+    const bulkAdd = async (items: Omit<T, "id" | "createdAt">[]) => {
+        const now = new Date().toISOString();
+        const itemsWithIds = items.map((item) => ({
+            ...item,
+            id: nanoid(),
+            createdAt: now,
+        })) as T[];
+
+        await table.bulkAdd(itemsWithIds);
+        return itemsWithIds.map(item => item.id);
+    };
+
+    const bulkDelete = async (ids: string[]) => {
+        await table.bulkDelete(ids);
+    };
 
     return {
-        data,
-        loading,
+        data: data || [],
         addItem,
         updateItem,
         deleteItem,
         bulkAdd,
-        bulkUpdate,
-        refresh: () => {
-            setLoading(true);
-            dbUtils.getAll(table).then(setData).finally(() => setLoading(false));
-        }
+        bulkDelete,
     };
 }

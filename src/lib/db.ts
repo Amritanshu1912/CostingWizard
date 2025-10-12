@@ -51,7 +51,7 @@ export class CostingWizardDB extends Dexie {
             categories: 'id, name',
             materials: 'id, name, category',
             suppliers: 'id, name, isActive',
-            supplierMaterials: 'id, supplierId, materialId, materialName, availability',
+            supplierMaterials: 'id, supplierId, materialId, availability',
             products: 'id, name, status',
             productionPlans: 'id, planName, status, startDate, endDate',
             purchaseOrders: 'id, orderId, supplierId, status, dateCreated',

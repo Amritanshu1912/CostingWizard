@@ -1,6 +1,6 @@
 import { Sidebar } from "@/components/sidebar";
 import { Header } from "@/components/header";
-import { MaterialsManager } from "@/app/materials/components/materials-manager";
+import { MaterialsManager } from "./components/materials-manager";
 
 export default function MaterialsPage() {
   return (

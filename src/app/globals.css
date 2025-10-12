@@ -23,7 +23,7 @@
   --muted: oklch(0.94 0.015 190);
   /* Light sea breeze */
   --muted-foreground: oklch(0.45 0.02 210);
-  --accent: oklch(0.68 0.15 25);
+  --accent: oklch(0.83 0.08 85);
   /* Coral accent */
   --accent-foreground: oklch(0.98 0.008 200);
   --destructive: oklch(0.58 0.18 15);
@@ -318,7 +318,7 @@
 }
 
 .section-header {
-  @apply flex items-center gap-2 text-sm font-medium text-muted-foreground uppercase tracking-wide;
+  @apply flex items-center gap-2 text-sm font-semibold text-muted-foreground uppercase tracking-wide;
 }
 
 .focus-enhanced {
@@ -330,5 +330,5 @@
 }
 
 .dialog-scroll {
-  @apply max-h-[80vh] overflow-y-auto px-1;
+  @apply max-h-[80vh] overflow-y-auto px-1 scroll-smooth;
 }
