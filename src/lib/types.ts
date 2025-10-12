@@ -13,11 +13,6 @@ export interface BulkDiscount {
     discount: number; // percentage
 }
 
-export interface MoneyValue {
-    amount: number;
-    currency?: string; // default: INR
-}
-
 // ============================================================================
 // CATEGORIES
 // ============================================================================
@@ -70,8 +65,9 @@ export interface Material extends BaseEntity {
 
 export interface SupplierMaterial extends BaseEntity {
     supplierId: string;
-    materialId?: string;
-    unit?: string;
+    materialId: string;
+
+    unit: "kg" | "g" | "l" | "ml" | "pcs" | string;
     unitPrice: number;
     tax: number;
     moq?: number;
@@ -82,6 +78,74 @@ export interface SupplierMaterial extends BaseEntity {
     notes?: string;
 }
 
+// ============================================================================
+// PACKAGING
+// ============================================================================
+
+export interface Packaging extends BaseEntity {
+    name: string;
+    type: "bottle" | "container" | "box" | "other";
+    size: string; // e.g., "500ml", "1L"
+    material: string; // e.g., "PET", "HDPE", "Glass"
+    notes?: string;
+}
+
+export interface SupplierPackaging extends BaseEntity {
+    supplierId: string;
+    packagingId?: string;
+    packagingName: string;
+    packagingType: string;
+    size: string;
+    unit: string;
+    unitPrice: number;
+    moq: number;
+    bulkDiscounts?: BulkDiscount[];
+    leadTime: number;
+    availability: "in-stock" | "limited" | "out-of-stock";
+    lastUpdated: string;
+    notes?: string;
+}
+
+// ============================================================================
+// LABELS
+// ============================================================================
+
+export interface Label extends BaseEntity {
+    name: string;
+    type: "sticker" | "label" | "tag";
+    printingType: "bw" | "color" | "foil" | "embossed";
+    material: "paper" | "vinyl" | "plastic" | "other";
+    shape: "rectangular" | "circular" | "custom";
+    colors: string[];
+    size: string; // e.g., "50x30mm"
+    supplierId?: string;
+    unitPrice: number;
+    moq: number;
+    unit: string; // "pieces", "sheets", etc.
+    bulkDiscounts?: BulkDiscount[];
+    leadTime: number;
+    availability: "in-stock" | "limited" | "out-of-stock";
+    notes?: string;
+}
+
+export interface SupplierLabel extends BaseEntity {
+    supplierId: string;
+    labelId?: string;
+    labelName: string;
+    labelType: string;
+    printingType: string;
+    material: string;
+    shape: string;
+    colors: string[];
+    size: string;
+    unitPrice: number;
+    moq: number;
+    unit: string;
+    bulkDiscounts?: BulkDiscount[];
+    leadTime: number;
+    availability: "in-stock" | "limited" | "out-of-stock";
+    notes?: string;
+}
 // ============================================================================
 // PRODUCTS & Recipes
 // ============================================================================
@@ -171,87 +235,6 @@ export interface ProductionPlan extends BaseEntity {
 }
 
 // ============================================================================
-// PACKAGING
-// ============================================================================
-
-export interface Packaging extends BaseEntity {
-    name: string;
-    type: "bottle" | "container" | "box" | "other";
-    size: string; // e.g., "500ml", "1L"
-    material: string; // e.g., "PET", "HDPE", "Glass"
-    supplierId?: string;
-    unitPrice: number;
-    currency: string;
-    moq: number;
-    unit: string; // "pieces", "boxes", etc.
-    bulkDiscounts?: BulkDiscount[];
-    leadTime: number;
-    availability: "in-stock" | "limited" | "out-of-stock";
-    notes?: string;
-}
-
-export interface SupplierPackaging extends BaseEntity {
-    supplierId: string;
-    packagingId?: string;
-    packagingName: string;
-    packagingType: string;
-    size: string;
-    unitPrice: number;
-    currency: string;
-    moq: number;
-    unit: string;
-    bulkDiscounts?: BulkDiscount[];
-    leadTime: number;
-    availability: "in-stock" | "limited" | "out-of-stock";
-    lastUpdated: string;
-    notes?: string;
-}
-
-// ============================================================================
-// LABELS
-// ============================================================================
-
-export interface Label extends BaseEntity {
-    name: string;
-    type: "sticker" | "label" | "tag";
-    printingType: "bw" | "color" | "foil" | "embossed";
-    material: "paper" | "vinyl" | "plastic" | "other";
-    shape: "rectangular" | "circular" | "custom";
-    colors: string[];
-    size: string; // e.g., "50x30mm"
-    supplierId?: string;
-    unitPrice: number;
-    currency: string;
-    moq: number;
-    unit: string; // "pieces", "sheets", etc.
-    bulkDiscounts?: BulkDiscount[];
-    leadTime: number;
-    availability: "in-stock" | "limited" | "out-of-stock";
-    notes?: string;
-}
-
-export interface SupplierLabel extends BaseEntity {
-    supplierId: string;
-    labelId?: string;
-    labelName: string;
-    labelType: string;
-    printingType: string;
-    material: string;
-    shape: string;
-    colors: string[];
-    size: string;
-    unitPrice: number;
-    currency: string;
-    moq: number;
-    unit: string;
-    bulkDiscounts?: BulkDiscount[];
-    leadTime: number;
-    availability: "in-stock" | "limited" | "out-of-stock";
-    lastUpdated: string;
-    notes?: string;
-}
-
-// ============================================================================
 // INVENTORY
 // ============================================================================
 
@@ -287,7 +270,6 @@ export interface TransportationCost extends BaseEntity {
     supplierId: string;
     region: string; // e.g., "Mumbai", "Delhi", "International"
     costPerKg: number;
-    currency: string;
     minOrderValue?: number;
     maxWeight?: number;
     leadTime: number; // additional days

@@ -101,7 +101,7 @@ export function MaterialsManager() {
         materialId,
         tax: formData.tax || 0,
         unitPrice: formData.unitPrice,
-        unit: formData.unit,
+        unit: formData.unit || "kg",
         moq: formData.moq || 1,
         bulkDiscounts: formData.bulkDiscounts || [],
         leadTime: formData.leadTime || 7,

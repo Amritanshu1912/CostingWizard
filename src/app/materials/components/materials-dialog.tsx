@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+
 import {
   Dialog,
   DialogContent,
@@ -32,6 +33,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
+
 import { Badge } from "@/components/ui/badge";
 import {
   Check,
@@ -42,6 +44,7 @@ import {
   Clock,
   Truck,
 } from "lucide-react";
+
 import type { SupplierMaterial, Supplier, Material } from "@/lib/types";
 import {
   MATERIAL_CATEGORIES,

@@ -283,7 +283,7 @@
 
 /* Enhanced focus states with ocean theme */
 .focus-enhanced:focus {
-  @apply outline-none ring-2 ring-primary/50 ring-offset-2 ring-offset-background;
+  @apply outline-none ring-1 ring-primary/50 ring-offset-1 ring-offset-background;
   /* Removed the weird ripple animation effect */
 }
 
