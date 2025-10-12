@@ -10,28 +10,12 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { SortableTable } from "@/components/ui/sortable-table";
 import { Star, TrendingDown, AlertCircle } from "lucide-react";
-import type { SupplierMaterial, Supplier } from "@/lib/types";
+import { useMaterialPriceComparison } from "@/hooks/use-supplier-materials-with-details";
+import type { SupplierMaterialWithDetails } from "@/hooks/use-supplier-materials-with-details";
 
-interface MaterialsPriceComparisonProps {
-  supplierMaterials: SupplierMaterial[];
-  suppliers: Supplier[];
-}
-
-export function MaterialsPriceComparison({
-  supplierMaterials,
-  suppliers,
-}: MaterialsPriceComparisonProps) {
-  // Group materials by name
-  const materialGroups = Array.from(
-    new Set(supplierMaterials.map((m) => m.materialName))
-  )
-    .map((materialName) => ({
-      name: materialName,
-      alternatives: supplierMaterials.filter(
-        (m) => m.materialName === materialName
-      ),
-    }))
-    .filter((group) => group.alternatives.length >= 2);
+export function MaterialsPriceComparison() {
+  // Use the smart hook that groups by material automatically
+  const materialGroups = useMaterialPriceComparison();
 
   // Table columns
   const columns = [
@@ -39,10 +23,10 @@ export function MaterialsPriceComparison({
       key: "supplierName",
       label: "Supplier",
       sortable: true,
-      render: (value: any, row: SupplierMaterial) => {
-        const supplier = suppliers.find((s) => s.id === row.supplierId);
+      render: (value: any, row: SupplierMaterialWithDetails) => {
+        const supplier = row.supplier;
         const alternatives = materialGroups
-          .find((g) => g.name === row.materialName)
+          .find((g) => g.materialName === row.displayName)
           ?.alternatives.sort((a, b) => a.unitPrice - b.unitPrice);
         const isCheapest = alternatives?.[0]?.id === row.id;
 
@@ -65,7 +49,7 @@ export function MaterialsPriceComparison({
       key: "unitPrice",
       label: "Price",
       sortable: true,
-      render: (value: number, row: SupplierMaterial) => (
+      render: (value: number, row: SupplierMaterialWithDetails) => (
         <div className="font-medium text-foreground">
           <div>₹{value.toFixed(2)}</div>
           <div className="text-xs text-muted-foreground">per {row.unit}</div>
@@ -76,7 +60,7 @@ export function MaterialsPriceComparison({
       key: "moq",
       label: "MOQ",
       sortable: true,
-      render: (value: number, row: SupplierMaterial) => (
+      render: (value: number, row: SupplierMaterialWithDetails) => (
         <span className="text-muted-foreground">
           {value} {row.unit}
         </span>
@@ -113,8 +97,8 @@ export function MaterialsPriceComparison({
       key: "rating",
       label: "Supplier Rating",
       sortable: true,
-      render: (value: any, row: SupplierMaterial) => {
-        const supplier = suppliers.find((s) => s.id === row.supplierId);
+      render: (value: any, row: SupplierMaterialWithDetails) => {
+        const supplier = row.supplier;
         return (
           <div className="flex items-center gap-1">
             <Star className="h-3 w-3 text-yellow-500 fill-current" />
@@ -162,14 +146,14 @@ export function MaterialsPriceComparison({
 
             return (
               <div
-                key={group.name}
+                key={group.materialName}
                 className="border border-border/50 rounded-xl p-6 bg-gradient-to-br from-card/50 to-muted/20"
               >
                 {/* Header */}
                 <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-6 gap-4">
                   <div>
                     <h4 className="text-lg font-semibold text-foreground mb-1">
-                      {group.name}
+                      {group.materialName}
                     </h4>
                     <p className="text-sm text-muted-foreground">
                       {group.alternatives.length} suppliers available

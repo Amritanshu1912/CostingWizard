@@ -21,10 +21,11 @@ import { Badge } from "@/components/ui/badge";
 import { SortableTable } from "@/components/ui/sortable-table";
 import { Search, Filter, Edit, Trash2 } from "lucide-react";
 import type { SupplierMaterial, Supplier } from "@/lib/types";
+import type { SupplierMaterialWithDetails } from "@/hooks/use-supplier-materials-with-details";
 import { MATERIAL_CATEGORIES } from "./materials-config";
 
 interface MaterialsTableProps {
-  materials: SupplierMaterial[];
+  materials: SupplierMaterialWithDetails[];
   suppliers: Supplier[];
   onEdit: (material: SupplierMaterial) => void;
   onDelete: (id: string) => void;
@@ -40,23 +41,22 @@ export function MaterialsTable({
   const [selectedCategory, setSelectedCategory] = useState("all");
   const [selectedSupplier, setSelectedSupplier] = useState("all");
 
-  // Filter materials
+  // Filter materials using enriched data
   const filteredMaterials = useMemo(() => {
     return materials.filter((material) => {
-      const supplier = suppliers.find((s) => s.id === material.supplierId);
       const matchesSearch =
-        material.materialName
+        material.displayName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        material.supplier?.name
           .toLowerCase()
-          .includes(searchTerm.toLowerCase()) ||
-        supplier?.name.toLowerCase().includes(searchTerm.toLowerCase());
+          .includes(searchTerm.toLowerCase());
       const matchesCategory =
         selectedCategory === "all" ||
-        material.materialCategory === selectedCategory;
+        material.displayCategory === selectedCategory;
       const matchesSupplier =
         selectedSupplier === "all" || material.supplierId === selectedSupplier;
       return matchesSearch && matchesCategory && matchesSupplier;
     });
-  }, [materials, suppliers, searchTerm, selectedCategory, selectedSupplier]);
+  }, [materials, searchTerm, selectedCategory, selectedSupplier]);
 
   // Clear filters
   const clearFilters = () => {
@@ -65,18 +65,18 @@ export function MaterialsTable({
     setSelectedSupplier("all");
   };
 
-  // Table columns
+  // Table columns using enriched data
   const columns = useMemo(
     () => [
       {
-        key: "materialName",
+        key: "displayName",
         label: "Material Name",
         render: (value: string) => (
           <span className="font-medium text-foreground">{value}</span>
         ),
       },
       {
-        key: "materialCategory",
+        key: "displayCategory",
         label: "Category",
         render: (value: string) => (
           <Badge variant="outline" className="text-xs">
@@ -87,44 +87,40 @@ export function MaterialsTable({
       {
         key: "supplier",
         label: "Supplier",
-        render: (_: any, row: SupplierMaterial) => {
-          const supplier = suppliers.find((s) => s.id === row.supplierId);
-          return (
-            <span className="text-muted-foreground">
-              {supplier?.name || "Unknown"}
-            </span>
-          );
-        },
+        render: (_: any, row: SupplierMaterialWithDetails) => (
+          <span className="text-muted-foreground">
+            {row.supplier?.name || "Unknown"}
+          </span>
+        ),
       },
       {
         key: "unitPrice",
         label: "Price",
-        render: (value: number, row: SupplierMaterial) => (
+        render: (value: number, row: SupplierMaterialWithDetails) => (
           <div className="text-foreground">
             <div className="font-medium">₹{value.toFixed(2)}</div>
-            <div className="text-xs text-muted-foreground">per {row.unit}</div>
+            <div className="text-xs text-muted-foreground">
+              per {row.displayUnit}
+            </div>
           </div>
         ),
       },
       {
         key: "tax",
         label: "Tax",
-        render: (value: number, row: SupplierMaterial) => {
-          return (
-            <div className="text-foreground font-medium">
-              <div>{value}%</div>
-            </div>
-          );
-        },
+        render: (value: number, row: SupplierMaterialWithDetails) => (
+          <div className="text-muted-foreground font-normal">
+            <div>{value}%</div>
+          </div>
+        ),
       },
       {
         key: "priceWithTax",
-        label: "Price Inc. Tax",
-        render: (value: number, row: SupplierMaterial) => {
-          const priceWithTax = row.unitPrice * (1 + value / 100);
+        label: "Price after Tax",
+        render: (value: number, row: SupplierMaterialWithDetails) => {
           return (
             <div className="text-foreground">
-              <div className="font-medium">₹{priceWithTax.toFixed(2)} </div>
+              <div className="font-medium">₹{row.priceWithTax.toFixed(2)}</div>
             </div>
           );
         },
@@ -132,9 +128,9 @@ export function MaterialsTable({
       {
         key: "moq",
         label: "MOQ",
-        render: (value: number, row: SupplierMaterial) => (
+        render: (value: number, row: SupplierMaterialWithDetails) => (
           <span className="text-muted-foreground">
-            {value} {row.unit}
+            {value} {row.displayUnit}
           </span>
         ),
       },
@@ -170,7 +166,7 @@ export function MaterialsTable({
         key: "actions",
         label: "Actions",
         sortable: false,
-        render: (_: any, row: SupplierMaterial) => (
+        render: (_: any, row: SupplierMaterialWithDetails) => (
           <div className="flex space-x-2">
             <Button
               variant="ghost"

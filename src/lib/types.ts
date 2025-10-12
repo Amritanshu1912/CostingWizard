@@ -65,20 +65,16 @@ export interface Supplier extends BaseEntity {
 export interface Material extends BaseEntity {
     name: string;
     category: string;
-    unit?: string; // default: kg
     notes?: string;
 }
 
 export interface SupplierMaterial extends BaseEntity {
     supplierId: string;
-    materialId?: string; // optional if material doesn't exist in main materials yet
-    materialName: string;
-    materialCategory: string;
-    unit: string; // kg, liters, pieces, etc.
+    materialId?: string;
+    unit?: string;
     unitPrice: number;
     tax: number;
-    priceWithTax: number;
-    moq?: number; // minimum order quantity
+    moq?: number;
     bulkDiscounts?: BulkDiscount[];
     leadTime?: number;
     availability?: "in-stock" | "limited" | "out-of-stock";

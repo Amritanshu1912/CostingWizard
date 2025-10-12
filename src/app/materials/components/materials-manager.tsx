@@ -12,20 +12,18 @@ import {
 } from "@/components/ui/card";
 import { toast } from "sonner";
 import { BarChart3, Package, Plus, TrendingUp } from "lucide-react";
+import { nanoid } from "nanoid";
 
 import { MaterialsTable } from "./materials-table";
 import { MaterialsPriceComparison } from "./materials-price-comparison";
 import { MaterialsAnalytics } from "./materials-analytics";
-import { MaterialDialog } from "./materials-dialog";
+import { EnhancedMaterialDialog } from "./materials-dialog";
 
 import type { SupplierMaterial } from "@/lib/types";
-import {
-  MATERIALS,
-  CATEGORIES,
-  SUPPLIERS,
-  SUPPLIER_MATERIALS,
-} from "@/lib/constants";
+import type { MaterialFormData } from "./materials-dialog";
+import { SUPPLIERS } from "@/lib/constants";
 import { useDexieTable } from "@/hooks/use-dexie-table";
+import { useSupplierMaterialsWithDetails } from "@/hooks/use-supplier-materials-with-details";
 import { DEFAULT_MATERIAL_FORM } from "./materials-config";
 import { db } from "@/lib/db";
 import { MetricCard } from "@/components/ui/metric-card";
@@ -34,35 +32,32 @@ export function MaterialsManager() {
   const [showAddDialog, setShowAddDialog] = useState(false);
   const [editingMaterial, setEditingMaterial] =
     useState<SupplierMaterial | null>(null);
-  const [formData, setFormData] = useState<Partial<SupplierMaterial>>(
+  const [formData, setFormData] = useState<MaterialFormData>(
     DEFAULT_MATERIAL_FORM
   );
 
+  // Use the smart hook that auto-joins data
+  const enrichedMaterials = useSupplierMaterialsWithDetails();
+
   // Database hooks
   const { data: suppliers } = useDexieTable(db.suppliers, SUPPLIERS);
-  const {
-    data: supplierMaterials,
-    addItem: addSupplierMaterial,
-    updateItem: updateSupplierMaterial,
-    deleteItem: deleteSupplierMaterial,
-  } = useDexieTable(db.supplierMaterials, SUPPLIER_MATERIALS);
-  const { data: materials, addItem: addMaterial } = useDexieTable(
+  const { data: materials, addItem: addMaterialToDb } = useDexieTable(
     db.materials,
-    MATERIALS
+    []
   );
 
-   const totalMaterials = supplierMaterials.length;
+  const totalMaterials = enrichedMaterials.length;
   const avgPrice =
-    supplierMaterials.reduce((sum, sm) => sum + sm.unitPrice, 0) /
-    (supplierMaterials.length || 1); // Avoid division by zero
+    enrichedMaterials.reduce((sum, sm) => sum + sm.unitPrice, 0) /
+    (enrichedMaterials.length || 1); // Avoid division by zero
   const highestPrice =
-    supplierMaterials.length > 0
-      ? Math.max(...supplierMaterials.map((sm) => sm.unitPrice))
+    enrichedMaterials.length > 0
+      ? Math.max(...enrichedMaterials.map((sm) => sm.unitPrice))
       : 0;
   const avgTax =
-    supplierMaterials.reduce((sum, sm) => sum + sm.tax, 0) /
-    (supplierMaterials.length || 1);
-  
+    enrichedMaterials.reduce((sum, sm) => sum + sm.tax, 0) /
+    (enrichedMaterials.length || 1);
+
   // Handle add material
   const handleAddMaterial = useCallback(async () => {
     if (!formData.supplierId || !formData.materialName || !formData.unitPrice) {
@@ -71,34 +66,49 @@ export function MaterialsManager() {
     }
 
     try {
-      // Check if material exists, if not create it
-      const existingMaterial = materials.find(
-        (m) => m.name === formData.materialName
-      );
-      if (!existingMaterial && formData.materialName) {
-        await addMaterial({
-          name: formData.materialName,
-          category: formData.materialCategory || "Other",
-          unit: formData.unit || "kg",
-          notes: formData.notes || "",
-        });
+      const now = new Date().toISOString();
+
+      // Step 1: Get or create material
+      let materialId = formData.materialId;
+
+      if (!materialId || materialId === "") {
+        // Check if material exists by name
+        const existingMaterial = await db.materials
+          .filter(
+            (m) => m.name.toLowerCase() === formData.materialName!.toLowerCase()
+          )
+          .first();
+
+        if (existingMaterial) {
+          materialId = existingMaterial.id;
+        } else {
+          // Create new material
+          materialId = nanoid();
+          await db.materials.add({
+            id: materialId,
+            name: formData.materialName,
+            category: formData.materialCategory || "Other",
+            notes: formData.notes || "",
+            createdAt: now,
+          });
+        }
       }
 
-      // Add supplier material
-      await addSupplierMaterial({
+      // Step 2: Create supplier material (normalized - only materialId)
+      await db.supplierMaterials.add({
+        id: nanoid(),
         supplierId: formData.supplierId,
-        materialId: "",
-        tax: 0,
-        materialName: formData.materialName,
-        materialCategory: formData.materialCategory || "Other",
+        materialId,
+        tax: formData.tax || 0,
         unitPrice: formData.unitPrice,
+        unit: formData.unit,
         moq: formData.moq || 1,
-        unit: formData.unit || "kg",
         bulkDiscounts: formData.bulkDiscounts || [],
         leadTime: formData.leadTime || 7,
         availability: formData.availability || "in-stock",
+        transportationCost: formData.transportationCost,
         notes: formData.notes || "",
-        priceWithTax: formData.priceWithTax || 0,
+        createdAt: now,
       });
 
       setFormData(DEFAULT_MATERIAL_FORM);
@@ -108,24 +118,55 @@ export function MaterialsManager() {
       console.error("Error adding material:", error);
       toast.error("Failed to add material");
     }
-  }, [formData, addMaterial, addSupplierMaterial, materials]);
+  }, [formData]);
 
-  // Handle edit material
+  // Handle edit
   const handleEditMaterial = useCallback((material: SupplierMaterial) => {
     setEditingMaterial(material);
     setFormData(material);
     setShowAddDialog(true);
   }, []);
 
-  // Handle update material
+  // Handle update
   const handleUpdateMaterial = useCallback(async () => {
     if (!editingMaterial) return;
 
     try {
-      await updateSupplierMaterial({
-        ...editingMaterial,
+      const now = new Date().toISOString();
+
+      // Check if we need to create a new material
+      let materialId = formData.materialId;
+
+      if (!materialId || materialId === "") {
+        // Creating new material during edit
+        const existingMaterial = await db.materials
+          .filter(
+            (m) => m.name.toLowerCase() === formData.materialName!.toLowerCase()
+          )
+          .first();
+
+        if (existingMaterial) {
+          materialId = existingMaterial.id;
+        } else {
+          // Create new material
+          materialId = nanoid();
+          await db.materials.add({
+            id: materialId,
+            name: formData.materialName!,
+            category: formData.materialCategory || "Other",
+            notes: formData.notes || "",
+            createdAt: now,
+          });
+        }
+      }
+
+      // Update supplier material
+      await db.supplierMaterials.update(editingMaterial.id, {
         ...formData,
+        materialId, // Use the new or existing materialId
+        updatedAt: now,
       });
+
       setFormData(DEFAULT_MATERIAL_FORM);
       setEditingMaterial(null);
       setShowAddDialog(false);
@@ -134,23 +175,20 @@ export function MaterialsManager() {
       console.error("Error updating material:", error);
       toast.error("Failed to update material");
     }
-  }, [editingMaterial, formData, updateSupplierMaterial]);
+  }, [editingMaterial, formData]);
 
-  // Handle delete material
-  const handleDeleteMaterial = useCallback(
-    async (id: string) => {
-      try {
-        await deleteSupplierMaterial(id);
-        toast.success("Material deleted successfully");
-      } catch (error) {
-        console.error("Error deleting material:", error);
-        toast.error("Failed to delete material");
-      }
-    },
-    [deleteSupplierMaterial]
-  );
+  // Handle delete
+  const handleDeleteMaterial = useCallback(async (id: string) => {
+    try {
+      await db.supplierMaterials.delete(id);
+      toast.success("Material deleted successfully");
+    } catch (error) {
+      console.error("Error deleting material:", error);
+      toast.error("Failed to delete material");
+    }
+  }, []);
 
-  // Reset dialog state
+  // Reset dialog
   const handleDialogClose = useCallback((open: boolean) => {
     if (!open) {
       setShowAddDialog(false);
@@ -232,7 +270,7 @@ export function MaterialsManager() {
             />
           </div>
           <MaterialsTable
-            materials={supplierMaterials}
+            materials={enrichedMaterials}
             suppliers={suppliers}
             onEdit={handleEditMaterial}
             onDelete={handleDeleteMaterial}
@@ -240,10 +278,7 @@ export function MaterialsManager() {
         </TabsContent>
 
         <TabsContent value="price-comparison" className="space-y-6">
-          <MaterialsPriceComparison
-            supplierMaterials={supplierMaterials}
-            suppliers={suppliers}
-          />
+          <MaterialsPriceComparison />
         </TabsContent>
 
         <TabsContent value="analytics" className="space-y-6">
@@ -262,7 +297,7 @@ export function MaterialsManager() {
       </Tabs>
 
       {/* Add/Edit Dialog */}
-      <MaterialDialog
+      <EnhancedMaterialDialog
         open={showAddDialog}
         onOpenChange={handleDialogClose}
         material={formData}
