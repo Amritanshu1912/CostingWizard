@@ -1,7 +1,7 @@
-import React from "react";
 import { MetricCard } from "@/components/ui/metric-card";
 import { Package, TrendingUp, BarChart3 } from "lucide-react";
-import type { SupplierMaterial, Category, Supplier } from "@/lib/types";
+import type { Supplier } from "@/lib/types";
+import type { SupplierMaterialWithDetails } from "@/hooks/use-supplier-materials-with-details";
 import { MaterialsTable } from "./MaterialsTable";
 
 interface MaterialsTabProps {
@@ -15,10 +15,10 @@ interface MaterialsTabProps {
   onCategoryChange: (value: string) => void;
   selectedSupplier: string;
   onSupplierChange: (value: string) => void;
-  categories: Category[];
+  categories: string[];
   suppliers: Supplier[];
-  filteredMaterials: SupplierMaterial[];
-  onEditMaterial: (material: SupplierMaterial) => void;
+  filteredMaterials: SupplierMaterialWithDetails[];
+  onEditMaterial: (id: string) => void;
   onDeleteMaterial: (id: string) => void;
 }
 

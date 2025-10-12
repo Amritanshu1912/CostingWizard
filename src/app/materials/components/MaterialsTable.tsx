@@ -1,6 +1,5 @@
 "use client";
 
-import React from "react";
 import {
   Card,
   CardContent,
@@ -9,10 +8,22 @@ import {
   CardDescription,
 } from "@/components/ui/card";
 import { SortableTable } from "@/components/ui/sortable-table";
-import type { SupplierMaterial, Supplier, Category } from "@/lib/types";
+import type { SupplierMaterial, Supplier } from "@/lib/types";
+import type { SupplierMaterialWithDetails } from "@/hooks/use-supplier-materials-with-details";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Edit, Trash2 } from "lucide-react";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 import { MaterialsFilters } from "./MaterialsFilters";
 
 // The column configuration for the supplier materials inventory table.
@@ -23,35 +34,31 @@ const MATERIAL_COLUMNS = ({
   onDelete,
   suppliers,
 }: {
-  onEdit: (supplierMaterial: SupplierMaterial) => void;
+  onEdit: (id: string) => void;
   onDelete: (id: string) => void;
   suppliers: Supplier[];
 }) => [
   {
     key: "materialName",
     label: "Material Name",
-    render: (value: string) => (
-      <span className="font-medium text-foreground">{value}</span>
+    render: (_: any, row: SupplierMaterialWithDetails) => (
+      <span className="font-medium text-foreground">{row.material.name}</span>
     ),
   },
   {
     key: "materialCategory",
     label: "Category",
-    render: (value: string) => (
-      <span className="text-muted-foreground">{value}</span>
+    render: (_: any, row: SupplierMaterialWithDetails) => (
+      <span className="text-muted-foreground">{row.material.category}</span>
     ),
   },
   {
     key: "supplier",
     label: "Supplier",
-    render: (_: any, row: SupplierMaterial) => {
-      const supplier = suppliers.find((s) => s.id === row.supplierId);
-      return (
-        <span className="text-muted-foreground">
-          {supplier?.name || "Unknown"}
-        </span>
-      );
-    },
+    sortable: true,
+    render: (_: any, row: SupplierMaterialWithDetails) => (
+      <span className="text-muted-foreground">{row.supplier.name}</span>
+    ),
   },
   {
     key: "unitPrice",
@@ -120,33 +127,51 @@ const MATERIAL_COLUMNS = ({
     key: "actions",
     label: "Actions",
     sortable: false,
-    render: (_: any, row: SupplierMaterial) => (
+    render: (_: any, row: SupplierMaterialWithDetails) => (
       <div className="flex space-x-2">
         <Button
           variant="outline"
           size="sm"
-          onClick={() => onEdit(row)}
+          onClick={() => onEdit(row.id)}
           className="h-8 w-8 p-0 hover:bg-primary/10 hover:text-primary"
         >
           <Edit className="h-3 w-3" />
         </Button>
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={() => onDelete(row.id)}
-          className="h-8 w-8 p-0 text-destructive hover:text-destructive hover:bg-destructive/10"
-        >
-          <Trash2 className="h-3 w-3" />
-        </Button>
+        <AlertDialog>
+          <AlertDialogTrigger asChild>
+            <Button
+              variant="outline"
+              size="sm"
+              className="h-8 w-8 p-0 text-destructive hover:text-destructive hover:bg-destructive/10"
+            >
+              <Trash2 className="h-3 w-3" />
+            </Button>
+          </AlertDialogTrigger>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+              <AlertDialogDescription>
+                This action cannot be undone. This will permanently delete the
+                supplier material.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Cancel</AlertDialogCancel>
+              <AlertDialogAction onClick={() => onDelete(row.id)}>
+                Delete
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       </div>
     ),
   },
 ];
 
 interface MaterialsTableProps {
-  filteredMaterials: SupplierMaterial[];
+  filteredMaterials: SupplierMaterialWithDetails[];
   suppliers: Supplier[];
-  onEditMaterial: (material: SupplierMaterial) => void;
+  onEditMaterial: (id: string) => void;
   onDeleteMaterial: (id: string) => void;
   searchTerm: string;
   onSearchChange: (value: string) => void;
@@ -154,7 +179,7 @@ interface MaterialsTableProps {
   onCategoryChange: (value: string) => void;
   selectedSupplier: string;
   onSupplierChange: (value: string) => void;
-  categories: Category[];
+  categories: string[];
 }
 
 export function MaterialsTable({
@@ -193,7 +218,7 @@ export function MaterialsTable({
           selectedSupplier={selectedSupplier}
           setSelectedSupplier={onSupplierChange}
           suppliers={suppliers}
-          categories={categories.map((c) => c.name)}
+          categories={categories}
         />
         <SortableTable
           data={filteredMaterials}

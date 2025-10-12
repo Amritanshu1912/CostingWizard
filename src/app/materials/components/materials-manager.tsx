@@ -20,6 +20,7 @@ import {
   SUPPLIER_MATERIALS,
 } from "@/lib/constants";
 import { useDexieTable } from "@/hooks/use-dexie-table";
+import { useSupplierMaterialsWithDetails } from "@/hooks/use-supplier-materials-with-details";
 import { DEFAULT_MATERIAL_FORM } from "./materials-constants";
 import {
   Card,
@@ -46,11 +47,7 @@ export function MaterialsManager() {
     useState("all");
 
   // Supplier materials state
-  const {
-    data: suppliers,
-    updateItem: updateSupplier,
-    addItem: addSupplier,
-  } = useDexieTable(db.suppliers, SUPPLIERS);
+  const { data: suppliers } = useDexieTable(db.suppliers, SUPPLIERS);
   const {
     data: supplierMaterials,
     updateItem: updateSupplierMaterial,
@@ -63,6 +60,11 @@ export function MaterialsManager() {
     addItem: addMaterial,
     deleteItem: deleteMaterial,
   } = useDexieTable(db.materials, MATERIALS);
+  const supplierMaterialsWithDetails = useSupplierMaterialsWithDetails(
+    supplierMaterials,
+    materials,
+    suppliers
+  );
   const {
     data: categories,
     updateItem: updateCategory,
@@ -71,16 +73,17 @@ export function MaterialsManager() {
   } = useDexieTable(db.categories, CATEGORIES);
 
   // Materials tab filtering
-  const filteredMaterials = supplierMaterials.filter((material) => {
-    const supplier = suppliers.find((s) => s.id === material.supplierId);
+  const filteredMaterials = supplierMaterialsWithDetails.filter((material) => {
     const matchesSearch =
-      material.materialName
+      material.material.name
         .toLowerCase()
         .includes(materialsSearchTerm.toLowerCase()) ||
-      supplier?.name.toLowerCase().includes(materialsSearchTerm.toLowerCase());
+      material.supplier.name
+        .toLowerCase()
+        .includes(materialsSearchTerm.toLowerCase());
     const matchesCategory =
       selectedMaterialsCategory === "all" ||
-      material.materialCategory === selectedMaterialsCategory;
+      material.material.category === selectedMaterialsCategory;
     const matchesSupplier =
       selectedMaterialsSupplier === "all" ||
       material.supplierId === selectedMaterialsSupplier;
@@ -90,35 +93,17 @@ export function MaterialsManager() {
   const handleAddSupplierMaterial = useCallback(async () => {
     if (
       !newSupplierMaterial.supplierId ||
-      !newSupplierMaterial.materialName ||
+      !newSupplierMaterial.materialId ||
       !newSupplierMaterial.unitPrice
     )
       return;
     try {
-      // Check if material exists
-      const existingMaterial = materials.find(
-        (m) => m.name === newSupplierMaterial.materialName
-      );
-      if (!existingMaterial && newSupplierMaterial.materialName) {
-        // Auto-create material
-        await addMaterial({
-          name: newSupplierMaterial.materialName,
-          category: newSupplierMaterial.materialCategory || "Other",
-          unit: newSupplierMaterial.unit || "kg",
-          notes: newSupplierMaterial.notes || "",
-        });
-      }
       await addSupplierMaterial({
         supplierId: newSupplierMaterial.supplierId,
-        materialId: "",
-        materialName: newSupplierMaterial.materialName,
-        materialCategory: newSupplierMaterial.materialCategory || "Other",
+        materialId: newSupplierMaterial.materialId,
         unit: newSupplierMaterial.unit || "kg",
         unitPrice: newSupplierMaterial.unitPrice,
         tax: newSupplierMaterial.tax || 0,
-        priceWithTax:
-          newSupplierMaterial.unitPrice *
-          (1 + (newSupplierMaterial.tax || 0) / 100),
         moq: newSupplierMaterial.moq || 1,
         bulkDiscounts: newSupplierMaterial.bulkDiscounts || [],
         leadTime: newSupplierMaterial.leadTime || 7,
@@ -133,13 +118,13 @@ export function MaterialsManager() {
       console.error("Error adding supplier material:", error);
       toast.error("Failed to add supplier material");
     }
-  }, [newSupplierMaterial, addSupplierMaterial, addMaterial, materials]);
+  }, [newSupplierMaterial, addSupplierMaterial]);
 
   const handleUpdateSupplierMaterial = useCallback(async () => {
     if (
       !editingSupplierMaterial ||
       !newSupplierMaterial.supplierId ||
-      !newSupplierMaterial.materialName ||
+      !newSupplierMaterial.materialId ||
       !newSupplierMaterial.unitPrice
     )
       return;
@@ -147,13 +132,9 @@ export function MaterialsManager() {
       await updateSupplierMaterial({
         ...editingSupplierMaterial,
         supplierId: newSupplierMaterial.supplierId,
-        materialName: newSupplierMaterial.materialName,
-        materialCategory: newSupplierMaterial.materialCategory || "Other",
+        materialId: newSupplierMaterial.materialId,
         unitPrice: newSupplierMaterial.unitPrice,
         tax: newSupplierMaterial.tax || 0,
-        priceWithTax:
-          newSupplierMaterial.unitPrice *
-          (1 + (newSupplierMaterial.tax || 0) / 100),
         moq: newSupplierMaterial.moq || 1,
         unit: newSupplierMaterial.unit || "kg",
         bulkDiscounts: newSupplierMaterial.bulkDiscounts || [],
@@ -173,17 +154,17 @@ export function MaterialsManager() {
   }, [editingSupplierMaterial, newSupplierMaterial, updateSupplierMaterial]);
 
   // Quick Stats Calculations (using new camelCase fields)
-  const totalMaterials = supplierMaterials.length;
+  const totalMaterials = supplierMaterialsWithDetails.length;
   const avgPrice =
-    supplierMaterials.reduce((sum, sm) => sum + sm.unitPrice, 0) /
-    (supplierMaterials.length || 1); // Avoid division by zero
+    supplierMaterialsWithDetails.reduce((sum, sm) => sum + sm.unitPrice, 0) /
+    (supplierMaterialsWithDetails.length || 1); // Avoid division by zero
   const highestPrice =
-    supplierMaterials.length > 0
-      ? Math.max(...supplierMaterials.map((sm) => sm.unitPrice))
+    supplierMaterialsWithDetails.length > 0
+      ? Math.max(...supplierMaterialsWithDetails.map((sm) => sm.unitPrice))
       : 0;
   const avgTax =
-    supplierMaterials.reduce((sum, sm) => sum + sm.tax, 0) /
-    (supplierMaterials.length || 1);
+    supplierMaterialsWithDetails.reduce((sum, sm) => sum + sm.tax, 0) /
+    (supplierMaterialsWithDetails.length || 1);
 
   return (
     <div className="space-y-6 animate-fade-in">
@@ -234,13 +215,24 @@ export function MaterialsManager() {
             onCategoryChange={setSelectedMaterialsCategory}
             selectedSupplier={selectedMaterialsSupplier}
             onSupplierChange={setSelectedMaterialsSupplier}
-            categories={categories}
+            categories={[
+              ...new Set(
+                supplierMaterialsWithDetails.map((sm) => sm.material.category)
+              ),
+            ]}
             suppliers={suppliers}
             filteredMaterials={filteredMaterials}
-            onEditMaterial={(material) => {
-              setEditingSupplierMaterial(material);
-              setNewSupplierMaterial(material);
-              setShowAddSupplierMaterial(true);
+            onEditMaterial={(id) => {
+              const material = filteredMaterials.find((sm) => sm.id === id);
+              if (material) {
+                setEditingSupplierMaterial(material);
+                setNewSupplierMaterial({
+                  ...material,
+                  materialCategory: material.material.category,
+                  materialName: material.material.name,
+                } as any);
+                setShowAddSupplierMaterial(true);
+              }
             }}
             onDeleteMaterial={deleteSupplierMaterialItem}
           />
@@ -287,6 +279,8 @@ export function MaterialsManager() {
         }
         isEditing={!!editingSupplierMaterial}
         suppliers={suppliers}
+        materials={materials}
+        addMaterial={addMaterial}
       />
     </div>
   );

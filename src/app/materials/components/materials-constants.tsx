@@ -198,8 +198,7 @@ export const DEFAULT_SUPPLIER_FORM = {
 
 export const DEFAULT_MATERIAL_FORM = {
   supplierId: "",
-  materialName: "",
-  materialCategory: "",
+  materialId: "",
   unitPrice: 0,
   tax: 0,
   currency: "INR" as const,

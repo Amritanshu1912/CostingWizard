@@ -1,6 +1,5 @@
 "use client";
 
-import React from "react";
 import {
   Card,
   CardContent,
@@ -23,11 +22,13 @@ export function PriceComparison({
   suppliers,
 }: PriceComparisonProps) {
   const materials = Array.from(
-    new Set(supplierMaterials.map((m) => m.materialName))
+    new Set(supplierMaterials.map((m) => (m as any).materialName))
   );
 
   const getAlternativeSuppliers = (materialName: string) => {
-    return supplierMaterials.filter((m) => m.materialName === materialName);
+    return supplierMaterials.filter(
+      (m) => (m as any).materialName === materialName
+    );
   };
 
   return (
