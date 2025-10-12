@@ -1,5 +1,6 @@
 "use client";
 
+import { useState, useEffect } from "react";
 import {
   Dialog,
   DialogContent,
@@ -11,6 +12,19 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from "@/components/ui/command";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import {
   Select,
   SelectContent,
   SelectItem,
@@ -19,41 +33,115 @@ import {
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
+import {
+  Check,
+  ChevronsUpDown,
+  Plus,
+  Package,
+  TrendingUp,
+  Clock,
+  Truck,
+} from "lucide-react";
 import type { SupplierMaterial, Supplier, Material } from "@/lib/types";
 import {
   MATERIAL_CATEGORIES,
   UNITS,
   AVAILABILITY_OPTIONS,
 } from "./materials-config";
-import { Package, TrendingUp, Clock, Truck } from "lucide-react";
+import { cn } from "@/lib/utils";
 
-interface MaterialDialogProps {
+// Form-specific type that includes temporary fields for the form
+export interface MaterialFormData extends Partial<SupplierMaterial> {
+  materialName?: string;
+  materialCategory?: string;
+}
+
+interface EnhancedMaterialDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  material: Partial<SupplierMaterial>;
-  setMaterial: React.Dispatch<React.SetStateAction<Partial<SupplierMaterial>>>;
-  onSave: () => void;
+  material: MaterialFormData;
+  setMaterial: React.Dispatch<React.SetStateAction<MaterialFormData>>;
+  onSave: () => Promise<void>;
   suppliers: Supplier[];
   materials: Material[];
   isEditing?: boolean;
 }
 
-export function MaterialDialog({
+export function EnhancedMaterialDialog({
   open,
   onOpenChange,
   material,
   setMaterial,
   onSave,
   suppliers,
+  materials,
   isEditing = false,
-}: MaterialDialogProps) {
+}: EnhancedMaterialDialogProps) {
+  const [materialSearch, setMaterialSearch] = useState("");
+  const [openMaterialCombobox, setOpenMaterialCombobox] = useState(false);
+  const [filteredMaterials, setFilteredMaterials] = useState<Material[]>([]);
+  const [isNewMaterial, setIsNewMaterial] = useState(false);
+
+  // Filter materials based on search
+  useEffect(() => {
+    if (materialSearch) {
+      const filtered = materials.filter((m) =>
+        m.name.toLowerCase().includes(materialSearch.toLowerCase())
+      );
+      setFilteredMaterials(filtered);
+      setIsNewMaterial(filtered.length === 0);
+    } else {
+      setFilteredMaterials(materials);
+      setIsNewMaterial(false);
+    }
+  }, [materialSearch, materials]);
+
+  // Initialize material search when editing
+  useEffect(() => {
+    if (isEditing && material.materialId) {
+      const existingMaterial = materials.find(
+        (m) => m.id === material.materialId
+      );
+      if (existingMaterial) {
+        setMaterialSearch(existingMaterial.name);
+      }
+    }
+  }, [isEditing, material.materialId, materials]);
+
+  // Handle material selection
+  const handleSelectMaterial = (selectedMaterial: Material) => {
+    setMaterial({
+      ...material,
+      materialId: selectedMaterial.id,
+      materialName: selectedMaterial.name,
+      materialCategory: selectedMaterial.category,
+      unit: material.unit || "kg",
+    });
+    setMaterialSearch(selectedMaterial.name);
+    setOpenMaterialCombobox(false);
+  };
+
+  // Handle new material creation
+  const handleNewMaterial = () => {
+    setMaterial({
+      ...material,
+      materialId: "", // Will be created on save
+      materialName: materialSearch,
+      materialCategory: material.materialCategory || "Other",
+    });
+    setOpenMaterialCombobox(false);
+  };
+
   const isValid =
-    material.supplierId && material.materialName && material.unitPrice;
+    material.supplierId &&
+    material.materialName &&
+    material.unitPrice !== undefined &&
+    material.unitPrice > 0;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="min-w-2xl max-w-3xl max-h-[95vh] overflow-hidden shadow-xl rounded-2xl border border-border/50">
-        <DialogHeader className="pb-2">
+      <DialogContent className="min-w-xl max-w-3xl max-h-[90vh] overflow-y-auto">
+        <DialogHeader>
           <div className="flex items-center gap-3">
             <div className="p-2 rounded-lg bg-primary/10">
               <Package className="h-5 w-5 text-primary" />
@@ -62,7 +150,7 @@ export function MaterialDialog({
               <DialogTitle className="text-xl font-semibold">
                 {isEditing ? "Edit Material" : "Add New Material"}
               </DialogTitle>
-              <DialogDescription className="text-sm text-muted-foreground">
+              <DialogDescription>
                 {isEditing
                   ? "Update material pricing and details."
                   : "Add material information. New materials will be created automatically."}
@@ -71,15 +159,15 @@ export function MaterialDialog({
           </div>
         </DialogHeader>
 
-        <div className="dialog-scroll space-y-6 py-2 px-1">
-          {/* Basic Information */}
+        <div className="space-y-6 py-4">
+          {/* Supplier Selection */}
           <div className="dialog-section">
             <div className="section-header">
               <Package className="h-4 w-4" />
-              Basic Information
+              Supplier Information
             </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pl-6">
-              <div className="space-y-2">
+            <div className="flex gap-4 pl-6">
+              <div className="space-y-2 flex-1">
                 <Label htmlFor="supplier">
                   Supplier <span className="text-destructive">*</span>
                 </Label>
@@ -89,7 +177,7 @@ export function MaterialDialog({
                     setMaterial({ ...material, supplierId: value })
                   }
                 >
-                  <SelectTrigger id="supplier" className="focus-enhanced">
+                  <SelectTrigger id="supplier" className="focus-enhanced w-72">
                     <SelectValue placeholder="Select supplier" />
                   </SelectTrigger>
                   <SelectContent>
@@ -97,10 +185,10 @@ export function MaterialDialog({
                       .filter((s) => s.isActive)
                       .map((supplier) => (
                         <SelectItem key={supplier.id} value={supplier.id}>
-                          <div className="flex items-center justify-between w-full">
+                          <div className="flex items-center">
                             <span>{supplier.name}</span>
-                            <Badge variant="outline" className="ml-2 text-xs">
-                              {supplier.rating} ★
+                            <Badge variant="outline" className="text-xs ml-4">
+                              ⭐ {supplier.rating}
                             </Badge>
                           </div>
                         </SelectItem>
@@ -109,22 +197,111 @@ export function MaterialDialog({
                 </Select>
               </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="materialName">
-                  Material Name <span className="text-destructive">*</span>
-                </Label>
+              <div className="space-y-2 w-20">
+                <Label htmlFor="moq">MOQ</Label>
                 <Input
-                  id="materialName"
-                  value={material.materialName}
+                  id="moq"
+                  type="number"
+                  min="1"
+                  value={material.moq || ""}
                   onChange={(e) =>
-                    setMaterial({ ...material, materialName: e.target.value })
+                    setMaterial({ ...material, moq: Number(e.target.value) })
                   }
-                  placeholder="e.g., Caustic Soda"
+                  placeholder="1"
                   className="focus-enhanced"
                 />
               </div>
+            </div>
+          </div>
 
-              <div className="space-y-2">
+          {/* Material Selection with Auto-complete */}
+          <div className="dialog-section">
+            <div className="section-header">
+              <Package className="h-4 w-4" />
+              Material Details
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pl-6">
+              <div className="space-y-2 md:col-span-1">
+                <Label htmlFor="materialName">
+                  Material Name <span className="text-destructive">*</span>
+                </Label>
+                <Popover
+                  open={openMaterialCombobox}
+                  onOpenChange={setOpenMaterialCombobox}
+                >
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      role="combobox"
+                      aria-expanded={openMaterialCombobox}
+                      className="w-full justify-between focus-enhanced"
+                    >
+                      {material.materialName || "Select or type"}
+                      <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-full p-0" align="start">
+                    <Command shouldFilter={false}>
+                      <CommandInput
+                        placeholder="Search materials..."
+                        value={materialSearch}
+                        onValueChange={setMaterialSearch}
+                      />
+                      <CommandList>
+                        {filteredMaterials.length > 0 ? (
+                          <CommandGroup heading="Existing Materials">
+                            {filteredMaterials.map((mat) => (
+                              <CommandItem
+                                key={mat.id}
+                                value={mat.name}
+                                onSelect={() => handleSelectMaterial(mat)}
+                              >
+                                <Check
+                                  className={cn(
+                                    "mr-2 h-4 w-4",
+                                    material.materialId === mat.id
+                                      ? "opacity-100"
+                                      : "opacity-0"
+                                  )}
+                                />
+                                <div className="flex-1">
+                                  <div className="font-medium">{mat.name}</div>
+                                  <div className="text-xs text-muted-foreground">
+                                    {mat.category} {/* • {mat.unit} */}
+                                  </div>
+                                </div>
+                              </CommandItem>
+                            ))}
+                          </CommandGroup>
+                        ) : null}
+                        {isNewMaterial && materialSearch && (
+                          <CommandGroup heading="Create New">
+                            <CommandItem onSelect={handleNewMaterial}>
+                              <Plus className="mr-2 h-4 w-4 text-primary" />
+                              <span>
+                                Create "<strong>{materialSearch}</strong>"
+                              </span>
+                            </CommandItem>
+                          </CommandGroup>
+                        )}
+                        {!materialSearch && filteredMaterials.length === 0 && (
+                          <CommandEmpty>
+                            Start typing to search or create...
+                          </CommandEmpty>
+                        )}
+                      </CommandList>
+                    </Command>
+                  </PopoverContent>
+                </Popover>
+                {isNewMaterial && materialSearch && (
+                  <p className="text-xs text-muted-foreground flex items-center gap-1">
+                    <Plus className="h-3 w-3" />
+                    New material will be created
+                  </p>
+                )}
+              </div>
+
+              <div className="space-y-2 w-32">
                 <Label htmlFor="category">Category</Label>
                 <Select
                   value={material.materialCategory}
@@ -145,78 +322,71 @@ export function MaterialDialog({
                 </Select>
               </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="unit">Unit</Label>
-                <Select
-                  value={material.unit}
-                  onValueChange={(value) =>
-                    setMaterial({ ...material, unit: value as any })
-                  }
-                >
-                  <SelectTrigger id="unit" className="focus-enhanced">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {UNITS.map((unit) => (
-                      <SelectItem key={unit} value={unit}>
-                        {unit}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+              <div className="space-y-2 md:col-span-2">
+                <div className="grid grid-cols-3 gap-2">
+                  <div className="space-y-1">
+                    <Label className="text-sm font-medium">Unit</Label>
+                    <Select
+                      value={material.unit}
+                      onValueChange={(value) =>
+                        setMaterial({ ...material, unit: value as any })
+                      }
+                    >
+                      <SelectTrigger className="focus-enhanced">
+                        <SelectValue placeholder="Unit" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {UNITS.map((unit) => (
+                          <SelectItem key={unit} value={unit}>
+                            {unit}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-1">
+                    <Label className="text-sm font-medium">
+                      Unit Price (₹) <span className="text-destructive">*</span>
+                    </Label>
+                    <Input
+                      type="number"
+                      step="0.01"
+                      min="0"
+                      value={material.unitPrice || ""}
+                      onChange={(e) =>
+                        setMaterial({
+                          ...material,
+                          unitPrice: Number(e.target.value),
+                        })
+                      }
+                      placeholder="0.00"
+                      className="focus-enhanced"
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <Label className="text-sm font-medium">Tax (%)</Label>
+                    <Input
+                      type="number"
+                      step="0.01"
+                      min="0"
+                      max="100"
+                      value={material.tax || ""}
+                      onChange={(e) =>
+                        setMaterial({
+                          ...material,
+                          tax: Number(e.target.value),
+                        })
+                      }
+                      placeholder="0"
+                      className="focus-enhanced"
+                    />
+                  </div>
+                </div>
               </div>
             </div>
           </div>
 
-          {/* Pricing Information */}
-          <div className="dialog-section">
-            <div className="section-header">
-              <TrendingUp className="h-4 w-4" />
-              Pricing Information
-            </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pl-6">
-              <div className="space-y-2">
-                <Label htmlFor="unitPrice">
-                  Unit Price (₹) <span className="text-destructive">*</span>
-                </Label>
-                <Input
-                  id="unitPrice"
-                  type="number"
-                  step="0.01"
-                  min="0"
-                  value={material.unitPrice}
-                  onChange={(e) =>
-                    setMaterial({
-                      ...material,
-                      unitPrice: Number(e.target.value),
-                    })
-                  }
-                  placeholder="0.00"
-                  className="focus-enhanced"
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="moq">
-                  MOQ (Minimum Order Quantity){" "}
-                  <span className="text-destructive">*</span>
-                </Label>
-                <Input
-                  id="moq"
-                  type="number"
-                  min="1"
-                  value={material.moq}
-                  onChange={(e) =>
-                    setMaterial({ ...material, moq: Number(e.target.value) })
-                  }
-                  placeholder="1"
-                  className="focus-enhanced"
-                />
-              </div>
-            </div>
-          </div>
-
-          {/* Logistics Information */}
+          {/* Logistics */}
           <div className="dialog-section">
             <div className="section-header">
               <Truck className="h-4 w-4" />
@@ -225,21 +395,23 @@ export function MaterialDialog({
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pl-6">
               <div className="space-y-2 relative">
                 <Label htmlFor="leadTime">Lead Time (days)</Label>
-                <Clock className="absolute left-3 top-9 h-4 w-4 text-muted-foreground" />
-                <Input
-                  id="leadTime"
-                  type="number"
-                  min="1"
-                  value={material.leadTime}
-                  onChange={(e) =>
-                    setMaterial({
-                      ...material,
-                      leadTime: Number(e.target.value),
-                    })
-                  }
-                  placeholder="7"
-                  className="pl-10 focus-enhanced"
-                />
+                <div className="relative">
+                  <Clock className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    id="leadTime"
+                    type="number"
+                    min="1"
+                    value={material.leadTime || ""}
+                    onChange={(e) =>
+                      setMaterial({
+                        ...material,
+                        leadTime: Number(e.target.value),
+                      })
+                    }
+                    placeholder="7"
+                    className="pl-10 focus-enhanced"
+                  />
+                </div>
               </div>
 
               <div className="space-y-2">
@@ -276,8 +448,8 @@ export function MaterialDialog({
             </div>
           </div>
 
-          {/* Additional Notes */}
-          <div className="dialog-section">
+          {/* Notes */}
+          <div className="space-y-2">
             <Label htmlFor="notes">Additional Notes</Label>
             <Textarea
               id="notes"
@@ -285,14 +457,14 @@ export function MaterialDialog({
               onChange={(e) =>
                 setMaterial({ ...material, notes: e.target.value })
               }
-              placeholder="Add any additional information about this material..."
+              placeholder="Add any additional information..."
               className="focus-enhanced min-h-[100px] resize-none"
             />
           </div>
         </div>
 
         {/* Footer */}
-        <div className="flex items-center justify-between pt-4 border-t px-6 pb-4 bg-background/60 backdrop-blur-sm">
+        <div className="flex items-center justify-between pt-4 border-t">
           <div className="text-xs text-muted-foreground">
             <span className="text-destructive">*</span> Required fields
           </div>
