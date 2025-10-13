@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 
 import {
   Dialog,
@@ -51,7 +51,9 @@ import {
   UNITS,
   AVAILABILITY_OPTIONS,
 } from "./materials-config";
-import { cn } from "@/lib/utils";
+import { cn, debounce, checkForSimilarItems } from "@/lib/utils";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { AlertTriangle } from "lucide-react";
 
 // Form-specific type that includes temporary fields for the form
 export interface MaterialFormData extends Partial<SupplierMaterial> {
@@ -84,6 +86,7 @@ export function EnhancedMaterialDialog({
   const [openMaterialCombobox, setOpenMaterialCombobox] = useState(false);
   const [filteredMaterials, setFilteredMaterials] = useState<Material[]>([]);
   const [isNewMaterial, setIsNewMaterial] = useState(false);
+  const [duplicateWarning, setDuplicateWarning] = useState<string | null>(null);
 
   // Filter materials based on search
   useEffect(() => {
@@ -98,6 +101,25 @@ export function EnhancedMaterialDialog({
       setIsNewMaterial(false);
     }
   }, [materialSearch, materials]);
+
+  // Debounced fuzzy match check for duplicate warnings
+  const debouncedCheck = useMemo(
+    () =>
+      debounce((searchTerm: string) => {
+        const warning = checkForSimilarItems(searchTerm, materials, "material");
+        setDuplicateWarning(warning);
+      }, 300),
+    [materials]
+  );
+
+  // Call fuzzy match check when material search changes
+  useEffect(() => {
+    if (materialSearch && !material.materialId) {
+      debouncedCheck(materialSearch);
+    } else {
+      setDuplicateWarning(null);
+    }
+  }, [materialSearch, material.materialId, debouncedCheck]);
 
   // Initialize material search when editing
   useEffect(() => {
@@ -122,6 +144,7 @@ export function EnhancedMaterialDialog({
     });
     setMaterialSearch(selectedMaterial.name);
     setOpenMaterialCombobox(false);
+    setDuplicateWarning(null); // Clear warning when selecting existing material
   };
 
   // Handle new material creation
@@ -133,6 +156,7 @@ export function EnhancedMaterialDialog({
       materialCategory: material.materialCategory || "Other",
     });
     setOpenMaterialCombobox(false);
+    setDuplicateWarning(null); // Clear warning when creating new material
   };
 
   const isValid =
@@ -228,6 +252,13 @@ export function EnhancedMaterialDialog({
                 <Label htmlFor="materialName">
                   Material Name <span className="text-destructive">*</span>
                 </Label>
+                {/* Duplicate Warning Alert */}
+                {duplicateWarning && (
+                  <Alert variant="destructive" className="mt-2">
+                    <AlertTriangle className="h-4 w-4" />
+                    <AlertDescription>{duplicateWarning}</AlertDescription>
+                  </Alert>
+                )}
                 <Popover
                   open={openMaterialCombobox}
                   onOpenChange={setOpenMaterialCombobox}

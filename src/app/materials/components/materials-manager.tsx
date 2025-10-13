@@ -27,6 +27,7 @@ import { useSupplierMaterialsWithDetails } from "@/hooks/use-supplier-materials-
 import { DEFAULT_MATERIAL_FORM } from "./materials-config";
 import { db } from "@/lib/db";
 import { MetricCard } from "@/components/ui/metric-card";
+import { isExactDuplicate } from "@/lib/utils";
 
 export function MaterialsManager() {
   const [showAddDialog, setShowAddDialog] = useState(false);
@@ -74,9 +75,7 @@ export function MaterialsManager() {
       if (!materialId || materialId === "") {
         // Check if material exists by name
         const existingMaterial = await db.materials
-          .filter(
-            (m) => m.name.toLowerCase() === formData.materialName!.toLowerCase()
-          )
+          .filter((m) => isExactDuplicate(m.name, formData.materialName!))
           .first();
 
         if (existingMaterial) {
@@ -140,9 +139,7 @@ export function MaterialsManager() {
       if (!materialId || materialId === "") {
         // Creating new material during edit
         const existingMaterial = await db.materials
-          .filter(
-            (m) => m.name.toLowerCase() === formData.materialName!.toLowerCase()
-          )
+          .filter((m) => isExactDuplicate(m.name, formData.materialName!))
           .first();
 
         if (existingMaterial) {
@@ -194,6 +191,7 @@ export function MaterialsManager() {
       setShowAddDialog(false);
       setEditingMaterial(null);
       setFormData(DEFAULT_MATERIAL_FORM);
+      // Note: duplicateWarning is handled in the dialog component itself
     }
   }, []);
 
