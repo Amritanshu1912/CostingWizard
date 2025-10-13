@@ -12,6 +12,14 @@ import { useDexieTable } from "@/hooks/use-dexie-table";
 import { db } from "@/lib/db";
 import { PackagingTable } from "./PackagingTable";
 import { PackagingDialog } from "./PackagingDialog";
+import { SupplierPackagingTable } from "./supplier-packaging-table";
+import { SupplierPackagingDialog } from "./supplier-packaging-dialog";
+import { PackagingPriceComparison } from "./packaging-price-comparison";
+import { PackagingAnalytics } from "./packaging-analytics";
+import {
+  useSupplierPackagingWithDetails,
+  type SupplierPackagingWithDetails,
+} from "@/hooks/use-supplier-packaging-with-details";
 
 export function PackagingManager() {
   const [searchTerm, setSearchTerm] = useState("");
@@ -39,13 +47,13 @@ export function PackagingManager() {
   const [editingPackaging, setEditingPackaging] = useState<Packaging | null>(
     null
   );
-  const [newPackaging, setNewPackaging] = useState<Partial<Packaging>>({
-    name: "",
-    type: "bottle",
-    size: "",
-    unit: "pieces",
-    availability: "in-stock",
-  });
+  const [showAddSupplierPackaging, setShowAddSupplierPackaging] =
+    useState(false);
+  const [editingSupplierPackaging, setEditingSupplierPackaging] =
+    useState<SupplierPackagingWithDetails | null>(null);
+
+  // Enriched data hooks
+  const enrichedSupplierPackaging = useSupplierPackagingWithDetails();
 
   const filteredPackaging = packaging.filter((item) => {
     const matchesSearch = item.name
@@ -77,6 +85,30 @@ export function PackagingManager() {
     }
   };
 
+  const handleSaveSupplierPackaging = async (item: SupplierPackaging) => {
+    try {
+      if (supplierPackaging.some((sp) => sp.id === item.id)) {
+        await updateSupplierPackaging(item);
+      } else {
+        await addSupplierPackaging(item);
+      }
+      toast.success("Supplier packaging saved successfully");
+    } catch (error) {
+      console.error("Error saving supplier packaging:", error);
+      toast.error("Failed to save supplier packaging");
+    }
+  };
+
+  const handleDeleteSupplierPackaging = async (id: string) => {
+    try {
+      await deleteSupplierPackaging(id);
+      toast.success("Supplier packaging deleted successfully");
+    } catch (error) {
+      console.error("Error deleting supplier packaging:", error);
+      toast.error("Failed to delete supplier packaging");
+    }
+  };
+
   return (
     <div className="space-y-6 animate-fade-in">
       {/* Header */}
@@ -98,15 +130,24 @@ export function PackagingManager() {
             <Plus className="h-4 w-4 mr-2" />
             <span className="truncate">Add Packaging</span>
           </Button>
+          <Button
+            variant="outline"
+            className="btn-secondary w-full sm:w-auto"
+            onClick={() => setShowAddSupplierPackaging(true)}
+          >
+            <Plus className="h-4 w-4 mr-2" />
+            <span className="truncate">Add Supplier Packaging</span>
+          </Button>
         </div>
       </div>
 
       <Tabs defaultValue="packaging" className="space-y-6">
-        <TabsList className="grid w-full grid-cols-3">
+        <TabsList className="grid w-full grid-cols-4">
           <TabsTrigger value="packaging">Packaging Items</TabsTrigger>
           <TabsTrigger value="supplier-packaging">
             Supplier Packaging
           </TabsTrigger>
+          <TabsTrigger value="price-comparison">Price Comparison</TabsTrigger>
           <TabsTrigger value="analytics">Analytics</TabsTrigger>
         </TabsList>
 
@@ -120,21 +161,19 @@ export function PackagingManager() {
         </TabsContent>
 
         <TabsContent value="supplier-packaging" className="space-y-6">
-          {/* Supplier packaging table will go here */}
-          <div className="text-center py-8">
-            <p className="text-muted-foreground">
-              Supplier packaging table component to be implemented
-            </p>
-          </div>
+          <SupplierPackagingTable
+            supplierPackaging={enrichedSupplierPackaging}
+            onEditPackaging={setEditingSupplierPackaging}
+            onDeletePackaging={handleDeleteSupplierPackaging}
+          />
+        </TabsContent>
+
+        <TabsContent value="price-comparison" className="space-y-6">
+          <PackagingPriceComparison />
         </TabsContent>
 
         <TabsContent value="analytics" className="space-y-6">
-          {/* Analytics will go here */}
-          <div className="text-center py-8">
-            <p className="text-muted-foreground">
-              Packaging analytics to be implemented
-            </p>
-          </div>
+          <PackagingAnalytics />
         </TabsContent>
       </Tabs>
 
@@ -148,6 +187,19 @@ export function PackagingManager() {
         onSave={handleSavePackaging}
         suppliers={suppliers}
         initialPackaging={editingPackaging}
+      />
+
+      {/* Supplier Packaging Dialog */}
+      <SupplierPackagingDialog
+        isOpen={showAddSupplierPackaging || !!editingSupplierPackaging}
+        onClose={() => {
+          setShowAddSupplierPackaging(false);
+          setEditingSupplierPackaging(null);
+        }}
+        onSave={handleSaveSupplierPackaging}
+        suppliers={suppliers}
+        packaging={packaging}
+        initialPackaging={editingSupplierPackaging}
       />
     </div>
   );

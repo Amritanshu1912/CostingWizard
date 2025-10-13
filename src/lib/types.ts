@@ -84,7 +84,7 @@ export interface SupplierMaterial extends BaseEntity {
 
 export interface Packaging extends BaseEntity {
     name: string;
-    type: "bottle" | "container" | "box" | "other";
+    type: "bottle" | "container" | "box" | "packet" | "other";
     size: string; // e.g., "500ml", "1L"
     material: string; // e.g., "PET", "HDPE", "Glass"
     notes?: string;
@@ -93,16 +93,12 @@ export interface Packaging extends BaseEntity {
 export interface SupplierPackaging extends BaseEntity {
     supplierId: string;
     packagingId?: string;
-    packagingName: string;
-    packagingType: string;
-    size: string;
-    unit: string;
     unitPrice: number;
     moq: number;
     bulkDiscounts?: BulkDiscount[];
     leadTime: number;
     availability: "in-stock" | "limited" | "out-of-stock";
-    lastUpdated: string;
+    transportationCost?: number;
     notes?: string;
 }
 
@@ -116,36 +112,25 @@ export interface Label extends BaseEntity {
     printingType: "bw" | "color" | "foil" | "embossed";
     material: "paper" | "vinyl" | "plastic" | "other";
     shape: "rectangular" | "circular" | "custom";
-    colors: string[];
+    colors: string[]; // e.g., ["black", "gold"]
     size: string; // e.g., "50x30mm"
-    supplierId?: string;
-    unitPrice: number;
-    moq: number;
-    unit: string; // "pieces", "sheets", etc.
-    bulkDiscounts?: BulkDiscount[];
-    leadTime: number;
-    availability: "in-stock" | "limited" | "out-of-stock";
     notes?: string;
 }
 
 export interface SupplierLabel extends BaseEntity {
     supplierId: string;
     labelId?: string;
-    labelName: string;
-    labelType: string;
-    printingType: string;
-    material: string;
-    shape: string;
-    colors: string[];
-    size: string;
+
+    unit: "pieces" | "sheets" | string;
     unitPrice: number;
     moq: number;
-    unit: string;
     bulkDiscounts?: BulkDiscount[];
     leadTime: number;
     availability: "in-stock" | "limited" | "out-of-stock";
+    transportationCost?: number;
     notes?: string;
 }
+
 // ============================================================================
 // PRODUCTS & Recipes
 // ============================================================================
