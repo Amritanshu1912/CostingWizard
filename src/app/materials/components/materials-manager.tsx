@@ -27,7 +27,6 @@ import { useSupplierMaterialsWithDetails } from "@/hooks/use-supplier-materials-
 import { DEFAULT_MATERIAL_FORM } from "./materials-config";
 import { db } from "@/lib/db";
 import { MetricCard } from "@/components/ui/metric-card";
-import { isExactDuplicate } from "@/lib/utils";
 
 export function MaterialsManager() {
   const [showAddDialog, setShowAddDialog] = useState(false);
@@ -69,31 +68,38 @@ export function MaterialsManager() {
     try {
       const now = new Date().toISOString();
 
-      // Step 1: Get or create material
-      let materialId = formData.materialId;
+      // Step 1: Get or create material (material name is unique identifier)
+      const normalizedName = formData.materialName.trim().toLowerCase();
+      const existingMaterial = await db.materials
+        .filter((m) => m.name.trim().toLowerCase() === normalizedName)
+        .first();
 
-      if (!materialId || materialId === "") {
-        // Check if material exists by name
-        const existingMaterial = await db.materials
-          .filter((m) => isExactDuplicate(m.name, formData.materialName!))
-          .first();
+      let materialId: string;
 
-        if (existingMaterial) {
-          materialId = existingMaterial.id;
-        } else {
-          // Create new material
-          materialId = nanoid();
-          await db.materials.add({
-            id: materialId,
-            name: formData.materialName,
-            category: formData.materialCategory || "Other",
-            notes: formData.notes || "",
-            createdAt: now,
+      if (existingMaterial) {
+        // Material exists by name - use existing materialId
+        materialId = existingMaterial.id;
+
+        // If category changed, update the master material (affects all supplier materials)
+        if (existingMaterial.category !== formData.materialCategory) {
+          await db.materials.update(existingMaterial.id, {
+            category: formData.materialCategory,
+            updatedAt: now,
           });
         }
+      } else {
+        // Create new material with name + category
+        materialId = nanoid();
+        await db.materials.add({
+          id: materialId,
+          name: formData.materialName.trim(),
+          category: formData.materialCategory || "Other",
+          notes: formData.notes || "",
+          createdAt: now,
+        });
       }
 
-      // Step 2: Create supplier material (normalized - only materialId)
+      // Step 2: Create supplier material
       await db.supplierMaterials.add({
         id: nanoid(),
         supplierId: formData.supplierId,
@@ -133,34 +139,66 @@ export function MaterialsManager() {
     try {
       const now = new Date().toISOString();
 
-      // Check if we need to create a new material
-      let materialId = formData.materialId;
+      // Get the original material for comparison
+      const originalMaterial = await db.materials.get(
+        editingMaterial.materialId
+      );
+      if (!originalMaterial) {
+        toast.error("Original material not found");
+        return;
+      }
 
-      if (!materialId || materialId === "") {
-        // Creating new material during edit
-        const existingMaterial = await db.materials
-          .filter((m) => isExactDuplicate(m.name, formData.materialName!))
+      const normalizedNewName = formData.materialName!.trim().toLowerCase();
+      const normalizedOriginalName = originalMaterial.name.trim().toLowerCase();
+
+      let materialId = editingMaterial.materialId;
+
+      // Check if material name changed
+      if (normalizedNewName !== normalizedOriginalName) {
+        // Scenario A: User changed material name to new name
+        const existingMaterialWithNewName = await db.materials
+          .filter((m) => m.name.trim().toLowerCase() === normalizedNewName)
           .first();
 
-        if (existingMaterial) {
-          materialId = existingMaterial.id;
+        if (existingMaterialWithNewName) {
+          // Scenario C: Changed to existing material name - use existing materialId
+          materialId = existingMaterialWithNewName.id;
+
+          // Update category if changed
+          if (
+            existingMaterialWithNewName.category !== formData.materialCategory
+          ) {
+            await db.materials.update(existingMaterialWithNewName.id, {
+              category: formData.materialCategory,
+              updatedAt: now,
+            });
+          }
         } else {
-          // Create new material
+          // Create new material with new name
           materialId = nanoid();
           await db.materials.add({
             id: materialId,
-            name: formData.materialName!,
+            name: formData.materialName!.trim(),
             category: formData.materialCategory || "Other",
             notes: formData.notes || "",
             createdAt: now,
           });
         }
+      } else {
+        // Scenario B: Same material name, check if category changed
+        if (originalMaterial.category !== formData.materialCategory) {
+          // Update master material's category (affects all supplier materials using this material)
+          await db.materials.update(originalMaterial.id, {
+            category: formData.materialCategory,
+            updatedAt: now,
+          });
+        }
       }
 
-      // Update supplier material
+      // Update supplier material with new/existing materialId
       await db.supplierMaterials.update(editingMaterial.id, {
         ...formData,
-        materialId, // Use the new or existing materialId
+        materialId: materialId,
         updatedAt: now,
       });
 

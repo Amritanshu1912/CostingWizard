@@ -121,7 +121,7 @@ export function EnhancedMaterialDialog({
     }
   }, [materialSearch, material.materialId, debouncedCheck]);
 
-  // Initialize material search when editing
+  // Initialize material search when editing or reset when adding
   useEffect(() => {
     if (isEditing && material.materialId) {
       const existingMaterial = materials.find(
@@ -130,6 +130,10 @@ export function EnhancedMaterialDialog({
       if (existingMaterial) {
         setMaterialSearch(existingMaterial.name);
       }
+    } else if (!isEditing) {
+      // Reset search and warning when opening add dialog
+      setMaterialSearch("");
+      setDuplicateWarning(null);
     }
   }, [isEditing, material.materialId, materials]);
 
@@ -162,6 +166,7 @@ export function EnhancedMaterialDialog({
   const isValid =
     material.supplierId &&
     material.materialName &&
+    material.materialCategory && // Category required for new materials
     material.unitPrice !== undefined &&
     material.unitPrice > 0;
 
@@ -336,7 +341,14 @@ export function EnhancedMaterialDialog({
               </div>
 
               <div className="space-y-2 w-32">
-                <Label htmlFor="category">Category</Label>
+                <Label htmlFor="category">
+                  Category
+                  {material.materialId ? (
+                    ""
+                  ) : (
+                    <span className="text-destructive">*</span>
+                  )}
+                </Label>
                 <Select
                   value={material.materialCategory}
                   onValueChange={(value) =>
