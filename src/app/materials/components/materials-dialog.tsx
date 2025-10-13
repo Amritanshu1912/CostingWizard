@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useEffect, useMemo } from "react";
-
 import {
   Dialog,
   DialogContent,
@@ -33,32 +32,35 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
-
 import { Badge } from "@/components/ui/badge";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import {
   Check,
   ChevronsUpDown,
   Plus,
   Package,
-  TrendingUp,
-  Clock,
   Truck,
+  Clock,
+  AlertTriangle,
+  Loader2,
 } from "lucide-react";
 
-import type { SupplierMaterial, Supplier, Material } from "@/lib/types";
-import {
-  MATERIAL_CATEGORIES,
-  UNITS,
-  AVAILABILITY_OPTIONS,
-} from "./materials-config";
-import { cn, debounce, checkForSimilarItems } from "@/lib/utils";
-import { Alert, AlertDescription } from "@/components/ui/alert";
-import { AlertTriangle } from "lucide-react";
+import type {
+  SupplierMaterial,
+  Supplier,
+  Material,
+  Category,
+} from "@/lib/types";
+import { UNITS, AVAILABILITY_OPTIONS } from "./materials-config";
+import { cn } from "@/lib/utils";
+import { useDuplicateCheck } from "@/hooks/use-duplicate-check";
 
-// Form-specific type that includes temporary fields for the form
+// Form-specific type
 export interface MaterialFormData extends Partial<SupplierMaterial> {
   materialName?: string;
   materialCategory?: string;
+  bulkPrice?: number;
+  quantityForBulkPrice?: number;
 }
 
 interface EnhancedMaterialDialogProps {
@@ -69,6 +71,7 @@ interface EnhancedMaterialDialogProps {
   onSave: () => Promise<void>;
   suppliers: Supplier[];
   materials: Material[];
+  categories: Category[];
   isEditing?: boolean;
 }
 
@@ -80,13 +83,30 @@ export function EnhancedMaterialDialog({
   onSave,
   suppliers,
   materials,
+  categories,
   isEditing = false,
 }: EnhancedMaterialDialogProps) {
   const [materialSearch, setMaterialSearch] = useState("");
+  const [categorySearch, setCategorySearch] = useState("");
   const [openMaterialCombobox, setOpenMaterialCombobox] = useState(false);
+  const [openCategoryCombobox, setOpenCategoryCombobox] = useState(false);
   const [filteredMaterials, setFilteredMaterials] = useState<Material[]>([]);
+  const [filteredCategories, setFilteredCategories] = useState<Category[]>([]);
   const [isNewMaterial, setIsNewMaterial] = useState(false);
-  const [duplicateWarning, setDuplicateWarning] = useState<string | null>(null);
+  const [isNewCategory, setIsNewCategory] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [errors, setErrors] = useState<Record<string, string>>({});
+
+  // Duplicate check for materials
+  const { warning: materialWarning, checkDuplicate: checkMaterialDuplicate } =
+    useDuplicateCheck(materials, material.materialId);
+
+  // Duplicate check for categories
+  const currentCategoryId = categories.find(
+    (c) => c.name === material.materialCategory
+  )?.id;
+  const { warning: categoryWarning, checkDuplicate: checkCategoryDuplicate } =
+    useDuplicateCheck(categories, currentCategoryId);
 
   // Filter materials based on search
   useEffect(() => {
@@ -96,32 +116,34 @@ export function EnhancedMaterialDialog({
       );
       setFilteredMaterials(filtered);
       setIsNewMaterial(filtered.length === 0);
+
+      // Check for duplicates
+      if (!material.materialId) {
+        checkMaterialDuplicate(materialSearch);
+      }
     } else {
       setFilteredMaterials(materials);
       setIsNewMaterial(false);
     }
-  }, [materialSearch, materials]);
-
-  // Debounced fuzzy match check for duplicate warnings
-  const debouncedCheck = useMemo(
-    () =>
-      debounce((searchTerm: string) => {
-        const warning = checkForSimilarItems(searchTerm, materials, "material");
-        setDuplicateWarning(warning);
-      }, 300),
-    [materials]
-  );
-
-  // Call fuzzy match check when material search changes
+  }, [materialSearch, materials, material.materialId]);
+  // Filter categories based on search
   useEffect(() => {
-    if (materialSearch && !material.materialId) {
-      debouncedCheck(materialSearch);
-    } else {
-      setDuplicateWarning(null);
-    }
-  }, [materialSearch, material.materialId, debouncedCheck]);
+    if (categorySearch) {
+      const filtered = categories.filter((c) =>
+        c.name.toLowerCase().includes(categorySearch.toLowerCase())
+      );
+      setFilteredCategories(filtered);
+      setIsNewCategory(filtered.length === 0);
 
-  // Initialize material search when editing or reset when adding
+      // Check for duplicates
+      checkCategoryDuplicate(categorySearch);
+    } else {
+      setFilteredCategories(categories);
+      setIsNewCategory(false);
+    }
+  }, [categorySearch, categories]);
+
+  // Initialize searches when editing
   useEffect(() => {
     if (isEditing && material.materialId) {
       const existingMaterial = materials.find(
@@ -129,13 +151,17 @@ export function EnhancedMaterialDialog({
       );
       if (existingMaterial) {
         setMaterialSearch(existingMaterial.name);
+        setCategorySearch(existingMaterial.category);
       }
-    } else if (!isEditing) {
-      // Reset search and warning when opening add dialog
-      setMaterialSearch("");
-      setDuplicateWarning(null);
     }
   }, [isEditing, material.materialId, materials]);
+
+  // Calculate unit price when bulk fields change
+  const calculatedUnitPrice = useMemo(() => {
+    const qty = material.quantityForBulkPrice || 1;
+    const price = material.bulkPrice || 0;
+    return qty > 0 ? price / qty : 0;
+  }, [material.bulkPrice, material.quantityForBulkPrice]);
 
   // Handle material selection
   const handleSelectMaterial = (selectedMaterial: Material) => {
@@ -147,28 +173,89 @@ export function EnhancedMaterialDialog({
       unit: material.unit || "kg",
     });
     setMaterialSearch(selectedMaterial.name);
+    setCategorySearch(selectedMaterial.category);
     setOpenMaterialCombobox(false);
-    setDuplicateWarning(null); // Clear warning when selecting existing material
   };
 
-  // Handle new material creation
+  // Handle new material
   const handleNewMaterial = () => {
     setMaterial({
       ...material,
-      materialId: "", // Will be created on save
+      materialId: "",
       materialName: materialSearch,
-      materialCategory: material.materialCategory || "Other",
+      materialCategory: material.materialCategory || categorySearch || "Other",
     });
     setOpenMaterialCombobox(false);
-    setDuplicateWarning(null); // Clear warning when creating new material
+  };
+
+  // Handle category selection
+  const handleSelectCategory = (selectedCategory: Category) => {
+    setMaterial({
+      ...material,
+      materialCategory: selectedCategory.name,
+    });
+    setCategorySearch(selectedCategory.name);
+    setOpenCategoryCombobox(false);
+  };
+
+  // Handle new category
+  const handleNewCategory = () => {
+    setMaterial({
+      ...material,
+      materialCategory: categorySearch,
+    });
+    setOpenCategoryCombobox(false);
+  };
+
+  // Validate form
+  const validateForm = (): boolean => {
+    const newErrors: Record<string, string> = {};
+
+    if (!material.supplierId) {
+      newErrors.supplierId = "Supplier is required";
+    }
+
+    if (!material.materialName || material.materialName.trim().length === 0) {
+      newErrors.materialName = "Material name is required";
+    }
+
+    if (!material.bulkPrice || material.bulkPrice <= 0) {
+      newErrors.bulkPrice = "Valid price is required";
+    }
+
+    if (!material.unit) {
+      newErrors.unit = "Unit is required";
+    }
+
+    if (material.tax && (material.tax < 0 || material.tax > 100)) {
+      newErrors.tax = "Tax must be between 0 and 100";
+    }
+
+    if (material.moq && material.moq < 1) {
+      newErrors.moq = "MOQ must be at least 1";
+    }
+
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+
+  // Handle save with validation
+  const handleSave = async () => {
+    if (!validateForm()) return;
+
+    setLoading(true);
+    try {
+      await onSave();
+    } finally {
+      setLoading(false);
+    }
   };
 
   const isValid =
     material.supplierId &&
     material.materialName &&
-    material.materialCategory && // Category required for new materials
-    material.unitPrice !== undefined &&
-    material.unitPrice > 0;
+    material.bulkPrice !== undefined &&
+    material.bulkPrice > 0;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -209,7 +296,13 @@ export function EnhancedMaterialDialog({
                     setMaterial({ ...material, supplierId: value })
                   }
                 >
-                  <SelectTrigger id="supplier" className="focus-enhanced w-72">
+                  <SelectTrigger
+                    id="supplier"
+                    className={cn(
+                      "focus-enhanced w-72",
+                      errors.supplierId && "border-destructive"
+                    )}
+                  >
                     <SelectValue placeholder="Select supplier" />
                   </SelectTrigger>
                   <SelectContent>
@@ -227,10 +320,15 @@ export function EnhancedMaterialDialog({
                       ))}
                   </SelectContent>
                 </Select>
+                {errors.supplierId && (
+                  <p className="text-sm text-destructive">
+                    {errors.supplierId}
+                  </p>
+                )}
               </div>
 
-              <div className="space-y-2 w-20">
-                <Label htmlFor="moq">MOQ</Label>
+              <div className="space-y-2 w-24">
+                <Label htmlFor="moq">MOQ (Kg or L)</Label>
                 <Input
                   id="moq"
                   type="number"
@@ -246,22 +344,26 @@ export function EnhancedMaterialDialog({
             </div>
           </div>
 
-          {/* Material Selection with Auto-complete */}
+          {/* Material Selection */}
           <div className="dialog-section">
             <div className="section-header">
               <Package className="h-4 w-4" />
               Material Details
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pl-6">
-              <div className="space-y-2 md:col-span-1">
+              <div className="space-y-2 md:col-span-2">
                 <Label htmlFor="materialName">
                   Material Name <span className="text-destructive">*</span>
                 </Label>
-                {/* Duplicate Warning Alert */}
-                {duplicateWarning && (
-                  <Alert variant="destructive" className="mt-2">
-                    <AlertTriangle className="h-4 w-4" />
-                    <AlertDescription>{duplicateWarning}</AlertDescription>
+                {materialWarning && (
+                  <Alert
+                    variant="default"
+                    className="mb-2 border-yellow-500 bg-yellow-50"
+                  >
+                    <AlertTriangle className="h-4 w-4 text-yellow-600" />
+                    <AlertDescription className="text-yellow-800">
+                      {materialWarning}
+                    </AlertDescription>
                   </Alert>
                 )}
                 <Popover
@@ -273,7 +375,10 @@ export function EnhancedMaterialDialog({
                       variant="outline"
                       role="combobox"
                       aria-expanded={openMaterialCombobox}
-                      className="w-full justify-between focus-enhanced"
+                      className={cn(
+                        "w-full justify-between focus-enhanced",
+                        errors.materialName && "border-destructive"
+                      )}
                     >
                       {material.materialName || "Select or type"}
                       <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
@@ -306,7 +411,7 @@ export function EnhancedMaterialDialog({
                                 <div className="flex-1">
                                   <div className="font-medium">{mat.name}</div>
                                   <div className="text-xs text-muted-foreground">
-                                    {mat.category} {/* • {mat.unit} */}
+                                    {mat.category}
                                   </div>
                                 </div>
                               </CommandItem>
@@ -332,6 +437,11 @@ export function EnhancedMaterialDialog({
                     </Command>
                   </PopoverContent>
                 </Popover>
+                {errors.materialName && (
+                  <p className="text-sm text-destructive">
+                    {errors.materialName}
+                  </p>
+                )}
                 {isNewMaterial && materialSearch && (
                   <p className="text-xs text-muted-foreground flex items-center gap-1">
                     <Plus className="h-3 w-3" />
@@ -340,38 +450,175 @@ export function EnhancedMaterialDialog({
                 )}
               </div>
 
-              <div className="space-y-2 w-32">
+              <div className="space-y-2 md:col-span-2">
                 <Label htmlFor="category">
-                  Category
-                  {material.materialId ? (
-                    ""
-                  ) : (
-                    <span className="text-destructive">*</span>
-                  )}
+                  Category <span className="text-destructive">*</span>
                 </Label>
-                <Select
-                  value={material.materialCategory}
-                  onValueChange={(value) =>
-                    setMaterial({ ...material, materialCategory: value })
-                  }
+                {categoryWarning && (
+                  <Alert
+                    variant="default"
+                    className="mb-2 border-yellow-500 bg-yellow-50"
+                  >
+                    <AlertTriangle className="h-4 w-4 text-yellow-600" />
+                    <AlertDescription className="text-yellow-800">
+                      {categoryWarning}
+                    </AlertDescription>
+                  </Alert>
+                )}
+                <Popover
+                  open={openCategoryCombobox}
+                  onOpenChange={setOpenCategoryCombobox}
                 >
-                  <SelectTrigger id="category" className="focus-enhanced">
-                    <SelectValue placeholder="Select category" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {MATERIAL_CATEGORIES.map((category) => (
-                      <SelectItem key={category} value={category}>
-                        {category}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      role="combobox"
+                      aria-expanded={openCategoryCombobox}
+                      className="w-full justify-between focus-enhanced"
+                    >
+                      {material.materialCategory || "Select or create category"}
+                      <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-full p-0" align="start">
+                    <Command shouldFilter={false}>
+                      <CommandInput
+                        placeholder="Search categories..."
+                        value={categorySearch}
+                        onValueChange={setCategorySearch}
+                      />
+                      <CommandList>
+                        {filteredCategories.length > 0 ? (
+                          <CommandGroup heading="Existing Categories">
+                            {filteredCategories.map((cat) => (
+                              <CommandItem
+                                key={cat.id}
+                                value={cat.name}
+                                onSelect={() => handleSelectCategory(cat)}
+                              >
+                                <Check
+                                  className={cn(
+                                    "mr-2 h-4 w-4",
+                                    material.materialCategory === cat.name
+                                      ? "opacity-100"
+                                      : "opacity-0"
+                                  )}
+                                />
+                                <div className="flex items-center gap-2">
+                                  <div
+                                    className="w-3 h-3 rounded-full"
+                                    style={{ backgroundColor: cat.color }}
+                                  />
+                                  <span>{cat.name}</span>
+                                </div>
+                              </CommandItem>
+                            ))}
+                          </CommandGroup>
+                        ) : null}
+                        {isNewCategory && categorySearch && (
+                          <CommandGroup heading="Create New">
+                            <CommandItem onSelect={handleNewCategory}>
+                              <Plus className="mr-2 h-4 w-4 text-primary" />
+                              <span>
+                                Create category "
+                                <strong>{categorySearch}</strong>"
+                              </span>
+                            </CommandItem>
+                          </CommandGroup>
+                        )}
+                        {!categorySearch && filteredCategories.length === 0 && (
+                          <CommandEmpty>
+                            Start typing to search or create...
+                          </CommandEmpty>
+                        )}
+                      </CommandList>
+                    </Command>
+                  </PopoverContent>
+                </Popover>
+                {isNewCategory && categorySearch && (
+                  <p className="text-xs text-muted-foreground flex items-center gap-1">
+                    <Plus className="h-3 w-3" />
+                    New category will be created
+                  </p>
+                )}
               </div>
 
+              {/* Pricing Section */}
               <div className="space-y-2 md:col-span-2">
-                <div className="grid grid-cols-3 gap-2">
-                  <div className="space-y-1">
-                    <Label className="text-sm font-medium">Unit</Label>
+                <div className="grid grid-cols-4 gap-2">
+                  <div className="space-y-0">
+                    <Label className="text-sm font-medium">Tax (%)</Label>
+                    <Input
+                      type="number"
+                      step="1"
+                      min="0"
+                      max="100"
+                      value={material.tax || ""}
+                      onChange={(e) =>
+                        setMaterial({
+                          ...material,
+                          tax: Number(e.target.value),
+                        })
+                      }
+                      placeholder="0"
+                      className={cn(
+                        "focus-enhanced",
+                        errors.tax && "border-destructive"
+                      )}
+                    />
+                    {errors.tax && (
+                      <p className="text-xs text-destructive">{errors.tax}</p>
+                    )}
+                  </div>
+                  <div className="space-y-0">
+                    <Label className="text-sm font-medium">
+                      Price (₹) <span className="text-destructive">*</span>
+                    </Label>
+                    <Input
+                      type="number"
+                      step="1"
+                      min="0"
+                      value={material.bulkPrice || ""}
+                      onChange={(e) =>
+                        setMaterial({
+                          ...material,
+                          bulkPrice: Number(e.target.value),
+                        })
+                      }
+                      placeholder="0.00"
+                      className={cn(
+                        "focus-enhanced",
+                        errors.bulkPrice && "border-destructive"
+                      )}
+                    />
+                    {errors.bulkPrice && (
+                      <p className="text-xs text-destructive">
+                        {errors.bulkPrice}
+                      </p>
+                    )}
+                  </div>
+
+                  <div className="space-y-0">
+                    <Label className="text-sm font-medium">Quantity</Label>
+                    <Input
+                      type="number"
+                      step="1"
+                      min="1"
+                      value={material.quantityForBulkPrice || 1}
+                      onChange={(e) =>
+                        setMaterial({
+                          ...material,
+                          quantityForBulkPrice: Number(e.target.value) || 1,
+                        })
+                      }
+                      placeholder="1"
+                      className="focus-enhanced"
+                    />
+                  </div>
+                  <div className="space-y-0">
+                    <Label className="text-sm font-medium">
+                      Unit <span className="text-destructive">*</span>
+                    </Label>
                     <Select
                       value={material.unit}
                       onValueChange={(value) =>
@@ -390,44 +637,16 @@ export function EnhancedMaterialDialog({
                       </SelectContent>
                     </Select>
                   </div>
-                  <div className="space-y-1">
-                    <Label className="text-sm font-medium">
-                      Unit Price (₹) <span className="text-destructive">*</span>
-                    </Label>
-                    <Input
-                      type="number"
-                      step="0.01"
-                      min="0"
-                      value={material.unitPrice || ""}
-                      onChange={(e) =>
-                        setMaterial({
-                          ...material,
-                          unitPrice: Number(e.target.value),
-                        })
-                      }
-                      placeholder="0.00"
-                      className="focus-enhanced"
-                    />
-                  </div>
-                  <div className="space-y-1">
-                    <Label className="text-sm font-medium">Tax (%)</Label>
-                    <Input
-                      type="number"
-                      step="0.01"
-                      min="0"
-                      max="100"
-                      value={material.tax || ""}
-                      onChange={(e) =>
-                        setMaterial({
-                          ...material,
-                          tax: Number(e.target.value),
-                        })
-                      }
-                      placeholder="0"
-                      className="focus-enhanced"
-                    />
-                  </div>
                 </div>
+
+                {/* Unit Price Display */}
+                {(material.quantityForBulkPrice || 1) > 1 &&
+                  material.bulkPrice && (
+                    <div className="text-sm text-muted-foreground bg-muted/50 p-2 rounded">
+                      Unit price: ₹{calculatedUnitPrice.toFixed(2)} per{" "}
+                      {material.unit}
+                    </div>
+                  )}
               </div>
             </div>
           </div>
@@ -518,16 +737,24 @@ export function EnhancedMaterialDialog({
             <Button
               variant="outline"
               onClick={() => onOpenChange(false)}
+              disabled={loading}
               className="min-w-[100px]"
             >
               Cancel
             </Button>
             <Button
-              onClick={onSave}
-              disabled={!isValid}
+              onClick={handleSave}
+              disabled={!isValid || loading}
               className="btn-primary min-w-[100px]"
             >
-              {isEditing ? "Update" : "Add"} Material
+              {loading ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  Saving...
+                </>
+              ) : (
+                `${isEditing ? "Update" : "Add"} Material`
+              )}
             </Button>
           </div>
         </div>

@@ -1,23 +1,5 @@
 import { TrendingUp, Target, AlertTriangle, DollarSign } from "lucide-react";
 
-// Chart Colors
-export const CHART_COLORS = {
-  light: {
-    chart1: "rgb(66, 153, 225)",
-    chart2: "rgb(237, 137, 54)",
-    chart3: "rgb(104, 178, 168)",
-    chart4: "rgb(213, 186, 142)",
-    chart5: "rgb(59, 130, 123)",
-  },
-  dark: {
-    chart1: "rgb(95, 174, 255)",
-    chart2: "rgb(243, 154, 78)",
-    chart3: "rgb(133, 199, 189)",
-    chart4: "rgb(223, 203, 167)",
-    chart5: "rgb(89, 150, 143)",
-  },
-} as const;
-
 // Form Options
 export const MATERIAL_CATEGORIES = [
   "Acids",
@@ -40,7 +22,7 @@ export const PAYMENT_TERMS = [
 
 export const CURRENCIES = ["INR", "USD", "EUR"] as const;
 
-export const UNITS = ["kg", "liters", "pieces", "meters"] as const;
+export const UNITS = ["kg", "gm", "liters", "pieces", "meters"] as const;
 
 export const AVAILABILITY_OPTIONS = [
   "in-stock",
@@ -53,10 +35,14 @@ export const DEFAULT_MATERIAL_FORM = {
   supplierId: "",
   materialName: "",
   materialCategory: "",
+  materialId: "",
   unitPrice: 0,
+  bulkPrice: 0, // NEW
+  quantityForBulkPrice: 1, // NEW
   currency: "INR" as const,
   moq: 1,
   unit: "kg" as const,
+  tax: 0,
   bulkDiscounts: [],
   leadTime: 7,
   availability: "in-stock" as const,

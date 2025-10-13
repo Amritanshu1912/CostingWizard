@@ -71,12 +71,32 @@ export interface SupplierMaterial extends BaseEntity {
     unitPrice: number;
     tax: number;
     moq?: number;
+
+    bulkPrice?: number;      // The actual quoted price
+    quantityForBulkPrice?: number;
+
     bulkDiscounts?: BulkDiscount[];
     leadTime?: number;
     availability?: "in-stock" | "limited" | "out-of-stock";
     transportationCost?: number;
     notes?: string;
 }
+// Helper type for enriched supplier material
+export interface SupplierMaterialWithDetails extends SupplierMaterial {
+    material?: Material;
+    supplier?: Supplier;
+    displayName: string;
+    displayCategory: string;
+    displayUnit: string;
+    priceWithTax: number;
+}
+
+// Helper type for material with supplier count
+export interface MaterialWithSuppliers extends Material {
+    supplierCount: number;
+    suppliers: Supplier[];
+}
+
 
 // ============================================================================
 // PACKAGING
