@@ -11,37 +11,50 @@ export function normalizeText(text: string): string {
  * Calculate Levenshtein distance between two strings
  * Used for fuzzy matching
  */
-export function levenshteinDistance(str1: string, str2: string): number {
+/**
+ * Calculates the Levenshtein distance (edit distance) between two strings.
+ * Optimized for readability + performance.
+ */
+export function levenshteinDistance(a: string, b: string): number {
+    // --- Normalize inputs ---
+    const str1 = a.toLowerCase().trim().replace(/[-_\s]+/g, "");
+    const str2 = b.toLowerCase().trim().replace(/[-_\s]+/g, "");
+
     const len1 = str1.length;
     const len2 = str2.length;
-    const matrix: number[][] = [];
 
-    // Initialize matrix
-    for (let i = 0; i <= len1; i++) {
-        matrix[i] = [i];
-    }
+    // --- Quick exits ---
+    if (str1 === str2) return 0;
+    if (len1 === 0) return len2;
+    if (len2 === 0) return len1;
 
-    for (let j = 0; j <= len2; j++) {
-        matrix[0][j] = j;
-    }
+    // Ensure str1 is the longer one (memory optimization)
+    if (len1 < len2) return levenshteinDistance(str2, str1);
 
-    // Fill matrix
-    for (let i = 1; i <= len1; i++) {
-        for (let j = 1; j <= len2; j++) {
-            if (str1[i - 1] === str2[j - 1]) {
-                matrix[i][j] = matrix[i - 1][j - 1];
-            } else {
-                matrix[i][j] = Math.min(
-                    matrix[i - 1][j - 1] + 1, // substitution
-                    matrix[i][j - 1] + 1,     // insertion
-                    matrix[i - 1][j] + 1      // deletion
-                );
-            }
+    // --- Core logic ---
+    let previousRow = Array.from({ length: len2 + 1 }, (_, i) => i);
+    let currentRow = new Array(len2 + 1);
+
+    for (let i = 0; i < len1; i++) {
+        currentRow[0] = i + 1;
+
+        for (let j = 0; j < len2; j++) {
+            const cost = str1[i] === str2[j] ? 0 : 1;
+
+            currentRow[j + 1] = Math.min(
+                previousRow[j + 1] + 1, // deletion
+                currentRow[j] + 1,      // insertion
+                previousRow[j] + cost   // substitution
+            );
         }
+
+        // Swap rows for next iteration
+        [previousRow, currentRow] = [currentRow, previousRow];
     }
 
-    return matrix[len1][len2];
+    return previousRow[len2];
 }
+
 
 /**
  * Check if two strings are similar (considering space/dash variations)

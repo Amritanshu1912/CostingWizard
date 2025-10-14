@@ -96,17 +96,30 @@ export function EnhancedMaterialDialog({
   const [isNewCategory, setIsNewCategory] = useState(false);
   const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [materialAutoFilled, setMaterialAutoFilled] = useState(false);
+  const [categoryAutoFilled, setCategoryAutoFilled] = useState(false);
 
   // Duplicate check for materials
-  const { warning: materialWarning, checkDuplicate: checkMaterialDuplicate } =
-    useDuplicateCheck(materials, material.materialId);
+  const {
+    warning: materialWarning,
+    checkDuplicate: checkMaterialDuplicate,
+    clearWarning: clearMaterialWarning,
+  } = useDuplicateCheck(materials, material.materialId);
 
   // Duplicate check for categories
-  const currentCategoryId = categories.find(
-    (c) => c.name === material.materialCategory
-  )?.id;
-  const { warning: categoryWarning, checkDuplicate: checkCategoryDuplicate } =
-    useDuplicateCheck(categories, currentCategoryId);
+  const {
+    warning: categoryWarning,
+    checkDuplicate: checkCategoryDuplicate,
+    clearWarning: clearCategoryWarning,
+  } = useDuplicateCheck(categories, undefined);
+
+  // Reset material combobox state when dialog opens
+  useEffect(() => {
+    if (open) {
+      setMaterialSearch("");
+      setCategorySearch("");
+    }
+  }, [open]);
 
   // Filter materials based on search
   useEffect(() => {
@@ -117,15 +130,16 @@ export function EnhancedMaterialDialog({
       setFilteredMaterials(filtered);
       setIsNewMaterial(filtered.length === 0);
 
-      // Check for duplicates
-      if (!material.materialId) {
+      // Check for duplicates only when not auto-filled
+      if (!materialAutoFilled) {
         checkMaterialDuplicate(materialSearch);
       }
     } else {
       setFilteredMaterials(materials);
       setIsNewMaterial(false);
     }
-  }, [materialSearch, materials, material.materialId]);
+  }, [materialSearch, materials, material.materialId, materialAutoFilled]);
+
   // Filter categories based on search
   useEffect(() => {
     if (categorySearch) {
@@ -135,13 +149,15 @@ export function EnhancedMaterialDialog({
       setFilteredCategories(filtered);
       setIsNewCategory(filtered.length === 0);
 
-      // Check for duplicates
-      checkCategoryDuplicate(categorySearch);
+      // Check for duplicates only when not auto-filled
+      if (!categoryAutoFilled) {
+        checkCategoryDuplicate(categorySearch);
+      }
     } else {
       setFilteredCategories(categories);
       setIsNewCategory(false);
     }
-  }, [categorySearch, categories]);
+  }, [categorySearch, categories, categoryAutoFilled]);
 
   // Initialize searches when editing
   useEffect(() => {
@@ -174,6 +190,12 @@ export function EnhancedMaterialDialog({
     });
     setMaterialSearch(selectedMaterial.name);
     setCategorySearch(selectedMaterial.category);
+    // Mark as auto-filled since selected from dropdown
+    setMaterialAutoFilled(true);
+    setCategoryAutoFilled(true);
+    // Clear any existing warnings since user selected existing material
+    clearMaterialWarning();
+    clearCategoryWarning();
     setOpenMaterialCombobox(false);
   };
 
@@ -185,6 +207,8 @@ export function EnhancedMaterialDialog({
       materialName: materialSearch,
       materialCategory: material.materialCategory || categorySearch || "Other",
     });
+    // User explicitly chose to create new, not auto-filled
+    setMaterialAutoFilled(false);
     setOpenMaterialCombobox(false);
   };
 
@@ -195,6 +219,10 @@ export function EnhancedMaterialDialog({
       materialCategory: selectedCategory.name,
     });
     setCategorySearch(selectedCategory.name);
+    // Mark as auto-filled since selected from dropdown
+    setCategoryAutoFilled(true);
+    // Clear any existing warnings since user selected existing category
+    clearCategoryWarning();
     setOpenCategoryCombobox(false);
   };
 
@@ -204,7 +232,25 @@ export function EnhancedMaterialDialog({
       ...material,
       materialCategory: categorySearch,
     });
+    // User explicitly chose to create new, not auto-filled
+    setCategoryAutoFilled(false);
     setOpenCategoryCombobox(false);
+  };
+
+  // Handle manual typing in material search
+  const handleMaterialSearchChange = (value: string) => {
+    setMaterialSearch(value);
+    // User is manually typing, not auto-filled
+    setMaterialAutoFilled(false);
+    // Clear warning when user starts typing
+  };
+
+  // Handle manual typing in category search
+  const handleCategorySearchChange = (value: string) => {
+    setCategorySearch(value);
+    // User is manually typing, not auto-filled
+    setCategoryAutoFilled(false);
+    // Clear warning when user starts typing
   };
 
   // Validate form
@@ -389,7 +435,7 @@ export function EnhancedMaterialDialog({
                       <CommandInput
                         placeholder="Search materials..."
                         value={materialSearch}
-                        onValueChange={setMaterialSearch}
+                        onValueChange={handleMaterialSearchChange}
                       />
                       <CommandList>
                         {filteredMaterials.length > 0 ? (
@@ -485,7 +531,7 @@ export function EnhancedMaterialDialog({
                       <CommandInput
                         placeholder="Search categories..."
                         value={categorySearch}
-                        onValueChange={setCategorySearch}
+                        onValueChange={handleCategorySearchChange}
                       />
                       <CommandList>
                         {filteredCategories.length > 0 ? (
