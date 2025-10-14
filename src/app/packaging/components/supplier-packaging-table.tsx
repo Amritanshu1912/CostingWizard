@@ -8,23 +8,59 @@ import {
   CardTitle,
   CardDescription,
 } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { SortableTable } from "@/components/ui/sortable-table";
+import { Search, Filter } from "lucide-react";
 import { Edit, Trash2 } from "lucide-react";
 import type { SupplierPackagingWithDetails } from "@/hooks/use-supplier-packaging-with-details";
+import type { Supplier } from "@/lib/types";
 
 interface SupplierPackagingTableProps {
   supplierPackaging: SupplierPackagingWithDetails[];
+  suppliers: Supplier[];
+  searchTerm: string;
+  setSearchTerm: (term: string) => void;
+  selectedType: string;
+  setSelectedType: (type: string) => void;
+  selectedSupplier: string;
+  setSelectedSupplier: (supplier: string) => void;
   onEditPackaging: (packaging: SupplierPackagingWithDetails) => void;
   onDeletePackaging: (id: string) => void;
 }
 
 export function SupplierPackagingTable({
   supplierPackaging,
+  suppliers,
+  searchTerm,
+  setSearchTerm,
+  selectedType,
+  setSelectedType,
+  selectedSupplier,
+  setSelectedSupplier,
   onEditPackaging,
   onDeletePackaging,
 }: SupplierPackagingTableProps) {
+  // Get unique packaging types from the data
+  const packagingTypes = Array.from(
+    new Set(supplierPackaging.map((sp) => sp.displayType))
+  );
+
+  // Clear filters
+  const clearFilters = () => {
+    setSearchTerm("");
+    setSelectedType("all");
+    setSelectedSupplier("all");
+  };
+
   return (
     <Card className="card-enhanced">
       <CardHeader>
@@ -34,7 +70,58 @@ export function SupplierPackagingTable({
           {new Set(supplierPackaging.map((sp) => sp.supplierId)).size} suppliers
         </CardDescription>
       </CardHeader>
-      <CardContent>
+      <CardContent className="space-y-4">
+        {/* Filters */}
+        <div className="flex flex-col sm:flex-row gap-4">
+          <div className="flex-1">
+            <div className="relative">
+              <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder="Search packaging or suppliers..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="pl-10 focus-enhanced"
+              />
+            </div>
+          </div>
+          <Select value={selectedType} onValueChange={setSelectedType}>
+            <SelectTrigger className="w-full sm:w-[180px] focus-enhanced">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Types</SelectItem>
+              {packagingTypes.map((type) => (
+                <SelectItem key={type} value={type}>
+                  {type}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+
+          <Select value={selectedSupplier} onValueChange={setSelectedSupplier}>
+            <SelectTrigger className="w-full sm:w-[180px] focus-enhanced">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Suppliers</SelectItem>
+              {suppliers.map((supplier) => (
+                <SelectItem key={supplier.id} value={supplier.id}>
+                  {supplier.name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+
+          <Button
+            variant="outline"
+            onClick={clearFilters}
+            className="w-full sm:w-auto"
+          >
+            <Filter className="h-4 w-4 mr-2" />
+            Clear
+          </Button>
+        </div>
+
         <SortableTable
           data={supplierPackaging}
           columns={[

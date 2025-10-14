@@ -4,18 +4,17 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
-import { Plus } from "lucide-react";
+import { Plus, List } from "lucide-react";
 
 import type { Packaging, Supplier, SupplierPackaging } from "@/lib/types";
 import { SUPPLIERS } from "@/lib/constants";
 import { useDexieTable } from "@/hooks/use-dexie-table";
 import { db } from "@/lib/db";
-import { PackagingTable } from "./PackagingTable";
-import { PackagingDialog } from "./PackagingDialog";
 import { SupplierPackagingTable } from "./supplier-packaging-table";
 import { SupplierPackagingDialog } from "./supplier-packaging-dialog";
 import { PackagingPriceComparison } from "./packaging-price-comparison";
 import { PackagingAnalytics } from "./packaging-analytics";
+import { PackagingDrawer } from "./packaging-drawer";
 import {
   useSupplierPackagingWithDetails,
   type SupplierPackagingWithDetails,
@@ -24,6 +23,10 @@ import {
 export function PackagingManager() {
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedType, setSelectedType] = useState("all");
+  const [supplierPackagingSearchTerm, setSupplierPackagingSearchTerm] =
+    useState("");
+  const [selectedPackagingType, setSelectedPackagingType] = useState("all");
+  const [selectedSupplier, setSelectedSupplier] = useState("all");
 
   const {
     data: suppliers,
@@ -43,47 +46,30 @@ export function PackagingManager() {
     deleteItem: deleteSupplierPackaging,
   } = useDexieTable(db.supplierPackaging, []);
 
-  const [showAddPackaging, setShowAddPackaging] = useState(false);
-  const [editingPackaging, setEditingPackaging] = useState<Packaging | null>(
-    null
-  );
   const [showAddSupplierPackaging, setShowAddSupplierPackaging] =
     useState(false);
   const [editingSupplierPackaging, setEditingSupplierPackaging] =
     useState<SupplierPackagingWithDetails | null>(null);
+  const [showPackagingDrawer, setShowPackagingDrawer] = useState(false);
 
   // Enriched data hooks
   const enrichedSupplierPackaging = useSupplierPackagingWithDetails();
 
-  const filteredPackaging = packaging.filter((item) => {
-    const matchesSearch = item.name
-      .toLowerCase()
-      .includes(searchTerm.toLowerCase());
-    const matchesType = selectedType === "all" || item.type === selectedType;
-    return matchesSearch && matchesType;
+  const filteredSupplierPackaging = enrichedSupplierPackaging.filter((item) => {
+    const matchesSearch =
+      item.displayName
+        .toLowerCase()
+        .includes(supplierPackagingSearchTerm.toLowerCase()) ||
+      item.supplier?.name
+        .toLowerCase()
+        .includes(supplierPackagingSearchTerm.toLowerCase());
+    const matchesType =
+      selectedPackagingType === "all" ||
+      item.displayType === selectedPackagingType;
+    const matchesSupplier =
+      selectedSupplier === "all" || item.supplierId === selectedSupplier;
+    return matchesSearch && matchesType && matchesSupplier;
   });
-
-  const handleSavePackaging = async (item: Packaging) => {
-    try {
-      if (packaging.some((p) => p.id === item.id)) {
-        await updatePackaging(item);
-      } else {
-        await addPackaging(item);
-      }
-    } catch (error) {
-      console.error("Error saving packaging:", error);
-      toast.error("Failed to save packaging");
-    }
-  };
-
-  const handleDeletePackaging = async (id: string) => {
-    try {
-      await deletePackaging(id);
-    } catch (error) {
-      console.error("Error deleting packaging:", error);
-      toast.error("Failed to delete packaging");
-    }
-  };
 
   const handleSaveSupplierPackaging = async (item: SupplierPackaging) => {
     try {
@@ -125,10 +111,10 @@ export function PackagingManager() {
           <Button
             variant="outline"
             className="btn-secondary w-full sm:w-auto"
-            onClick={() => setShowAddPackaging(true)}
+            onClick={() => setShowPackagingDrawer(true)}
           >
-            <Plus className="h-4 w-4 mr-2" />
-            <span className="truncate">Add Packaging</span>
+            <List className="h-4 w-4 mr-2" />
+            <span className="truncate">View All Packaging</span>
           </Button>
           <Button
             variant="outline"
@@ -141,9 +127,8 @@ export function PackagingManager() {
         </div>
       </div>
 
-      <Tabs defaultValue="packaging" className="space-y-6">
-        <TabsList className="grid w-full grid-cols-4">
-          <TabsTrigger value="packaging">Packaging Items</TabsTrigger>
+      <Tabs defaultValue="supplier-packaging" className="space-y-6">
+        <TabsList className="grid w-full grid-cols-3">
           <TabsTrigger value="supplier-packaging">
             Supplier Packaging
           </TabsTrigger>
@@ -151,18 +136,16 @@ export function PackagingManager() {
           <TabsTrigger value="analytics">Analytics</TabsTrigger>
         </TabsList>
 
-        <TabsContent value="packaging" className="space-y-6">
-          <PackagingTable
-            filteredPackaging={filteredPackaging}
-            suppliers={suppliers}
-            onEditPackaging={setEditingPackaging}
-            onDeletePackaging={handleDeletePackaging}
-          />
-        </TabsContent>
-
         <TabsContent value="supplier-packaging" className="space-y-6">
           <SupplierPackagingTable
-            supplierPackaging={enrichedSupplierPackaging}
+            supplierPackaging={filteredSupplierPackaging}
+            suppliers={suppliers}
+            searchTerm={supplierPackagingSearchTerm}
+            setSearchTerm={setSupplierPackagingSearchTerm}
+            selectedType={selectedPackagingType}
+            setSelectedType={setSelectedPackagingType}
+            selectedSupplier={selectedSupplier}
+            setSelectedSupplier={setSelectedSupplier}
             onEditPackaging={setEditingSupplierPackaging}
             onDeletePackaging={handleDeleteSupplierPackaging}
           />
@@ -177,18 +160,6 @@ export function PackagingManager() {
         </TabsContent>
       </Tabs>
 
-      {/* Packaging Dialog */}
-      <PackagingDialog
-        isOpen={showAddPackaging || !!editingPackaging}
-        onClose={() => {
-          setShowAddPackaging(false);
-          setEditingPackaging(null);
-        }}
-        onSave={handleSavePackaging}
-        suppliers={suppliers}
-        initialPackaging={editingPackaging}
-      />
-
       {/* Supplier Packaging Dialog */}
       <SupplierPackagingDialog
         isOpen={showAddSupplierPackaging || !!editingSupplierPackaging}
@@ -200,6 +171,12 @@ export function PackagingManager() {
         suppliers={suppliers}
         packaging={packaging}
         initialPackaging={editingSupplierPackaging}
+      />
+
+      {/* Packaging Management Drawer */}
+      <PackagingDrawer
+        open={showPackagingDrawer}
+        onOpenChange={setShowPackagingDrawer}
       />
     </div>
   );

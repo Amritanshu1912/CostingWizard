@@ -25,6 +25,8 @@ import {
     PRODUCTS,
     PRODUCTION_PLANS,
     PURCHASE_ORDERS,
+    PACKAGING,
+    SUPPLIER_PACKAGING,
 } from './constants';
 
 export class CostingWizardDB extends Dexie {
@@ -109,6 +111,16 @@ export class CostingWizardDB extends Dexie {
             const hasPurchaseOrders = await db.purchaseOrders.count() > 0;
             if (!hasPurchaseOrders) {
                 await db.purchaseOrders.bulkAdd(PURCHASE_ORDERS);
+            }
+
+            const hasPackaging = await db.packaging.count() > 0;
+            if (!hasPackaging) {
+                await db.packaging.bulkAdd(PACKAGING);
+            }
+
+            const hasSupplierPackaging = await db.supplierPackaging.count() > 0;
+            if (!hasSupplierPackaging) {
+                await db.supplierPackaging.bulkAdd(SUPPLIER_PACKAGING);
             }
 
             // Migrate from localStorage if exists

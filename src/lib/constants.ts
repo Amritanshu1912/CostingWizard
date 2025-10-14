@@ -1,4 +1,6 @@
 import type {
+    Packaging,
+    SupplierPackaging,
     Category,
     Material,
     Supplier,
@@ -16,8 +18,424 @@ import {
 } from "lucide-react";
 
 // ============================================================================
+// PACKAGING
+// ============================================================================
+
+
+export const PACKAGING: Packaging[] = [
+
+    {
+
+        id: "1",
+
+        name: "500ml PET Bottle",
+
+        type: "bottle",
+
+        capacity: 500,
+
+        unit: "ml",
+
+        buildMaterial: "PET",
+
+        createdAt: "2024-01-01T00:00:00.000Z",
+
+    },
+
+    {
+
+        id: "2",
+
+        name: "1L Glass Jar",
+
+        type: "jar",
+
+        capacity: 1,
+
+        unit: "L",
+
+        buildMaterial: "Glass",
+
+        createdAt: "2024-01-01T00:00:00.000Z",
+
+    },
+
+    {
+
+        id: "3",
+
+        name: "5L HDPE Container",
+
+        type: "container",
+
+        capacity: 5,
+
+        unit: "L",
+
+        buildMaterial: "HDPE",
+
+        createdAt: "2024-01-01T00:00:00.000Z",
+
+    },
+
+    {
+
+        id: "4",
+
+        name: "250ml Spray Bottle",
+
+        type: "bottle",
+
+        capacity: 250,
+
+        unit: "ml",
+
+        buildMaterial: "PET",
+
+        createdAt: "2024-01-01T00:00:00.000Z",
+
+    },
+
+    {
+
+        id: "5",
+
+        name: "200ml Tube",
+
+        type: "tube",
+
+        capacity: 200,
+
+        unit: "ml",
+
+        buildMaterial: "Plastic",
+
+        createdAt: "2024-01-01T00:00:00.000Z",
+
+    },
+
+    {
+
+        id: "6",
+
+        name: "1kg Paper Box",
+
+        type: "box",
+
+        capacity: 1,
+
+        unit: "kg",
+
+        buildMaterial: "Paper",
+
+        createdAt: "2024-01-01T00:00:00.000Z",
+
+    },
+
+    {
+
+        id: "7",
+
+        name: "500g Pouch",
+
+        type: "pouch",
+
+        capacity: 500,
+
+        unit: "gm",
+
+        buildMaterial: "Plastic",
+
+        createdAt: "2024-01-01T00:00:00.000Z",
+
+    },
+
+    {
+
+        id: "8",
+
+        name: "2L Can",
+
+        type: "can",
+
+        capacity: 2,
+
+        unit: "L",
+
+        buildMaterial: "Metal",
+
+        createdAt: "2024-01-01T00:00:00.000Z",
+
+    },
+
+];
+
+
+export const SUPPLIER_PACKAGING: SupplierPackaging[] = [
+
+    {
+
+        id: "1",
+
+        supplierId: "1",
+
+        packagingId: "1",
+
+        unitPrice: 2.5,
+
+        moq: 1000,
+
+        bulkDiscounts: [
+
+            { quantity: 5000, discount: 8 },
+
+            { quantity: 10000, discount: 15 },
+
+        ],
+
+        leadTime: 10,
+
+        availability: "in-stock",
+
+        transportationCost: 5,
+
+        notes: "Standard PET bottle, food-grade quality",
+
+        createdAt: "2024-01-15T00:00:00.000Z",
+
+    },
+
+    {
+
+        id: "2",
+
+        supplierId: "1",
+
+        packagingId: "2",
+
+        unitPrice: 8.5,
+
+        moq: 500,
+
+        bulkDiscounts: [
+
+            { quantity: 2000, discount: 10 },
+
+            { quantity: 5000, discount: 18 },
+
+        ],
+
+        leadTime: 14,
+
+        availability: "in-stock",
+
+        transportationCost: 12,
+
+        notes: "Premium glass jar with screw cap",
+
+        createdAt: "2024-01-15T00:00:00.000Z",
+
+    },
+
+    {
+
+        id: "3",
+
+        supplierId: "1",
+
+        packagingId: "3",
+
+        unitPrice: 15.0,
+
+        moq: 200,
+
+        bulkDiscounts: [
+
+            { quantity: 1000, discount: 12 },
+
+            { quantity: 2000, discount: 20 },
+
+        ],
+
+        leadTime: 12,
+
+        availability: "in-stock",
+
+        transportationCost: 18,
+
+        notes: "Heavy-duty HDPE container for industrial use",
+
+        createdAt: "2024-01-15T00:00:00.000Z",
+
+    },
+
+    {
+
+        id: "4",
+
+        supplierId: "2",
+
+        packagingId: "4",
+
+        unitPrice: 1.8,
+
+        moq: 2000,
+
+        bulkDiscounts: [
+
+            { quantity: 10000, discount: 10 },
+
+            { quantity: 25000, discount: 18 },
+
+        ],
+
+        leadTime: 8,
+
+        availability: "in-stock",
+
+        transportationCost: 4,
+
+        notes: "Spray bottle with trigger mechanism",
+
+        createdAt: "2024-01-20T00:00:00.000Z",
+
+    },
+
+    {
+
+        id: "5",
+
+        supplierId: "2",
+
+        packagingId: "5",
+
+        unitPrice: 0.8,
+
+        moq: 5000,
+
+        bulkDiscounts: [
+
+            { quantity: 25000, discount: 15 },
+
+            { quantity: 50000, discount: 25 },
+
+        ],
+
+        leadTime: 7,
+
+        availability: "in-stock",
+
+        transportationCost: 3,
+
+        notes: "Plastic tube for creams and gels",
+
+        createdAt: "2024-01-20T00:00:00.000Z",
+
+    },
+
+    {
+
+        id: "6",
+
+        supplierId: "3",
+
+        packagingId: "6",
+
+        unitPrice: 3.2,
+
+        moq: 1000,
+
+        bulkDiscounts: [
+
+            { quantity: 5000, discount: 8 },
+
+            { quantity: 10000, discount: 15 },
+
+        ],
+
+        leadTime: 6,
+
+        availability: "in-stock",
+
+        transportationCost: 6,
+
+        notes: "Cardboard box with printing capabilities",
+
+        createdAt: "2024-02-01T00:00:00.000Z",
+
+    },
+
+    {
+
+        id: "7",
+
+        supplierId: "3",
+
+        packagingId: "7",
+
+        unitPrice: 0.5,
+
+        moq: 10000,
+
+        bulkDiscounts: [
+
+            { quantity: 50000, discount: 20 },
+
+            { quantity: 100000, discount: 30 },
+
+        ],
+
+        leadTime: 5,
+
+        availability: "in-stock",
+
+        transportationCost: 2,
+
+        notes: "Flexible plastic pouch, resealable",
+
+        createdAt: "2024-02-01T00:00:00.000Z",
+
+    },
+
+    {
+
+        id: "8",
+
+        supplierId: "1",
+
+        packagingId: "8",
+
+        unitPrice: 12.0,
+
+        moq: 300,
+
+        bulkDiscounts: [
+
+            { quantity: 1000, discount: 10 },
+
+            { quantity: 2000, discount: 18 },
+
+        ],
+
+        leadTime: 15,
+
+        availability: "limited",
+
+        transportationCost: 20,
+
+        notes: "Metal can with lid, corrosion resistant",
+
+        createdAt: "2024-01-15T00:00:00.000Z",
+
+    },
+
+];
+
+
+// ============================================================================
 // MASTER DATA - Single Source of Truth
 // ============================================================================
+
 
 export const CATEGORIES: Category[] = [
     { id: "1", name: "Acids", description: "Acidic compounds and solutions", createdAt: "2024-01-01T00:00:00.000Z" },
@@ -273,9 +691,13 @@ export const SUPPLIER_MATERIALS: SupplierMaterial[] = [
     },
 ];
 
+
+
+
 // ============================================================================
 // PRODUCTS & Recipes (keeping existing structure)
 // ============================================================================
+
 
 export const PRODUCTS: Product[] = [
     {
@@ -764,6 +1186,7 @@ export const PURCHASE_ORDERS: PurchaseOrder[] = [
 // CHART COLORS
 // ============================================================================
 
+
 export const CHART_COLORS = {
     light: {
         chart1: "#5A9BD8", // ocean blue — calm + clear
@@ -781,9 +1204,13 @@ export const CHART_COLORS = {
     },
 } as const;
 
+
+
 // ============================================================================
 // ANALYTICS & DASHBOARD DATA
 // ============================================================================
+
+
 
 export const priceHistoryData = [
     { month: "Jan", avgPrice: 245.5, materials: 142 },
@@ -826,9 +1253,11 @@ export const qualityMetrics = [
     { month: "Jun", defectRate: 1.6, customerSatisfaction: 97, returnRate: 0.9 },
 ];
 
+
 // ============================================================================
 // UI CONFIGURATION
 // ============================================================================
+
 
 export const quickStats = [
     {

@@ -94,7 +94,7 @@ export interface SupplierMaterialWithDetails extends SupplierMaterial {
 // Helper type for material with supplier count
 export interface MaterialWithSuppliers extends Material {
     supplierCount: number;
-    suppliers: Supplier[];
+    suppliersList: Supplier[];
 }
 
 
@@ -104,23 +104,29 @@ export interface MaterialWithSuppliers extends Material {
 
 export interface Packaging extends BaseEntity {
     name: string;
-    type: "bottle" | "container" | "box" | "packet" | "other";
-    size: string; // e.g., "500ml", "1L"
-    material: string; // e.g., "PET", "HDPE", "Glass"
+    type: "bottle" | "container" | "box" | "packet" | "other" | string;
+    capacity: number; // e.g., 500
+    unit: "kg" | "L" | "ml" | "gm"; // unit for capacity
+    buildMaterial?: string; // e.g., "PET", "HDPE", "Glass"
     notes?: string;
 }
 
 export interface SupplierPackaging extends BaseEntity {
     supplierId: string;
-    packagingId?: string;
+    packagingId: string;
     unitPrice: number;
-    moq: number;
+    moq?: number;
     bulkDiscounts?: BulkDiscount[];
-    leadTime: number;
-    availability: "in-stock" | "limited" | "out-of-stock";
+    leadTime?: number;
+    availability?: "in-stock" | "limited" | "out-of-stock";
     transportationCost?: number;
     notes?: string;
 }
+export interface PackagingWithSuppliers extends Packaging {
+    supplierCount: number;
+    suppliersList: Supplier[];
+}
+
 
 // ============================================================================
 // LABELS
