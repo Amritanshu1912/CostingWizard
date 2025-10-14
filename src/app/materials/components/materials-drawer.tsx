@@ -99,7 +99,7 @@ export function MaterialsDrawer({
       return {
         ...material,
         supplierCount: suppliersList.length,
-        suppliers: suppliersList,
+        suppliersList: suppliersList,
         categoryColor:
           category?.color || assignCategoryColor(material.category),
       } as MaterialWithSuppliers & { categoryColor: string };
@@ -386,7 +386,7 @@ export function MaterialsDrawer({
                 <TooltipContent>
                   <div className="text-sm">
                     <div className="font-semibold mb-1">Suppliers:</div>
-                    {row.suppliers.map((s) => (
+                    {row.suppliersList.map((s) => (
                       <div key={s.id}>{s.name}</div>
                     ))}
                   </div>
