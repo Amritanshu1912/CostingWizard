@@ -102,12 +102,17 @@ export interface MaterialWithSuppliers extends Material {
 // PACKAGING
 // ============================================================================
 
+export type PackagingType = "bottle" | "jar" | "can" | "box" | "pouch" | "other";
+export type CapacityUnit = "kg" | "L" | "ml" | "gm";
+export type BuildMaterial = "PET" | "HDPE" | "Glass" | "Plastic" | "Paper" | "Other";
+
+
 export interface Packaging extends BaseEntity {
     name: string;
-    type: "bottle" | "container" | "box" | "packet" | "other" | string;
-    capacity: number; // e.g., 500
-    unit: "kg" | "L" | "ml" | "gm"; // unit for capacity
-    buildMaterial?: string; // e.g., "PET", "HDPE", "Glass"
+    type: PackagingType;
+    capacity: number;
+    unit: CapacityUnit;
+    buildMaterial?: BuildMaterial;
     notes?: string;
 }
 
@@ -115,7 +120,10 @@ export interface SupplierPackaging extends BaseEntity {
     supplierId: string;
     packagingId: string;
     unitPrice: number;
+    tax?: number;
     moq?: number;
+    bulkPrice?: number;      // The actual quoted price
+    quantityForBulkPrice?: number;
     bulkDiscounts?: BulkDiscount[];
     leadTime?: number;
     availability?: "in-stock" | "limited" | "out-of-stock";
@@ -137,9 +145,9 @@ export interface Label extends BaseEntity {
     type: "sticker" | "label" | "tag";
     printingType: "bw" | "color" | "foil" | "embossed";
     material: "paper" | "vinyl" | "plastic" | "other";
-    shape: "rectangular" | "circular" | "custom";
-    colors: string[]; // e.g., ["black", "gold"]
-    size: string; // e.g., "50x30mm"
+    shape: "rectangular" | "custom";
+    size?: string; // e.g., "50x30mm"
+    labelFor?: string; //product name
     notes?: string;
 }
 
@@ -149,6 +157,8 @@ export interface SupplierLabel extends BaseEntity {
 
     unit: "pieces" | "sheets" | string;
     unitPrice: number;
+    bulkPrice?: number;      // The actual quoted price
+    quantityForBulkPrice?: number;
     moq: number;
     bulkDiscounts?: BulkDiscount[];
     leadTime: number;
@@ -156,6 +166,12 @@ export interface SupplierLabel extends BaseEntity {
     transportationCost?: number;
     notes?: string;
 }
+
+export interface LabelsWithSuppliers extends Label {
+    supplierCount: number;
+    suppliersList: Supplier[];
+}
+
 
 // ============================================================================
 // PRODUCTS & Recipes

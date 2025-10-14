@@ -50,7 +50,7 @@ export function useSupplierPackagingWithDetails() {
                 displayName: packaging?.name || "Unknown Packaging",
                 displayType: packaging?.type || "Unknown",
                 displayUnit: "pieces", // Default unit for packaging
-                priceWithTax: sp.unitPrice, // No tax field in current schema
+                priceWithTax: sp.tax ? sp.unitPrice * (1 + sp.tax / 100) : sp.unitPrice,
             };
         });
 
@@ -82,7 +82,7 @@ export function useSupplierPackagingWithDetailsById(id: string | undefined) {
             displayName: packaging?.name || "Unknown Packaging",
             displayType: packaging?.type || "Unknown",
             displayUnit: "pieces",
-            priceWithTax: supplierPackaging.unitPrice,
+            priceWithTax: supplierPackaging.tax ? supplierPackaging.unitPrice * (1 + supplierPackaging.tax / 100) : supplierPackaging.unitPrice,
         } as SupplierPackagingWithDetails;
     }, [id]);
 
@@ -120,7 +120,7 @@ export function usePackagingPriceComparison() {
                 displayName: packagingName,
                 displayType: packaging?.type || "Unknown",
                 displayUnit: "pieces",
-                priceWithTax: sp.unitPrice,
+                priceWithTax: sp.tax ? sp.unitPrice * (1 + sp.tax / 100) : sp.unitPrice,
             };
 
             const existing = grouped.get(packagingName) || [];

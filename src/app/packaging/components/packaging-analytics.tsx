@@ -35,7 +35,7 @@ export function PackagingAnalytics() {
       : 0;
   const avgLeadTime =
     supplierPackaging.length > 0
-      ? supplierPackaging.reduce((sum, sp) => sum + sp.leadTime, 0) /
+      ? supplierPackaging.reduce((sum, sp) => sum + (sp.leadTime || 0), 0) /
         supplierPackaging.length
       : 0;
   const inStockCount = supplierPackaging.filter(

@@ -23,151 +23,97 @@ import {
 
 
 export const PACKAGING: Packaging[] = [
-
     {
-
         id: "1",
-
         name: "500ml PET Bottle",
-
         type: "bottle",
-
         capacity: 500,
-
         unit: "ml",
-
         buildMaterial: "PET",
-
         createdAt: "2024-01-01T00:00:00.000Z",
-
     },
-
     {
-
         id: "2",
-
         name: "1L Glass Jar",
-
         type: "jar",
-
         capacity: 1,
-
         unit: "L",
-
         buildMaterial: "Glass",
-
         createdAt: "2024-01-01T00:00:00.000Z",
-
     },
-
     {
-
         id: "3",
-
         name: "5L HDPE Container",
-
-        type: "container",
-
-        capacity: 5,
-
-        unit: "L",
-
-        buildMaterial: "HDPE",
-
-        createdAt: "2024-01-01T00:00:00.000Z",
-
-    },
-
-    {
-
-        id: "4",
-
-        name: "250ml Spray Bottle",
-
-        type: "bottle",
-
-        capacity: 250,
-
-        unit: "ml",
-
-        buildMaterial: "PET",
-
-        createdAt: "2024-01-01T00:00:00.000Z",
-
-    },
-
-    {
-
-        id: "5",
-
-        name: "200ml Tube",
-
-        type: "tube",
-
-        capacity: 200,
-
-        unit: "ml",
-
-        buildMaterial: "Plastic",
-
-        createdAt: "2024-01-01T00:00:00.000Z",
-
-    },
-
-    {
-
-        id: "6",
-
-        name: "1kg Paper Box",
-
-        type: "box",
-
-        capacity: 1,
-
-        unit: "kg",
-
-        buildMaterial: "Paper",
-
-        createdAt: "2024-01-01T00:00:00.000Z",
-
-    },
-
-    {
-
-        id: "7",
-
-        name: "500g Pouch",
-
-        type: "pouch",
-
-        capacity: 500,
-
-        unit: "gm",
-
-        buildMaterial: "Plastic",
-
-        createdAt: "2024-01-01T00:00:00.000Z",
-
-    },
-
-    {
-
-        id: "8",
-
-        name: "2L Can",
-
         type: "can",
-
-        capacity: 2,
-
+        capacity: 5,
         unit: "L",
-
-        buildMaterial: "Metal",
-
+        buildMaterial: "HDPE",
         createdAt: "2024-01-01T00:00:00.000Z",
-
     },
-
+    {
+        id: "4",
+        name: "250ml Spray Bottle",
+        type: "bottle",
+        capacity: 250,
+        unit: "ml",
+        buildMaterial: "PET",
+        createdAt: "2024-01-01T00:00:00.000Z",
+    },
+    {
+        id: "5",
+        name: "200ml Plastic Tube",
+        type: "other",
+        capacity: 200,
+        unit: "ml",
+        buildMaterial: "Plastic",
+        createdAt: "2024-01-01T00:00:00.000Z",
+        notes: "Used for gels and creams",
+    },
+    {
+        id: "6",
+        name: "1kg Paper Box",
+        type: "box",
+        capacity: 1,
+        unit: "kg",
+        buildMaterial: "Paper",
+        createdAt: "2024-01-01T00:00:00.000Z",
+    },
+    {
+        id: "7",
+        name: "500g Plastic Pouch",
+        type: "pouch",
+        capacity: 500,
+        unit: "gm",
+        buildMaterial: "Plastic",
+        createdAt: "2024-01-01T00:00:00.000Z",
+    },
+    {
+        id: "8",
+        name: "2L Metal Can",
+        type: "can",
+        capacity: 2,
+        unit: "L",
+        buildMaterial: "Other",
+        createdAt: "2024-01-01T00:00:00.000Z",
+    },
+    {
+        id: "9",
+        name: "250ml HDPE Bottle",
+        type: "bottle",
+        capacity: 250,
+        unit: "ml",
+        buildMaterial: "HDPE",
+        createdAt: "2024-01-01T00:00:00.000Z",
+    },
+    {
+        id: "10",
+        name: "750ml Glass Bottle",
+        type: "bottle",
+        capacity: 750,
+        unit: "ml",
+        buildMaterial: "Glass",
+        createdAt: "2024-01-01T00:00:00.000Z",
+    },
 ];
 
 

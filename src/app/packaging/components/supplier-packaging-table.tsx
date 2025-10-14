@@ -19,10 +19,11 @@ import {
 } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { SortableTable } from "@/components/ui/sortable-table";
-import { Search, Filter } from "lucide-react";
+import { Search, Filter, Plus } from "lucide-react";
 import { Edit, Trash2 } from "lucide-react";
 import type { SupplierPackagingWithDetails } from "@/hooks/use-supplier-packaging-with-details";
 import type { Supplier } from "@/lib/types";
+import { PACKAGING_TYPES } from "./packaging-constants";
 
 interface SupplierPackagingTableProps {
   supplierPackaging: SupplierPackagingWithDetails[];
@@ -35,6 +36,7 @@ interface SupplierPackagingTableProps {
   setSelectedSupplier: (supplier: string) => void;
   onEditPackaging: (packaging: SupplierPackagingWithDetails) => void;
   onDeletePackaging: (id: string) => void;
+  onAddSupplierPackaging: () => void;
 }
 
 export function SupplierPackagingTable({
@@ -48,6 +50,7 @@ export function SupplierPackagingTable({
   setSelectedSupplier,
   onEditPackaging,
   onDeletePackaging,
+  onAddSupplierPackaging,
 }: SupplierPackagingTableProps) {
   // Get unique packaging types from the data
   const packagingTypes = Array.from(
@@ -64,15 +67,28 @@ export function SupplierPackagingTable({
   return (
     <Card className="card-enhanced">
       <CardHeader>
-        <CardTitle>Supplier Packaging</CardTitle>
-        <CardDescription>
-          {supplierPackaging.length} supplier packaging relationships from{" "}
-          {new Set(supplierPackaging.map((sp) => sp.supplierId)).size} suppliers
-        </CardDescription>
+        <div className="flex items-center justify-between">
+          <div>
+            <CardTitle className="pb-1.5">Supplier Packaging</CardTitle>
+            <CardDescription>
+              {supplierPackaging.length} supplier packaging relationships from{" "}
+              {new Set(supplierPackaging.map((sp) => sp.supplierId)).size}{" "}
+              suppliers
+            </CardDescription>
+          </div>
+          <Button
+            variant="default"
+            onClick={onAddSupplierPackaging}
+            className="shrink-0"
+          >
+            <Plus className="h-4 w-4 mr-2" />
+            Add Supplier Packaging
+          </Button>
+        </div>
       </CardHeader>
       <CardContent className="space-y-4">
         {/* Filters */}
-        <div className="flex flex-col sm:flex-row gap-4">
+        <div className="flex flex-col pb-2 sm:flex-row gap-4">
           <div className="flex-1">
             <div className="relative">
               <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
@@ -137,10 +153,42 @@ export function SupplierPackagingTable({
               key: "displayType",
               label: "Type",
               sortable: true,
-              render: (value: string) => (
-                <Badge variant="outline" className="text-xs">
-                  {value}
-                </Badge>
+              render: (value: string) => {
+                const typeOption = PACKAGING_TYPES.find(
+                  (t) => t.value === value
+                );
+                const displayLabel = typeOption?.label || value;
+                return (
+                  <Badge variant="outline" className="text-xs">
+                    {displayLabel}
+                  </Badge>
+                );
+              },
+            },
+            {
+              key: "capacity",
+              label: "Capacity",
+              sortable: true,
+              render: (value: any, row: SupplierPackagingWithDetails) => {
+                const capacity = row.packaging?.capacity;
+                const unit = row.packaging?.unit;
+                const displayCapacity =
+                  capacity && unit ? `${capacity} ${unit}` : "—";
+                return (
+                  <span className="text-muted-foreground">
+                    {displayCapacity}
+                  </span>
+                );
+              },
+            },
+            {
+              key: "buildMaterial",
+              label: "Build Material",
+              sortable: true,
+              render: (value: any, row: SupplierPackagingWithDetails) => (
+                <span className="text-muted-foreground">
+                  {row.packaging?.buildMaterial || "—"}
+                </span>
               ),
             },
             {
@@ -157,12 +205,43 @@ export function SupplierPackagingTable({
               key: "unitPrice",
               label: "Unit Price",
               sortable: true,
-              render: (value: number) => (
-                <span className="font-medium text-green-600">
-                  ₹{value.toFixed(2)}
+              render: (value: number, row: SupplierPackagingWithDetails) => (
+                <div>
+                  <div className="font-medium text-foreground">
+                    ₹{value.toFixed(2)}
+                  </div>
+                  {row.quantityForBulkPrice &&
+                    row.quantityForBulkPrice > 1 &&
+                    row.bulkPrice && (
+                      <div className="text-xs text-muted-foreground">
+                        ₹{row.bulkPrice.toFixed(2)} / {row.quantityForBulkPrice}{" "}
+                        units
+                      </div>
+                    )}
+                </div>
+              ),
+            },
+            {
+              key: "tax",
+              label: "Tax (%)",
+              sortable: true,
+              render: (value: number, row: SupplierPackagingWithDetails) => (
+                <span className="text-muted-foreground">
+                  {row.tax ? `${row.tax}%` : "N/A"}
                 </span>
               ),
             },
+            {
+              key: "priceWithTax",
+              label: "Price After Tax",
+              sortable: true,
+              render: (value: number, row: SupplierPackagingWithDetails) => (
+                <span className="font-medium text-foreground">
+                  ₹{row.priceWithTax.toFixed(2)}
+                </span>
+              ),
+            },
+
             {
               key: "moq",
               label: "MOQ",

@@ -109,20 +109,12 @@ export function PackagingManager() {
         </div>
         <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
           <Button
-            variant="outline"
-            className="btn-secondary w-full sm:w-auto"
             onClick={() => setShowPackagingDrawer(true)}
+            variant="outline"
+            className="flex-1 sm:flex-none"
           >
             <List className="h-4 w-4 mr-2" />
             <span className="truncate">View All Packaging</span>
-          </Button>
-          <Button
-            variant="outline"
-            className="btn-secondary w-full sm:w-auto"
-            onClick={() => setShowAddSupplierPackaging(true)}
-          >
-            <Plus className="h-4 w-4 mr-2" />
-            <span className="truncate">Add Supplier Packaging</span>
           </Button>
         </div>
       </div>
@@ -148,6 +140,7 @@ export function PackagingManager() {
             setSelectedSupplier={setSelectedSupplier}
             onEditPackaging={setEditingSupplierPackaging}
             onDeletePackaging={handleDeleteSupplierPackaging}
+            onAddSupplierPackaging={() => setShowAddSupplierPackaging(true)}
           />
         </TabsContent>
 
