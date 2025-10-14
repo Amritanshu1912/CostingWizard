@@ -19,6 +19,8 @@ export interface ColumnDef<T> {
   label: string;
   sortable?: boolean;
   render?: (value: any, row: T) => React.ReactNode;
+  width?: string;
+  align?: "left" | "center" | "right";
 }
 
 interface SortableTableProps<T> {
@@ -26,6 +28,7 @@ interface SortableTableProps<T> {
   columns: ColumnDef<T>[];
   className?: string;
   showSerialNumber?: boolean;
+  emptyMessage?: string;
 }
 
 type SortDirection = "asc" | "desc" | null;
@@ -35,6 +38,7 @@ export function SortableTable<T extends Record<string, any>>({
   columns,
   className,
   showSerialNumber = false,
+  emptyMessage = "No results found.",
 }: SortableTableProps<T>) {
   const [sortKey, setSortKey] = useState<string | null>(null);
   const [sortDirection, setSortDirection] = useState<SortDirection>(null);
@@ -108,33 +112,58 @@ export function SortableTable<T extends Record<string, any>>({
   // Get sort icon
   const getSortIcon = (key: string) => {
     if (sortKey !== key) {
-      return <ArrowUpDown className="ml-2 h-4 w-4" />;
+      return <ArrowUpDown className="ml-2 h-4 w-4 opacity-50" />;
     }
     if (sortDirection === "asc") {
-      return <ArrowUp className="ml-2 h-4 w-4" />;
+      return <ArrowUp className="ml-2 h-4 w-4 text-primary" />;
     }
-    return <ArrowDown className="ml-2 h-4 w-4" />;
+    return <ArrowDown className="ml-2 h-4 w-4 text-primary" />;
+  };
+
+  // Get alignment classes
+  const getAlignmentClass = (align?: "left" | "center" | "right") => {
+    switch (align) {
+      case "center":
+        return "text-center";
+      case "right":
+        return "text-right";
+      default:
+        return "text-left";
+    }
   };
 
   return (
-    <div className={cn("rounded-md border", className)}>
+    <div className={cn("rounded-md border overflow-hidden px-4", className)}>
       <Table>
         <TableHeader>
-          <TableRow>
-            {showSerialNumber && <TableHead className="w-[50px]">#</TableHead>}
+          <TableRow className="hover:bg-transparent">
+            {showSerialNumber && (
+              <TableHead className="w-[60px] font-semibold">#</TableHead>
+            )}
             {columns.map((column) => (
-              <TableHead key={column.key}>
+              <TableHead
+                key={column.key}
+                className={cn(
+                  "font-semibold",
+                  column.width && `w-[${column.width}]`,
+                  getAlignmentClass(column.align)
+                )}
+              >
                 {column.sortable !== false ? (
                   <Button
                     variant="ghost"
                     onClick={() => handleSort(column.key)}
-                    className="h-8 px-2 lg:px-3"
+                    className={cn(
+                      "h-8 px-0 gap-0 font-semibold hover:bg-transparent hover:text-primary transition-colors",
+                      getAlignmentClass(column.align),
+                      column.align === "right" && "flex-row-reverse"
+                    )}
                   >
                     {column.label}
                     {getSortIcon(column.key)}
                   </Button>
                 ) : (
-                  column.label
+                  <span className="px-0">{column.label}</span>
                 )}
               </TableHead>
             ))}
@@ -142,25 +171,33 @@ export function SortableTable<T extends Record<string, any>>({
         </TableHeader>
         <TableBody>
           {sortedData.length === 0 ? (
-            <TableRow>
+            <TableRow className="hover:bg-transparent">
               <TableCell
                 colSpan={columns.length + (showSerialNumber ? 1 : 0)}
-                className="h-24 text-center"
+                className="h-32 text-center text-muted-foreground"
               >
-                No results.
+                {emptyMessage}
               </TableCell>
             </TableRow>
           ) : (
             sortedData.map((row, index) => (
-              <TableRow key={index}>
+              <TableRow
+                key={row.id || index}
+                className="transition-colors hover:bg-muted/50"
+              >
                 {showSerialNumber && (
-                  <TableCell className="font-medium">{index + 1}</TableCell>
+                  <TableCell className="font-medium text-muted-foreground">
+                    {index + 1}
+                  </TableCell>
                 )}
                 {columns.map((column) => {
                   const value = row[column.key];
                   return (
-                    <TableCell key={column.key}>
-                      {column.render ? column.render(value, row) : value}
+                    <TableCell
+                      key={column.key}
+                      className={cn(getAlignmentClass(column.align))}
+                    >
+                      {column.render ? column.render(value, row) : value ?? "—"}
                     </TableCell>
                   );
                 })}

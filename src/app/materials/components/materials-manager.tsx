@@ -14,14 +14,14 @@ import { toast } from "sonner";
 import { BarChart3, Package, Plus, TrendingUp, List } from "lucide-react";
 import { nanoid } from "nanoid";
 
-import { MaterialsTable } from "./materials-table";
+import { MaterialsTable } from "./supplier-materials-table";
 import { MaterialsPriceComparison } from "./materials-price-comparison";
 import { MaterialsAnalytics } from "./materials-analytics";
-import { EnhancedMaterialDialog } from "./materials-dialog";
+import { EnhancedMaterialDialog } from "./supplier-materials-dialog";
 import { MaterialsDrawer } from "./materials-drawer";
 
 import type { SupplierMaterial } from "@/lib/types";
-import type { MaterialFormData } from "./materials-dialog";
+import type { MaterialFormData } from "./supplier-materials-dialog";
 import { SUPPLIERS } from "@/lib/constants";
 import { useDexieTable } from "@/hooks/use-dexie-table";
 import { useSupplierMaterialsWithDetails } from "@/hooks/use-supplier-materials-with-details";
@@ -320,13 +320,6 @@ export function MaterialsManager() {
             <List className="h-4 w-4 mr-2" />
             <span className="truncate">View All Materials</span>
           </Button>
-          <Button
-            onClick={() => setShowAddDialog(true)}
-            className="btn-primary flex-1 sm:flex-none"
-          >
-            <Plus className="h-4 w-4 mr-2" />
-            <span className="truncate">Add Material</span>
-          </Button>
         </div>
       </div>
 
@@ -386,6 +379,7 @@ export function MaterialsManager() {
             suppliers={suppliers}
             onEdit={handleEditMaterial}
             onDelete={handleDeleteMaterial}
+            onAddMaterial={() => setShowAddDialog(true)}
           />
         </TabsContent>
 

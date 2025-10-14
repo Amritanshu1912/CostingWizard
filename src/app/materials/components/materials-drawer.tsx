@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useMemo, useState } from "react";
 import {
   Sheet,
   SheetContent,
@@ -18,40 +18,19 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Badge } from "@/components/ui/badge";
-import { SortableTable } from "@/components/ui/sortable-table";
-import { Edit, Trash2, Loader2 } from "lucide-react";
+import { Loader2, Plus, Package, AlertCircle } from "lucide-react";
 import { toast } from "sonner";
-import { format } from "date-fns";
 import { db } from "@/lib/db";
-import type { MaterialWithSuppliers, Category, Supplier } from "@/lib/types";
+import type { MaterialWithSuppliers, Category } from "@/lib/types";
 import { useLiveQuery } from "dexie-react-hooks";
 import { normalizeText } from "@/lib/text-utils";
 import { nanoid } from "nanoid";
-import {
-  Command,
-  CommandEmpty,
-  CommandGroup,
-  CommandInput,
-  CommandItem,
-  CommandList,
-} from "@/components/ui/command";
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
-import { Check, ChevronsUpDown, Plus } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { MaterialsTableDrawer } from "./materials-table";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import { assignCategoryColor } from "@/lib/color-utils";
+import { Input } from "@/components/ui/input";
+import { SortableTable } from "@/components/ui/sortable-table";
 
 interface MaterialsDrawerProps {
   open: boolean;
@@ -74,6 +53,7 @@ export function MaterialsDrawer({
   const [loading, setLoading] = useState(false);
   const [categorySearch, setCategorySearch] = useState("");
   const [openCategoryCombobox, setOpenCategoryCombobox] = useState(false);
+  const [isAddingNew, setIsAddingNew] = useState(false);
 
   // Fetch materials with supplier count
   const materialsWithSuppliers = useLiveQuery(async () => {
@@ -85,14 +65,14 @@ export function MaterialsDrawer({
         db.categories.toArray(),
       ]);
 
-    return materials.map((material) => {
+    const result = materials.map((material) => {
       const supplierMatList = supplierMaterials.filter(
         (sm) => sm.materialId === material.id
       );
 
       const suppliersList = supplierMatList
         .map((sm) => suppliers.find((s) => s.id === sm.supplierId))
-        .filter((s): s is Supplier => s !== undefined);
+        .filter((s): s is (typeof suppliers)[0] => s !== undefined);
 
       const category = categories.find((c) => c.name === material.category);
 
@@ -104,26 +84,35 @@ export function MaterialsDrawer({
           category?.color || assignCategoryColor(material.category),
       } as MaterialWithSuppliers & { categoryColor: string };
     });
-  }, []);
+
+    // Add empty row for new material if adding
+    if (isAddingNew) {
+      result.unshift({
+        id: "new",
+        name: "",
+        category: "",
+        supplierCount: 0,
+        suppliersList: [],
+        createdAt: new Date().toISOString(),
+        categoryColor: assignCategoryColor("Other"),
+      } as MaterialWithSuppliers & { categoryColor: string });
+    }
+
+    return result;
+  }, [isAddingNew]);
 
   // Fetch categories for combobox
   const categories = useLiveQuery(() => db.categories.toArray(), []);
 
   // Filter categories based on search
-  const filteredCategories = useMemo(() => {
-    if (!categories) return [];
-    if (!categorySearch) return categories;
-    return categories.filter((c) =>
+  const filteredCategories =
+    categories?.filter((c) =>
       c.name.toLowerCase().includes(categorySearch.toLowerCase())
-    );
-  }, [categories, categorySearch]);
+    ) || [];
 
-  const isNewCategory = useMemo(() => {
-    if (!categorySearch || !categories) return false;
-    return !categories.some(
-      (c) => normalizeText(c.name) === normalizeText(categorySearch)
-    );
-  }, [categorySearch, categories]);
+  const isNewCategory = !categories?.some(
+    (c) => normalizeText(c.name) === normalizeText(categorySearch)
+  );
 
   // Start editing
   const startEdit = (material: MaterialWithSuppliers) => {
@@ -132,9 +121,21 @@ export function MaterialsDrawer({
     setCategorySearch(material.category);
   };
 
+  // Start adding new material
+  const startAddingNew = () => {
+    setIsAddingNew(true);
+    setEditingMaterialId("new");
+    setEditForm({
+      name: "",
+      category: "",
+    });
+    setCategorySearch("");
+  };
+
   // Cancel editing
   const cancelEdit = () => {
     setEditingMaterialId(null);
+    setIsAddingNew(false);
     setEditForm({ name: "", category: "" });
     setCategorySearch("");
   };
@@ -168,49 +169,75 @@ export function MaterialsDrawer({
     try {
       const now = new Date().toISOString();
 
-      // Check for duplicate name (excluding current material)
-      const normalized = normalizeText(trimmedName);
-      const duplicate = await db.materials
-        .filter(
-          (m) =>
-            m.id !== editingMaterialId && normalizeText(m.name) === normalized
-        )
-        .first();
+      if (isAddingNew) {
+        // Check for duplicate name
+        const normalized = normalizeText(trimmedName);
+        const duplicate = await db.materials
+          .filter((m) => normalizeText(m.name) === normalized)
+          .first();
 
-      if (duplicate) {
-        toast.error(`Material "${duplicate.name}" already exists`);
-        return;
-      }
+        if (duplicate) {
+          toast.error(`Material "${duplicate.name}" already exists`);
+          return;
+        }
 
-      // Create/update category if needed
-      const existingCategory = await db.categories
-        .filter((c) => normalizeText(c.name) === normalizeText(trimmedCategory))
-        .first();
-
-      if (!existingCategory) {
-        await db.categories.add({
+        // Create new material
+        await db.materials.add({
           id: nanoid(),
-          name: trimmedCategory,
-          color: assignCategoryColor(trimmedCategory),
+          name: trimmedName,
+          category: trimmedCategory,
           createdAt: now,
         });
+
+        toast.success("Material added successfully");
+      } else {
+        // Check for duplicate name (excluding current material)
+        const normalized = normalizeText(trimmedName);
+        const duplicate = await db.materials
+          .filter(
+            (m) =>
+              m.id !== editingMaterialId && normalizeText(m.name) === normalized
+          )
+          .first();
+
+        if (duplicate) {
+          toast.error(`Material "${duplicate.name}" already exists`);
+          return;
+        }
+
+        // Create/update category if needed
+        const existingCategory = await db.categories
+          .filter(
+            (c) => normalizeText(c.name) === normalizeText(trimmedCategory)
+          )
+          .first();
+
+        if (!existingCategory) {
+          await db.categories.add({
+            id: nanoid(),
+            name: trimmedCategory,
+            color: assignCategoryColor(trimmedCategory),
+            createdAt: now,
+          });
+        }
+
+        // Update material
+        await db.materials.update(editingMaterialId, {
+          name: trimmedName,
+          category: trimmedCategory,
+          updatedAt: now,
+        });
+
+        toast.success("Material updated successfully");
       }
 
-      // Update material
-      await db.materials.update(editingMaterialId, {
-        name: trimmedName,
-        category: trimmedCategory,
-        updatedAt: now,
-      });
-
-      toast.success("Material updated successfully");
       cancelEdit();
 
       // Trigger refresh of other components
       if (onRefresh) onRefresh();
     } catch (error) {
-      console.error("Error updating material:", error);
-      toast.error("Failed to update material");
+      console.error("Error saving material:", error);
+      toast.error("Failed to save material");
     } finally {
       setLoading(false);
     }
@@ -251,268 +278,117 @@ export function MaterialsDrawer({
     }
   };
 
-  // Table columns
-  const columns = useMemo(
-    () => [
-      {
-        key: "name",
-        label: "Material Name",
-        sortable: true,
-        render: (_: any, row: MaterialWithSuppliers) => {
-          if (editingMaterialId === row.id) {
-            return (
-              <Input
-                value={editForm.name}
-                onChange={(e) =>
-                  setEditForm({ ...editForm, name: e.target.value })
-                }
-                className="h-8"
-                autoFocus
-              />
-            );
-          }
-          return (
-            <span className="font-medium text-foreground">{row.name}</span>
-          );
-        },
-      },
-      {
-        key: "category",
-        label: "Category",
-        sortable: true,
-        render: (
-          _: any,
-          row: MaterialWithSuppliers & { categoryColor: string }
-        ) => {
-          if (editingMaterialId === row.id) {
-            return (
-              <Popover
-                open={openCategoryCombobox}
-                onOpenChange={setOpenCategoryCombobox}
-              >
-                <PopoverTrigger asChild>
-                  <Button
-                    variant="outline"
-                    role="combobox"
-                    size="sm"
-                    className="h-8 w-full justify-between"
-                  >
-                    {editForm.category || "Select"}
-                    <ChevronsUpDown className="ml-2 h-3 w-3" />
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-[200px] p-0">
-                  <Command shouldFilter={false}>
-                    <CommandInput
-                      placeholder="Search..."
-                      value={categorySearch}
-                      onValueChange={setCategorySearch}
-                    />
-                    <CommandList>
-                      {filteredCategories.length > 0 && (
-                        <CommandGroup>
-                          {filteredCategories.map((cat) => (
-                            <CommandItem
-                              key={cat.id}
-                              onSelect={() => handleSelectCategory(cat)}
-                            >
-                              <Check
-                                className={cn(
-                                  "mr-2 h-4 w-4",
-                                  editForm.category === cat.name
-                                    ? "opacity-100"
-                                    : "opacity-0"
-                                )}
-                              />
-                              <div className="flex items-center gap-2">
-                                <div
-                                  className="w-3 h-3 rounded-full"
-                                  style={{ backgroundColor: cat.color }}
-                                />
-                                {cat.name}
-                              </div>
-                            </CommandItem>
-                          ))}
-                        </CommandGroup>
-                      )}
-                      {isNewCategory && categorySearch && (
-                        <CommandGroup>
-                          <CommandItem onSelect={handleNewCategory}>
-                            <Plus className="mr-2 h-4 w-4" />
-                            Create "{categorySearch}"
-                          </CommandItem>
-                        </CommandGroup>
-                      )}
-                      {!categorySearch && filteredCategories.length === 0 && (
-                        <CommandEmpty>Start typing...</CommandEmpty>
-                      )}
-                    </CommandList>
-                  </Command>
-                </PopoverContent>
-              </Popover>
-            );
-          }
-          return (
-            <Badge
-              variant="secondary"
-              style={{
-                backgroundColor: row.categoryColor + "20",
-                color: row.categoryColor,
-                borderColor: row.categoryColor,
-              }}
-            >
-              {row.category}
-            </Badge>
-          );
-        },
-      },
-      {
-        key: "supplierCount",
-        label: "# Suppliers",
-        sortable: true,
-        render: (_: any, row: MaterialWithSuppliers) => {
-          if (row.supplierCount === 0) {
-            return <span className="text-muted-foreground">0</span>;
-          }
-
-          return (
-            <TooltipProvider>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <span className="cursor-help font-medium">
-                    {row.supplierCount}
-                  </span>
-                </TooltipTrigger>
-                <TooltipContent>
-                  <div className="text-sm">
-                    <div className="font-semibold mb-1">Suppliers:</div>
-                    {row.suppliersList.map((s) => (
-                      <div key={s.id}>{s.name}</div>
-                    ))}
-                  </div>
-                </TooltipContent>
-              </Tooltip>
-            </TooltipProvider>
-          );
-        },
-      },
-      {
-        key: "updatedAt",
-        label: "Updated At",
-        sortable: true,
-        render: (_: any, row: MaterialWithSuppliers) => {
-          const displayDate = row.updatedAt || row.createdAt;
-          return (
-            <span className="text-sm text-muted-foreground">
-              {format(new Date(displayDate), "MMM dd, yyyy")}
-            </span>
-          );
-        },
-      },
-      {
-        key: "actions",
-        label: "Actions",
-        sortable: false,
-        render: (_: any, row: MaterialWithSuppliers) => {
-          if (editingMaterialId === row.id) {
-            return (
-              <div className="flex gap-2">
-                <Button
-                  size="sm"
-                  onClick={saveEdit}
-                  disabled={loading}
-                  className="h-7 text-xs"
-                >
-                  {loading ? (
-                    <Loader2 className="h-3 w-3 animate-spin" />
-                  ) : (
-                    "Save"
-                  )}
-                </Button>
-                <Button
-                  size="sm"
-                  variant="ghost"
-                  onClick={cancelEdit}
-                  disabled={loading}
-                  className="h-7 text-xs"
-                >
-                  Cancel
-                </Button>
-              </div>
-            );
-          }
-
-          return (
-            <div className="flex gap-2">
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => startEdit(row)}
-                className="h-8 w-8 p-0 hover:bg-primary/10 hover:text-primary"
-              >
-                <Edit className="h-4 w-4" />
-              </Button>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => initiateDelete(row)}
-                disabled={row.supplierCount > 0}
-                className="h-8 w-8 p-0 text-destructive hover:text-destructive hover:bg-destructive/10 disabled:opacity-50"
-                title={
-                  row.supplierCount > 0
-                    ? "Cannot delete material used by suppliers"
-                    : "Delete material"
-                }
-              >
-                <Trash2 className="h-4 w-4" />
-              </Button>
-            </div>
-          );
-        },
-      },
-    ],
-    [
-      editingMaterialId,
-      editForm,
-      loading,
-      openCategoryCombobox,
-      categorySearch,
-      filteredCategories,
-      isNewCategory,
-    ]
-  );
+  const totalMaterials = materialsWithSuppliers?.length || 0;
+  const activeMaterials =
+    materialsWithSuppliers?.filter((m) => m.id !== "new").length || 0;
 
   return (
     <>
       <Sheet open={open} onOpenChange={onOpenChange}>
         <SheetContent
           side="right"
-          className="w-full sm:w-[800px] sm:max-w-[90vw] overflow-y-auto"
+          className="w-full sm:w-[1200px] sm:max-w-[95vw] flex flex-col p-0"
         >
-          <SheetHeader>
-            <SheetTitle>Materials Management</SheetTitle>
-            <SheetDescription>
-              View and manage all raw materials. Edit names/categories or delete
-              unused materials.
-            </SheetDescription>
-          </SheetHeader>
-
-          <div className="mt-6">
-            {!materialsWithSuppliers ? (
-              <div className="flex items-center justify-center h-64">
-                <Loader2 className="h-8 w-8 animate-spin text-primary" />
+          {/* Header Section - Fixed */}
+          <div className="border-b bg-background px-6 py-4">
+            <SheetHeader className="space-y-3">
+              <div className="flex items-start justify-between">
+                <div className="space-y-1">
+                  <SheetTitle className="text-2xl flex items-center gap-2">
+                    <Package className="h-6 w-6 text-primary" />
+                    Materials Management
+                  </SheetTitle>
+                  <SheetDescription className="text-base">
+                    Manage your raw materials inventory and specifications
+                  </SheetDescription>
+                </div>
+                <Button
+                  onClick={startAddingNew}
+                  disabled={isAddingNew}
+                  className="bg-primary hover:bg-primary/90"
+                  size="default"
+                >
+                  <Plus className="h-4 w-4 mr-2" />
+                  Add Material
+                </Button>
               </div>
-            ) : materialsWithSuppliers.length === 0 ? (
-              <div className="text-center py-12 text-muted-foreground">
-                No materials found. Add supplier materials to create materials.
+
+              {/* Stats Bar */}
+              <div className="flex items-center gap-4 pt-2">
+                <div className="flex items-center gap-2 px-3 py-1.5 bg-primary/10 rounded-md">
+                  <Package className="h-4 w-4 text-primary" />
+                  <span className="text-sm font-medium">
+                    {activeMaterials} {activeMaterials === 1 ? "Item" : "Items"}
+                  </span>
+                </div>
+              </div>
+            </SheetHeader>
+          </div>
+
+          {/* Content Section - Scrollable */}
+          <div className="flex-1 overflow-y-auto px-6 py-4">
+            {!materialsWithSuppliers ? (
+              <div className="flex items-center justify-center h-96">
+                <div className="text-center space-y-3">
+                  <Loader2 className="h-8 w-8 animate-spin text-primary mx-auto" />
+                  <p className="text-sm text-muted-foreground">
+                    Loading materials...
+                  </p>
+                </div>
+              </div>
+            ) : materialsWithSuppliers.length === 0 ||
+              (materialsWithSuppliers.length === 1 && isAddingNew) ? (
+              <div className="flex items-center justify-center h-96">
+                <div className="text-center space-y-4 max-w-md">
+                  <div className="mx-auto w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center">
+                    <Package className="h-8 w-8 text-primary" />
+                  </div>
+                  <div className="space-y-2">
+                    <h3 className="text-lg font-semibold">No materials yet</h3>
+                    <p className="text-sm text-muted-foreground">
+                      Get started by adding your first material. You can link
+                      them to suppliers later.
+                    </p>
+                  </div>
+                  {!isAddingNew && (
+                    <Button onClick={startAddingNew} className="mt-4">
+                      <Plus className="h-4 w-4 mr-2" />
+                      Add Your First Material
+                    </Button>
+                  )}
+                </div>
               </div>
             ) : (
-              <SortableTable
-                data={materialsWithSuppliers}
-                columns={columns}
-                className="table-enhanced"
-                showSerialNumber={true}
-              />
+              <div className="space-y-4">
+                {isAddingNew && (
+                  <Alert className="border-primary/50 bg-primary/5">
+                    <AlertCircle className="h-4 w-4 text-primary" />
+                    <AlertDescription>
+                      Fill in the details in the first row to add a new material
+                      item
+                    </AlertDescription>
+                  </Alert>
+                )}
+
+                <MaterialsTableDrawer
+                  data={materialsWithSuppliers}
+                  editingMaterialId={editingMaterialId}
+                  editForm={editForm}
+                  loading={loading}
+                  categories={categories}
+                  categorySearch={categorySearch}
+                  openCategoryCombobox={openCategoryCombobox}
+                  onEditFormChange={setEditForm}
+                  onStartEdit={startEdit}
+                  onSaveEdit={saveEdit}
+                  onCancelEdit={cancelEdit}
+                  onInitiateDelete={initiateDelete}
+                  onCategorySearchChange={setCategorySearch}
+                  onSelectCategory={handleSelectCategory}
+                  onNewCategory={handleNewCategory}
+                  onOpenCategoryComboboxChange={setOpenCategoryCombobox}
+                />
+              </div>
             )}
           </div>
         </SheetContent>
