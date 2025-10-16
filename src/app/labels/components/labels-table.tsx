@@ -1,126 +1,333 @@
 "use client";
 
-import React from "react";
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-  CardDescription,
-} from "@/components/ui/card";
+import { useState, useMemo } from "react";
+import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { SortableTable } from "@/components/ui/sortable-table";
-import { Edit, Trash2 } from "lucide-react";
-import type { Label, Supplier } from "@/lib/types";
+import { Edit, Trash2, Loader2 } from "lucide-react";
+import { format } from "date-fns";
+import type { LabelsWithSuppliers } from "@/lib/types";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
-interface LabelsTableProps {
-  labels: Label[];
-  suppliers: Supplier[];
-  onEditLabel: (label: Label) => void;
-  onDeleteLabel: (id: string) => void;
+interface LabelsTableDrawerProps {
+  data: LabelsWithSuppliers[];
+  editingLabelId: string | null;
+  editForm: {
+    name: string;
+    type: string;
+    printingType: string;
+    material: string;
+    shape: string;
+    size: string;
+    labelFor: string;
+    notes: string;
+  };
+  loading: boolean;
+  onEditFormChange: (form: {
+    name: string;
+    type: string;
+    printingType: string;
+    material: string;
+    shape: string;
+    size: string;
+    labelFor: string;
+    notes: string;
+  }) => void;
+  onStartEdit: (label: LabelsWithSuppliers) => void;
+  onSaveEdit: () => void;
+  onCancelEdit: () => void;
+  onInitiateDelete: (label: LabelsWithSuppliers) => void;
 }
 
-export function LabelsTable({
-  labels,
-  suppliers,
-  onEditLabel,
-  onDeleteLabel,
-}: LabelsTableProps) {
+export function LabelsTableDrawer({
+  data,
+  editingLabelId,
+  editForm,
+  loading,
+  onEditFormChange,
+  onStartEdit,
+  onSaveEdit,
+  onCancelEdit,
+  onInitiateDelete,
+}: LabelsTableDrawerProps) {
+  // Table columns
+  const columns = useMemo(
+    () => [
+      {
+        key: "name",
+        label: "Label Name",
+        sortable: true,
+        render: (_: any, row: LabelsWithSuppliers) => {
+          if (editingLabelId === row.id) {
+            return (
+              <Input
+                value={editForm.name}
+                onChange={(e) =>
+                  onEditFormChange({ ...editForm, name: e.target.value })
+                }
+                className="h-8"
+                autoFocus
+              />
+            );
+          }
+          return (
+            <span className="font-medium text-foreground">{row.name}</span>
+          );
+        },
+      },
+      {
+        key: "type",
+        label: "Type",
+        sortable: true,
+        render: (_: any, row: LabelsWithSuppliers) => {
+          if (editingLabelId === row.id) {
+            return (
+              <Select
+                value={editForm.type}
+                onValueChange={(value) =>
+                  onEditFormChange({ ...editForm, type: value })
+                }
+              >
+                <SelectTrigger className="h-8 w-full">
+                  <SelectValue placeholder="Select type" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="sticker">Sticker</SelectItem>
+                  <SelectItem value="label">Label</SelectItem>
+                  <SelectItem value="tag">Tag</SelectItem>
+                </SelectContent>
+              </Select>
+            );
+          }
+          return (
+            <Badge variant="outline" className="text-xs">
+              {row.type}
+            </Badge>
+          );
+        },
+      },
+      {
+        key: "printingType",
+        label: "Printing",
+        sortable: true,
+        render: (_: any, row: LabelsWithSuppliers) => {
+          if (editingLabelId === row.id) {
+            return (
+              <Select
+                value={editForm.printingType}
+                onValueChange={(value) =>
+                  onEditFormChange({ ...editForm, printingType: value })
+                }
+              >
+                <SelectTrigger className="h-8 w-full">
+                  <SelectValue placeholder="Select printing" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="bw">Black & White</SelectItem>
+                  <SelectItem value="color">Color</SelectItem>
+                  <SelectItem value="foil">Foil</SelectItem>
+                  <SelectItem value="embossed">Embossed</SelectItem>
+                </SelectContent>
+              </Select>
+            );
+          }
+          return (
+            <Badge variant="secondary" className="text-xs">
+              {row.printingType}
+            </Badge>
+          );
+        },
+      },
+      {
+        key: "material",
+        label: "Material",
+        sortable: true,
+        render: (_: any, row: LabelsWithSuppliers) => {
+          if (editingLabelId === row.id) {
+            return (
+              <Select
+                value={editForm.material}
+                onValueChange={(value) =>
+                  onEditFormChange({ ...editForm, material: value })
+                }
+              >
+                <SelectTrigger className="h-8 w-full">
+                  <SelectValue placeholder="Select material" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="paper">Paper</SelectItem>
+                  <SelectItem value="vinyl">Vinyl</SelectItem>
+                  <SelectItem value="plastic">Plastic</SelectItem>
+                  <SelectItem value="other">Other</SelectItem>
+                </SelectContent>
+              </Select>
+            );
+          }
+          return <span className="text-muted-foreground">{row.material}</span>;
+        },
+      },
+      {
+        key: "shape",
+        label: "Shape",
+        sortable: true,
+        render: (_: any, row: LabelsWithSuppliers) => {
+          if (editingLabelId === row.id) {
+            return (
+              <Select
+                value={editForm.shape}
+                onValueChange={(value) =>
+                  onEditFormChange({ ...editForm, shape: value })
+                }
+              >
+                <SelectTrigger className="h-8 w-full">
+                  <SelectValue placeholder="Select shape" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="rectangular">Rectangular</SelectItem>
+                  <SelectItem value="custom">Custom</SelectItem>
+                </SelectContent>
+              </Select>
+            );
+          }
+          return <span className="text-muted-foreground">{row.shape}</span>;
+        },
+      },
+      {
+        key: "size",
+        label: "Size",
+        sortable: true,
+        render: (_: any, row: LabelsWithSuppliers) => {
+          if (editingLabelId === row.id) {
+            return (
+              <Input
+                value={editForm.size}
+                onChange={(e) =>
+                  onEditFormChange({ ...editForm, size: e.target.value })
+                }
+                className="h-8"
+                placeholder="e.g., 50x30mm"
+              />
+            );
+          }
+          return (
+            <span className="text-muted-foreground">{row.size || "N/A"}</span>
+          );
+        },
+      },
+      {
+        key: "supplierCount",
+        label: "# Suppliers",
+        sortable: true,
+        render: (_: any, row: LabelsWithSuppliers) => {
+          if (row.supplierCount === 0) {
+            return <span className="text-muted-foreground">0</span>;
+          }
+
+          return <span className="font-medium">{row.supplierCount}</span>;
+        },
+      },
+      {
+        key: "updatedAt",
+        label: "Updated At",
+        sortable: true,
+        render: (_: any, row: LabelsWithSuppliers) => {
+          const displayDate = row.updatedAt || row.createdAt;
+          return (
+            <span className="text-sm text-muted-foreground">
+              {format(new Date(displayDate), "MMM dd, yyyy")}
+            </span>
+          );
+        },
+      },
+      {
+        key: "actions",
+        label: "Actions",
+        sortable: false,
+        render: (_: any, row: LabelsWithSuppliers) => {
+          if (editingLabelId === row.id) {
+            return (
+              <div className="flex gap-2">
+                <Button
+                  size="sm"
+                  onClick={onSaveEdit}
+                  disabled={loading}
+                  className="h-7 text-xs"
+                >
+                  {loading ? (
+                    <Loader2 className="h-3 w-3 animate-spin" />
+                  ) : (
+                    "Save"
+                  )}
+                </Button>
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  onClick={onCancelEdit}
+                  disabled={loading}
+                  className="h-7 text-xs"
+                >
+                  Cancel
+                </Button>
+              </div>
+            );
+          }
+
+          return (
+            <div className="flex gap-2">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => onStartEdit(row)}
+                className="h-8 w-8 p-0 hover:bg-primary/10 hover:text-primary"
+              >
+                <Edit className="h-4 w-4" />
+              </Button>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => onInitiateDelete(row)}
+                disabled={row.supplierCount > 0}
+                className="h-8 w-8 p-0 text-destructive hover:text-destructive hover:bg-destructive/10 disabled:opacity-50"
+                title={
+                  row.supplierCount > 0
+                    ? "Cannot delete label used by suppliers"
+                    : "Delete label"
+                }
+              >
+                <Trash2 className="h-4 w-4" />
+              </Button>
+            </div>
+          );
+        },
+      },
+    ],
+    [
+      editingLabelId,
+      editForm,
+      loading,
+      onEditFormChange,
+      onStartEdit,
+      onSaveEdit,
+      onCancelEdit,
+      onInitiateDelete,
+    ]
+  );
+
   return (
-    <Card className="card-enhanced">
-      <CardHeader>
-        <CardTitle>Label Items</CardTitle>
-        <CardDescription>
-          {labels.length} label items from {suppliers.length} suppliers
-        </CardDescription>
-      </CardHeader>
-      <CardContent>
-        <SortableTable
-          data={labels}
-          columns={[
-            {
-              key: "name",
-              label: "Label Name",
-              sortable: true,
-              render: (value: string) => (
-                <span className="font-medium text-foreground">{value}</span>
-              ),
-            },
-            {
-              key: "type",
-              label: "Type",
-              sortable: true,
-              render: (value: string) => (
-                <Badge variant="outline" className="text-xs">
-                  {value}
-                </Badge>
-              ),
-            },
-            {
-              key: "printingType",
-              label: "Printing",
-              sortable: true,
-              render: (value: string) => (
-                <Badge variant="secondary" className="text-xs">
-                  {value}
-                </Badge>
-              ),
-            },
-            {
-              key: "material",
-              label: "Material",
-              sortable: true,
-              render: (value: string) => (
-                <span className="text-muted-foreground">{value}</span>
-              ),
-            },
-            {
-              key: "shape",
-              label: "Shape",
-              sortable: true,
-              render: (value: string) => (
-                <span className="text-muted-foreground">{value}</span>
-              ),
-            },
-            {
-              key: "size",
-              label: "Size",
-              sortable: true,
-              render: (value: string) => (
-                <span className="text-muted-foreground">{value || "N/A"}</span>
-              ),
-            },
-            {
-              key: "actions",
-              label: "Actions",
-              sortable: false,
-              render: (value: any, row: Label) => (
-                <div className="flex gap-1">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="h-8 w-8 p-0 bg-transparent"
-                    onClick={() => onEditLabel(row)}
-                  >
-                    <Edit className="h-3 w-3" />
-                  </Button>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="h-8 w-8 p-0 text-destructive hover:text-destructive bg-transparent"
-                    onClick={() => onDeleteLabel(row.id)}
-                  >
-                    <Trash2 className="h-3 w-3" />
-                  </Button>
-                </div>
-              ),
-            },
-          ]}
-          className="table-enhanced"
-          showSerialNumber={true}
-        />
-      </CardContent>
-    </Card>
+    <div className="border rounded-lg overflow-hidden bg-card">
+      <SortableTable
+        data={data}
+        columns={columns}
+        className="table-enhanced"
+        showSerialNumber={true}
+      />
+    </div>
   );
 }

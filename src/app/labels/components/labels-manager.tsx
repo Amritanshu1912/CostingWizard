@@ -4,22 +4,23 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
-import { Plus } from "lucide-react";
+import { List } from "lucide-react";
 
-import type { Label, Supplier, SupplierLabel } from "@/lib/types";
+import type { Supplier, SupplierLabel } from "@/lib/types";
 import { SUPPLIERS } from "@/lib/constants";
 import { useDexieTable } from "@/hooks/use-dexie-table";
 import { db } from "@/lib/db";
-import { LabelsTable } from "./labels-table";
-import { LabelsDialog } from "./labels-dialog";
 import { SupplierLabelsTable } from "./supplier-labels-table";
 import { SupplierLabelsDialog } from "./supplier-labels-dialog";
 import { LabelsPriceComparison } from "./labels-price-comparison";
 import { LabelsAnalytics } from "./labels-analytics";
+import { LabelsDrawer } from "./labels-drawer";
 import {
   useSupplierLabelsWithDetails,
   type SupplierLabelWithDetails,
 } from "@/hooks/use-supplier-labels-with-details";
+import { MetricCard } from "@/components/ui/metric-card";
+import { Package, BarChart3, TrendingUp } from "lucide-react";
 
 export function LabelsManager() {
   const {
@@ -28,50 +29,31 @@ export function LabelsManager() {
     addItem: addSupplier,
   } = useDexieTable(db.suppliers, SUPPLIERS);
   const {
-    data: labels,
-    updateItem: updateLabel,
-    addItem: addLabel,
-    deleteItem: deleteLabel,
-  } = useDexieTable(db.labels, []);
-  const {
     data: supplierLabels,
     updateItem: updateSupplierLabel,
     addItem: addSupplierLabel,
     deleteItem: deleteSupplierLabel,
   } = useDexieTable(db.supplierLabels, []);
 
-  const [showAddLabel, setShowAddLabel] = useState(false);
-  const [editingLabel, setEditingLabel] = useState<Label | null>(null);
   const [showAddSupplierLabel, setShowAddSupplierLabel] = useState(false);
   const [editingSupplierLabel, setEditingSupplierLabel] =
     useState<SupplierLabelWithDetails | null>(null);
+  const [showLabelsDrawer, setShowLabelsDrawer] = useState(false);
 
   // Enriched data hooks
   const enrichedSupplierLabels = useSupplierLabelsWithDetails();
 
-  const handleSaveLabel = async (item: Label) => {
-    try {
-      if (labels.some((l) => l.id === item.id)) {
-        await updateLabel(item);
-      } else {
-        await addLabel(item);
-      }
-      toast.success("Label saved successfully");
-    } catch (error) {
-      console.error("Error saving label:", error);
-      toast.error("Failed to save label");
-    }
-  };
-
-  const handleDeleteLabel = async (id: string) => {
-    try {
-      await deleteLabel(id);
-      toast.success("Label deleted successfully");
-    } catch (error) {
-      console.error("Error deleting label:", error);
-      toast.error("Failed to delete label");
-    }
-  };
+  const totalLabels = enrichedSupplierLabels.length;
+  const avgPrice =
+    enrichedSupplierLabels.reduce((sum, sl) => sum + sl.unitPrice, 0) /
+    (enrichedSupplierLabels.length || 1);
+  const highestPrice =
+    enrichedSupplierLabels.length > 0
+      ? Math.max(...enrichedSupplierLabels.map((sl) => sl.unitPrice))
+      : 0;
+  const avgLeadTime =
+    enrichedSupplierLabels.reduce((sum, sl) => sum + sl.leadTime, 0) /
+    (enrichedSupplierLabels.length || 1);
 
   const handleSaveSupplierLabel = async (item: SupplierLabel) => {
     try {
@@ -109,48 +91,73 @@ export function LabelsManager() {
             Manage stickers, labels, and tags from suppliers
           </p>
         </div>
-        <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
+        <div className="flex gap-2 w-full sm:w-auto">
           <Button
+            onClick={() => setShowLabelsDrawer(true)}
             variant="outline"
-            className="btn-secondary w-full sm:w-auto"
-            onClick={() => setShowAddLabel(true)}
+            className="flex-1 sm:flex-none"
           >
-            <Plus className="h-4 w-4 mr-2" />
-            <span className="truncate">Add Label</span>
-          </Button>
-          <Button
-            variant="outline"
-            className="btn-secondary w-full sm:w-auto"
-            onClick={() => setShowAddSupplierLabel(true)}
-          >
-            <Plus className="h-4 w-4 mr-2" />
-            <span className="truncate">Add Supplier Label</span>
+            <List className="h-4 w-4 mr-2" />
+            <span className="truncate">View All Labels</span>
           </Button>
         </div>
       </div>
 
-      <Tabs defaultValue="labels" className="space-y-6">
-        <TabsList className="grid w-full grid-cols-4">
-          <TabsTrigger value="labels">Label Items</TabsTrigger>
+      <Tabs defaultValue="supplier-labels" className="space-y-6">
+        <TabsList className="grid w-full grid-cols-3">
           <TabsTrigger value="supplier-labels">Supplier Labels</TabsTrigger>
           <TabsTrigger value="price-comparison">Price Comparison</TabsTrigger>
           <TabsTrigger value="analytics">Analytics</TabsTrigger>
         </TabsList>
 
-        <TabsContent value="labels" className="space-y-6">
-          <LabelsTable
-            labels={labels}
-            suppliers={suppliers}
-            onEditLabel={setEditingLabel}
-            onDeleteLabel={handleDeleteLabel}
-          />
-        </TabsContent>
-
         <TabsContent value="supplier-labels" className="space-y-6">
+          {/* Quick Stats */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+            <MetricCard
+              title="Total Labels"
+              value={totalLabels}
+              icon={Package}
+              iconClassName="text-primary"
+              trend={{
+                value: "+12%",
+                isPositive: true,
+                label: "from last month",
+              }}
+            />
+
+            <MetricCard
+              title="Avg Price"
+              value={`₹${avgPrice.toFixed(2)}`}
+              icon={BarChart3}
+              iconClassName="text-primary"
+              trend={{
+                value: "+5.2%",
+                isPositive: true,
+                label: "from last month",
+              }}
+            />
+
+            <MetricCard
+              title="Highest Price"
+              value={`₹${highestPrice.toFixed(2)}`}
+              icon={TrendingUp}
+              iconClassName="text-primary"
+              description="per piece"
+            />
+
+            <MetricCard
+              title="Avg Lead Time"
+              value={`${avgLeadTime.toFixed(0)} days`}
+              icon={BarChart3}
+              iconClassName="text-primary"
+              description="average across all labels"
+            />
+          </div>
           <SupplierLabelsTable
             supplierLabels={enrichedSupplierLabels}
             onEditLabel={setEditingSupplierLabel}
             onDeleteLabel={handleDeleteSupplierLabel}
+            onAddSupplierLabel={() => setShowAddSupplierLabel(true)}
           />
         </TabsContent>
 
@@ -163,17 +170,6 @@ export function LabelsManager() {
         </TabsContent>
       </Tabs>
 
-      {/* Label Dialog */}
-      <LabelsDialog
-        isOpen={showAddLabel || !!editingLabel}
-        onClose={() => {
-          setShowAddLabel(false);
-          setEditingLabel(null);
-        }}
-        onSave={handleSaveLabel}
-        initialLabel={editingLabel}
-      />
-
       {/* Supplier Label Dialog */}
       <SupplierLabelsDialog
         isOpen={showAddSupplierLabel || !!editingSupplierLabel}
@@ -183,8 +179,14 @@ export function LabelsManager() {
         }}
         onSave={handleSaveSupplierLabel}
         suppliers={suppliers}
-        labels={labels}
+        labels={[]}
         initialLabel={editingSupplierLabel}
+      />
+
+      {/* Labels Management Drawer */}
+      <LabelsDrawer
+        open={showLabelsDrawer}
+        onOpenChange={setShowLabelsDrawer}
       />
     </div>
   );
