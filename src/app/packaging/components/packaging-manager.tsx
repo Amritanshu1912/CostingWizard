@@ -1,99 +1,289 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
 import { Plus, List } from "lucide-react";
+import { nanoid } from "nanoid";
 
-import type { Packaging, Supplier, SupplierPackaging } from "@/lib/types";
+import type {
+  SupplierPackaging,
+  PackagingType,
+  BuildMaterial,
+} from "@/lib/types";
+import type { PackagingFormData } from "./supplier-packaging-dialog";
 import { SUPPLIERS } from "@/lib/constants";
 import { useDexieTable } from "@/hooks/use-dexie-table";
 import { db } from "@/lib/db";
 import { SupplierPackagingTable } from "./supplier-packaging-table";
-import { SupplierPackagingDialog } from "./supplier-packaging-dialog";
+import { EnhancedSupplierPackagingDialog } from "./supplier-packaging-dialog";
 import { PackagingPriceComparison } from "./packaging-price-comparison";
 import { PackagingAnalytics } from "./packaging-analytics";
 import { PackagingDrawer } from "./packaging-drawer";
-import {
-  useSupplierPackagingWithDetails,
-  type SupplierPackagingWithDetails,
-} from "@/hooks/use-supplier-packaging-with-details";
+import { useSupplierPackagingWithDetails } from "@/hooks/use-supplier-packaging-with-details";
+import { normalizeText } from "@/lib/text-utils";
+
+const DEFAULT_PACKAGING_FORM: PackagingFormData = {
+  supplierId: "",
+  packagingName: "",
+  packagingId: "",
+  packagingType: undefined,
+  capacity: 0,
+  capacityUnit: "ml",
+  buildMaterial: undefined,
+  bulkPrice: 0,
+  quantityForBulkPrice: 1,
+  tax: 0,
+  moq: 1,
+  leadTime: 7,
+  availability: "in-stock",
+  notes: "",
+};
 
 export function PackagingManager() {
-  const [searchTerm, setSearchTerm] = useState("");
-  const [selectedType, setSelectedType] = useState("all");
-  const [supplierPackagingSearchTerm, setSupplierPackagingSearchTerm] =
-    useState("");
-  const [selectedPackagingType, setSelectedPackagingType] = useState("all");
-  const [selectedSupplier, setSelectedSupplier] = useState("all");
-
-  const {
-    data: suppliers,
-    updateItem: updateSupplier,
-    addItem: addSupplier,
-  } = useDexieTable(db.suppliers, SUPPLIERS);
-  const {
-    data: packaging,
-    updateItem: updatePackaging,
-    addItem: addPackaging,
-    deleteItem: deletePackaging,
-  } = useDexieTable(db.packaging, []);
-  const {
-    data: supplierPackaging,
-    updateItem: updateSupplierPackaging,
-    addItem: addSupplierPackaging,
-    deleteItem: deleteSupplierPackaging,
-  } = useDexieTable(db.supplierPackaging, []);
-
   const [showAddSupplierPackaging, setShowAddSupplierPackaging] =
     useState(false);
   const [editingSupplierPackaging, setEditingSupplierPackaging] =
-    useState<SupplierPackagingWithDetails | null>(null);
+    useState<SupplierPackaging | null>(null);
   const [showPackagingDrawer, setShowPackagingDrawer] = useState(false);
+  const [formData, setFormData] = useState<PackagingFormData>(
+    DEFAULT_PACKAGING_FORM
+  );
+  const [refreshTrigger, setRefreshTrigger] = useState(0);
 
-  // Enriched data hooks
+  // Database hooks
+  const { data: suppliers } = useDexieTable(db.suppliers, SUPPLIERS);
+  const { data: packaging } = useDexieTable(db.packaging, []);
+
+  // Enriched data
   const enrichedSupplierPackaging = useSupplierPackagingWithDetails();
 
-  const filteredSupplierPackaging = enrichedSupplierPackaging.filter((item) => {
-    const matchesSearch =
-      item.displayName
-        .toLowerCase()
-        .includes(supplierPackagingSearchTerm.toLowerCase()) ||
-      item.supplier?.name
-        .toLowerCase()
-        .includes(supplierPackagingSearchTerm.toLowerCase());
-    const matchesType =
-      selectedPackagingType === "all" ||
-      item.displayType === selectedPackagingType;
-    const matchesSupplier =
-      selectedSupplier === "all" || item.supplierId === selectedSupplier;
-    return matchesSearch && matchesType && matchesSupplier;
-  });
-
-  const handleSaveSupplierPackaging = async (item: SupplierPackaging) => {
-    try {
-      if (supplierPackaging.some((sp) => sp.id === item.id)) {
-        await updateSupplierPackaging(item);
-      } else {
-        await addSupplierPackaging(item);
-      }
-      toast.success("Supplier packaging saved successfully");
-    } catch (error) {
-      console.error("Error saving supplier packaging:", error);
-      toast.error("Failed to save supplier packaging");
+  // Handle add with transaction
+  const handleAddSupplierPackaging = useCallback(async () => {
+    if (
+      !formData.supplierId ||
+      !formData.packagingName ||
+      !formData.bulkPrice
+    ) {
+      toast.error("Please fill in all required fields");
+      return;
     }
-  };
 
-  const handleDeleteSupplierPackaging = async (id: string) => {
     try {
-      await deleteSupplierPackaging(id);
+      await db.transaction(
+        "rw",
+        [db.packaging, db.supplierPackaging],
+        async () => {
+          const now = new Date().toISOString();
+
+          // Step 1: Check if exact packaging combination already exists
+          const existingPackaging = await db.packaging
+            .filter(
+              (p) =>
+                normalizeText(p.name) ===
+                  normalizeText(formData.packagingName!) &&
+                p.type === formData.packagingType &&
+                p.capacity === (formData.capacity || 0) &&
+                p.unit === formData.capacityUnit &&
+                p.buildMaterial === formData.buildMaterial
+            )
+            .first();
+
+          // Step 2: Create new packaging (since no exact match exists)
+          let packagingId: string;
+          if (existingPackaging) {
+            packagingId = existingPackaging.id;
+          } else {
+            packagingId = nanoid();
+            await db.packaging.add({
+              id: packagingId,
+              name: formData.packagingName!.trim(),
+              type: formData.packagingType!,
+              capacity: formData.capacity || 0,
+              unit: formData.capacityUnit!,
+              buildMaterial: formData.buildMaterial,
+              notes: formData.notes || "",
+              createdAt: now,
+            });
+          }
+
+          // Step 3: Calculate unit price
+          const bulkQuantity = formData.quantityForBulkPrice || 1;
+          const bulkPrice = formData.bulkPrice!;
+          const unitPrice = bulkPrice / bulkQuantity;
+
+          // Step 4: Create supplier packaging
+
+          await db.supplierPackaging.add({
+            id: nanoid(),
+            supplierId: formData.supplierId!,
+            packagingId: packagingId,
+            unitPrice: unitPrice,
+            bulkPrice: bulkPrice,
+            quantityForBulkPrice: bulkQuantity,
+            tax: formData.tax || 0,
+            moq: formData.moq || 1,
+            leadTime: formData.leadTime || 7,
+            availability: formData.availability || "in-stock",
+            notes: formData.notes || "",
+            createdAt: now,
+          });
+        }
+      );
+
+      setFormData(DEFAULT_PACKAGING_FORM);
+      setShowAddSupplierPackaging(false);
+      toast.success("Supplier packaging added successfully");
+    } catch (error: any) {
+      console.error("Error adding supplier packaging:", error);
+      if (error.message === "DUPLICATE_PACKAGING") {
+        toast.error("This exact packaging combination already exists");
+      } else {
+        toast.error("Failed to add supplier packaging");
+      }
+    }
+  }, [formData]);
+
+  // Handle edit
+  const handleEditSupplierPackaging = useCallback(
+    async (item: SupplierPackaging) => {
+      const pkg = packaging.find((p) => p.id === item.packagingId);
+      setEditingSupplierPackaging(item);
+      setFormData({
+        ...item,
+        packagingName: pkg?.name,
+        packagingType: pkg?.type,
+        capacity: pkg?.capacity,
+        capacityUnit: pkg?.unit,
+        buildMaterial: pkg?.buildMaterial,
+      } as PackagingFormData);
+      setShowAddSupplierPackaging(true);
+    },
+    [packaging]
+  );
+
+  // Handle update with transaction
+  const handleUpdateSupplierPackaging = useCallback(async () => {
+    if (!editingSupplierPackaging) return;
+
+    try {
+      await db.transaction(
+        "rw",
+        [db.packaging, db.supplierPackaging],
+        async () => {
+          const now = new Date().toISOString();
+
+          // Get original packaging data
+          const originalPackaging = packaging.find(
+            (p) => p.id === editingSupplierPackaging.packagingId
+          );
+
+          // Check if any packaging properties changed
+          const packagingChanged =
+            !originalPackaging ||
+            normalizeText(originalPackaging.name) !==
+              normalizeText(formData.packagingName!) ||
+            originalPackaging.type !== formData.packagingType ||
+            originalPackaging.capacity !== (formData.capacity || 0) ||
+            originalPackaging.unit !== formData.capacityUnit ||
+            originalPackaging.buildMaterial !== formData.buildMaterial;
+
+          let packagingId = editingSupplierPackaging.packagingId;
+
+          if (packagingChanged) {
+            const existingPackaging = await db.packaging
+              .filter(
+                (p) =>
+                  normalizeText(p.name) ===
+                    normalizeText(formData.packagingName!) &&
+                  p.type === formData.packagingType &&
+                  p.capacity === (formData.capacity || 0) &&
+                  p.unit === formData.capacityUnit &&
+                  p.buildMaterial === formData.buildMaterial
+              )
+              .first();
+
+            console.log("existingPackaging found:", existingPackaging);
+
+            if (existingPackaging) {
+              // Use existing packaging (exact duplicate)
+              packagingId = existingPackaging.id;
+            } else {
+              // Create new packaging (always, since no exact match exists)
+              packagingId = nanoid();
+              await db.packaging.add({
+                id: packagingId,
+                name: formData.packagingName!.trim(),
+                type: formData.packagingType!,
+                capacity: formData.capacity || 0,
+                unit: formData.capacityUnit!,
+                buildMaterial: formData.buildMaterial,
+                notes: formData.notes || "",
+                createdAt: now,
+              });
+            }
+          }
+
+          // Always update supplier packaging record
+          const bulkQuantity = formData.quantityForBulkPrice || 1;
+          const bulkPrice = formData.bulkPrice || 0;
+          const unitPrice = bulkPrice / bulkQuantity;
+
+          await db.supplierPackaging.update(editingSupplierPackaging.id, {
+            supplierId: formData.supplierId,
+            packagingId: packagingId,
+            unitPrice: unitPrice,
+            bulkPrice: bulkPrice,
+            quantityForBulkPrice: bulkQuantity,
+            tax: formData.tax,
+            moq: formData.moq,
+            leadTime: formData.leadTime,
+            availability: formData.availability,
+            notes: formData.notes,
+            updatedAt: now,
+          });
+        }
+      );
+
+      setFormData(DEFAULT_PACKAGING_FORM);
+      setEditingSupplierPackaging(null);
+      setShowAddSupplierPackaging(false);
+      toast.success("Supplier packaging updated successfully");
+    } catch (error: any) {
+      console.error("Error updating supplier packaging:", error);
+      if (error.message === "DUPLICATE_PACKAGING") {
+        toast.error("This exact packaging combination already exists");
+      } else {
+        toast.error("Failed to update supplier packaging");
+      }
+    }
+  }, [editingSupplierPackaging, formData, packaging]);
+
+  // Handle delete
+  const handleDeleteSupplierPackaging = useCallback(async (id: string) => {
+    try {
+      await db.supplierPackaging.delete(id);
       toast.success("Supplier packaging deleted successfully");
     } catch (error) {
       console.error("Error deleting supplier packaging:", error);
       toast.error("Failed to delete supplier packaging");
     }
-  };
+  }, []);
+
+  // Reset dialog
+  const handleDialogClose = useCallback((open: boolean) => {
+    if (!open) {
+      setShowAddSupplierPackaging(false);
+      setEditingSupplierPackaging(null);
+      setFormData(DEFAULT_PACKAGING_FORM);
+    }
+  }, []);
+
+  // Handle refresh from drawer
+  const handleDrawerRefresh = useCallback(() => {
+    setRefreshTrigger((prev) => prev + 1);
+  }, []);
 
   return (
     <div className="space-y-6 animate-fade-in">
@@ -107,7 +297,7 @@ export function PackagingManager() {
             Manage bottles, containers, and packaging from suppliers
           </p>
         </div>
-        <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
+        <div className="flex gap-2 w-full sm:w-auto">
           <Button
             onClick={() => setShowPackagingDrawer(true)}
             variant="outline"
@@ -130,15 +320,9 @@ export function PackagingManager() {
 
         <TabsContent value="supplier-packaging" className="space-y-6">
           <SupplierPackagingTable
-            supplierPackaging={filteredSupplierPackaging}
+            supplierPackaging={enrichedSupplierPackaging}
             suppliers={suppliers}
-            searchTerm={supplierPackagingSearchTerm}
-            setSearchTerm={setSupplierPackagingSearchTerm}
-            selectedType={selectedPackagingType}
-            setSelectedType={setSelectedPackagingType}
-            selectedSupplier={selectedSupplier}
-            setSelectedSupplier={setSelectedSupplier}
-            onEditPackaging={setEditingSupplierPackaging}
+            onEditPackaging={handleEditSupplierPackaging}
             onDeletePackaging={handleDeleteSupplierPackaging}
             onAddSupplierPackaging={() => setShowAddSupplierPackaging(true)}
           />
@@ -153,23 +337,28 @@ export function PackagingManager() {
         </TabsContent>
       </Tabs>
 
-      {/* Supplier Packaging Dialog */}
-      <SupplierPackagingDialog
-        isOpen={showAddSupplierPackaging || !!editingSupplierPackaging}
-        onClose={() => {
-          setShowAddSupplierPackaging(false);
-          setEditingSupplierPackaging(null);
-        }}
-        onSave={handleSaveSupplierPackaging}
+      {/* Enhanced Supplier Packaging Dialog with refresh trigger */}
+      <EnhancedSupplierPackagingDialog
+        key={refreshTrigger}
+        open={showAddSupplierPackaging}
+        onOpenChange={handleDialogClose}
+        packaging={formData}
+        setPackaging={setFormData}
+        onSave={
+          editingSupplierPackaging
+            ? handleUpdateSupplierPackaging
+            : handleAddSupplierPackaging
+        }
         suppliers={suppliers}
-        packaging={packaging}
-        initialPackaging={editingSupplierPackaging}
+        packagingList={packaging}
+        isEditing={!!editingSupplierPackaging}
       />
 
       {/* Packaging Management Drawer */}
       <PackagingDrawer
         open={showPackagingDrawer}
         onOpenChange={setShowPackagingDrawer}
+        onRefresh={handleDrawerRefresh}
       />
     </div>
   );

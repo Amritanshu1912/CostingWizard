@@ -7,7 +7,9 @@ import type {
     SupplierMaterial,
     Product,
     ProductionPlan,
-    PurchaseOrder
+    PurchaseOrder,
+    Label,
+    SupplierLabel
 } from "@/lib/types";
 import {
     Calendar,
@@ -17,364 +19,266 @@ import {
     FlaskConical as Flask,
 } from "lucide-react";
 
+
+
 // ============================================================================
-// PACKAGING
+// LABELS
 // ============================================================================
 
 
-export const PACKAGING: Packaging[] = [
+export const LABELS: Label[] = [
     {
         id: "1",
-        name: "500ml PET Bottle",
-        type: "bottle",
-        capacity: 500,
-        unit: "ml",
-        buildMaterial: "PET",
+        name: "Standard Sticker Label",
+        type: "sticker",
+        printingType: "color",
+        material: "paper",
+        shape: "rectangular",
+        size: "50x30mm",
+        labelFor: "Floor Cleaner",
+        notes: "Waterproof adhesive, suitable for bottles",
         createdAt: "2024-01-01T00:00:00.000Z",
     },
     {
         id: "2",
-        name: "1L Glass Jar",
-        type: "jar",
-        capacity: 1,
-        unit: "L",
-        buildMaterial: "Glass",
+        name: "Premium Label Tag",
+        type: "label",
+        printingType: "foil",
+        material: "vinyl",
+        shape: "rectangular",
+        size: "80x50mm",
+        labelFor: "Bathroom Cleaner",
+        notes: "High-quality foil printing for premium products",
         createdAt: "2024-01-01T00:00:00.000Z",
     },
     {
         id: "3",
-        name: "5L HDPE Container",
-        type: "can",
-        capacity: 5,
-        unit: "L",
-        buildMaterial: "HDPE",
+        name: "Custom Shape Tag",
+        type: "tag",
+        printingType: "bw",
+        material: "paper",
+        shape: "custom",
+        size: "60x40mm",
+        labelFor: "Glass Cleaner",
+        notes: "Custom die-cut shape for branding",
         createdAt: "2024-01-01T00:00:00.000Z",
     },
     {
         id: "4",
-        name: "250ml Spray Bottle",
-        type: "bottle",
-        capacity: 250,
-        unit: "ml",
-        buildMaterial: "PET",
+        name: "Embossed Label",
+        type: "label",
+        printingType: "embossed",
+        material: "plastic",
+        shape: "rectangular",
+        size: "70x45mm",
+        labelFor: "Kitchen Degreaser",
+        notes: "Embossed texture for luxury feel",
         createdAt: "2024-01-01T00:00:00.000Z",
     },
     {
         id: "5",
-        name: "200ml Plastic Tube",
-        type: "other",
-        capacity: 200,
-        unit: "ml",
-        buildMaterial: "Plastic",
+        name: "Small Sticker",
+        type: "sticker",
+        printingType: "color",
+        material: "vinyl",
+        shape: "rectangular",
+        size: "30x20mm",
+        labelFor: "Sample Products",
+        notes: "Small size for sample bottles",
         createdAt: "2024-01-01T00:00:00.000Z",
-        notes: "Used for gels and creams",
     },
     {
         id: "6",
-        name: "1kg Paper Box",
-        type: "box",
-        capacity: 1,
-        unit: "kg",
-        buildMaterial: "Paper",
+        name: "Large Product Tag",
+        type: "tag",
+        printingType: "color",
+        material: "paper",
+        shape: "custom",
+        size: "100x60mm",
+        labelFor: "Bulk Containers",
+        notes: "Large format for industrial containers",
         createdAt: "2024-01-01T00:00:00.000Z",
     },
     {
         id: "7",
-        name: "500g Plastic Pouch",
-        type: "pouch",
-        capacity: 500,
-        unit: "gm",
-        buildMaterial: "Plastic",
+        name: "Security Label",
+        type: "sticker",
+        printingType: "foil",
+        material: "plastic",
+        shape: "rectangular",
+        size: "40x25mm",
+        labelFor: "Premium Products",
+        notes: "Tamper-evident security features",
         createdAt: "2024-01-01T00:00:00.000Z",
     },
     {
         id: "8",
-        name: "2L Metal Can",
-        type: "can",
-        capacity: 2,
-        unit: "L",
-        buildMaterial: "Other",
-        createdAt: "2024-01-01T00:00:00.000Z",
-    },
-    {
-        id: "9",
-        name: "250ml HDPE Bottle",
-        type: "bottle",
-        capacity: 250,
-        unit: "ml",
-        buildMaterial: "HDPE",
-        createdAt: "2024-01-01T00:00:00.000Z",
-    },
-    {
-        id: "10",
-        name: "750ml Glass Bottle",
-        type: "bottle",
-        capacity: 750,
-        unit: "ml",
-        buildMaterial: "Glass",
+        name: "Recyclable Label",
+        type: "label",
+        printingType: "bw",
+        material: "paper",
+        shape: "rectangular",
+        size: "55x35mm",
+        labelFor: "Eco Products",
+        notes: "Made from recycled materials",
         createdAt: "2024-01-01T00:00:00.000Z",
     },
 ];
 
 
-export const SUPPLIER_PACKAGING: SupplierPackaging[] = [
-
+export const SUPPLIER_LABELS: SupplierLabel[] = [
     {
-
         id: "1",
-
         supplierId: "1",
-
-        packagingId: "1",
-
-        unitPrice: 2.5,
-
-        moq: 1000,
-
-        bulkDiscounts: [
-
-            { quantity: 5000, discount: 8 },
-
-            { quantity: 10000, discount: 15 },
-
-        ],
-
-        leadTime: 10,
-
-        availability: "in-stock",
-
-        transportationCost: 5,
-
-        notes: "Standard PET bottle, food-grade quality",
-
-        createdAt: "2024-01-15T00:00:00.000Z",
-
-    },
-
-    {
-
-        id: "2",
-
-        supplierId: "1",
-
-        packagingId: "2",
-
-        unitPrice: 8.5,
-
+        labelId: "1",
+        unit: "pieces",
+        unitPrice: 0.15,
+        bulkPrice: 120,
+        quantityForBulkPrice: 1000,
         moq: 500,
-
         bulkDiscounts: [
-
-            { quantity: 2000, discount: 10 },
-
-            { quantity: 5000, discount: 18 },
-
+            { quantity: 5000, discount: 10 },
+            { quantity: 10000, discount: 18 },
         ],
-
-        leadTime: 14,
-
-        availability: "in-stock",
-
-        transportationCost: 12,
-
-        notes: "Premium glass jar with screw cap",
-
-        createdAt: "2024-01-15T00:00:00.000Z",
-
-    },
-
-    {
-
-        id: "3",
-
-        supplierId: "1",
-
-        packagingId: "3",
-
-        unitPrice: 15.0,
-
-        moq: 200,
-
-        bulkDiscounts: [
-
-            { quantity: 1000, discount: 12 },
-
-            { quantity: 2000, discount: 20 },
-
-        ],
-
-        leadTime: 12,
-
-        availability: "in-stock",
-
-        transportationCost: 18,
-
-        notes: "Heavy-duty HDPE container for industrial use",
-
-        createdAt: "2024-01-15T00:00:00.000Z",
-
-    },
-
-    {
-
-        id: "4",
-
-        supplierId: "2",
-
-        packagingId: "4",
-
-        unitPrice: 1.8,
-
-        moq: 2000,
-
-        bulkDiscounts: [
-
-            { quantity: 10000, discount: 10 },
-
-            { quantity: 25000, discount: 18 },
-
-        ],
-
-        leadTime: 8,
-
-        availability: "in-stock",
-
-        transportationCost: 4,
-
-        notes: "Spray bottle with trigger mechanism",
-
-        createdAt: "2024-01-20T00:00:00.000Z",
-
-    },
-
-    {
-
-        id: "5",
-
-        supplierId: "2",
-
-        packagingId: "5",
-
-        unitPrice: 0.8,
-
-        moq: 5000,
-
-        bulkDiscounts: [
-
-            { quantity: 25000, discount: 15 },
-
-            { quantity: 50000, discount: 25 },
-
-        ],
-
         leadTime: 7,
-
         availability: "in-stock",
-
-        transportationCost: 3,
-
-        notes: "Plastic tube for creams and gels",
-
-        createdAt: "2024-01-20T00:00:00.000Z",
-
-    },
-
-    {
-
-        id: "6",
-
-        supplierId: "3",
-
-        packagingId: "6",
-
-        unitPrice: 3.2,
-
-        moq: 1000,
-
-        bulkDiscounts: [
-
-            { quantity: 5000, discount: 8 },
-
-            { quantity: 10000, discount: 15 },
-
-        ],
-
-        leadTime: 6,
-
-        availability: "in-stock",
-
-        transportationCost: 6,
-
-        notes: "Cardboard box with printing capabilities",
-
-        createdAt: "2024-02-01T00:00:00.000Z",
-
-    },
-
-    {
-
-        id: "7",
-
-        supplierId: "3",
-
-        packagingId: "7",
-
-        unitPrice: 0.5,
-
-        moq: 10000,
-
-        bulkDiscounts: [
-
-            { quantity: 50000, discount: 20 },
-
-            { quantity: 100000, discount: 30 },
-
-        ],
-
-        leadTime: 5,
-
-        availability: "in-stock",
-
-        transportationCost: 2,
-
-        notes: "Flexible plastic pouch, resealable",
-
-        createdAt: "2024-02-01T00:00:00.000Z",
-
-    },
-
-    {
-
-        id: "8",
-
-        supplierId: "1",
-
-        packagingId: "8",
-
-        unitPrice: 12.0,
-
-        moq: 300,
-
-        bulkDiscounts: [
-
-            { quantity: 1000, discount: 10 },
-
-            { quantity: 2000, discount: 18 },
-
-        ],
-
-        leadTime: 15,
-
-        availability: "limited",
-
-        transportationCost: 20,
-
-        notes: "Metal can with lid, corrosion resistant",
-
+        transportationCost: 8,
+        notes: "Standard quality sticker labels",
         createdAt: "2024-01-15T00:00:00.000Z",
-
     },
-
+    {
+        id: "2",
+        supplierId: "1",
+        labelId: "2",
+        unit: "pieces",
+        unitPrice: 0.85,
+        bulkPrice: 680,
+        quantityForBulkPrice: 1000,
+        moq: 200,
+        bulkDiscounts: [
+            { quantity: 2000, discount: 12 },
+            { quantity: 5000, discount: 20 },
+        ],
+        leadTime: 10,
+        availability: "in-stock",
+        transportationCost: 15,
+        notes: "Premium foil printing available",
+        createdAt: "2024-01-15T00:00:00.000Z",
+    },
+    {
+        id: "3",
+        supplierId: "2",
+        labelId: "3",
+        unit: "pieces",
+        unitPrice: 0.25,
+        bulkPrice: 200,
+        quantityForBulkPrice: 1000,
+        moq: 1000,
+        bulkDiscounts: [
+            { quantity: 5000, discount: 8 },
+            { quantity: 10000, discount: 15 },
+        ],
+        leadTime: 5,
+        availability: "in-stock",
+        transportationCost: 6,
+        notes: "Custom die-cutting service available",
+        createdAt: "2024-01-20T00:00:00.000Z",
+    },
+    {
+        id: "4",
+        supplierId: "2",
+        labelId: "4",
+        unit: "pieces",
+        unitPrice: 1.2,
+        bulkPrice: 960,
+        quantityForBulkPrice: 1000,
+        moq: 100,
+        bulkDiscounts: [
+            { quantity: 2000, discount: 15 },
+            { quantity: 5000, discount: 25 },
+        ],
+        leadTime: 12,
+        availability: "limited",
+        transportationCost: 18,
+        notes: "Specialized embossing equipment",
+        createdAt: "2024-01-20T00:00:00.000Z",
+    },
+    {
+        id: "5",
+        supplierId: "3",
+        labelId: "5",
+        unit: "pieces",
+        unitPrice: 0.08,
+        bulkPrice: 64,
+        quantityForBulkPrice: 1000,
+        moq: 2000,
+        bulkDiscounts: [
+            { quantity: 10000, discount: 12 },
+            { quantity: 25000, discount: 20 },
+        ],
+        leadTime: 4,
+        availability: "in-stock",
+        transportationCost: 4,
+        notes: "Bulk pricing for small labels",
+        createdAt: "2024-02-01T00:00:00.000Z",
+    },
+    {
+        id: "6",
+        supplierId: "3",
+        labelId: "6",
+        unit: "pieces",
+        unitPrice: 0.45,
+        bulkPrice: 360,
+        quantityForBulkPrice: 1000,
+        moq: 500,
+        bulkDiscounts: [
+            { quantity: 5000, discount: 10 },
+            { quantity: 10000, discount: 18 },
+        ],
+        leadTime: 6,
+        availability: "in-stock",
+        transportationCost: 10,
+        notes: "Large format printing capabilities",
+        createdAt: "2024-02-01T00:00:00.000Z",
+    },
+    {
+        id: "7",
+        supplierId: "1",
+        labelId: "7",
+        unit: "pieces",
+        unitPrice: 0.35,
+        bulkPrice: 280,
+        quantityForBulkPrice: 1000,
+        moq: 300,
+        bulkDiscounts: [
+            { quantity: 2000, discount: 8 },
+            { quantity: 5000, discount: 15 },
+        ],
+        leadTime: 8,
+        availability: "in-stock",
+        transportationCost: 12,
+        notes: "Security features available",
+        createdAt: "2024-01-15T00:00:00.000Z",
+    },
+    {
+        id: "8",
+        supplierId: "2",
+        labelId: "8",
+        unit: "pieces",
+        unitPrice: 0.12,
+        bulkPrice: 96,
+        quantityForBulkPrice: 1000,
+        moq: 1000,
+        bulkDiscounts: [
+            { quantity: 5000, discount: 10 },
+            { quantity: 10000, discount: 18 },
+        ],
+        leadTime: 5,
+        availability: "in-stock",
+        transportationCost: 5,
+        notes: "Eco-friendly materials",
+        createdAt: "2024-01-20T00:00:00.000Z",
+    },
 ];
 
 
@@ -393,62 +297,9 @@ export const CATEGORIES: Category[] = [
     { id: "7", name: "Other", description: "Miscellaneous materials", createdAt: "2024-01-01T00:00:00.000Z" },
 ];
 
-export const MATERIALS: Material[] = [
-    {
-        id: "1",
-        name: "Acid Blue Color",
-        category: "Colors",
-        createdAt: "2024-01-10",
-    },
-    {
-        id: "2",
-        name: "Acid Slurry 90%",
-        category: "Acids",
-        createdAt: "2024-01-10",
-    },
-    {
-        id: "3",
-        name: "CBS-X",
-        category: "Thickeners",
-        createdAt: "2024-01-10",
-    },
-    {
-        id: "4",
-        name: "Caustic Soda",
-        category: "Bases",
-        createdAt: "2024-01-10",
-    },
-    {
-        id: "5",
-        name: "Citric Acid",
-        category: "Acids",
-        createdAt: "2024-01-10",
-    },
-    {
-        id: "6",
-        name: "NaCl",
-        category: "Salts",
-        createdAt: "2024-01-10",
-    },
-    {
-        id: "7",
-        name: "Dolamite",
-        category: "Other",
-        createdAt: "2024-01-10",
-    },
-    {
-        id: "8",
-        name: "Soda Ash",
-        category: "Bases",
-        createdAt: "2024-01-10",
-    },
-    {
-        id: "9",
-        name: "AOS Powder 96%",
-        category: "Other",
-        createdAt: "2024-01-10",
-    },
-];
+// ============================================================================
+// SUPPLIERS
+// ============================================================================
 
 export const SUPPLIERS: Supplier[] = [
     {
@@ -509,136 +360,6 @@ export const SUPPLIERS: Supplier[] = [
         createdAt: "2024-02-01",
     },
 ];
-
-export const SUPPLIER_MATERIALS: SupplierMaterial[] = [
-    {
-        id: "1",
-        supplierId: "1",
-        materialId: "2",
-        unit: "kg",
-        unitPrice: 117,
-        tax: 5,
-        moq: 50,
-        bulkDiscounts: [
-            { quantity: 100, discount: 5 },
-            { quantity: 500, discount: 12 },
-            { quantity: 1000, discount: 18 },
-        ],
-        leadTime: 7,
-        availability: "in-stock",
-        transportationCost: 15,
-        notes: "High purity, consistent quality",
-        createdAt: "2024-01-15",
-    },
-    {
-        id: "2",
-        supplierId: "1",
-        materialId: "4",
-        unit: "kg",
-        unitPrice: 57,
-        tax: 5,
-        moq: 100,
-        bulkDiscounts: [
-            { quantity: 500, discount: 8 },
-            { quantity: 1000, discount: 15 },
-        ],
-        leadTime: 5,
-        availability: "in-stock",
-        transportationCost: 12,
-        notes: "Industrial grade, 99% purity",
-        createdAt: "2024-01-15",
-    },
-    {
-        id: "3",
-        supplierId: "1",
-        materialId: "5",
-        unit: "kg",
-        unitPrice: 93,
-        tax: 5,
-        moq: 40,
-        bulkDiscounts: [
-            { quantity: 100, discount: 7 },
-            { quantity: 500, discount: 15 },
-        ],
-        leadTime: 6,
-        availability: "in-stock",
-        transportationCost: 18,
-        createdAt: "2024-01-15",
-    },
-    {
-        id: "4",
-        supplierId: "2",
-        materialId: "1",
-        unit: "kg",
-        unitPrice: 1600,
-        tax: 5,
-        moq: 5,
-        bulkDiscounts: [
-            { quantity: 10, discount: 3 },
-            { quantity: 25, discount: 8 },
-        ],
-        leadTime: 10,
-        availability: "in-stock",
-        transportationCost: 25,
-        notes: "Premium quality, vibrant color",
-        createdAt: "2024-01-20",
-    },
-    {
-        id: "5",
-        supplierId: "2",
-        materialId: "9",
-        unit: "kg",
-        unitPrice: 148,
-        tax: 5,
-        moq: 30,
-        bulkDiscounts: [
-            { quantity: 75, discount: 5 },
-            { quantity: 200, discount: 12 },
-        ],
-        leadTime: 7,
-        availability: "in-stock",
-        transportationCost: 20,
-        createdAt: "2024-01-20",
-    },
-    {
-        id: "6",
-        supplierId: "3",
-        materialId: "6",
-        unit: "kg",
-        unitPrice: 6,
-        tax: 5,
-        moq: 500,
-        bulkDiscounts: [
-            { quantity: 1000, discount: 10 },
-            { quantity: 5000, discount: 20 },
-        ],
-        leadTime: 3,
-        availability: "in-stock",
-        transportationCost: 8,
-        notes: "Food grade quality, bulk pricing available",
-        createdAt: "2024-02-01",
-    },
-    {
-        id: "7",
-        supplierId: "3",
-        materialId: "8",
-        unit: "kg",
-        unitPrice: 39,
-        tax: 5,
-        moq: 200,
-        bulkDiscounts: [
-            { quantity: 500, discount: 8 },
-            { quantity: 1000, discount: 15 },
-        ],
-        leadTime: 4,
-        availability: "in-stock",
-        transportationCost: 10,
-        createdAt: "2024-02-01",
-    },
-];
-
-
-
 
 // ============================================================================
 // PRODUCTS & Recipes (keeping existing structure)
@@ -1127,29 +848,6 @@ export const PURCHASE_ORDERS: PurchaseOrder[] = [
         createdAt: "2024-01-10",
     },
 ];
-
-// ============================================================================
-// CHART COLORS
-// ============================================================================
-
-
-export const CHART_COLORS = {
-    light: {
-        chart1: "#5A9BD8", // ocean blue — calm + clear
-        chart2: "#7ED8C3", // seafoam green — fresh + soft
-        chart3: "#F5D49B", // sandy beige — warm neutral
-        chart4: "#F4A18E", // coral accent — gentle pop
-        chart5: "#4CB1A2", // teal — grounding tone
-    },
-    dark: {
-        chart1: "#6CB8F0", // bright ocean blue
-        chart2: "#8FE3CF", // misty green foam
-        chart3: "#F7DFAE", // light sand glow
-        chart4: "#F89F8C", // warm coral
-        chart5: "#5ED1C1", // cool teal
-    },
-} as const;
-
 
 
 // ============================================================================

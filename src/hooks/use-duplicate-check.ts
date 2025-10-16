@@ -1,6 +1,6 @@
 // hooks/use-duplicate-check.ts
-import { useState, useEffect } from 'react';
-import { normalizeText, findSimilarItems } from '@/lib/text-utils';
+import { useState, useCallback } from 'react';
+import { findSimilarItems } from '@/lib/text-utils';
 import { useDebouncedCallback } from './use-debounce';
 
 interface UseDuplicateCheckOptions {
@@ -45,6 +45,6 @@ export function useDuplicateCheck<T extends { id: string; name: string }>(
         }
     }, debounceMs);
 
-    const clearWarning = () => setWarning(null);
+    const clearWarning = useCallback(() => setWarning(null), []);
     return { warning, checkDuplicate, clearWarning };
 }

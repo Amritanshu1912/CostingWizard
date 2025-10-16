@@ -3,18 +3,18 @@
 // Chart Colors
 export const CHART_COLORS = {
     light: {
-        chart1: "rgb(66, 153, 225)",
-        chart2: "rgb(237, 137, 54)",
-        chart3: "rgb(104, 178, 168)",
-        chart4: "rgb(213, 186, 142)",
-        chart5: "rgb(59, 130, 123)",
+        chart1: "#5A9BD8", // ocean blue — calm + clear
+        chart2: "#7ED8C3", // seafoam green — fresh + soft
+        chart3: "#F5D49B", // sandy beige — warm neutral
+        chart4: "#F4A18E", // coral accent — gentle pop
+        chart5: "#4CB1A2", // teal — grounding tone
     },
     dark: {
-        chart1: "rgb(95, 174, 255)",
-        chart2: "rgb(243, 154, 78)",
-        chart3: "rgb(133, 199, 189)",
-        chart4: "rgb(223, 203, 167)",
-        chart5: "rgb(89, 150, 143)",
+        chart1: "#6CB8F0", // bright ocean blue
+        chart2: "#8FE3CF", // misty green foam
+        chart3: "#F7DFAE", // light sand glow
+        chart4: "#F89F8C", // warm coral
+        chart5: "#5ED1C1", // cool teal
     },
 } as const;
 

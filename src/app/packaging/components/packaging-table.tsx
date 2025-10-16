@@ -52,6 +52,7 @@ interface PackagingTableProps {
     buildMaterial: string;
   };
   loading: boolean;
+  shakeFields?: boolean;
   onEditFormChange: (form: any) => void;
   onStartEdit: (packaging: PackagingWithSuppliers) => void;
   onSaveEdit: () => void;
@@ -60,20 +61,22 @@ interface PackagingTableProps {
 }
 
 import {
-  PACKAGING_TYPES,
-  PACKAGING_BUILD_MATERIALS,
-  PACKAGING_UNITS,
+  PACKAGING_TYPE_LABELS,
+  BUILD_MATERIAL_LABELS,
+  CAPACITY_UNIT_VALUES,
+  getPackagingTypeLabel,
 } from "./packaging-constants";
 
-const packagingTypes = PACKAGING_TYPES.map((type) => type.label);
-const capacityUnits = PACKAGING_UNITS.map((unit) => unit.value);
-const buildMaterials = PACKAGING_BUILD_MATERIALS.map((bm) => bm.label);
+const packagingTypes = PACKAGING_TYPE_LABELS;
+const capacityUnits = CAPACITY_UNIT_VALUES;
+const buildMaterials = BUILD_MATERIAL_LABELS;
 
 export function PackagingTable({
   data,
   editingPackagingId,
   editForm,
   loading,
+  shakeFields = false,
   onEditFormChange,
   onStartEdit,
   onSaveEdit,
@@ -125,11 +128,6 @@ export function PackagingTable({
     setOpenTypeCombobox(false);
   };
 
-  const getTypeDisplayLabel = (type: string) => {
-    const typeOption = PACKAGING_TYPES.find((t) => t.value === type);
-    return typeOption?.label || type;
-  };
-
   const columns = useMemo(
     () => [
       {
@@ -171,7 +169,11 @@ export function PackagingTable({
                     variant="outline"
                     role="combobox"
                     size="sm"
-                    className="h-9 w-full justify-between"
+                    className={cn(
+                      "h-9 w-full justify-between",
+                      shakeFields &&
+                        "animate-pulse border-destructive bg-destructive/5"
+                    )}
                   >
                     {editForm.type || "Select type"}
                     <ChevronsUpDown className="ml-2 h-4 w-4 opacity-50" />
@@ -224,7 +226,7 @@ export function PackagingTable({
           }
           return (
             <Badge variant="secondary" className="text-xs font-medium">
-              {getTypeDisplayLabel(row.type)}
+              {getPackagingTypeLabel(row.type)}
             </Badge>
           );
         },
@@ -245,7 +247,11 @@ export function PackagingTable({
                     variant="outline"
                     role="combobox"
                     size="sm"
-                    className="h-9 w-full justify-between"
+                    className={cn(
+                      "h-9 w-full justify-between",
+                      shakeFields &&
+                        "animate-pulse border-destructive bg-destructive/5"
+                    )}
                   >
                     {editForm.buildMaterial || "Select material"}
                     <ChevronsUpDown className="ml-2 h-4 w-4 opacity-50" />
@@ -333,7 +339,11 @@ export function PackagingTable({
                   onChange={(e) =>
                     onEditFormChange({ ...editForm, capacity: e.target.value })
                   }
-                  className="h-9 flex-1"
+                  className={cn(
+                    "h-9 flex-1",
+                    shakeFields &&
+                      "animate-pulse border-destructive bg-destructive/5"
+                  )}
                   placeholder="500"
                   min="0"
                   step="0.01"
@@ -344,7 +354,13 @@ export function PackagingTable({
                     onEditFormChange({ ...editForm, unit: value })
                   }
                 >
-                  <SelectTrigger className="h-9 w-[70px]">
+                  <SelectTrigger
+                    className={cn(
+                      "h-9 w-[70px]",
+                      shakeFields &&
+                        "animate-pulse border-destructive bg-destructive/5"
+                    )}
+                  >
                     <SelectValue placeholder="Unit" />
                   </SelectTrigger>
                   <SelectContent>
@@ -358,14 +374,6 @@ export function PackagingTable({
               </div>
             );
           }
-          console.log(
-            "rowName: ",
-            row.name,
-            " capacity: ",
-            row.capacity,
-            " unit: ",
-            row.unit
-          );
           const displayCapacity =
             row.capacity && row.unit ? `${row.capacity} ${row.unit}` : "—";
           return (
