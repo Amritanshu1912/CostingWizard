@@ -127,7 +127,7 @@ export function EnhancedSupplierPackagingDialog({
   useEffect(() => {
     if (packagingSearch) {
       const filtered = packagingList.filter((m) =>
-        m.name.toLowerCase().includes(packagingSearch.toLowerCase())
+        normalizeText(m.name).includes(normalizeText(packagingSearch))
       );
       setFilteredPackaging(filtered);
 
@@ -160,7 +160,6 @@ export function EnhancedSupplierPackagingDialog({
       );
       if (existingPackaging) {
         setPackagingSearch(existingPackaging.name);
-        // setCurrentPackagingName(existingPackaging.name);
         setPackagingAutoFilled(true);
         // When editing, "Create New" should not show for the current packaging name
         setIsNewPackaging(false);
@@ -187,7 +186,6 @@ export function EnhancedSupplierPackagingDialog({
       buildMaterial: selectedPackaging.buildMaterial,
     });
     setPackagingSearch(selectedPackaging.name);
-    // setCurrentPackagingName(selectedPackaging.name);
     setPackagingAutoFilled(true);
     clearPackagingWarning();
     setOpenPackagingCombobox(false);
@@ -202,7 +200,6 @@ export function EnhancedSupplierPackagingDialog({
       packagingType: packaging.packagingType || "other",
       buildMaterial: packaging.buildMaterial || "Other",
     });
-    // setCurrentPackagingName(packagingSearch);
     setPackagingAutoFilled(false);
     setOpenPackagingCombobox(false);
     // Ensure "Create New" stays visible after selection

@@ -4,8 +4,9 @@ import { useState, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
-import { Plus, List } from "lucide-react";
+import { Plus, List, Package, BarChart3, TrendingUp } from "lucide-react";
 import { nanoid } from "nanoid";
+import { MetricCard } from "@/components/ui/metric-card";
 
 import type {
   SupplierPackaging,
@@ -58,6 +59,19 @@ export function PackagingManager() {
 
   // Enriched data
   const enrichedSupplierPackaging = useSupplierPackagingWithDetails();
+
+  // Calculate metrics
+  const totalPackaging = enrichedSupplierPackaging.length;
+  const avgPrice =
+    enrichedSupplierPackaging.reduce((sum, sp) => sum + sp.unitPrice, 0) /
+    (enrichedSupplierPackaging.length || 1);
+  const highestPrice =
+    enrichedSupplierPackaging.length > 0
+      ? Math.max(...enrichedSupplierPackaging.map((sp) => sp.unitPrice))
+      : 0;
+  const avgTax =
+    enrichedSupplierPackaging.reduce((sum, sp) => sum + (sp.tax || 0), 0) /
+    (enrichedSupplierPackaging.length || 1);
 
   // Handle add with transaction
   const handleAddSupplierPackaging = useCallback(async () => {
@@ -319,6 +333,49 @@ export function PackagingManager() {
         </TabsList>
 
         <TabsContent value="supplier-packaging" className="space-y-6">
+          {/* Quick Stats */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+            <MetricCard
+              title="Total Packaging"
+              value={totalPackaging}
+              icon={Package}
+              iconClassName="text-primary"
+              trend={{
+                value: "+8%",
+                isPositive: true,
+                label: "from last month",
+              }}
+            />
+
+            <MetricCard
+              title="Avg Price (with tax)"
+              value={`₹${avgPrice.toFixed(2)}`}
+              icon={BarChart3}
+              iconClassName="text-primary"
+              trend={{
+                value: "+3.5%",
+                isPositive: true,
+                label: "from last month",
+              }}
+            />
+
+            <MetricCard
+              title="Highest Price"
+              value={`₹${highestPrice.toFixed(2)}`}
+              icon={TrendingUp}
+              iconClassName="text-primary"
+              description="per piece"
+            />
+
+            <MetricCard
+              title="Avg Tax Rate"
+              value={`${avgTax.toFixed(1)}%`}
+              icon={BarChart3}
+              iconClassName="text-primary"
+              description="average across all packaging"
+            />
+          </div>
+
           <SupplierPackagingTable
             supplierPackaging={enrichedSupplierPackaging}
             suppliers={suppliers}

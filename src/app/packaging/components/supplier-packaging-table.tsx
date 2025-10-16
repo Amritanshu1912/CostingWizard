@@ -31,7 +31,7 @@ import { SortableTable } from "@/components/ui/sortable-table";
 import { Search, Filter, Edit, Trash2, Plus } from "lucide-react";
 import type { SupplierPackagingWithDetails } from "@/hooks/use-supplier-packaging-with-details";
 import type { Supplier } from "@/lib/types";
-import { PACKAGING_TYPES } from "./packaging-constants";
+import { PACKAGING_TYPES, BUILD_MATERIALS } from "./packaging-constants";
 
 interface SupplierPackagingTableProps {
   supplierPackaging: SupplierPackagingWithDetails[];
@@ -118,7 +118,17 @@ export function SupplierPackagingTable({
           const typeOption = PACKAGING_TYPES.find((t) => t.value === value);
           const displayLabel = typeOption?.label || value;
           return (
-            <Badge variant="outline" className="text-xs">
+            <Badge
+              variant="outline"
+              className="text-xs"
+              style={{
+                backgroundColor: typeOption
+                  ? typeOption.color + "30"
+                  : undefined,
+                borderColor: typeOption ? typeOption.color : undefined,
+                color: "#000",
+              }}
+            >
               {displayLabel}
             </Badge>
           );
@@ -139,21 +149,40 @@ export function SupplierPackagingTable({
         },
       },
       {
-        key: "buildMaterial",
+        key: "packaging.buildMaterial",
         label: "Build Material",
         sortable: true,
-        render: (value: any, row: SupplierPackagingWithDetails) => (
-          <span className="text-muted-foreground">
-            {row.packaging?.buildMaterial || "—"}
-          </span>
-        ),
+        render: (value: any, row: SupplierPackagingWithDetails) => {
+          const material = row.packaging?.buildMaterial;
+          if (!material)
+            return <span className="text-muted-foreground">—</span>;
+
+          const materialOption = BUILD_MATERIALS.find(
+            (m) => m.value === material
+          );
+          return (
+            <Badge
+              variant="outline"
+              className="text-xs"
+              style={{
+                backgroundColor: materialOption
+                  ? materialOption.color + "30"
+                  : undefined,
+                borderColor: materialOption ? materialOption.color : undefined,
+                color: "#000",
+              }}
+            >
+              {materialOption?.label || material}
+            </Badge>
+          );
+        },
       },
       {
-        key: "supplier",
+        key: "supplier.name",
         label: "Supplier",
         sortable: true,
         render: (value: any, row: SupplierPackagingWithDetails) => (
-          <span className="text-foreground">{row.supplier?.name || "N/A"}</span>
+          <span className="text-foreground">{row.supplier?.name || "—"}</span>
         ),
       },
       {
