@@ -19,15 +19,19 @@ import type {
 } from './types';
 import {
     CATEGORIES,
-    MATERIALS,
     SUPPLIERS,
-    SUPPLIER_MATERIALS,
     PRODUCTS,
     PRODUCTION_PLANS,
     PURCHASE_ORDERS,
+} from './constants';
+import {
+    MATERIALS,
+    SUPPLIER_MATERIALS,
+} from '../app/materials/components/materials-config';
+import {
     PACKAGING,
     SUPPLIER_PACKAGING,
-} from './constants';
+} from '../app/packaging/components/packaging-constants';
 
 export class CostingWizardDB extends Dexie {
     categories!: Table<Category>;

@@ -1,4 +1,5 @@
-import { SUPPLIERS, CHART_COLORS } from "@/lib/constants";
+import { SUPPLIERS } from "@/lib/constants";
+import { CHART_COLORS } from "@/lib/color-utils";
 import { Supplier } from "@/lib/types";
 import {
   DollarSign,

@@ -1,22 +1,5 @@
 // recipe-constants.ts
 
-export const CHART_COLORS = {
-  light: {
-    chart1: "#5A9BD8", // ocean blue — calm + clear
-    chart2: "#7ED8C3", // seafoam green — fresh + soft
-    chart3: "#F5D49B", // sandy beige — warm neutral
-    chart4: "#F4A18E", // coral accent — gentle pop
-    chart5: "#4CB1A2", // teal — grounding tone
-  },
-  dark: {
-    chart1: "#6CB8F0", // bright ocean blue
-    chart2: "#8FE3CF", // misty green foam
-    chart3: "#F7DFAE", // light sand glow
-    chart4: "#F89F8C", // warm coral
-    chart5: "#5ED1C1", // cool teal
-  },
-} as const;
-
 /**
  * Defines the available units for ingredients and their conversion factors
  * to the base unit (kilogram: kg).

@@ -36,7 +36,7 @@ import {
   Line,
   ComposedChart,
 } from "recharts";
-import { CHART_COLORS } from "@/lib/constants";
+import { CHART_COLORS } from "@/lib/color-utils";
 import {
   SPEND_BY_SUPPLIER_DATA,
   ORDER_VOLUME_TRENDS_DATA,

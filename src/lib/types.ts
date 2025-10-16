@@ -101,7 +101,6 @@ export interface MaterialWithSuppliers extends Material {
 // ============================================================================
 // PACKAGING
 // ============================================================================
-
 export type PackagingType = "bottle" | "jar" | "can" | "box" | "pouch" | "other";
 export type CapacityUnit = "kg" | "L" | "ml" | "gm";
 export type BuildMaterial = "PET" | "HDPE" | "Glass" | "Plastic" | "Paper" | "Other";
@@ -122,14 +121,15 @@ export interface SupplierPackaging extends BaseEntity {
     unitPrice: number;
     tax?: number;
     moq?: number;
-    bulkPrice?: number;      // The actual quoted price
-    quantityForBulkPrice?: number;
+    bulkPrice: number;      // The actual quoted price
+    quantityForBulkPrice: number;
     bulkDiscounts?: BulkDiscount[];
     leadTime?: number;
     availability?: "in-stock" | "limited" | "out-of-stock";
     transportationCost?: number;
     notes?: string;
 }
+
 export interface PackagingWithSuppliers extends Packaging {
     supplierCount: number;
     suppliersList: Supplier[];
