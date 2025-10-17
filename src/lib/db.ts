@@ -32,6 +32,10 @@ import {
     PACKAGING,
     SUPPLIER_PACKAGING,
 } from '../app/packaging/components/packaging-constants';
+import {
+    LABELS,
+    SUPPLIER_LABELS,
+} from '../app/labels/components/labels-constants';
 
 export class CostingWizardDB extends Dexie {
     categories!: Table<Category>;
@@ -125,6 +129,16 @@ export class CostingWizardDB extends Dexie {
             const hasSupplierPackaging = await db.supplierPackaging.count() > 0;
             if (!hasSupplierPackaging) {
                 await db.supplierPackaging.bulkAdd(SUPPLIER_PACKAGING);
+            }
+
+            const hasLabels = await db.labels.count() > 0;
+            if (!hasLabels) {
+                await db.labels.bulkAdd(LABELS);
+            }
+
+            const hasSupplierLabels = await db.supplierLabels.count() > 0;
+            if (!hasSupplierLabels) {
+                await db.supplierLabels.bulkAdd(SUPPLIER_LABELS);
             }
 
             // Migrate from localStorage if exists

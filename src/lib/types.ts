@@ -140,12 +140,17 @@ export interface PackagingWithSuppliers extends Packaging {
 // LABELS
 // ============================================================================
 
+export type LabelType = "sticker" | "label" | "tag" | "other";
+export type PrintingType = "bw" | "color" | "foil" | "embossed";
+export type LabelMaterialType = "paper" | "vinyl" | "plastic" | "other";
+export type ShapeType = "rectangular" | "custom";
+
 export interface Label extends BaseEntity {
     name: string;
-    type: "sticker" | "label" | "tag";
-    printingType: "bw" | "color" | "foil" | "embossed";
-    material: "paper" | "vinyl" | "plastic" | "other";
-    shape: "rectangular" | "custom";
+    type: LabelType;
+    printingType: PrintingType;
+    material: LabelMaterialType;
+    shape: ShapeType;
     size?: string; // e.g., "50x30mm"
     labelFor?: string; //product name
     notes?: string;
@@ -160,6 +165,7 @@ export interface SupplierLabel extends BaseEntity {
     bulkPrice?: number;      // The actual quoted price
     quantityForBulkPrice?: number;
     moq: number;
+    tax?: number;
     bulkDiscounts?: BulkDiscount[];
     leadTime: number;
     availability: "in-stock" | "limited" | "out-of-stock";

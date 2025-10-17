@@ -15,6 +15,7 @@ export interface SupplierLabelWithDetails extends SupplierLabel {
     displayType: string;
     displayPrintingType: string;
     displayMaterial: string;
+    displayShape: string;
     priceWithTax: number;
 }
 
@@ -52,7 +53,8 @@ export function useSupplierLabelsWithDetails() {
                 displayType: label?.type || "Unknown",
                 displayPrintingType: label?.printingType || "Unknown",
                 displayMaterial: label?.material || "Unknown",
-                priceWithTax: sl.unitPrice, // No tax field in current schema
+                displayShape: label?.shape || "Unknown",
+                priceWithTax: sl.unitPrice * (1 + (sl.tax || 0) / 100),
             };
         });
 
@@ -85,7 +87,8 @@ export function useSupplierLabelWithDetailsById(id: string | undefined) {
             displayType: label?.type || "Unknown",
             displayPrintingType: label?.printingType || "Unknown",
             displayMaterial: label?.material || "Unknown",
-            priceWithTax: supplierLabel.unitPrice,
+            displayShape: label?.shape || "Unknown",
+            priceWithTax: supplierLabel.unitPrice * (1 + (supplierLabel.tax || 0) / 100),
         } as SupplierLabelWithDetails;
     }, [id]);
 
@@ -124,7 +127,8 @@ export function useLabelPriceComparison() {
                 displayType: label?.type || "Unknown",
                 displayPrintingType: label?.printingType || "Unknown",
                 displayMaterial: label?.material || "Unknown",
-                priceWithTax: sl.unitPrice,
+                displayShape: label?.shape || "Unknown",
+                priceWithTax: sl.unitPrice * (1 + (sl.tax || 0) / 100),
             };
 
             const existing = grouped.get(labelName) || [];

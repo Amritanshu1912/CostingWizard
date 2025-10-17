@@ -7,12 +7,7 @@ import { toast } from "sonner";
 import { Plus, List, Package, BarChart3, TrendingUp } from "lucide-react";
 import { nanoid } from "nanoid";
 import { MetricCard } from "@/components/ui/metric-card";
-
-import type {
-  SupplierPackaging,
-  PackagingType,
-  BuildMaterial,
-} from "@/lib/types";
+import type { SupplierPackaging } from "@/lib/types";
 import type { PackagingFormData } from "./supplier-packaging-dialog";
 import { SUPPLIERS } from "@/lib/constants";
 import { useDexieTable } from "@/hooks/use-dexie-table";

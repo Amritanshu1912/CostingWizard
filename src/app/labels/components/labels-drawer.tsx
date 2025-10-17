@@ -30,11 +30,16 @@ import { LabelsTableDrawer } from "./labels-table";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 
 interface LabelsDrawerProps {
+  onRefresh?: () => void;
   open: boolean;
   onOpenChange: (open: boolean) => void;
 }
 
-export function LabelsDrawer({ open, onOpenChange }: LabelsDrawerProps) {
+export function LabelsDrawer({
+  open,
+  onOpenChange,
+  onRefresh,
+}: LabelsDrawerProps) {
   const [editingLabelId, setEditingLabelId] = useState<string | null>(null);
   const [editForm, setEditForm] = useState({
     name: "",
@@ -51,23 +56,28 @@ export function LabelsDrawer({ open, onOpenChange }: LabelsDrawerProps) {
     useState<LabelsWithSuppliers | null>(null);
   const [loading, setLoading] = useState(false);
   const [isAddingNew, setIsAddingNew] = useState(false);
+  const [shakeFields, setShakeFields] = useState(false);
 
   // Fetch labels with supplier count
   const labelsWithSuppliers = useLiveQuery(async () => {
-    const [labels, supplierLabels] = await Promise.all([
+    const [labels, supplierLabels, suppliers] = await Promise.all([
       db.labels.toArray(),
       db.supplierLabels.toArray(),
+      db.suppliers.toArray(),
     ]);
 
     const result = labels.map((label) => {
       const supplierLabelList = supplierLabels.filter(
         (sl) => sl.labelId === label.id
       );
+      const suppliersList = supplierLabelList
+        .map((sm) => suppliers.find((s) => s.id === sm.supplierId))
+        .filter((s): s is (typeof suppliers)[0] => s !== undefined);
 
       return {
         ...label,
         supplierCount: supplierLabelList.length,
-        suppliersList: [], // We'll populate this if needed
+        suppliersList,
       } as LabelsWithSuppliers;
     });
 
@@ -127,6 +137,7 @@ export function LabelsDrawer({ open, onOpenChange }: LabelsDrawerProps) {
   const cancelEdit = () => {
     setEditingLabelId(null);
     setIsAddingNew(false);
+    setShakeFields(false);
     setEditForm({
       name: "",
       type: "",
@@ -139,96 +150,146 @@ export function LabelsDrawer({ open, onOpenChange }: LabelsDrawerProps) {
     });
   };
 
-  // Save edit
+  // Save edit with transaction
   const saveEdit = async () => {
     if (!editingLabelId) return;
 
     const trimmedName = editForm.name.trim();
+    const trimmedType = editForm.type.trim();
+    const trimmedPrintingType = editForm.printingType.trim();
+    const trimmedMaterial = editForm.material.trim();
+    const trimmedShape = editForm.shape.trim();
+    const trimmedSize = editForm.size.trim();
+    const trimmedLabelFor = editForm.labelFor.trim();
 
-    if (!trimmedName) {
-      toast.error("Name is required");
+    if (!trimmedName || !trimmedType) {
+      toast.error("Name and type are required");
       return;
     }
 
     setLoading(true);
     try {
-      const now = new Date().toISOString();
+      await db.transaction("rw", [db.labels], async () => {
+        const now = new Date().toISOString();
 
-      if (isAddingNew) {
-        // Check for duplicate name
-        const normalized = normalizeText(trimmedName);
-        const duplicate = await db.labels
-          .filter((l) => normalizeText(l.name) === normalized)
-          .first();
+        if (isAddingNew) {
+          // Check for duplicate label with same properties
+          const normalized = normalizeText(trimmedName);
+          const existingLabel = await db.labels
+            .filter((l) => normalizeText(l.name) === normalized)
+            .first();
 
-        if (duplicate) {
-          toast.error(`Label "${duplicate.name}" already exists`);
-          return;
+          if (existingLabel) {
+            // Check if all key properties are identical (normalize string comparisons)
+            const isExactDuplicate =
+              normalizeText(existingLabel.type || "") ===
+                normalizeText(trimmedType) &&
+              normalizeText(existingLabel.printingType || "") ===
+                normalizeText(trimmedPrintingType) &&
+              normalizeText(existingLabel.material || "") ===
+                normalizeText(trimmedMaterial) &&
+              normalizeText(existingLabel.shape || "") ===
+                normalizeText(trimmedShape) &&
+              normalizeText(existingLabel.size || "") ===
+                normalizeText(trimmedSize) &&
+              normalizeText(existingLabel.labelFor || "") ===
+                normalizeText(trimmedLabelFor);
+
+            if (isExactDuplicate) {
+              setShakeFields(true);
+              setTimeout(() => setShakeFields(false), 500);
+              toast.error(
+                "A label with this name and identical properties already exists. Please modify at least one property (type, printing, material, shape, size, or label for) to create a new entry."
+              );
+              return;
+            }
+          }
+
+          // Add new label
+          await db.labels.add({
+            id: nanoid(),
+            name: trimmedName,
+            type: trimmedType as any,
+            printingType: trimmedPrintingType as any,
+            material: trimmedMaterial as any,
+            shape: trimmedShape as any,
+            size: trimmedSize || undefined,
+            labelFor: trimmedLabelFor || undefined,
+            notes: editForm.notes || undefined,
+            createdAt: now,
+          });
+
+          toast.success("Label added successfully");
+        } else {
+          // Check for duplicate label with same properties (excluding current label)
+          const normalized = normalizeText(trimmedName);
+          const existingLabel = await db.labels
+            .filter(
+              (l) =>
+                l.id !== editingLabelId && normalizeText(l.name) === normalized
+            )
+            .first();
+
+          if (existingLabel) {
+            // Check if all key properties are identical (normalize string comparisons)
+            const isExactDuplicate =
+              normalizeText(existingLabel.type || "") ===
+                normalizeText(trimmedType) &&
+              normalizeText(existingLabel.printingType || "") ===
+                normalizeText(trimmedPrintingType) &&
+              normalizeText(existingLabel.material || "") ===
+                normalizeText(trimmedMaterial) &&
+              normalizeText(existingLabel.shape || "") ===
+                normalizeText(trimmedShape) &&
+              normalizeText(existingLabel.size || "") ===
+                normalizeText(trimmedSize) &&
+              normalizeText(existingLabel.labelFor || "") ===
+                normalizeText(trimmedLabelFor);
+
+            console.log("Editing label - Exact duplicate check:");
+            console.log("existingLabel.type:", existingLabel.type);
+            console.log("trimmedType:", trimmedType);
+            console.log(
+              "normalizeText(existingLabel.type):",
+              normalizeText(existingLabel.type || "")
+            );
+            console.log(
+              "normalizeText(trimmedType):",
+              normalizeText(trimmedType)
+            );
+            console.log("isExactDuplicate:", isExactDuplicate);
+
+            if (isExactDuplicate) {
+              setShakeFields(true);
+              setTimeout(() => setShakeFields(false), 500);
+              toast.error(
+                "A label with this name and identical properties already exists. Please modify at least one property (type, printing, material, shape, size, or label for) to create a new entry."
+              );
+              return;
+            }
+          }
+
+          // Update label
+          await db.labels.update(editingLabelId, {
+            name: trimmedName,
+            type: trimmedType as any,
+            printingType: trimmedPrintingType as any,
+            material: trimmedMaterial as any,
+            shape: trimmedShape as any,
+            size: trimmedSize || undefined,
+            labelFor: trimmedLabelFor || undefined,
+            notes: editForm.notes || undefined,
+            updatedAt: now,
+          });
+
+          toast.success("Label updated successfully");
         }
 
-        // Create new label
-        await db.labels.add({
-          id: nanoid(),
-          name: trimmedName,
-          type: editForm.type as "sticker" | "label" | "tag",
-          printingType: editForm.printingType as
-            | "bw"
-            | "color"
-            | "foil"
-            | "embossed",
-          material: editForm.material as
-            | "paper"
-            | "vinyl"
-            | "plastic"
-            | "other",
-          shape: editForm.shape as "rectangular" | "custom",
-          size: editForm.size || undefined,
-          labelFor: editForm.labelFor || undefined,
-          notes: editForm.notes || undefined,
-          createdAt: now,
-        });
+        cancelEdit();
 
-        toast.success("Label added successfully");
-      } else {
-        // Check for duplicate name (excluding current label)
-        const normalized = normalizeText(trimmedName);
-        const duplicate = await db.labels
-          .filter(
-            (l) =>
-              l.id !== editingLabelId && normalizeText(l.name) === normalized
-          )
-          .first();
-
-        if (duplicate) {
-          toast.error(`Label "${duplicate.name}" already exists`);
-          return;
-        }
-
-        // Update label
-        await db.labels.update(editingLabelId, {
-          name: trimmedName,
-          type: editForm.type as "sticker" | "label" | "tag",
-          printingType: editForm.printingType as
-            | "bw"
-            | "color"
-            | "foil"
-            | "embossed",
-          material: editForm.material as
-            | "paper"
-            | "vinyl"
-            | "plastic"
-            | "other",
-          shape: editForm.shape as "rectangular" | "custom",
-          size: editForm.size || undefined,
-          labelFor: editForm.labelFor || undefined,
-          notes: editForm.notes || undefined,
-          updatedAt: now,
-        });
-
-        toast.success("Label updated successfully");
-      }
-
-      cancelEdit();
+        // Trigger refresh of other components
+        if (onRefresh) onRefresh();
+      });
     } catch (error) {
       console.error("Error saving label:", error);
       toast.error("Failed to save label");
@@ -243,27 +304,29 @@ export function LabelsDrawer({ open, onOpenChange }: LabelsDrawerProps) {
     setDeleteConfirmOpen(true);
   };
 
-  // Confirm delete
+  // Confirm delete with transaction
   const confirmDelete = async () => {
     if (!labelToDelete) return;
 
     setLoading(true);
     try {
-      // Double-check no supplier labels reference it
-      const supplierLabelCount = await db.supplierLabels
-        .where("labelId")
-        .equals(labelToDelete.id)
-        .count();
+      await db.transaction("rw", [db.labels, db.supplierLabels], async () => {
+        // Double-check no supplier labels reference it
+        const supplierLabelCount = await db.supplierLabels
+          .where("labelId")
+          .equals(labelToDelete.id)
+          .count();
 
-      if (supplierLabelCount > 0) {
-        toast.error("Cannot delete label that is used by suppliers");
-        return;
-      }
+        if (supplierLabelCount > 0) {
+          toast.error("Cannot delete label that is used by suppliers");
+          return;
+        }
 
-      await db.labels.delete(labelToDelete.id);
-      toast.success("Label deleted successfully");
-      setDeleteConfirmOpen(false);
-      setLabelToDelete(null);
+        await db.labels.delete(labelToDelete.id);
+        toast.success("Label deleted successfully");
+        setDeleteConfirmOpen(false);
+        setLabelToDelete(null);
+      });
     } catch (error) {
       console.error("Error deleting label:", error);
       toast.error("Failed to delete label");
@@ -364,17 +427,20 @@ export function LabelsDrawer({ open, onOpenChange }: LabelsDrawerProps) {
                   </Alert>
                 )}
 
-                <LabelsTableDrawer
-                  data={labelsWithSuppliers}
-                  editingLabelId={editingLabelId}
-                  editForm={editForm}
-                  loading={loading}
-                  onEditFormChange={setEditForm}
-                  onStartEdit={startEdit}
-                  onSaveEdit={saveEdit}
-                  onCancelEdit={cancelEdit}
-                  onInitiateDelete={initiateDelete}
-                />
+                <div className="border rounded-lg overflow-hidden bg-card">
+                  <LabelsTableDrawer
+                    data={labelsWithSuppliers}
+                    editingLabelId={editingLabelId}
+                    editForm={editForm}
+                    loading={loading}
+                    shakeFields={shakeFields}
+                    onEditFormChange={setEditForm}
+                    onStartEdit={startEdit}
+                    onSaveEdit={saveEdit}
+                    onCancelEdit={cancelEdit}
+                    onInitiateDelete={initiateDelete}
+                  />
+                </div>
               </div>
             )}
           </div>
@@ -385,9 +451,13 @@ export function LabelsDrawer({ open, onOpenChange }: LabelsDrawerProps) {
       <AlertDialog open={deleteConfirmOpen} onOpenChange={setDeleteConfirmOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Delete {labelToDelete?.name}?</AlertDialogTitle>
+            <AlertDialogTitle className="flex items-center gap-2">
+              <AlertCircle className="h-5 w-5 text-destructive" />
+              Delete {labelToDelete?.name}?
+            </AlertDialogTitle>
             <AlertDialogDescription>
-              This action cannot be undone.
+              This action cannot be undone. The label item will be permanently
+              removed from your inventory.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

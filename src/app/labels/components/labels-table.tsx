@@ -15,6 +15,22 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
+import {
+  getLabelTypeLabel,
+  getPrintingTypeLabel,
+  getMaterialTypeLabel,
+  getShapeTypeLabel,
+  getLabelTypeColor,
+  getPrintingTypeColor,
+  getMaterialTypeColor,
+  getShapeTypeColor,
+} from "./labels-constants";
 
 interface LabelsTableDrawerProps {
   data: LabelsWithSuppliers[];
@@ -30,6 +46,7 @@ interface LabelsTableDrawerProps {
     notes: string;
   };
   loading: boolean;
+  shakeFields?: boolean;
   onEditFormChange: (form: {
     name: string;
     type: string;
@@ -51,6 +68,7 @@ export function LabelsTableDrawer({
   editingLabelId,
   editForm,
   loading,
+  shakeFields = false,
   onEditFormChange,
   onStartEdit,
   onSaveEdit,
@@ -106,9 +124,15 @@ export function LabelsTableDrawer({
               </Select>
             );
           }
+          const displayValue = getLabelTypeLabel(row.type);
+          const color = getLabelTypeColor(row.type);
           return (
-            <Badge variant="outline" className="text-xs">
-              {row.type}
+            <Badge
+              variant="outline"
+              className="text-xs"
+              style={{ borderColor: color, color }}
+            >
+              {displayValue}
             </Badge>
           );
         },
@@ -138,9 +162,15 @@ export function LabelsTableDrawer({
               </Select>
             );
           }
+          const displayValue = getPrintingTypeLabel(row.printingType);
+          const color = getPrintingTypeColor(row.printingType);
           return (
-            <Badge variant="secondary" className="text-xs">
-              {row.printingType}
+            <Badge
+              variant="secondary"
+              className="text-xs"
+              style={{ backgroundColor: color, color: "white" }}
+            >
+              {displayValue}
             </Badge>
           );
         },
@@ -170,7 +200,17 @@ export function LabelsTableDrawer({
               </Select>
             );
           }
-          return <span className="text-muted-foreground">{row.material}</span>;
+          const displayValue = getMaterialTypeLabel(row.material);
+          const color = getMaterialTypeColor(row.material);
+          return (
+            <Badge
+              variant="outline"
+              className="text-xs"
+              style={{ borderColor: color, color }}
+            >
+              {displayValue}
+            </Badge>
+          );
         },
       },
       {
@@ -196,7 +236,17 @@ export function LabelsTableDrawer({
               </Select>
             );
           }
-          return <span className="text-muted-foreground">{row.shape}</span>;
+          const displayValue = getShapeTypeLabel(row.shape);
+          const color = getShapeTypeColor(row.shape);
+          return (
+            <Badge
+              variant="outline"
+              className="text-xs"
+              style={{ borderColor: color, color }}
+            >
+              {displayValue}
+            </Badge>
+          );
         },
       },
       {
@@ -230,7 +280,33 @@ export function LabelsTableDrawer({
             return <span className="text-muted-foreground">0</span>;
           }
 
-          return <span className="font-medium">{row.supplierCount}</span>;
+          return (
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <div className="inline-flex items-center gap-1.5 cursor-help">
+                    <Badge variant="outline" className="font-medium">
+                      {row.supplierCount}
+                    </Badge>
+                  </div>
+                </TooltipTrigger>
+                <TooltipContent side="left" className="max-w-xs">
+                  <div className="text-sm">
+                    <div className="font-semibold mb-1">
+                      Linked Suppliers ({row.supplierCount})
+                    </div>
+                    <div className="space-y-1">
+                      {row.suppliersList.map((s) => (
+                        <div key={s.id} className="text-white">
+                          • {s.name}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+          );
         },
       },
       {
