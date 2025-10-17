@@ -1,22 +1,5 @@
+import { Material, SupplierMaterial } from "@/lib/types";
 import { TrendingUp, Target, AlertTriangle, DollarSign } from "lucide-react";
-
-// Chart Colors
-export const CHART_COLORS = {
-  light: {
-    chart1: "rgb(66, 153, 225)",
-    chart2: "rgb(237, 137, 54)",
-    chart3: "rgb(104, 178, 168)",
-    chart4: "rgb(213, 186, 142)",
-    chart5: "rgb(59, 130, 123)",
-  },
-  dark: {
-    chart1: "rgb(95, 174, 255)",
-    chart2: "rgb(243, 154, 78)",
-    chart3: "rgb(133, 199, 189)",
-    chart4: "rgb(223, 203, 167)",
-    chart5: "rgb(89, 150, 143)",
-  },
-} as const;
 
 // Form Options
 export const MATERIAL_CATEGORIES = [
@@ -40,7 +23,7 @@ export const PAYMENT_TERMS = [
 
 export const CURRENCIES = ["INR", "USD", "EUR"] as const;
 
-export const UNITS = ["kg", "liters", "pieces", "meters"] as const;
+export const UNITS = ["kg", "gm", "liters", "pieces", "meters"] as const;
 
 export const AVAILABILITY_OPTIONS = [
   "in-stock",
@@ -53,10 +36,14 @@ export const DEFAULT_MATERIAL_FORM = {
   supplierId: "",
   materialName: "",
   materialCategory: "",
+  materialId: "",
   unitPrice: 0,
+  bulkPrice: 0, // NEW
+  quantityForBulkPrice: 1, // NEW
   currency: "INR" as const,
   moq: 1,
   unit: "kg" as const,
+  tax: 0,
   bulkDiscounts: [],
   leadTime: 7,
   availability: "in-stock" as const,
@@ -164,5 +151,193 @@ export const AI_INSIGHTS = [
     description: "Citric Acid prices expected to increase 12% next quarter",
     impact: "High",
     confidence: 85,
+  },
+];
+
+// ============================================================================
+// MATERIALS & SUPPLIER_MATERIALS
+// ============================================================================
+
+export const MATERIALS: Material[] = [
+  {
+    id: "1",
+    name: "Acid Blue Color",
+    category: "Colors",
+    createdAt: "2024-01-10",
+  },
+  {
+    id: "2",
+    name: "Acid Slurry 90%",
+    category: "Acids",
+    createdAt: "2024-01-10",
+  },
+  {
+    id: "3",
+    name: "CBS-X",
+    category: "Thickeners",
+    createdAt: "2024-01-10",
+  },
+  {
+    id: "4",
+    name: "Caustic Soda",
+    category: "Bases",
+    createdAt: "2024-01-10",
+  },
+  {
+    id: "5",
+    name: "Citric Acid",
+    category: "Acids",
+    createdAt: "2024-01-10",
+  },
+  {
+    id: "6",
+    name: "NaCl",
+    category: "Salts",
+    createdAt: "2024-01-10",
+  },
+  {
+    id: "7",
+    name: "Dolamite",
+    category: "Other",
+    createdAt: "2024-01-10",
+  },
+  {
+    id: "8",
+    name: "Soda Ash",
+    category: "Bases",
+    createdAt: "2024-01-10",
+  },
+  {
+    id: "9",
+    name: "AOS Powder 96%",
+    category: "Other",
+    createdAt: "2024-01-10",
+  },
+];
+
+export const SUPPLIER_MATERIALS: SupplierMaterial[] = [
+  {
+    id: "1",
+    supplierId: "1",
+    materialId: "2",
+    unit: "kg",
+    unitPrice: 117,
+    tax: 5,
+    moq: 50,
+    bulkDiscounts: [
+      { quantity: 100, discount: 5 },
+      { quantity: 500, discount: 12 },
+      { quantity: 1000, discount: 18 },
+    ],
+    leadTime: 7,
+    availability: "in-stock",
+    transportationCost: 15,
+    notes: "High purity, consistent quality",
+    createdAt: "2024-01-15",
+  },
+  {
+    id: "2",
+    supplierId: "1",
+    materialId: "4",
+    unit: "kg",
+    unitPrice: 57,
+    tax: 5,
+    moq: 100,
+    bulkDiscounts: [
+      { quantity: 500, discount: 8 },
+      { quantity: 1000, discount: 15 },
+    ],
+    leadTime: 5,
+    availability: "in-stock",
+    transportationCost: 12,
+    notes: "Industrial grade, 99% purity",
+    createdAt: "2024-01-15",
+  },
+  {
+    id: "3",
+    supplierId: "1",
+    materialId: "5",
+    unit: "kg",
+    unitPrice: 93,
+    tax: 5,
+    moq: 40,
+    bulkDiscounts: [
+      { quantity: 100, discount: 7 },
+      { quantity: 500, discount: 15 },
+    ],
+    leadTime: 6,
+    availability: "in-stock",
+    transportationCost: 18,
+    createdAt: "2024-01-15",
+  },
+  {
+    id: "4",
+    supplierId: "2",
+    materialId: "1",
+    unit: "kg",
+    unitPrice: 1600,
+    tax: 5,
+    moq: 5,
+    bulkDiscounts: [
+      { quantity: 10, discount: 3 },
+      { quantity: 25, discount: 8 },
+    ],
+    leadTime: 10,
+    availability: "in-stock",
+    transportationCost: 25,
+    notes: "Premium quality, vibrant color",
+    createdAt: "2024-01-20",
+  },
+  {
+    id: "5",
+    supplierId: "2",
+    materialId: "9",
+    unit: "kg",
+    unitPrice: 148,
+    tax: 5,
+    moq: 30,
+    bulkDiscounts: [
+      { quantity: 75, discount: 5 },
+      { quantity: 200, discount: 12 },
+    ],
+    leadTime: 7,
+    availability: "in-stock",
+    transportationCost: 20,
+    createdAt: "2024-01-20",
+  },
+  {
+    id: "6",
+    supplierId: "3",
+    materialId: "6",
+    unit: "kg",
+    unitPrice: 6,
+    tax: 5,
+    moq: 500,
+    bulkDiscounts: [
+      { quantity: 1000, discount: 10 },
+      { quantity: 5000, discount: 20 },
+    ],
+    leadTime: 3,
+    availability: "in-stock",
+    transportationCost: 8,
+    notes: "Food grade quality, bulk pricing available",
+    createdAt: "2024-02-01",
+  },
+  {
+    id: "7",
+    supplierId: "3",
+    materialId: "8",
+    unit: "kg",
+    unitPrice: 39,
+    tax: 5,
+    moq: 200,
+    bulkDiscounts: [
+      { quantity: 500, discount: 8 },
+      { quantity: 1000, discount: 15 },
+    ],
+    leadTime: 4,
+    availability: "in-stock",
+    transportationCost: 10,
+    createdAt: "2024-02-01",
   },
 ];

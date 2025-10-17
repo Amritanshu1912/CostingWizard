@@ -32,8 +32,8 @@ import {
   MATERIAL_USAGE_DATA,
   KEY_METRICS,
   AI_INSIGHTS,
-  CHART_COLORS,
 } from "./materials-config";
+import { CHART_COLORS } from "@/lib/color-utils";
 
 export function MaterialsAnalytics() {
   return (

@@ -41,8 +41,12 @@ export function useSupplierMaterialsWithDetails() {
             const material = sm.materialId ? materialMap.get(sm.materialId) : undefined;
             const supplier = supplierMap.get(sm.supplierId);
 
+            // Ensure unitPrice is calculated correctly if not set
+            const unitPrice = sm.unitPrice || (sm.bulkPrice || 0) / (sm.quantityForBulkPrice || 1);
+
             return {
                 ...sm,
+                unitPrice, // Use calculated or stored value
                 material,
                 supplier,
 
@@ -50,7 +54,7 @@ export function useSupplierMaterialsWithDetails() {
                 displayName: material?.name || "Unknown Material",
                 displayCategory: material?.category || "Uncategorized",
                 displayUnit: sm.unit || "kg",
-                priceWithTax: sm.unitPrice * (1 + (sm.tax || 0) / 100),
+                priceWithTax: unitPrice * (1 + (sm.tax || 0) / 100),
             };
         });
 
@@ -71,18 +75,22 @@ export function useSupplierMaterialWithDetails(id: string | undefined) {
         if (!supplierMaterial) return null;
 
         const [material, supplier] = await Promise.all([
-            db.materials.get(supplierMaterial.materialId),
+            supplierMaterial.materialId ? db.materials.get(supplierMaterial.materialId) : undefined,
             db.suppliers.get(supplierMaterial.supplierId),
         ]);
 
+        const unitPrice = supplierMaterial.unitPrice ||
+            (supplierMaterial.bulkPrice || 0) / (supplierMaterial.quantityForBulkPrice || 1);
+
         return {
             ...supplierMaterial,
+            unitPrice,
             material,
             supplier,
             displayName: material?.name || "Unknown Material",
             displayCategory: material?.category || "Uncategorized",
             displayUnit: supplierMaterial.unit || "kg",
-            priceWithTax: supplierMaterial.unitPrice * (1 + (supplierMaterial.tax || 0) / 100),
+            priceWithTax: unitPrice * (1 + (supplierMaterial.tax || 0) / 100),
         } as SupplierMaterialWithDetails;
     }, [id]);
 
@@ -113,14 +121,18 @@ export function useMaterialPriceComparison() {
 
             if (!material) return;
 
+            const unitPrice = sm.unitPrice ||
+                (sm.bulkPrice || 0) / (sm.quantityForBulkPrice || 1);
+
             const enriched: SupplierMaterialWithDetails = {
                 ...sm,
+                unitPrice,
                 material,
                 supplier,
                 displayName: material.name,
                 displayCategory: material.category,
                 displayUnit: sm.unit || "kg",
-                priceWithTax: sm.unitPrice * (1 + (sm.tax || 0) / 100),
+                priceWithTax: unitPrice * (1 + (sm.tax || 0) / 100),
             };
 
             const existing = grouped.get(material.name) || [];

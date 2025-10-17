@@ -32,8 +32,6 @@ import {
   PieChart,
   Pie,
   Cell,
-  ScatterChart,
-  Scatter,
 } from "recharts";
 import { TrendingUp, TrendingDown } from "lucide-react";
 import {
@@ -43,9 +41,8 @@ import {
   recipeProfitMargins,
   ingredientCostDistribution,
   recipeCostTrends,
-  costVsProfitData,
-  CHART_COLORS,
 } from "./recipes-constants";
+import { CHART_COLORS } from "@/lib/color-utils";
 
 export function RecipesAnalytics() {
   const [selectedRecipes, setSelectedRecipes] = useState(

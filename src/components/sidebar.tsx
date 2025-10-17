@@ -15,6 +15,7 @@ import {
   Menu,
   X,
   Box,
+  Tag,
 } from "lucide-react";
 
 const navigation = [
@@ -32,6 +33,11 @@ const navigation = [
     name: "Packaging",
     href: "/packaging",
     icon: Box,
+  },
+  {
+    name: "Labels",
+    href: "/labels",
+    icon: Tag,
   },
   {
     name: "Recipes",

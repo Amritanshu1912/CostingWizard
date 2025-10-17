@@ -1,11 +1,15 @@
 import type {
+    Packaging,
+    SupplierPackaging,
     Category,
     Material,
     Supplier,
     SupplierMaterial,
     Product,
     ProductionPlan,
-    PurchaseOrder
+    PurchaseOrder,
+    Label,
+    SupplierLabel
 } from "@/lib/types";
 import {
     Calendar,
@@ -15,9 +19,273 @@ import {
     FlaskConical as Flask,
 } from "lucide-react";
 
+
+
+// ============================================================================
+// LABELS
+// ============================================================================
+
+
+export const LABELS: Label[] = [
+    {
+        id: "1",
+        name: "Standard Sticker Label",
+        type: "sticker",
+        printingType: "color",
+        material: "paper",
+        shape: "rectangular",
+        size: "50x30mm",
+        labelFor: "Floor Cleaner",
+        notes: "Waterproof adhesive, suitable for bottles",
+        createdAt: "2024-01-01T00:00:00.000Z",
+    },
+    {
+        id: "2",
+        name: "Premium Label Tag",
+        type: "label",
+        printingType: "foil",
+        material: "vinyl",
+        shape: "rectangular",
+        size: "80x50mm",
+        labelFor: "Bathroom Cleaner",
+        notes: "High-quality foil printing for premium products",
+        createdAt: "2024-01-01T00:00:00.000Z",
+    },
+    {
+        id: "3",
+        name: "Custom Shape Tag",
+        type: "tag",
+        printingType: "bw",
+        material: "paper",
+        shape: "custom",
+        size: "60x40mm",
+        labelFor: "Glass Cleaner",
+        notes: "Custom die-cut shape for branding",
+        createdAt: "2024-01-01T00:00:00.000Z",
+    },
+    {
+        id: "4",
+        name: "Embossed Label",
+        type: "label",
+        printingType: "embossed",
+        material: "plastic",
+        shape: "rectangular",
+        size: "70x45mm",
+        labelFor: "Kitchen Degreaser",
+        notes: "Embossed texture for luxury feel",
+        createdAt: "2024-01-01T00:00:00.000Z",
+    },
+    {
+        id: "5",
+        name: "Small Sticker",
+        type: "sticker",
+        printingType: "color",
+        material: "vinyl",
+        shape: "rectangular",
+        size: "30x20mm",
+        labelFor: "Sample Products",
+        notes: "Small size for sample bottles",
+        createdAt: "2024-01-01T00:00:00.000Z",
+    },
+    {
+        id: "6",
+        name: "Large Product Tag",
+        type: "tag",
+        printingType: "color",
+        material: "paper",
+        shape: "custom",
+        size: "100x60mm",
+        labelFor: "Bulk Containers",
+        notes: "Large format for industrial containers",
+        createdAt: "2024-01-01T00:00:00.000Z",
+    },
+    {
+        id: "7",
+        name: "Security Label",
+        type: "sticker",
+        printingType: "foil",
+        material: "plastic",
+        shape: "rectangular",
+        size: "40x25mm",
+        labelFor: "Premium Products",
+        notes: "Tamper-evident security features",
+        createdAt: "2024-01-01T00:00:00.000Z",
+    },
+    {
+        id: "8",
+        name: "Recyclable Label",
+        type: "label",
+        printingType: "bw",
+        material: "paper",
+        shape: "rectangular",
+        size: "55x35mm",
+        labelFor: "Eco Products",
+        notes: "Made from recycled materials",
+        createdAt: "2024-01-01T00:00:00.000Z",
+    },
+];
+
+
+export const SUPPLIER_LABELS: SupplierLabel[] = [
+    {
+        id: "1",
+        supplierId: "1",
+        labelId: "1",
+        unit: "pieces",
+        unitPrice: 0.15,
+        bulkPrice: 120,
+        quantityForBulkPrice: 1000,
+        moq: 500,
+        bulkDiscounts: [
+            { quantity: 5000, discount: 10 },
+            { quantity: 10000, discount: 18 },
+        ],
+        leadTime: 7,
+        availability: "in-stock",
+        transportationCost: 8,
+        notes: "Standard quality sticker labels",
+        createdAt: "2024-01-15T00:00:00.000Z",
+    },
+    {
+        id: "2",
+        supplierId: "1",
+        labelId: "2",
+        unit: "pieces",
+        unitPrice: 0.85,
+        bulkPrice: 680,
+        quantityForBulkPrice: 1000,
+        moq: 200,
+        bulkDiscounts: [
+            { quantity: 2000, discount: 12 },
+            { quantity: 5000, discount: 20 },
+        ],
+        leadTime: 10,
+        availability: "in-stock",
+        transportationCost: 15,
+        notes: "Premium foil printing available",
+        createdAt: "2024-01-15T00:00:00.000Z",
+    },
+    {
+        id: "3",
+        supplierId: "2",
+        labelId: "3",
+        unit: "pieces",
+        unitPrice: 0.25,
+        bulkPrice: 200,
+        quantityForBulkPrice: 1000,
+        moq: 1000,
+        bulkDiscounts: [
+            { quantity: 5000, discount: 8 },
+            { quantity: 10000, discount: 15 },
+        ],
+        leadTime: 5,
+        availability: "in-stock",
+        transportationCost: 6,
+        notes: "Custom die-cutting service available",
+        createdAt: "2024-01-20T00:00:00.000Z",
+    },
+    {
+        id: "4",
+        supplierId: "2",
+        labelId: "4",
+        unit: "pieces",
+        unitPrice: 1.2,
+        bulkPrice: 960,
+        quantityForBulkPrice: 1000,
+        moq: 100,
+        bulkDiscounts: [
+            { quantity: 2000, discount: 15 },
+            { quantity: 5000, discount: 25 },
+        ],
+        leadTime: 12,
+        availability: "limited",
+        transportationCost: 18,
+        notes: "Specialized embossing equipment",
+        createdAt: "2024-01-20T00:00:00.000Z",
+    },
+    {
+        id: "5",
+        supplierId: "3",
+        labelId: "5",
+        unit: "pieces",
+        unitPrice: 0.08,
+        bulkPrice: 64,
+        quantityForBulkPrice: 1000,
+        moq: 2000,
+        bulkDiscounts: [
+            { quantity: 10000, discount: 12 },
+            { quantity: 25000, discount: 20 },
+        ],
+        leadTime: 4,
+        availability: "in-stock",
+        transportationCost: 4,
+        notes: "Bulk pricing for small labels",
+        createdAt: "2024-02-01T00:00:00.000Z",
+    },
+    {
+        id: "6",
+        supplierId: "3",
+        labelId: "6",
+        unit: "pieces",
+        unitPrice: 0.45,
+        bulkPrice: 360,
+        quantityForBulkPrice: 1000,
+        moq: 500,
+        bulkDiscounts: [
+            { quantity: 5000, discount: 10 },
+            { quantity: 10000, discount: 18 },
+        ],
+        leadTime: 6,
+        availability: "in-stock",
+        transportationCost: 10,
+        notes: "Large format printing capabilities",
+        createdAt: "2024-02-01T00:00:00.000Z",
+    },
+    {
+        id: "7",
+        supplierId: "1",
+        labelId: "7",
+        unit: "pieces",
+        unitPrice: 0.35,
+        bulkPrice: 280,
+        quantityForBulkPrice: 1000,
+        moq: 300,
+        bulkDiscounts: [
+            { quantity: 2000, discount: 8 },
+            { quantity: 5000, discount: 15 },
+        ],
+        leadTime: 8,
+        availability: "in-stock",
+        transportationCost: 12,
+        notes: "Security features available",
+        createdAt: "2024-01-15T00:00:00.000Z",
+    },
+    {
+        id: "8",
+        supplierId: "2",
+        labelId: "8",
+        unit: "pieces",
+        unitPrice: 0.12,
+        bulkPrice: 96,
+        quantityForBulkPrice: 1000,
+        moq: 1000,
+        bulkDiscounts: [
+            { quantity: 5000, discount: 10 },
+            { quantity: 10000, discount: 18 },
+        ],
+        leadTime: 5,
+        availability: "in-stock",
+        transportationCost: 5,
+        notes: "Eco-friendly materials",
+        createdAt: "2024-01-20T00:00:00.000Z",
+    },
+];
+
+
 // ============================================================================
 // MASTER DATA - Single Source of Truth
 // ============================================================================
+
 
 export const CATEGORIES: Category[] = [
     { id: "1", name: "Acids", description: "Acidic compounds and solutions", createdAt: "2024-01-01T00:00:00.000Z" },
@@ -29,71 +297,9 @@ export const CATEGORIES: Category[] = [
     { id: "7", name: "Other", description: "Miscellaneous materials", createdAt: "2024-01-01T00:00:00.000Z" },
 ];
 
-export const MATERIALS: Material[] = [
-    {
-        id: "1",
-        name: "Acid Blue Color",
-        category: "Colors",
-        unit: "kg",
-        createdAt: "2024-01-10",
-    },
-    {
-        id: "2",
-        name: "Acid Slurry 90%",
-        category: "Acids",
-        unit: "kg",
-        createdAt: "2024-01-10",
-    },
-    {
-        id: "3",
-        name: "CBS-X",
-        category: "Thickeners",
-        unit: "kg",
-        createdAt: "2024-01-10",
-    },
-    {
-        id: "4",
-        name: "Caustic Soda",
-        category: "Bases",
-        unit: "kg",
-        createdAt: "2024-01-10",
-    },
-    {
-        id: "5",
-        name: "Citric Acid",
-        category: "Acids",
-        unit: "kg",
-        createdAt: "2024-01-10",
-    },
-    {
-        id: "6",
-        name: "NaCl",
-        category: "Salts",
-        unit: "kg",
-        createdAt: "2024-01-10",
-    },
-    {
-        id: "7",
-        name: "Dolamite",
-        category: "Other",
-        unit: "kg",
-        createdAt: "2024-01-10",
-    },
-    {
-        id: "8",
-        name: "Soda Ash",
-        category: "Bases",
-        unit: "kg",
-        createdAt: "2024-01-10",
-    },
-    {
-        id: "9",
-        name: "AOS Powder 96%",
-        category: "Other",
-        unit: "kg",
-        createdAt: "2024-01-10",
-    },
-];
+// ============================================================================
+// SUPPLIERS
+// ============================================================================
 
 export const SUPPLIERS: Supplier[] = [
     {
@@ -155,157 +361,10 @@ export const SUPPLIERS: Supplier[] = [
     },
 ];
 
-export const SUPPLIER_MATERIALS: SupplierMaterial[] = [
-    {
-        id: "1",
-        supplierId: "1",
-        materialId: "2",
-        materialName: "Acid Slurry 90%",
-        materialCategory: "Acids",
-        unit: "kg",
-        unitPrice: 117,
-        tax: 5,
-        priceWithTax: 122.85,
-        moq: 50,
-        bulkDiscounts: [
-            { quantity: 100, discount: 5 },
-            { quantity: 500, discount: 12 },
-            { quantity: 1000, discount: 18 },
-        ],
-        leadTime: 7,
-        availability: "in-stock",
-        transportationCost: 15,
-        notes: "High purity, consistent quality",
-        createdAt: "2024-01-15",
-    },
-    {
-        id: "2",
-        supplierId: "1",
-        materialId: "4",
-        materialName: "Caustic Soda",
-        materialCategory: "Bases",
-        unit: "kg",
-        unitPrice: 57,
-        tax: 5,
-        priceWithTax: 59.85,
-        moq: 100,
-        bulkDiscounts: [
-            { quantity: 500, discount: 8 },
-            { quantity: 1000, discount: 15 },
-        ],
-        leadTime: 5,
-        availability: "in-stock",
-        transportationCost: 12,
-        notes: "Industrial grade, 99% purity",
-        createdAt: "2024-01-15",
-    },
-    {
-        id: "3",
-        supplierId: "1",
-        materialId: "5",
-        materialName: "Citric Acid",
-        materialCategory: "Acids",
-        unit: "kg",
-        unitPrice: 93,
-        tax: 5,
-        priceWithTax: 97.65,
-        moq: 40,
-        bulkDiscounts: [
-            { quantity: 100, discount: 7 },
-            { quantity: 500, discount: 15 },
-        ],
-        leadTime: 6,
-        availability: "in-stock",
-        transportationCost: 18,
-        createdAt: "2024-01-15",
-    },
-    {
-        id: "4",
-        supplierId: "2",
-        materialId: "1",
-        materialName: "Acid Blue Color",
-        materialCategory: "Colors",
-        unit: "kg",
-        unitPrice: 1600,
-        tax: 5,
-        priceWithTax: 1680,
-        moq: 5,
-        bulkDiscounts: [
-            { quantity: 10, discount: 3 },
-            { quantity: 25, discount: 8 },
-        ],
-        leadTime: 10,
-        availability: "in-stock",
-        transportationCost: 25,
-        notes: "Premium quality, vibrant color",
-        createdAt: "2024-01-20",
-    },
-    {
-        id: "5",
-        supplierId: "2",
-        materialId: "9",
-        materialName: "AOS Powder 96%",
-        materialCategory: "Other",
-        unit: "kg",
-        unitPrice: 148,
-        tax: 5,
-        priceWithTax: 155.4,
-        moq: 30,
-        bulkDiscounts: [
-            { quantity: 75, discount: 5 },
-            { quantity: 200, discount: 12 },
-        ],
-        leadTime: 7,
-        availability: "in-stock",
-        transportationCost: 20,
-        createdAt: "2024-01-20",
-    },
-    {
-        id: "6",
-        supplierId: "3",
-        materialId: "6",
-        materialName: "NaCl",
-        materialCategory: "Salts",
-        unit: "kg",
-        unitPrice: 6,
-        tax: 5,
-        priceWithTax: 6.3,
-        moq: 500,
-        bulkDiscounts: [
-            { quantity: 1000, discount: 10 },
-            { quantity: 5000, discount: 20 },
-        ],
-        leadTime: 3,
-        availability: "in-stock",
-        transportationCost: 8,
-        notes: "Food grade quality, bulk pricing available",
-        createdAt: "2024-02-01",
-    },
-    {
-        id: "7",
-        supplierId: "3",
-        materialId: "8",
-        materialName: "Soda Ash",
-        materialCategory: "Bases",
-        unit: "kg",
-        unitPrice: 39,
-        tax: 5,
-        priceWithTax: 40.95,
-        moq: 200,
-        bulkDiscounts: [
-            { quantity: 500, discount: 8 },
-            { quantity: 1000, discount: 15 },
-        ],
-        leadTime: 4,
-        availability: "in-stock",
-        transportationCost: 10,
-        createdAt: "2024-02-01",
-    },
-];
-
 // ============================================================================
 // PRODUCTS & Recipes (keeping existing structure)
 // ============================================================================
+
 
 export const PRODUCTS: Product[] = [
     {
@@ -790,30 +849,12 @@ export const PURCHASE_ORDERS: PurchaseOrder[] = [
     },
 ];
 
-// ============================================================================
-// CHART COLORS
-// ============================================================================
-
-export const CHART_COLORS = {
-    light: {
-        chart1: "#5A9BD8", // ocean blue — calm + clear
-        chart2: "#7ED8C3", // seafoam green — fresh + soft
-        chart3: "#F5D49B", // sandy beige — warm neutral
-        chart4: "#F4A18E", // coral accent — gentle pop
-        chart5: "#4CB1A2", // teal — grounding tone
-    },
-    dark: {
-        chart1: "#6CB8F0", // bright ocean blue
-        chart2: "#8FE3CF", // misty green foam
-        chart3: "#F7DFAE", // light sand glow
-        chart4: "#F89F8C", // warm coral
-        chart5: "#5ED1C1", // cool teal
-    },
-} as const;
 
 // ============================================================================
 // ANALYTICS & DASHBOARD DATA
 // ============================================================================
+
+
 
 export const priceHistoryData = [
     { month: "Jan", avgPrice: 245.5, materials: 142 },
@@ -856,9 +897,11 @@ export const qualityMetrics = [
     { month: "Jun", defectRate: 1.6, customerSatisfaction: 97, returnRate: 0.9 },
 ];
 
+
 // ============================================================================
 // UI CONFIGURATION
 // ============================================================================
+
 
 export const quickStats = [
     {

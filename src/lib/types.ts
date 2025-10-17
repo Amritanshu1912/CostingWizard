@@ -71,6 +71,58 @@ export interface SupplierMaterial extends BaseEntity {
     unitPrice: number;
     tax: number;
     moq?: number;
+
+    bulkPrice?: number;      // The actual quoted price
+    quantityForBulkPrice?: number;
+
+    bulkDiscounts?: BulkDiscount[];
+    leadTime?: number;
+    availability?: "in-stock" | "limited" | "out-of-stock";
+    transportationCost?: number;
+    notes?: string;
+}
+// Helper type for enriched supplier material
+export interface SupplierMaterialWithDetails extends SupplierMaterial {
+    material?: Material;
+    supplier?: Supplier;
+    displayName: string;
+    displayCategory: string;
+    displayUnit: string;
+    priceWithTax: number;
+}
+
+// Helper type for material with supplier count
+export interface MaterialWithSuppliers extends Material {
+    supplierCount: number;
+    suppliersList: Supplier[];
+}
+
+
+// ============================================================================
+// PACKAGING
+// ============================================================================
+export type PackagingType = "bottle" | "jar" | "can" | "box" | "pouch" | "other";
+export type CapacityUnit = "kg" | "L" | "ml" | "gm";
+export type BuildMaterial = "PET" | "HDPE" | "Glass" | "Plastic" | "Paper" | "Other";
+
+
+export interface Packaging extends BaseEntity {
+    name: string;
+    type: PackagingType;
+    capacity: number;
+    unit: CapacityUnit;
+    buildMaterial?: BuildMaterial;
+    notes?: string;
+}
+
+export interface SupplierPackaging extends BaseEntity {
+    supplierId: string;
+    packagingId: string;
+    unitPrice: number;
+    tax?: number;
+    moq?: number;
+    bulkPrice: number;      // The actual quoted price
+    quantityForBulkPrice: number;
     bulkDiscounts?: BulkDiscount[];
     leadTime?: number;
     availability?: "in-stock" | "limited" | "out-of-stock";
@@ -78,74 +130,55 @@ export interface SupplierMaterial extends BaseEntity {
     notes?: string;
 }
 
-// ============================================================================
-// PACKAGING
-// ============================================================================
-
-export interface Packaging extends BaseEntity {
-    name: string;
-    type: "bottle" | "container" | "box" | "other";
-    size: string; // e.g., "500ml", "1L"
-    material: string; // e.g., "PET", "HDPE", "Glass"
-    notes?: string;
+export interface PackagingWithSuppliers extends Packaging {
+    supplierCount: number;
+    suppliersList: Supplier[];
 }
 
-export interface SupplierPackaging extends BaseEntity {
-    supplierId: string;
-    packagingId?: string;
-    packagingName: string;
-    packagingType: string;
-    size: string;
-    unit: string;
-    unitPrice: number;
-    moq: number;
-    bulkDiscounts?: BulkDiscount[];
-    leadTime: number;
-    availability: "in-stock" | "limited" | "out-of-stock";
-    lastUpdated: string;
-    notes?: string;
-}
 
 // ============================================================================
 // LABELS
 // ============================================================================
 
+export type LabelType = "sticker" | "label" | "tag" | "other";
+export type PrintingType = "bw" | "color" | "foil" | "embossed";
+export type LabelMaterialType = "paper" | "vinyl" | "plastic" | "other";
+export type ShapeType = "rectangular" | "custom";
+
 export interface Label extends BaseEntity {
     name: string;
-    type: "sticker" | "label" | "tag";
-    printingType: "bw" | "color" | "foil" | "embossed";
-    material: "paper" | "vinyl" | "plastic" | "other";
-    shape: "rectangular" | "circular" | "custom";
-    colors: string[];
-    size: string; // e.g., "50x30mm"
-    supplierId?: string;
-    unitPrice: number;
-    moq: number;
-    unit: string; // "pieces", "sheets", etc.
-    bulkDiscounts?: BulkDiscount[];
-    leadTime: number;
-    availability: "in-stock" | "limited" | "out-of-stock";
+    type: LabelType;
+    printingType: PrintingType;
+    material: LabelMaterialType;
+    shape: ShapeType;
+    size?: string; // e.g., "50x30mm"
+    labelFor?: string; //product name
     notes?: string;
 }
 
 export interface SupplierLabel extends BaseEntity {
     supplierId: string;
     labelId?: string;
-    labelName: string;
-    labelType: string;
-    printingType: string;
-    material: string;
-    shape: string;
-    colors: string[];
-    size: string;
+
+    unit: "pieces" | "sheets" | string;
     unitPrice: number;
+    bulkPrice?: number;      // The actual quoted price
+    quantityForBulkPrice?: number;
     moq: number;
-    unit: string;
+    tax?: number;
     bulkDiscounts?: BulkDiscount[];
     leadTime: number;
     availability: "in-stock" | "limited" | "out-of-stock";
+    transportationCost?: number;
     notes?: string;
 }
+
+export interface LabelsWithSuppliers extends Label {
+    supplierCount: number;
+    suppliersList: Supplier[];
+}
+
+
 // ============================================================================
 // PRODUCTS & Recipes
 // ============================================================================

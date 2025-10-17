@@ -35,11 +35,11 @@ import { MetricCard } from "@/components/ui/metric-card";
 import {
   planningProductionTimeline,
   planningAIInsights,
-  CHART_COLORS,
   planningProductionEfficiencyCards,
   planningBenchmarkData,
 } from "./planning-constants";
 import { priceHistoryData } from "@/lib/constants";
+import { CHART_COLORS } from "@/lib/color-utils";
 
 interface PlanningAnalyticsProps {
   plans: ProductionPlan[];

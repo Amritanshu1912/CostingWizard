@@ -1,264 +1,312 @@
 "use client";
 
 import { useState, useMemo } from "react";
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-  CardDescription,
-} from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { SortableTable } from "@/components/ui/sortable-table";
-import { Search, Filter, Edit, Trash2 } from "lucide-react";
-import type { SupplierMaterial, Supplier } from "@/lib/types";
-import type { SupplierMaterialWithDetails } from "@/hooks/use-supplier-materials-with-details";
-import { MATERIAL_CATEGORIES } from "./materials-config";
+import { Edit, Trash2, Loader2, Plus } from "lucide-react";
+import { format } from "date-fns";
+import type { MaterialWithSuppliers, Category } from "@/lib/types";
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from "@/components/ui/command";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import { Check, ChevronsUpDown } from "lucide-react";
+import { cn } from "@/lib/utils";
 
-interface MaterialsTableProps {
-  materials: SupplierMaterialWithDetails[];
-  suppliers: Supplier[];
-  onEdit: (material: SupplierMaterial) => void;
-  onDelete: (id: string) => void;
+interface MaterialsTableDrawerProps {
+  data: (MaterialWithSuppliers & { categoryColor: string })[];
+  editingMaterialId: string | null;
+  editForm: { name: string; category: string };
+  loading: boolean;
+  categories: Category[] | undefined;
+  categorySearch: string;
+  openCategoryCombobox: boolean;
+  onEditFormChange: (form: { name: string; category: string }) => void;
+  onStartEdit: (material: MaterialWithSuppliers) => void;
+  onSaveEdit: () => void;
+  onCancelEdit: () => void;
+  onInitiateDelete: (material: MaterialWithSuppliers) => void;
+  onCategorySearchChange: (search: string) => void;
+  onSelectCategory: (category: Category) => void;
+  onNewCategory: () => void;
+  onOpenCategoryComboboxChange: (open: boolean) => void;
 }
 
-export function MaterialsTable({
-  materials,
-  suppliers,
-  onEdit,
-  onDelete,
-}: MaterialsTableProps) {
-  const [searchTerm, setSearchTerm] = useState("");
-  const [selectedCategory, setSelectedCategory] = useState("all");
-  const [selectedSupplier, setSelectedSupplier] = useState("all");
+export function MaterialsTableDrawer({
+  data,
+  editingMaterialId,
+  editForm,
+  loading,
+  categories,
+  categorySearch,
+  openCategoryCombobox,
+  onEditFormChange,
+  onStartEdit,
+  onSaveEdit,
+  onCancelEdit,
+  onInitiateDelete,
+  onCategorySearchChange,
+  onSelectCategory,
+  onNewCategory,
+  onOpenCategoryComboboxChange,
+}: MaterialsTableDrawerProps) {
+  // Filter categories based on search
+  const filteredCategories = useMemo(() => {
+    if (!categories) return [];
+    if (!categorySearch) return categories;
+    return categories.filter((c) =>
+      c.name.toLowerCase().includes(categorySearch.toLowerCase())
+    );
+  }, [categories, categorySearch]);
 
-  // Filter materials using enriched data
-  const filteredMaterials = useMemo(() => {
-    return materials.filter((material) => {
-      const matchesSearch =
-        material.displayName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        material.supplier?.name
-          .toLowerCase()
-          .includes(searchTerm.toLowerCase());
-      const matchesCategory =
-        selectedCategory === "all" ||
-        material.displayCategory === selectedCategory;
-      const matchesSupplier =
-        selectedSupplier === "all" || material.supplierId === selectedSupplier;
-      return matchesSearch && matchesCategory && matchesSupplier;
-    });
-  }, [materials, searchTerm, selectedCategory, selectedSupplier]);
+  const isNewCategory = useMemo(() => {
+    if (!categorySearch || !categories) return false;
+    return !categories.some(
+      (c) => c.name.toLowerCase() === categorySearch.toLowerCase()
+    );
+  }, [categorySearch, categories]);
 
-  // Clear filters
-  const clearFilters = () => {
-    setSearchTerm("");
-    setSelectedCategory("all");
-    setSelectedSupplier("all");
-  };
-
-  // Table columns using enriched data
+  // Table columns
   const columns = useMemo(
     () => [
       {
-        key: "displayName",
+        key: "name",
         label: "Material Name",
-        render: (value: string) => (
-          <span className="font-medium text-foreground">{value}</span>
-        ),
-      },
-      {
-        key: "displayCategory",
-        label: "Category",
-        render: (value: string) => (
-          <Badge variant="outline" className="text-xs">
-            {value}
-          </Badge>
-        ),
-      },
-      {
-        key: "supplier",
-        label: "Supplier",
-        render: (_: any, row: SupplierMaterialWithDetails) => (
-          <span className="text-muted-foreground">
-            {row.supplier?.name || "Unknown"}
-          </span>
-        ),
-      },
-      {
-        key: "unitPrice",
-        label: "Price",
-        render: (value: number, row: SupplierMaterialWithDetails) => (
-          <div className="text-foreground">
-            <div className="font-medium">₹{value.toFixed(2)}</div>
-            <div className="text-xs text-muted-foreground">
-              per {row.displayUnit}
-            </div>
-          </div>
-        ),
-      },
-      {
-        key: "tax",
-        label: "Tax",
-        render: (value: number, row: SupplierMaterialWithDetails) => (
-          <div className="text-muted-foreground font-normal">
-            <div>{value}%</div>
-          </div>
-        ),
-      },
-      {
-        key: "priceWithTax",
-        label: "Price after Tax",
-        render: (value: number, row: SupplierMaterialWithDetails) => {
+        sortable: true,
+        render: (_: any, row: MaterialWithSuppliers) => {
+          if (editingMaterialId === row.id) {
+            return (
+              <Input
+                value={editForm.name}
+                onChange={(e) =>
+                  onEditFormChange({ ...editForm, name: e.target.value })
+                }
+                className="h-8"
+                autoFocus
+              />
+            );
+          }
           return (
-            <div className="text-foreground">
-              <div className="font-medium">₹{row.priceWithTax.toFixed(2)}</div>
-            </div>
+            <span className="font-medium text-foreground">{row.name}</span>
           );
         },
       },
       {
-        key: "moq",
-        label: "MOQ",
-        render: (value: number, row: SupplierMaterialWithDetails) => (
-          <span className="text-muted-foreground">
-            {value} {row.displayUnit}
-          </span>
-        ),
+        key: "category",
+        label: "Category",
+        sortable: true,
+        render: (
+          _: any,
+          row: MaterialWithSuppliers & { categoryColor: string }
+        ) => {
+          if (editingMaterialId === row.id) {
+            return (
+              <Popover
+                open={openCategoryCombobox}
+                onOpenChange={onOpenCategoryComboboxChange}
+              >
+                <PopoverTrigger asChild>
+                  <Button
+                    variant="outline"
+                    role="combobox"
+                    size="sm"
+                    className="h-8 w-full justify-between"
+                  >
+                    {editForm.category || "Select"}
+                    <ChevronsUpDown className="ml-2 h-3 w-3" />
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-[200px] p-0">
+                  <Command shouldFilter={false}>
+                    <CommandInput
+                      placeholder="Search..."
+                      value={categorySearch}
+                      onValueChange={onCategorySearchChange}
+                    />
+                    <CommandList>
+                      {filteredCategories.length > 0 && (
+                        <CommandGroup>
+                          {filteredCategories.map((cat) => (
+                            <CommandItem
+                              key={cat.id}
+                              onSelect={() => onSelectCategory(cat)}
+                            >
+                              <Check
+                                className={cn(
+                                  "mr-2 h-4 w-4",
+                                  editForm.category === cat.name
+                                    ? "opacity-100"
+                                    : "opacity-0"
+                                )}
+                              />
+                              <div className="flex items-center gap-2">
+                                <div
+                                  className="w-3 h-3 rounded-full"
+                                  style={{ backgroundColor: cat.color }}
+                                />
+                                {cat.name}
+                              </div>
+                            </CommandItem>
+                          ))}
+                        </CommandGroup>
+                      )}
+                      {isNewCategory && categorySearch && (
+                        <CommandGroup>
+                          <CommandItem onSelect={onNewCategory}>
+                            <Plus className="mr-2 h-4 w-4" />
+                            Create "{categorySearch}"
+                          </CommandItem>
+                        </CommandGroup>
+                      )}
+                      {!categorySearch && filteredCategories.length === 0 && (
+                        <CommandEmpty>Start typing...</CommandEmpty>
+                      )}
+                    </CommandList>
+                  </Command>
+                </PopoverContent>
+              </Popover>
+            );
+          }
+          return (
+            <Badge
+              variant="secondary"
+              style={{
+                backgroundColor: row.categoryColor + "20",
+                color: row.categoryColor,
+                borderColor: row.categoryColor,
+              }}
+            >
+              {row.category}
+            </Badge>
+          );
+        },
       },
       {
-        key: "leadTime",
-        label: "Lead Time",
-        render: (value: number) => (
-          <span className="text-muted-foreground">{value} days</span>
-        ),
+        key: "supplierCount",
+        label: "# Suppliers",
+        sortable: true,
+        render: (_: any, row: MaterialWithSuppliers) => {
+          if (row.supplierCount === 0) {
+            return <span className="text-muted-foreground">0</span>;
+          }
+
+          return <span className="font-medium">{row.supplierCount}</span>;
+        },
       },
       {
-        key: "availability",
-        label: "Availability",
-        render: (value: string) => (
-          <Badge
-            variant={
-              value === "in-stock"
-                ? "default"
-                : value === "limited"
-                ? "secondary"
-                : "destructive"
-            }
-          >
-            {value === "in-stock"
-              ? "In Stock"
-              : value === "limited"
-              ? "Limited"
-              : "Out of Stock"}
-          </Badge>
-        ),
+        key: "updatedAt",
+        label: "Updated At",
+        sortable: true,
+        render: (_: any, row: MaterialWithSuppliers) => {
+          const displayDate = row.updatedAt || row.createdAt;
+          return (
+            <span className="text-sm text-muted-foreground">
+              {format(new Date(displayDate), "MMM dd, yyyy")}
+            </span>
+          );
+        },
       },
       {
         key: "actions",
         label: "Actions",
         sortable: false,
-        render: (_: any, row: SupplierMaterialWithDetails) => (
-          <div className="flex space-x-2">
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => onEdit(row)}
-              className="h-8 w-8 p-0 hover:bg-primary/10 hover:text-primary"
-            >
-              <Edit className="h-4 w-4" />
-            </Button>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => onDelete(row.id)}
-              className="h-8 w-8 p-0 text-destructive hover:text-destructive hover:bg-destructive/10"
-            >
-              <Trash2 className="h-4 w-4" />
-            </Button>
-          </div>
-        ),
+        render: (_: any, row: MaterialWithSuppliers) => {
+          if (editingMaterialId === row.id) {
+            return (
+              <div className="flex gap-2">
+                <Button
+                  size="sm"
+                  onClick={onSaveEdit}
+                  disabled={loading}
+                  className="h-7 text-xs"
+                >
+                  {loading ? (
+                    <Loader2 className="h-3 w-3 animate-spin" />
+                  ) : (
+                    "Save"
+                  )}
+                </Button>
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  onClick={onCancelEdit}
+                  disabled={loading}
+                  className="h-7 text-xs"
+                >
+                  Cancel
+                </Button>
+              </div>
+            );
+          }
+
+          return (
+            <div className="flex gap-2">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => onStartEdit(row)}
+                className="h-8 w-8 p-0 hover:bg-primary/10 hover:text-primary"
+              >
+                <Edit className="h-4 w-4" />
+              </Button>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => onInitiateDelete(row)}
+                disabled={row.supplierCount > 0}
+                className="h-8 w-8 p-0 text-destructive hover:text-destructive hover:bg-destructive/10 disabled:opacity-50"
+                title={
+                  row.supplierCount > 0
+                    ? "Cannot delete material used by suppliers"
+                    : "Delete material"
+                }
+              >
+                <Trash2 className="h-4 w-4" />
+              </Button>
+            </div>
+          );
+        },
       },
     ],
-    [suppliers, onEdit, onDelete]
+    [
+      editingMaterialId,
+      editForm,
+      loading,
+      openCategoryCombobox,
+      categorySearch,
+      filteredCategories,
+      isNewCategory,
+      onEditFormChange,
+      onStartEdit,
+      onSaveEdit,
+      onCancelEdit,
+      onInitiateDelete,
+      onCategorySearchChange,
+      onSelectCategory,
+      onNewCategory,
+      onOpenCategoryComboboxChange,
+    ]
   );
 
   return (
-    <Card className="card-enhanced">
-      <CardHeader>
-        <CardTitle>Materials Inventory</CardTitle>
-        <CardDescription>
-          Manage your raw materials and supplier pricing
-        </CardDescription>
-      </CardHeader>
-      <CardContent className="space-y-4">
-        {/* Filters */}
-        <div className="flex flex-col sm:flex-row gap-4">
-          <div className="flex-1">
-            <div className="relative">
-              <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-              <Input
-                placeholder="Search materials or suppliers..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-10 focus-enhanced"
-              />
-            </div>
-          </div>
-          <Select value={selectedCategory} onValueChange={setSelectedCategory}>
-            <SelectTrigger className="w-full sm:w-[180px] focus-enhanced">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All Categories</SelectItem>
-              {MATERIAL_CATEGORIES.map((category) => (
-                <SelectItem key={category} value={category}>
-                  {category}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-
-          <Select value={selectedSupplier} onValueChange={setSelectedSupplier}>
-            <SelectTrigger className="w-full sm:w-[180px] focus-enhanced">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All Suppliers</SelectItem>
-              {suppliers.map((supplier) => (
-                <SelectItem key={supplier.id} value={supplier.id}>
-                  {supplier.name}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-
-          <Button
-            variant="outline"
-            onClick={clearFilters}
-            className="w-full sm:w-auto"
-          >
-            <Filter className="h-4 w-4 mr-2" />
-            Clear
-          </Button>
-        </div>
-
-        {/* Table */}
-        <SortableTable
-          data={filteredMaterials}
-          columns={columns}
-          className="table-enhanced"
-          showSerialNumber={true}
-        />
-      </CardContent>
-    </Card>
+    <div className="border rounded-lg overflow-hidden bg-card">
+      <SortableTable
+        data={data}
+        columns={columns}
+        className="table-enhanced"
+        showSerialNumber={true}
+      />
+    </div>
   );
 }
