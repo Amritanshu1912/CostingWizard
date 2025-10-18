@@ -1,4 +1,4 @@
-// RecipeProductDialog.tsx
+// RecipeDialog.tsx
 
 import React, { useState, useEffect, useMemo } from "react";
 import {
@@ -30,8 +30,12 @@ import {
 } from "@/components/ui/select";
 import { Minus, Plus, X } from "lucide-react";
 
-import type { Product, ProductIngredient, Material } from "@/lib/types";
-import { MATERIALS } from "@/lib/constants";
+import type {
+  Recipe,
+  RecipeIngredient,
+  SupplierMaterialWithDetails,
+} from "@/lib/types";
+import { useSupplierMaterialsWithDetails } from "@/hooks/use-supplier-materials-with-details";
 import {
   INGREDIENT_UNITS,
   convertToKilograms,
@@ -39,138 +43,115 @@ import {
   IngredientUnitValue,
 } from "./recipes-constants"; // NEW IMPORT
 
-// NOTE TO USER: Please ensure your ProductIngredient interface (in types.ts)
-// now includes the 'id: string' and 'unit: string' fields.
-
-// --- OPTIMIZATION: O(1) Material Lookup ---
-const materialMap = new Map(MATERIALS.map((m) => [m.id, m]));
-const getMaterial = (id: string) => materialMap.get(id);
-
-// Since ProductIngredient now has 'unit' and will have 'id',
-// we use a type that omits the id for initial state definition.
-type NewProductIngredient = Omit<ProductIngredient, "id">;
-
-const INITIAL_INGREDIENT: NewProductIngredient = {
-  materialId: MATERIALS[0]?.id || "",
-  materialName: MATERIALS[0]?.name || "N/A",
-  quantity: 0,
-  unit: DEFAULT_INGREDIENT_UNIT, // NEW: Default unit
-  costPerKg: MATERIALS[0]?.priceWithTax || 0,
-  totalCost: 0,
+// Hook to get supplier materials with details
+const useSupplierMaterials = () => {
+  return useSupplierMaterialsWithDetails();
 };
 
-// Use existing Product fields as a starting point
-const INITIAL_FORM_DATA: Omit<
-  Product,
-  "id" | "createdAt" | "updatedAt" | "totalCostPerKg"
-> = {
+// Helper function to get supplier material by ID
+const getSupplierMaterial = (
+  supplierMaterials: SupplierMaterialWithDetails[],
+  id: string
+) => supplierMaterials.find((sm) => sm.id === id);
+
+const INITIAL_INGREDIENT: RecipeIngredient = {
+  id: "",
+  supplierMaterialId: "",
+  quantity: 0,
+  notes: "",
+  createdAt: "",
+};
+
+// Use existing Recipe fields as a starting point
+const INITIAL_FORM_DATA: Recipe = {
+  id: "",
   name: "",
-  batchSizeKg: 1,
-  sellingPricePerKg: 0,
-  status: "draft",
-  ingredients: [],
-  profitMargin: 35,
   description: "",
+  ingredients: [],
+  costPerKg: 0,
+  status: "draft",
+  targetProfitMargin: 35,
+  createdAt: "",
 };
 
 interface RecipeProductDialogProps {
   isOpen: boolean;
   onClose: () => void;
-  onSave: (product: Product) => void;
-  initialProduct?: Product | null;
+  onSave: (recipe: Recipe) => void;
+  initialRecipe?: Recipe | null;
 }
 
 export function RecipeProductDialog({
   isOpen,
   onClose,
   onSave,
-  initialProduct,
+  initialRecipe,
 }: RecipeProductDialogProps) {
-  const [formData, setFormData] = useState<typeof INITIAL_FORM_DATA | Product>(
-    INITIAL_FORM_DATA
-  );
+  const [formData, setFormData] =
+    useState<typeof INITIAL_FORM_DATA>(INITIAL_FORM_DATA);
   const [newIngredient, setNewIngredient] =
-    useState<NewProductIngredient>(INITIAL_INGREDIENT);
+    useState<RecipeIngredient>(INITIAL_INGREDIENT);
 
-  const isEditing = !!initialProduct;
+  const isEditing = !!initialRecipe;
   const title = isEditing ? "Edit Recipe" : "Create New Recipe";
   const description = isEditing
-    ? `Updating recipe for ${initialProduct?.name}`
-    : "Define the product name, batch size, and ingredients.";
+    ? `Updating recipe for ${initialRecipe?.name}`
+    : "Define the recipe name and ingredients.";
 
-  // --- Effect to sync internal form state when initialProduct changes ---
+  // --- Effect to sync internal form state when initialRecipe changes ---
   useEffect(() => {
-    if (initialProduct) {
-      setFormData(initialProduct);
+    if (initialRecipe) {
+      setFormData(initialRecipe);
     } else {
       setFormData(INITIAL_FORM_DATA);
     }
     setNewIngredient(INITIAL_INGREDIENT);
-  }, [initialProduct]);
-
-  // --- Memoization: Calculate total cost and cost/kg on ingredient/size change ---
-  const { batchTotalCost, totalCostPerKg } = useMemo(() => {
-    const totalIngredientsCost = formData.ingredients.reduce(
-      (sum, ingredient) => sum + ingredient.totalCost,
-      0
-    );
-    const batchSizeKg = formData.batchSizeKg || 1;
-
-    const calculatedCostPerKg =
-      totalIngredientsCost / (batchSizeKg > 0 ? batchSizeKg : 1);
-
-    return {
-      batchTotalCost: totalIngredientsCost,
-      totalCostPerKg: calculatedCostPerKg,
-    };
-  }, [formData.ingredients, formData.batchSizeKg]);
+  }, [initialRecipe]);
 
   // --- Ingredient Handlers ---
 
-  // Helper function to calculate cost based on quantity, unit, and material price
-  const calculateIngredientCost = (
-    ing: ProductIngredient | NewProductIngredient
-  ): number => {
-    const material = getMaterial(ing.materialId);
-    const pricePerKg = material?.priceWithTax || 0;
-    const quantityInKg = convertToKilograms(
-      ing.quantity,
-      ing.unit as IngredientUnitValue
+  // Get supplier materials data
+  const supplierMaterials = useSupplierMaterials();
+
+  // --- Memoization: Calculate total cost on ingredient change ---
+  const totalCostPerKg = useMemo(() => {
+    return formData.ingredients.reduce((sum, ingredient) => {
+      const supplierMaterial = getSupplierMaterial(
+        supplierMaterials,
+        ingredient.supplierMaterialId
+      );
+      const costPerKg = supplierMaterial?.priceWithTax || 0;
+      return sum + costPerKg * ingredient.quantity;
+    }, 0);
+  }, [formData.ingredients, supplierMaterials]);
+
+  // Helper function to calculate cost based on quantity and material price
+  const calculateIngredientCost = (ingredient: RecipeIngredient): number => {
+    const material = getSupplierMaterial(
+      supplierMaterials,
+      ingredient.supplierMaterialId
     );
-    return pricePerKg * quantityInKg;
+    const pricePerKg = material?.priceWithTax || 0;
+    // Assume quantity is in kg for simplicity
+    return pricePerKg * ingredient.quantity;
   };
 
   const handleIngredientChange = (
     index: number,
-    field: keyof ProductIngredient,
+    field: keyof RecipeIngredient,
     value: string | number
   ) => {
-    const updatedIngredients = formData.ingredients.map((ing, i) => {
+    const updatedIngredients = formData.ingredients.map((ingredient, i) => {
       if (i === index) {
-        let updatedIng = { ...ing, [field]: value };
+        let updatedIng = { ...ingredient, [field]: value };
 
-        // Recalculate cost if material, quantity, or unit changes
-        if (
-          field === "materialId" ||
-          field === "quantity" ||
-          field === "unit"
-        ) {
-          const material = getMaterial(updatedIng.materialId);
-
-          updatedIng = {
-            ...updatedIng,
-            materialName: material?.name || "N/A",
-            costPerKg: material?.priceWithTax || 0,
-            // Recalculate totalCost using the new quantity/unit
-            totalCost: calculateIngredientCost(updatedIng as ProductIngredient),
-          } as ProductIngredient;
-        }
+        // No need to recalculate cost here as it's done in the memoization
         return updatedIng;
       }
-      return ing;
+      return ingredient;
     });
 
-    setFormData({ ...formData, ingredients: updatedIngredients } as Product);
+    setFormData({ ...formData, ingredients: updatedIngredients });
   };
 
   const handleRemoveIngredient = (index: number) => {
@@ -178,75 +159,60 @@ export function RecipeProductDialog({
       ...formData,
       // Still filtering by index since we don't need the ID for removal inside map()
       ingredients: formData.ingredients.filter((_, i) => i !== index),
-    } as Product);
+    });
   };
 
   const handleAddNewIngredient = () => {
-    if (!newIngredient.materialId || newIngredient.quantity <= 0) {
+    if (!newIngredient.supplierMaterialId || newIngredient.quantity <= 0) {
       toast.error(
-        "Please select a material and enter a quantity greater than zero."
+        "Please select a supplier material and enter a quantity greater than zero."
       );
       return;
     }
 
-    const material = getMaterial(newIngredient.materialId);
-    if (!material) return;
+    const supplierMaterial = getSupplierMaterial(
+      supplierMaterials,
+      newIngredient.supplierMaterialId
+    );
+    if (!supplierMaterial) return;
 
     // GENERATING UNIQUE ID for the new ingredient
     const newId =
       Date.now().toString() + Math.random().toString(36).substr(2, 9);
 
-    const ingredientToAdd: ProductIngredient = {
+    const ingredientToAdd: RecipeIngredient = {
       ...newIngredient,
       id: newId,
-      materialName: material.name,
-      costPerKg: material.priceWithTax || 0,
-      totalCost: calculateIngredientCost(newIngredient), // Calculate cost based on new unit/quantity
-      unit: newIngredient.unit,
     };
 
     setFormData({
       ...formData,
       ingredients: [...formData.ingredients, ingredientToAdd],
-    } as Product);
+    });
 
     // Reset the new ingredient input row
     setNewIngredient(INITIAL_INGREDIENT);
   };
 
   const handleNewIngredientChange = (
-    field: keyof NewProductIngredient,
+    field: keyof RecipeIngredient,
     value: string | number
   ) => {
     // Temporarily create a draft ingredient object to calculate new cost
     const draftIngredient = {
       ...newIngredient,
       [field]: value,
-    } as NewProductIngredient;
+    } as RecipeIngredient;
 
-    if (field === "materialId" && typeof value === "string") {
-      const material = getMaterial(value);
+    if (field === "supplierMaterialId" && typeof value === "string") {
       setNewIngredient((prev) => ({
         ...prev,
-        materialId: value,
-        materialName: material?.name || "N/A",
-        costPerKg: material?.priceWithTax || 0,
-        // Calculate cost using the draft object
-        totalCost: calculateIngredientCost(draftIngredient),
+        supplierMaterialId: value,
       }));
     } else if (field === "quantity" && typeof value === "number") {
       setNewIngredient((prev) => ({
         ...prev,
         quantity: value,
-        // Calculate cost using the draft object
-        totalCost: calculateIngredientCost(draftIngredient),
-      }));
-    } else if (field === "unit" && typeof value === "string") {
-      setNewIngredient((prev) => ({
-        ...prev,
-        unit: value as IngredientUnitValue,
-        // Calculate cost using the draft object
-        totalCost: calculateIngredientCost(draftIngredient),
       }));
     } else {
       setNewIngredient(draftIngredient);
@@ -256,48 +222,23 @@ export function RecipeProductDialog({
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (
-      !formData.name ||
-      (formData.batchSizeKg || 0) <= 0 ||
-      formData.ingredients.length === 0
-    ) {
-      toast.error(
-        "Recipe must have a name, a batch size, and at least one ingredient."
-      );
+    if (!formData.name || formData.ingredients.length === 0) {
+      toast.error("Recipe must have a name and at least one ingredient.");
       return;
     }
 
-    let savedProduct: Product;
-
-    const baseProduct: Omit<Product, "id" | "createdAt" | "updatedAt"> = {
-      name: formData.name,
-      ingredients: formData.ingredients,
-      totalCostPerKg,
-      sellingPricePerKg: formData.sellingPricePerKg,
-      profitMargin: formData.profitMargin,
-      batchSizeKg: formData.batchSizeKg,
-      status: formData.status,
-      description: formData.description,
+    const savedRecipe: Recipe = {
+      ...formData,
+      costPerKg: totalCostPerKg,
+      updatedAt: new Date().toISOString(),
     };
 
-    if (isEditing && initialProduct) {
-      // Edit mode
-      savedProduct = {
-        ...initialProduct,
-        ...baseProduct,
-        updatedAt: new Date().toISOString(),
-      };
-    } else {
-      // Add mode
-      const newId = Date.now().toString();
-      savedProduct = {
-        ...baseProduct,
-        id: newId,
-        createdAt: new Date().toISOString(),
-      } as Product;
+    if (!isEditing) {
+      savedRecipe.id = Date.now().toString();
+      savedRecipe.createdAt = new Date().toISOString();
     }
 
-    onSave(savedProduct);
+    onSave(savedRecipe);
     onClose();
   };
 
@@ -309,14 +250,14 @@ export function RecipeProductDialog({
           <DialogDescription>{description}</DialogDescription>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-6">
-          {/* --- Product Details --- */}
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 border-b pb-4">
-            <div className="sm:col-span-3">
-              <Label htmlFor="product-name" className="text-foreground">
+          {/* --- Recipe Details --- */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 border-b pb-4">
+            <div>
+              <Label htmlFor="recipe-name" className="text-foreground">
                 Recipe Name *
               </Label>
               <Input
-                id="product-name"
+                id="recipe-name"
                 value={formData.name}
                 onChange={(e) =>
                   setFormData({ ...formData, name: e.target.value })
@@ -327,55 +268,17 @@ export function RecipeProductDialog({
             </div>
 
             <div>
-              <Label htmlFor="batch-size" className="text-foreground">
-                Batch Size (kg) *
-              </Label>
-              <Input
-                id="batch-size"
-                type="number"
-                value={formData.batchSizeKg || 0}
-                onChange={(e) =>
-                  setFormData({
-                    ...formData,
-                    batchSizeKg: Number(e.target.value),
-                  })
-                }
-                placeholder="100.00"
-                className="focus-enhanced"
-              />
-            </div>
-
-            <div>
-              <Label htmlFor="unit-price" className="text-foreground">
-                Selling Price Per kg (₹)
-              </Label>
-              <Input
-                id="unit-price"
-                type="number"
-                value={formData.sellingPricePerKg || 0}
-                onChange={(e) =>
-                  setFormData({
-                    ...formData,
-                    sellingPricePerKg: Number(e.target.value),
-                  })
-                }
-                placeholder="100.00"
-                className="focus-enhanced"
-              />
-            </div>
-
-            <div>
-              <Label htmlFor="margin" className="text-foreground">
+              <Label htmlFor="target-margin" className="text-foreground">
                 Target Margin (%)
               </Label>
               <Input
-                id="margin"
+                id="target-margin"
                 type="number"
-                value={formData.profitMargin || 0}
+                value={formData.targetProfitMargin || 0}
                 onChange={(e) =>
                   setFormData({
                     ...formData,
-                    profitMargin: Number(e.target.value),
+                    targetProfitMargin: Number(e.target.value),
                   })
                 }
                 placeholder="35"
@@ -383,7 +286,7 @@ export function RecipeProductDialog({
               />
             </div>
 
-            <div className="sm:col-span-3">
+            <div className="sm:col-span-2">
               <Label htmlFor="description" className="text-foreground">
                 Description / Notes
               </Label>
@@ -408,10 +311,10 @@ export function RecipeProductDialog({
             <TableHeader>
               <TableRow className="bg-muted/30">
                 <TableHead className="w-[10px]">#</TableHead>
-                <TableHead className="w-[30%]">Material</TableHead>
-                <TableHead className="w-[20%] text-right">Quantity*</TableHead>
-                <TableHead className="w-[10%] text-left">Unit</TableHead>{" "}
-                {/* NEW COLUMN */}
+                <TableHead className="w-[40%]">Supplier Material</TableHead>
+                <TableHead className="w-[20%] text-right">
+                  Quantity (kg)*
+                </TableHead>
                 <TableHead className="w-[15%] text-right">
                   Cost/kg (₹)
                 </TableHead>
@@ -423,83 +326,77 @@ export function RecipeProductDialog({
             </TableHeader>
             <TableBody>
               {/* Existing Ingredients */}
-              {formData.ingredients.map((ingredient, index) => (
-                <TableRow key={ingredient.id} className="hover:bg-accent/10">
-                  <TableCell className="font-medium">{index + 1}</TableCell>
-                  <TableCell>
-                    <Select
-                      value={ingredient.materialId}
-                      onValueChange={(value) =>
-                        handleIngredientChange(index, "materialId", value)
-                      }
-                    >
-                      <SelectTrigger className="h-8 text-xs focus-enhanced">
-                        <SelectValue placeholder="Select Material" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {MATERIALS.map((material) => (
-                          <SelectItem key={material.id} value={material.id}>
-                            {material.name} ({material.priceWithTax?.toFixed(2)}
-                            /kg)
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </TableCell>
-                  <TableCell className="text-right">
-                    <Input
-                      type="number"
-                      step="0.01"
-                      min="0"
-                      value={ingredient.quantity}
-                      onChange={(e) =>
-                        handleIngredientChange(
-                          index,
-                          "quantity",
-                          Number(e.target.value)
-                        )
-                      }
-                      className="h-8 text-right focus-enhanced"
-                    />
-                  </TableCell>
-                  <TableCell>
-                    <Select
-                      value={ingredient.unit}
-                      onValueChange={(value) =>
-                        handleIngredientChange(index, "unit", value)
-                      }
-                    >
-                      <SelectTrigger className="h-8 text-xs focus-enhanced">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {INGREDIENT_UNITS.map((unit) => (
-                          <SelectItem key={unit.value} value={unit.value}>
-                            {unit.value}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </TableCell>
-                  <TableCell className="text-right text-muted-foreground">
-                    {ingredient.costPerKg.toFixed(2)}
-                  </TableCell>
-                  <TableCell className="text-right font-medium">
-                    {ingredient.totalCost.toFixed(2)}
-                  </TableCell>
-                  <TableCell>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      type="button"
-                      onClick={() => handleRemoveIngredient(index)}
-                      className="h-7 w-7 text-destructive hover:bg-destructive/10"
-                    >
-                      <X className="h-4 w-4" />
-                    </Button>
-                  </TableCell>
-                </TableRow>
-              ))}
+              {formData.ingredients.map((ingredient, index) => {
+                const supplierMaterial = getSupplierMaterial(
+                  supplierMaterials,
+                  ingredient.supplierMaterialId
+                );
+                const costPerKg = supplierMaterial?.priceWithTax || 0;
+                const totalCost = costPerKg * ingredient.quantity;
+
+                return (
+                  <TableRow key={ingredient.id} className="hover:bg-accent/10">
+                    <TableCell className="font-medium">{index + 1}</TableCell>
+                    <TableCell>
+                      <Select
+                        value={ingredient.supplierMaterialId}
+                        onValueChange={(value) =>
+                          handleIngredientChange(
+                            index,
+                            "supplierMaterialId",
+                            value
+                          )
+                        }
+                      >
+                        <SelectTrigger className="h-8 text-xs focus-enhanced">
+                          <SelectValue placeholder="Select Supplier Material" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {supplierMaterials.map((sm) => (
+                            <SelectItem key={sm.id} value={sm.id}>
+                              {sm.displayName} ({sm.priceWithTax?.toFixed(2)}/
+                              {sm.displayUnit})
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <Input
+                        type="number"
+                        step="0.01"
+                        min="0"
+                        value={ingredient.quantity}
+                        onChange={(e) =>
+                          handleIngredientChange(
+                            index,
+                            "quantity",
+                            Number(e.target.value)
+                          )
+                        }
+                        className="h-8 text-right focus-enhanced"
+                      />
+                    </TableCell>
+                    <TableCell className="text-right text-muted-foreground">
+                      {costPerKg.toFixed(2)}
+                    </TableCell>
+                    <TableCell className="text-right font-medium">
+                      {totalCost.toFixed(2)}
+                    </TableCell>
+                    <TableCell>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        type="button"
+                        onClick={() => handleRemoveIngredient(index)}
+                        className="h-7 w-7 text-destructive hover:bg-destructive/10"
+                      >
+                        <X className="h-4 w-4" />
+                      </Button>
+                    </TableCell>
+                  </TableRow>
+                );
+              })}
 
               {/* Add New Ingredient Row */}
               <TableRow className="bg-primary/5 border-t">
@@ -508,19 +405,19 @@ export function RecipeProductDialog({
                 </TableCell>
                 <TableCell>
                   <Select
-                    value={newIngredient.materialId}
+                    value={newIngredient.supplierMaterialId}
                     onValueChange={(value) =>
-                      handleNewIngredientChange("materialId", value)
+                      handleNewIngredientChange("supplierMaterialId", value)
                     }
                   >
                     <SelectTrigger className="h-9 focus-enhanced">
-                      <SelectValue placeholder="Select Material" />
+                      <SelectValue placeholder="Select Supplier Material" />
                     </SelectTrigger>
                     <SelectContent>
-                      {MATERIALS.map((material) => (
-                        <SelectItem key={material.id} value={material.id}>
-                          {material.name} ({material.priceWithTax?.toFixed(2)}
-                          /kg)
+                      {supplierMaterials.map((sm) => (
+                        <SelectItem key={sm.id} value={sm.id}>
+                          {sm.displayName} ({sm.priceWithTax?.toFixed(2)}/
+                          {sm.displayUnit})
                         </SelectItem>
                       ))}
                     </SelectContent>
@@ -541,30 +438,21 @@ export function RecipeProductDialog({
                     className="h-9 text-right focus-enhanced"
                   />
                 </TableCell>
-                <TableCell>
-                  <Select
-                    value={newIngredient.unit}
-                    onValueChange={(value) =>
-                      handleNewIngredientChange("unit", value)
-                    }
-                  >
-                    <SelectTrigger className="h-9 focus-enhanced">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {INGREDIENT_UNITS.map((unit) => (
-                        <SelectItem key={unit.value} value={unit.value}>
-                          {unit.value}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </TableCell>
                 <TableCell className="text-right text-muted-foreground">
-                  {newIngredient.costPerKg.toFixed(2)}
+                  {(
+                    getSupplierMaterial(
+                      supplierMaterials,
+                      newIngredient.supplierMaterialId
+                    )?.priceWithTax || 0
+                  ).toFixed(2)}
                 </TableCell>
                 <TableCell className="text-right font-medium text-primary">
-                  {newIngredient.totalCost.toFixed(2)}
+                  {(
+                    (getSupplierMaterial(
+                      supplierMaterials,
+                      newIngredient.supplierMaterialId
+                    )?.priceWithTax || 0) * newIngredient.quantity
+                  ).toFixed(2)}
                 </TableCell>
                 <TableCell>
                   <Button
@@ -585,18 +473,16 @@ export function RecipeProductDialog({
           <div className="flex justify-between items-center p-4 rounded-lg bg-primary/5 border border-primary/20">
             <div className="space-y-1">
               <div className="text-sm text-muted-foreground">
-                Total Batch Cost ({formData.batchSizeKg || 0} kg)
+                Total Recipe Cost
               </div>
               <div className="text-2xl font-bold text-primary">
-                ₹{batchTotalCost.toFixed(2)}
+                ₹{totalCostPerKg.toFixed(2)}
               </div>
             </div>
             <div className="space-y-1 text-right">
-              <div className="text-sm text-muted-foreground">
-                Recipe Cost Per kg (totalCostPerKg)
-              </div>
+              <div className="text-sm text-muted-foreground">Target Margin</div>
               <div className="text-xl font-bold text-primary">
-                ₹{totalCostPerKg.toFixed(2)} / kg
+                {formData.targetProfitMargin || 0}%
               </div>
             </div>
           </div>

@@ -81,20 +81,26 @@ export interface SupplierMaterial extends BaseEntity {
     transportationCost?: number;
     notes?: string;
 }
-// Helper type for enriched supplier material
-export interface SupplierMaterialWithDetails extends SupplierMaterial {
-    material?: Material;
-    supplier?: Supplier;
-    displayName: string;
-    displayCategory: string;
-    displayUnit: string;
-    priceWithTax: number;
-}
+
 
 // Helper type for material with supplier count
 export interface MaterialWithSuppliers extends Material {
     supplierCount: number;
     suppliersList: Supplier[];
+}
+
+/**
+ * Extended SupplierMaterial with joined data
+ */
+export interface SupplierMaterialWithDetails extends SupplierMaterial {
+    material?: Material;
+    supplier?: Supplier;
+
+    // Computed display fields (always accurate)
+    displayName: string;
+    displayCategory: string;
+    displayUnit: string;
+    priceWithTax: number;
 }
 
 
@@ -135,6 +141,19 @@ export interface PackagingWithSuppliers extends Packaging {
     suppliersList: Supplier[];
 }
 
+/**
+ * Extended SupplierPackaging with joined data
+ */
+export interface SupplierPackagingWithDetails extends SupplierPackaging {
+    packaging?: Packaging;
+    supplier?: Supplier;
+
+    // Computed display fields (always accurate)
+    displayName: string;
+    displayType: string;
+    displayUnit: string;
+    priceWithTax: number;
+}
 
 // ============================================================================
 // LABELS
@@ -178,32 +197,329 @@ export interface LabelsWithSuppliers extends Label {
     suppliersList: Supplier[];
 }
 
+/**
+ * Extended SupplierLabel with joined data
+ */
+export interface SupplierLabelWithDetails extends SupplierLabel {
+    label?: Label;
+    supplier?: Supplier;
 
-// ============================================================================
-// PRODUCTS & Recipes
-// ============================================================================
-
-export interface ProductIngredient {
-    id: string; // New: Unique ID for the ingredient instance
-    materialId: string;
-    materialName: string;
-    quantity: number;
-    unit: string; // New: e.g., "kg", "g", "L", "mL"
-    costPerKg: number;
-    totalCost: number;
-    percentage?: number;
+    // Computed display fields (always accurate)
+    displayName: string;
+    displayType: string;
+    displayPrintingType: string;
+    displayMaterial: string;
+    displayShape: string;
+    priceWithTax: number;
 }
 
-export interface Product extends BaseEntity {
+// ============================================================================
+// RECIPES
+// ============================================================================
+
+export type RecipeIngredientUnit = "kg" | "g" | "L" | "ml" | "pcs";
+
+/**
+ * A single ingredient in a recipe formulation.
+ * Links to a SupplierMaterial and defines how much is needed.
+ */
+export interface RecipeIngredient extends BaseEntity {
+    supplierMaterialId: string;
+    quantity: number;
+
+    // Optional: Lock pricing for cost stability
+    lockedPricing?: {
+        unitPrice: number;        // Locked supplier unit price
+        tax: number;              // Locked tax percentage
+        lockedAt: Date;
+        reason?: "cost_analysis" | "quote" | "production_batch" | "other";
+        notes?: string;
+    };
+
+    // Display/reference (not for calculations)
+    notes?: string;
+}
+
+/**
+ * Computed values for a recipe ingredient (NOT stored in DB)
+ * These are calculated at runtime from SupplierMaterial data
+ */
+export interface RecipeIngredientCalculated extends RecipeIngredient {
+    supplierMaterial: SupplierMaterialWithDetails;
+
+    // Computed costs
+    effectiveUnitPrice: number;      // Uses locked price if available, else current
+    effectiveTax: number;
+    quantityInKg: number;            // Normalized to kg for calculations
+    costForQuantity: number;         // Total cost for this ingredient
+    costWithTax: number;
+
+    // Display helpers
+    displayName: string;
+    displaySupplier: string;
+    displayQuantity: string;
+    displayCost: string;
+
+    // Status flags
+    isPriceLocked: boolean;
+    priceChangedSinceLock: boolean;
+    priceDifference?: number;
+    isAvailable: boolean;
+}
+
+/**
+ * Recipe/Formulation - The formula for making a product substance
+ */
+export interface Recipe extends BaseEntity {
     name: string;
     description?: string;
-    ingredients: ProductIngredient[];
-    totalCostPerKg: number;
-    sellingPricePerKg?: number;
-    profitMargin?: number;
-    batchSizeKg?: number;
-    status: "draft" | "active" | "discontinued";
+
+    // The formulation
+    ingredients: RecipeIngredient[];
+
+    // Manufacturing details
+    productionTime?: number;          // Minutes
+    manufacturingInstructions?: string;
+
+    costPerKg: number;
+    // Cost targets (aspirational, not enforced)
+    targetCostPerKg?: number;
+    targetProfitMargin?: number;
+
+    // Status
+    status: "draft" | "active" | "archived" | "discontinued";
+    version?: number;                 // For version control
+    parentRecipeId?: string;          // If this is a variant/version of another recipe
+
+    // Compliance & Safety
+    shelfLife?: number;               // Days
+    notes?: string;
 }
+
+/**
+ * Computed recipe cost analysis (NOT stored in DB)
+ */
+export interface RecipeCostAnalysis {
+    recipeId: string;
+    recipeName: string;
+
+    // Breakdown by ingredient
+    ingredientBreakdown: Array<{
+        ingredientId: string;
+        name: string;
+        cost: number;
+        costWithTax: number;
+        percentageOfTotal: number;
+    }>;
+
+    // Top cost drivers
+    topCostDrivers: string[];         // Top 3 ingredient names
+
+    // Alerts & Warnings
+    hasPriceChanges: boolean;
+    warnings: string[];
+}
+
+// ============================================================================
+// RECIPE TWEAKER
+// ============================================================================
+
+export interface RecipeVariant extends BaseEntity {
+    originalRecipeId: string;
+    name: string;
+    description?: string;
+    ingredients: RecipeIngredient[];
+
+    costPerKg: number;
+
+    // Add these:
+    costDifference: number;           // vs original recipe
+    costDifferencePercentage: number; // % cheaper/expensive
+
+    profitMargin?: number;
+    isActive: boolean;
+
+    // Add reason for variant
+    optimizationGoal?: "cost_reduction" | "quality_improvement" | "supplier_diversification" | "other";
+
+    notes?: string;
+}
+
+/**
+ * Suggestion for recipe optimization
+ */
+export interface RecipeOptimizationSuggestion {
+    type: "reduce_quantity" | "substitute_ingredient" | "remove_ingredient";
+    ingredientId: string;
+    ingredientName: string;
+
+    // For quantity reduction
+    currentQuantity?: number;
+    suggestedQuantity?: number;
+
+    // For substitution
+    alternativeSupplierMaterialId?: string;
+    alternativeSupplierMaterialName?: string;
+
+    // Impact
+    costSaving: number;
+    costSavingPercentage: number;
+    qualityImpact?: "none" | "low" | "medium" | "high";
+
+    reasoning: string;
+    confidence: number;               // 0-100
+}
+
+/**
+ * What-if scenario for recipe tweaking
+ */
+export interface RecipeScenario {
+    scenarioName: string;
+    baseRecipeId: string;
+
+    // Modifications
+    ingredientChanges: Array<{
+        ingredientId: string;
+        action: "modify" | "remove" | "add";
+        newQuantity?: number;
+        newSupplierMaterialId?: string;
+    }>;
+
+    // Results
+    originalCost: number;
+    newCost: number;
+    costDifference: number;
+    costDifferencePercentage: number;
+
+    notes?: string;
+}
+
+
+// ============================================================================
+// PRODUCT SYSTEM (Final SKU)
+// ============================================================================
+
+export type ProductComponentType = "recipe" | "packaging" | "label";
+
+/**
+ * A component that makes up a product (recipe, packaging, or label)
+ */
+export interface ProductComponent extends BaseEntity {
+    type: ProductComponentType;
+
+    // For recipe components
+    recipeId?: string;
+    packagingId?: string;
+    labelId?: string;
+
+    // For packaging/label components (these are also supplier materials)
+    quantity?: number;
+    unit?: string;
+
+    // Optional: Lock pricing
+    lockedPricing?: {
+        unitPrice: number;
+        tax: number;
+        lockedAt: Date;
+        reason?: string;
+        notes?: string;
+    };
+
+    notes?: string;
+}
+
+/**
+ * Product - The final SKU that includes recipe + packaging + labels
+ */
+export interface Product extends BaseEntity {
+    name: string;                     // e.g., "Floor Cleaner - 5L Bottle"
+    sku?: string;                     // Stock Keeping Unit
+    description?: string;
+    category?: string;
+
+    // Product composition
+    components: ProductComponent[];   // Recipe + Packaging + Labels
+
+    // Unit definition (what customers buy)
+    unitSize: number;                 // e.g., 5 (for 5L bottle)
+    unitType: RecipeIngredientUnit;   // e.g., "L"
+    unitsPerCase?: number;            // For bulk sales
+
+    // Pricing
+    sellingPricePerUnit: number;      // Price for one unit (e.g., one 5L bottle)
+    sellingPricePerCase?: number;     // If selling by case
+
+    // Business metrics (aspirational targets)
+    targetProfitMargin?: number;      // Desired margin %
+    minimumProfitMargin?: number;     // Don't sell below this
+
+    // Sales & Distribution
+    distributionChannels?: string[];  // e.g., ["retail", "wholesale", "online"]
+    shelfLife?: number;               // Days
+
+    // Status
+    status: "draft" | "active" | "discontinued";
+    isLocked?: boolean;               // Lock all component prices
+
+    // Marketing
+    barcode?: string;
+    imageUrl?: string;
+    tags?: string[];
+
+    notes?: string;
+}
+
+/**
+ * Computed product cost analysis (NOT stored in DB)
+ */
+export interface ProductCostAnalysis {
+    productId: string;
+    productName: string;
+
+    // Component costs
+    recipeCost: number;
+    packagingCost: number;
+    labelCost: number;
+    totalCost: number;
+    totalCostWithTax: number;
+
+    // Per-unit calculations
+    costPerUnit: number;
+    costPerUnitWithTax: number;
+
+    // If selling by case
+    costPerCase?: number;
+    costPerCaseWithTax?: number;
+
+    // Profitability
+    sellingPricePerUnit: number;
+    grossProfit: number;
+    grossProfitMargin: number;        // Actual margin %
+
+    // Comparison with targets
+    targetMargin?: number;
+    marginVsTarget?: number;          // Difference from target
+    meetsMinimumMargin: boolean;
+
+    // Breakdown
+    costBreakdown: Array<{
+        componentType: ProductComponentType;
+        name: string;
+        cost: number;
+        percentageOfTotal: number;
+    }>;
+
+    // Alerts
+    hasAvailabilityIssues: boolean;
+    hasPriceChanges: boolean;
+    warnings: string[];
+}
+
+// ============================================================================
+// OPTIMIZATION & ANALYSIS
+// ============================================================================
+
+
 
 // ============================================================================
 // PROCUREMENT & ORDERS
@@ -309,21 +625,7 @@ export interface TransportationCost extends BaseEntity {
     notes?: string;
 }
 
-// ============================================================================
-// RECIPE TWEAKER
-// ============================================================================
 
-export interface RecipeVariant extends BaseEntity {
-    originalRecipeId: string;
-    name: string;
-    description?: string;
-    ingredients: ProductIngredient[];
-    totalCostPerKg: number;
-    sellingPricePerKg?: number;
-    profitMargin?: number;
-    notes?: string;
-    isActive: boolean;
-}
 
 // ============================================================================
 // EXTENDED ENTITIES

@@ -13,126 +13,141 @@ import {
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
-import { Plus } from "lucide-react";
+import {
+  Plus,
+  FlaskConical,
+  TrendingUp,
+  BarChart3,
+  Calculator,
+} from "lucide-react";
 
 import { RecipesAnalytics } from "./recipes-analytics";
 import { CostCalculator } from "@/components/cost-calculator";
 import { RecipeProductDialog } from "./recipes-dialog";
-import { RecipeStats } from "./recipes-stats";
-import { RecipeTableSection } from "./recipes-table-section";
+import { RecipeTable } from "./recipes-table";
 
-import type { Product } from "@/lib/types";
-import { PRODUCTS } from "@/lib/constants";
-import { RECIPE_COLUMNS } from "./recipes-columns";
+import type { Recipe } from "@/lib/types";
+import { MetricCard } from "@/components/ui/metric-card";
 
-// Helper type to align with the columns definition
-type RecipeTableRow = Product & {
-  ingredientsCount: number;
-};
+// Sample recipes data - in real app this would come from API
+const SAMPLE_RECIPES: Recipe[] = [
+  {
+    id: "1",
+    name: "Premium Floor Cleaner",
+    description: "High-performance floor cleaning solution",
+    ingredients: [
+      {
+        id: "1-1",
+        supplierMaterialId: "1",
+        quantity: 0.35,
+        notes: "Primary cleaning agent",
+        createdAt: "2024-01-10T00:00:00.000Z",
+      },
+      {
+        id: "1-2",
+        supplierMaterialId: "2",
+        quantity: 0.25,
+        notes: "pH balancer",
+        createdAt: "2024-01-10T00:00:00.000Z",
+      },
+    ],
+    costPerKg: 27.22,
+    targetProfitMargin: 35,
+    status: "active",
+    createdAt: "2024-01-10T00:00:00.000Z",
+  },
+  {
+    id: "2",
+    name: "Bathroom Cleaner Pro",
+    description: "Powerful bathroom cleaning recipe",
+    ingredients: [
+      {
+        id: "2-1",
+        supplierMaterialId: "3",
+        quantity: 0.15,
+        notes: "Acid component",
+        createdAt: "2024-01-12T00:00:00.000Z",
+      },
+    ],
+    costPerKg: 34.06,
+    targetProfitMargin: 35,
+    status: "active",
+    createdAt: "2024-01-12T00:00:00.000Z",
+  },
+];
 
 export function RecipeManager() {
-  const [products, setProducts] = useState<Product[]>(PRODUCTS);
-  const [searchTerm, setSearchTerm] = useState("");
+  const [recipes, setRecipes] = useState<Recipe[]>(SAMPLE_RECIPES);
 
   const [isAddMode, setIsAddMode] = useState(false);
-  const [editingProduct, setEditingProduct] = useState<Product | null>(null);
-
-  // --- Optimization: Memoize the filtered products list ---
-  const filteredProducts: RecipeTableRow[] = useMemo(() => {
-    return products
-      .map((p) => ({
-        ...p,
-        ingredientsCount: p.ingredients.length,
-      }))
-      .filter((product) =>
-        product.name.toLowerCase().includes(searchTerm.toLowerCase())
-      );
-  }, [products, searchTerm]);
+  const [editingRecipe, setEditingRecipe] = useState<Recipe | null>(null);
 
   // --- Optimization: Memoize expensive Quick Stat calculations ---
   const quickStats = useMemo(() => {
-    const totalRecipes = products.length;
+    const totalRecipes = recipes.length;
 
     if (totalRecipes === 0) {
       return {
         totalRecipes: 0,
         avgCostPerKg: 0,
-        avgProfitMargin: 0,
-        totalPortfolioValue: 0,
+        avgTargetMargin: 0,
         totalIngredients: 0,
       };
     }
 
     const avgCostPerKg =
-      products.reduce((sum, p) => sum + (p.totalCostPerKg || 0), 0) /
+      recipes.reduce((sum, r) => sum + (r.costPerKg || 0), 0) / totalRecipes;
+
+    const avgTargetMargin =
+      recipes.reduce((sum, r) => sum + (r.targetProfitMargin || 0), 0) /
       totalRecipes;
 
-    const avgProfitMargin =
-      products.reduce((sum, p) => sum + (p.profitMargin || 0), 0) /
-      totalRecipes;
-
-    const totalPortfolioValue = products.reduce(
-      (sum, p) => sum + (p.sellingPricePerKg || 0) * (p.batchSizeKg || 0),
-      0
-    );
-
-    const totalIngredients = products.reduce(
-      (sum, p) => sum + p.ingredients.length,
+    const totalIngredients = recipes.reduce(
+      (sum, r) => sum + r.ingredients.length,
       0
     );
 
     return {
       totalRecipes,
       avgCostPerKg,
-      avgProfitMargin,
-      totalPortfolioValue,
+      avgTargetMargin,
       totalIngredients,
     };
-  }, [products]);
+  }, [recipes]);
 
-  const {
-    totalRecipes,
-    avgCostPerKg,
-    avgProfitMargin,
-    totalPortfolioValue,
-    totalIngredients,
-  } = quickStats;
+  const { totalRecipes, avgCostPerKg, avgTargetMargin, totalIngredients } =
+    quickStats;
 
-  const handleSaveRecipe = (product: Product) => {
-    if (products.some((p) => p.id === product.id)) {
+  const handleSaveRecipe = (recipe: Recipe) => {
+    if (recipes.some((r) => r.id === recipe.id)) {
       // EDIT mode
-      setProducts(products.map((p) => (p.id === product.id ? product : p)));
-      toast.success(`Recipe '${product.name}' updated successfully.`);
+      setRecipes(recipes.map((r) => (r.id === recipe.id ? recipe : r)));
+      toast.success(`Recipe '${recipe.name}' updated successfully.`);
     } else {
       // ADD mode
-      setProducts([...products, product]);
-      toast.success(`New recipe '${product.name}' created successfully.`);
+      setRecipes([...recipes, recipe]);
+      toast.success(`New recipe '${recipe.name}' created successfully.`);
     }
   };
 
   const handleDeleteRecipe = (id: string) => {
-    setProducts(products.filter((p) => p.id !== id));
+    setRecipes(recipes.filter((r) => r.id !== id));
     toast.success("Recipe deleted successfully");
   };
 
   // Dialog control handlers
-  const handleEdit = (product: Product) => {
-    // Cast to RecipeTableRow to pass to the column definition handler
-    setEditingProduct(product);
+  const handleEdit = (recipe: Recipe) => {
+    setEditingRecipe(recipe);
   };
 
   const handleCloseDialog = () => {
     setIsAddMode(false);
-    setEditingProduct(null);
+    setEditingRecipe(null);
   };
 
-  // Column configuration, passed handlers
-  // Note: We cast the handlers to accept the base Product type for editing,
-  // even though the columns expect the derived type for rendering.
-  const recipeColumns = RECIPE_COLUMNS({
-    onEdit: handleEdit as (recipe: RecipeTableRow) => void,
-    onDelete: handleDeleteRecipe,
-  });
+  const handleAdd = () => {
+    setIsAddMode(true);
+  };
 
   return (
     <div className="space-y-6 animate-fade-in">
@@ -166,19 +181,50 @@ export function RecipeManager() {
 
         <TabsContent value="recipes" className="space-y-6">
           {/* Quick Stats */}
-          <RecipeStats
-            totalRecipes={totalRecipes}
-            avgCostPerKg={avgCostPerKg}
-            avgProfitMargin={avgProfitMargin}
-            totalPortfolioValue={totalPortfolioValue}
-            totalIngredients={totalIngredients}
-          />
+          <div className="grid grid-cols-1 md:grid-cols-5 gap-6">
+            <MetricCard
+              title="Total Recipes"
+              value={totalRecipes}
+              icon={FlaskConical}
+              iconClassName="text-primary"
+              trend={{ value: "+8%", isPositive: true }}
+            />
 
-          <RecipeTableSection
-            searchTerm={searchTerm}
-            onSearchChange={setSearchTerm}
-            filteredProducts={filteredProducts}
-            columns={recipeColumns}
+            <MetricCard
+              title="Avg Cost per kg"
+              value={`₹${avgCostPerKg.toFixed(2)}`}
+              icon={BarChart3}
+              iconClassName="text-primary"
+              trend={{ value: "-2.1%", isPositive: false }}
+            />
+
+            <MetricCard
+              title="Avg Target Margin"
+              value={`${avgTargetMargin.toFixed(1)}%`}
+              icon={TrendingUp}
+              iconClassName="text-primary"
+            />
+
+            <MetricCard
+              title="Total Ingredients Used"
+              value={totalIngredients}
+              icon={Calculator}
+              iconClassName="text-primary"
+            />
+
+            <MetricCard
+              title="Total Ingredients Used"
+              value={totalIngredients}
+              icon={BarChart3}
+              iconClassName="text-primary"
+            />
+          </div>
+
+          <RecipeTable
+            recipes={recipes}
+            onEdit={handleEdit}
+            onDelete={handleDeleteRecipe}
+            onAdd={handleAdd}
           />
         </TabsContent>
 
@@ -217,10 +263,10 @@ export function RecipeManager() {
 
       {/* Unified Recipe Dialog */}
       <RecipeProductDialog
-        isOpen={isAddMode || !!editingProduct}
+        isOpen={isAddMode || !!editingRecipe}
         onClose={handleCloseDialog}
         onSave={handleSaveRecipe}
-        initialProduct={editingProduct}
+        initialRecipe={editingRecipe}
       />
     </div>
   );
