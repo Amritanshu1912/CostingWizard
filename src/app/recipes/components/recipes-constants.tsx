@@ -1,5 +1,7 @@
 // recipe-constants.ts
 
+import { Recipe } from "@/lib/types";
+
 /**
  * Defines the available units for ingredients and their conversion factors
  * to the base unit (kilogram: kg).
@@ -116,40 +118,6 @@ export const recipesAIInsights = [
   },
 ];
 
-export const recipesPerformanceMetrics = [
-  {
-    metric: "Profit Margin",
-    value: 32,
-    target: 30,
-    status: "good",
-  },
-  {
-    metric: "Quality Score",
-    value: 95,
-    target: 90,
-    status: "excellent",
-  },
-  {
-    metric: "Cost Efficiency",
-    value: 88,
-    target: 85,
-    status: "good",
-  },
-  {
-    metric: "Customer Satisfaction",
-    value: 94,
-    target: 92,
-    status: "excellent",
-  },
-];
-
-export const recipesBenchmarkData = [
-  { metric: "Profit Margin", yours: 32, industry: 28 },
-  { metric: "Quality", yours: 95, industry: 87 },
-  { metric: "Efficiency", yours: 88, industry: 82 },
-  { metric: "Satisfaction", yours: 94, industry: 89 },
-];
-
 // New mock data for recipe analytics charts
 export const recipeFinancialOverview = [
   {
@@ -245,4 +213,149 @@ export const costVsProfitData = [
   { costPerKg: 28.5, profitMargin: 32.5, recipe: "Floor Cleaner" },
   { costPerKg: 32.2, profitMargin: 28.8, recipe: "Toilet Cleaner" },
   { costPerKg: 35.9, profitMargin: 24.1, recipe: "Dish Soap" },
+];
+
+// Sample recipes data - in real app this would come from API
+export const RECIPES: Recipe[] = [
+  {
+    id: "1",
+    name: "Premium Floor Cleaner",
+    description: "High-performance floor cleaning solution",
+    ingredients: [
+      // Ingredients kept in 'kg' as they appear to be solids/powders
+      {
+        id: "1-1", // Unique ID
+        supplierMaterialId: "6",
+        quantity: 0.35,
+        createdAt: "2024-01-10",
+      },
+      {
+        id: "1-2", // Unique ID
+        supplierMaterialId: "7",
+        quantity: 0.25,
+        createdAt: "",
+      },
+      {
+        id: "1-3", // Unique ID
+        supplierMaterialId: "8",
+        quantity: 0.22,
+        createdAt: "",
+      },
+      {
+        id: "1-4", // Unique ID
+        supplierMaterialId: "2",
+        quantity: 0.08,
+        createdAt: "",
+      },
+      {
+        id: "1-5", // Unique ID
+        supplierMaterialId: "4",
+        quantity: 0.018,
+        createdAt: "",
+      },
+      {
+        id: "1-6", // Unique ID
+        supplierMaterialId: "9",
+        quantity: 0.025,
+        createdAt: "",
+      },
+    ],
+    costPerKg: 75,
+    targetProfitMargin: 30,
+    status: "active",
+    createdAt: "2024-01-10",
+  },
+  {
+    id: "2",
+    name: "Bathroom Cleaner Pro",
+    description: "Powerful bathroom cleaning recipe",
+    ingredients: [
+      {
+        id: "2-1", // Corrected ID
+        supplierMaterialId: "5",
+        quantity: 0.15,
+        createdAt: "",
+      },
+      {
+        id: "2-2", // Corrected ID
+        supplierMaterialId: "4",
+        quantity: 0.05,
+        createdAt: "",
+      },
+      {
+        id: "2-3", // Corrected ID
+        supplierMaterialId: "2",
+        quantity: 0.12,
+        createdAt: "",
+      },
+      {
+        id: "2-4", // Corrected ID
+        supplierMaterialId: "1",
+        quantity: 1,
+        createdAt: "",
+      },
+    ],
+    costPerKg: 80,
+    targetProfitMargin: 35,
+    status: "active",
+    createdAt: "2024-01-12",
+  },
+  {
+    id: "3",
+    name: "Glass Cleaner",
+    description: "Streak-free glass cleaning solution",
+    ingredients: [
+      {
+        id: "3-1", // Added ID
+        supplierMaterialId: "2",
+        quantity: 0.1,
+        createdAt: "",
+      },
+      {
+        id: "3-2", // Added ID
+        supplierMaterialId: "6",
+        quantity: 50,
+        createdAt: "",
+      },
+      {
+        id: "3-3", // Added ID
+        supplierMaterialId: "1",
+        quantity: 2,
+        createdAt: "",
+      },
+    ],
+    status: "active",
+    targetProfitMargin: 32,
+    createdAt: "2024-01-15",
+    costPerKg: 90,
+  },
+  {
+    id: "4",
+    name: "Kitchen Degreaser",
+    description: "Heavy-duty kitchen cleaning solution",
+    ingredients: [
+      {
+        id: "4-1", // Added ID
+        supplierMaterialId: "4",
+        quantity: 0.2,
+        createdAt: "",
+      },
+      {
+        id: "4-2", // Added ID
+        supplierMaterialId: "8",
+        quantity: 0.15,
+        createdAt: "",
+      },
+      {
+        id: "4-3", // Added ID
+        supplierMaterialId: "9",
+        quantity: 0.08,
+        createdAt: "",
+      },
+    ],
+    costPerKg: 100,
+    targetProfitMargin: 35,
+    status: "active",
+    createdAt: "2024-01-18",
+  },
 ];

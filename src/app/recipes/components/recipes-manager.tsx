@@ -25,59 +25,12 @@ import { RecipesAnalytics } from "./recipes-analytics";
 import { CostCalculator } from "@/components/cost-calculator";
 import { RecipeProductDialog } from "./recipes-dialog";
 import { RecipeTable } from "./recipes-table";
-
-import type { Recipe } from "@/lib/types";
 import { MetricCard } from "@/components/ui/metric-card";
-
-// Sample recipes data - in real app this would come from API
-const SAMPLE_RECIPES: Recipe[] = [
-  {
-    id: "1",
-    name: "Premium Floor Cleaner",
-    description: "High-performance floor cleaning solution",
-    ingredients: [
-      {
-        id: "1-1",
-        supplierMaterialId: "1",
-        quantity: 0.35,
-        notes: "Primary cleaning agent",
-        createdAt: "2024-01-10T00:00:00.000Z",
-      },
-      {
-        id: "1-2",
-        supplierMaterialId: "2",
-        quantity: 0.25,
-        notes: "pH balancer",
-        createdAt: "2024-01-10T00:00:00.000Z",
-      },
-    ],
-    costPerKg: 27.22,
-    targetProfitMargin: 35,
-    status: "active",
-    createdAt: "2024-01-10T00:00:00.000Z",
-  },
-  {
-    id: "2",
-    name: "Bathroom Cleaner Pro",
-    description: "Powerful bathroom cleaning recipe",
-    ingredients: [
-      {
-        id: "2-1",
-        supplierMaterialId: "3",
-        quantity: 0.15,
-        notes: "Acid component",
-        createdAt: "2024-01-12T00:00:00.000Z",
-      },
-    ],
-    costPerKg: 34.06,
-    targetProfitMargin: 35,
-    status: "active",
-    createdAt: "2024-01-12T00:00:00.000Z",
-  },
-];
+import { RECIPES } from "./recipes-constants";
+import type { Recipe } from "@/lib/types";
 
 export function RecipeManager() {
-  const [recipes, setRecipes] = useState<Recipe[]>(SAMPLE_RECIPES);
+  const [recipes, setRecipes] = useState<Recipe[]>(RECIPES);
 
   const [isAddMode, setIsAddMode] = useState(false);
   const [editingRecipe, setEditingRecipe] = useState<Recipe | null>(null);
@@ -160,15 +113,6 @@ export function RecipeManager() {
           <p className="text-muted-foreground mt-1 text-sm sm:text-base">
             Create, manage, and analyze your product recipes.
           </p>
-        </div>
-        <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
-          <Button
-            className="btn-secondary w-full sm:w-auto"
-            onClick={() => setIsAddMode(true)}
-          >
-            <Plus className="h-4 w-4 mr-2" />
-            <span className="truncate">Create Recipe</span>
-          </Button>
         </div>
       </div>
 
