@@ -11,7 +11,7 @@ import { Badge } from "@/components/ui/badge";
 import { SortableTable } from "@/components/ui/sortable-table";
 import { Star, TrendingDown, AlertCircle } from "lucide-react";
 import { useLabelPriceComparison } from "@/hooks/use-supplier-labels-with-details";
-import type { SupplierLabelWithDetails } from "@/hooks/use-supplier-labels-with-details";
+import type { SupplierLabelWithDetails } from "@/lib/types";
 
 export function LabelsPriceComparison() {
   // Use the smart hook that groups by label automatically

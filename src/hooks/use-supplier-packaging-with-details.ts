@@ -1,21 +1,7 @@
 // hooks/use-supplier-packaging-with-details.ts
 import { useLiveQuery } from "dexie-react-hooks";
 import { db } from "@/lib/db";
-import type { SupplierPackaging, Packaging, Supplier } from "@/lib/types";
-
-/**
- * Extended SupplierPackaging with joined data
- */
-export interface SupplierPackagingWithDetails extends SupplierPackaging {
-    packaging?: Packaging;
-    supplier?: Supplier;
-
-    // Computed display fields (always accurate)
-    displayName: string;
-    displayType: string;
-    displayUnit: string;
-    priceWithTax: number;
-}
+import type { SupplierPackaging, Packaging, Supplier, SupplierPackagingWithDetails } from "@/lib/types";
 
 /**
  * Hook that automatically joins supplier packaging with their packaging and suppliers

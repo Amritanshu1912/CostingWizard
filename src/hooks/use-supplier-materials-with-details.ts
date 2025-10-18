@@ -1,21 +1,7 @@
 // hooks/use-supplier-materials-with-details.ts
 import { useLiveQuery } from "dexie-react-hooks";
 import { db } from "@/lib/db";
-import type { SupplierMaterial, Material, Supplier } from "@/lib/types";
-
-/**
- * Extended SupplierMaterial with joined data
- */
-export interface SupplierMaterialWithDetails extends SupplierMaterial {
-    material?: Material;
-    supplier?: Supplier;
-
-    // Computed display fields (always accurate)
-    displayName: string;
-    displayCategory: string;
-    displayUnit: string;
-    priceWithTax: number;
-}
+import type { SupplierMaterial, Material, Supplier, SupplierMaterialWithDetails } from "@/lib/types";
 
 /**
  * Hook that automatically joins supplier materials with their materials and suppliers
