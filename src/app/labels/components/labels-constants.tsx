@@ -6,6 +6,158 @@ import {
   Label,
   SupplierLabel,
 } from "@/lib/types";
+import {
+  TrendingUp,
+  Target,
+  AlertTriangle,
+  DollarSign,
+  Tag,
+  Clock,
+} from "lucide-react";
+
+// ============================================================================
+// ANALYTICS DATA
+// ============================================================================
+
+export const PRICE_HISTORY_DATA = [
+  { month: "Jan", avgPrice: 0.08, labels: 8500 },
+  { month: "Feb", avgPrice: 0.09, labels: 8800 },
+  { month: "Mar", avgPrice: 0.07, labels: 9200 },
+  { month: "Apr", avgPrice: 0.11, labels: 9500 },
+  { month: "May", avgPrice: 0.13, labels: 9800 },
+  { month: "Jun", avgPrice: 0.12, labels: 10200 },
+];
+
+export const LABELS_USAGE_DATA = [
+  { label: "Standard Stickers", usage: 12500, cost: 625, efficiency: 94 },
+  { label: "Premium Labels", usage: 4200, cost: 1470, efficiency: 89 },
+  { label: "Paper Tags", usage: 3800, cost: 304, efficiency: 91 },
+  { label: "Embossed Labels", usage: 1800, cost: 630, efficiency: 87 },
+  { label: "Custom Shapes", usage: 2100, cost: 441, efficiency: 93 },
+];
+
+export const KEY_METRICS = [
+  {
+    type: "progress",
+    title: "Price Volatility",
+    value: "+4.2%",
+    icon: TrendingUp,
+    iconClassName: "text-accent",
+    progress: {
+      current: 58,
+      max: 100,
+      label: "Moderate",
+      color: "warning" as const,
+    },
+  },
+  {
+    type: "progress",
+    title: "Print Quality Score",
+    value: "92%",
+    icon: Target,
+    iconClassName: "text-primary",
+    progress: {
+      current: 92,
+      max: 100,
+      label: "Excellent",
+      color: "success" as const,
+    },
+  },
+  {
+    type: "badge",
+    title: "Stock Alerts",
+    value: 1,
+    icon: AlertTriangle,
+    iconClassName: "text-destructive",
+    badges: [
+      {
+        text: "Low Stock",
+        variant: "destructive" as const,
+      },
+    ],
+  },
+  {
+    type: "standard",
+    title: "Total Value",
+    value: "₹3.2L",
+    icon: DollarSign,
+    iconClassName: "text-accent",
+    trend: {
+      value: "+18%",
+      isPositive: true,
+      label: "this month",
+    },
+  },
+  {
+    type: "standard",
+    title: "Avg Lead Time",
+    value: "6 days",
+    icon: Clock,
+    iconClassName: "text-primary",
+    trend: {
+      value: "-1 day",
+      isPositive: true,
+      label: "improvement",
+    },
+  },
+];
+
+export const AI_INSIGHTS = [
+  {
+    type: "cost-optimization",
+    title: "Bulk Sticker Purchase",
+    description:
+      "Ordering 50,000+ standard stickers from Supplier A could reduce costs by ₹8,000/month",
+    impact: "High",
+    confidence: 91,
+  },
+  {
+    type: "inventory",
+    title: "Embossed Labels Alert",
+    description:
+      "Embossed label stock will deplete in 2 weeks based on current production rates",
+    impact: "Medium",
+    confidence: 88,
+  },
+  {
+    type: "quality",
+    title: "Supplier Quality Improvement",
+    description:
+      "Supplier B has upgraded their printing equipment, improving color accuracy by 15%",
+    impact: "Medium",
+    confidence: 85,
+  },
+  {
+    type: "market",
+    title: "Material Trend",
+    description:
+      "Vinyl label demand expected to increase 25% next quarter due to new product lines",
+    impact: "High",
+    confidence: 89,
+  },
+];
+
+// ============================================================================
+// PRINTING TYPE DISTRIBUTION DATA
+// ============================================================================
+
+export const PRINTING_TYPE_DISTRIBUTION = [
+  { name: "Black & White", value: 35, color: "#424c5cff" },
+  { name: "Color", value: 40, color: "#43bf36ff" },
+  { name: "Foil", value: 15, color: "#417affff" },
+  { name: "Embossed", value: 10, color: "#dd486dff" },
+];
+
+// ============================================================================
+// LABEL TYPE DISTRIBUTION DATA
+// ============================================================================
+
+export const LABEL_TYPE_DISTRIBUTION = [
+  { name: "Stickers", value: 50, color: "#2563EB" },
+  { name: "Labels", value: 30, color: "#7C3AED" },
+  { name: "Tags", value: 15, color: "#b52727ff" },
+  { name: "Other", value: 5, color: "#9CA3AF" },
+];
 
 // ============================================================================
 // CORE DATA - Single source of truth with labels and colors

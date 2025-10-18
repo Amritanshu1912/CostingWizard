@@ -296,8 +296,8 @@ export function LabelsTableDrawer({
                       Linked Suppliers ({row.supplierCount})
                     </div>
                     <div className="space-y-1">
-                      {row.suppliersList.map((s) => (
-                        <div key={s.id} className="text-white">
+                      {row.suppliersList.map((s, index) => (
+                        <div key={`${s.id}-${index}`} className="text-white">
                           • {s.name}
                         </div>
                       ))}

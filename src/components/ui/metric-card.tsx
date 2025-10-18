@@ -58,11 +58,11 @@ export function MetricCard({
     >
       <div className="absolute inset-0 bg-gradient-to-br from-primary/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
 
-      <CardContent className="relative p-6">
-        <div className="flex items-start justify-between mb-4">
+      <CardContent className="relative p-4">
+        <div className="flex items-start justify-between mb-3">
           <div className="flex-1 space-y-1">
             <p className="text-sm font-medium text-muted-foreground">{title}</p>
-            <p className="text-3xl font-bold tracking-tight">{value}</p>
+            <p className="text-2xl font-bold tracking-tight">{value}</p>
             {description && (
               <p className="text-xs text-muted-foreground">{description}</p>
             )}
@@ -70,7 +70,7 @@ export function MetricCard({
 
           <div
             className={cn(
-              "p-3 rounded-xl bg-gradient-to-br transition-all duration-300",
+              "p-2 rounded-xl bg-gradient-to-br transition-all duration-300",
               iconClassName.includes("text-destructive") &&
                 "from-red-500/10 to-red-500/5",
               iconClassName.includes("text-primary") &&
@@ -82,7 +82,7 @@ export function MetricCard({
               !iconClassName.includes("text-") && "from-primary/10 to-primary/5"
             )}
           >
-            <Icon className={cn("h-8 w-8", iconClassName)} />
+            <Icon className={cn("h-6 w-6", iconClassName)} />
           </div>
         </div>
 
@@ -157,11 +157,11 @@ export function MetricCardWithBadge({
     >
       <div className="absolute inset-0 bg-gradient-to-br from-primary/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
 
-      <CardContent className="relative p-6">
-        <div className="flex items-start justify-between mb-4">
+      <CardContent className="relative p-4">
+        <div className="flex items-start justify-between mb-3">
           <div className="flex-1 space-y-1">
             <p className="text-sm font-medium text-muted-foreground">{title}</p>
-            <p className="text-3xl font-bold tracking-tight">{value}</p>
+            <p className="text-2xl font-bold tracking-tight">{value}</p>
             {description && (
               <p className="text-xs text-muted-foreground mt-1">
                 {description}
@@ -171,7 +171,7 @@ export function MetricCardWithBadge({
 
           <div
             className={cn(
-              "p-3 rounded-xl bg-gradient-to-br transition-all duration-300",
+              "p-2 rounded-xl bg-gradient-to-br transition-all duration-300",
               iconClassName.includes("text-destructive") &&
                 "from-red-500/10 to-red-500/5",
               iconClassName.includes("text-primary") &&
@@ -252,11 +252,11 @@ export function MetricCardWithChart({
     >
       <div className="absolute inset-0 bg-gradient-to-br from-primary/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
 
-      <CardContent className="relative p-6">
-        <div className="flex items-start justify-between mb-4">
+      <CardContent className="relative p-4">
+        <div className="flex items-start justify-between mb-3">
           <div className="flex-1 space-y-1">
             <p className="text-sm font-medium text-muted-foreground">{title}</p>
-            <p className="text-3xl font-bold tracking-tight">{value}</p>
+            <p className="text-2xl font-bold tracking-tight">{value}</p>
             {description && (
               <p className="text-xs text-muted-foreground">{description}</p>
             )}
@@ -264,7 +264,7 @@ export function MetricCardWithChart({
 
           <div
             className={cn(
-              "p-3 rounded-xl bg-gradient-to-br transition-all duration-300",
+              "p-2 rounded-xl bg-gradient-to-br transition-all duration-300",
               iconClassName.includes("text-destructive") &&
                 "from-red-500/10 to-red-500/5",
               iconClassName.includes("text-primary") &&
@@ -365,11 +365,11 @@ export function MetricCardWithProgress({
     >
       <div className="absolute inset-0 bg-gradient-to-br from-primary/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
 
-      <CardContent className="relative p-6">
-        <div className="flex items-start justify-between mb-4">
+      <CardContent className="relative p-4">
+        <div className="flex items-start justify-between mb-3">
           <div className="flex-1 space-y-1">
             <p className="text-sm font-medium text-muted-foreground">{title}</p>
-            <p className="text-3xl font-bold tracking-tight">{value}</p>
+            <p className="text-2xl font-bold tracking-tight">{value}</p>
             {description && (
               <p className="text-xs text-muted-foreground">{description}</p>
             )}
@@ -377,7 +377,7 @@ export function MetricCardWithProgress({
 
           <div
             className={cn(
-              "p-3 rounded-xl bg-gradient-to-br transition-all duration-300",
+              "p-2 rounded-xl bg-gradient-to-br transition-all duration-300",
               iconClassName.includes("text-destructive") &&
                 "from-red-500/10 to-red-500/5",
               iconClassName.includes("text-primary") &&
@@ -495,11 +495,11 @@ export function MetricCardAdvanced({
     >
       <div className="absolute inset-0 bg-gradient-to-br from-primary/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
 
-      <CardContent className="relative p-6">
-        <div className="flex items-start justify-between mb-4">
+      <CardContent className="relative p-4">
+        <div className="flex items-start justify-between mb-3">
           <div className="flex-1 space-y-1">
             <p className="text-sm font-medium text-muted-foreground">{title}</p>
-            <p className="text-3xl font-bold tracking-tight">{value}</p>
+            <p className="text-2xl font-bold tracking-tight">{value}</p>
             {description && (
               <p className="text-xs text-muted-foreground">{description}</p>
             )}
@@ -507,7 +507,7 @@ export function MetricCardAdvanced({
 
           <div
             className={cn(
-              "p-3 rounded-xl bg-gradient-to-br transition-all duration-300",
+              "p-2 rounded-xl bg-gradient-to-br transition-all duration-300",
               iconClassName.includes("text-destructive") &&
                 "from-red-500/10 to-red-500/5",
               iconClassName.includes("text-primary") &&
@@ -528,7 +528,7 @@ export function MetricCardAdvanced({
         )}
 
         {progress && (
-          <div className="space-y-2 mb-4">
+          <div className="space-y-2 mb-3">
             <div className="flex items-center justify-between text-sm">
               <span className="text-muted-foreground">
                 {progress.label || "Progress"}
