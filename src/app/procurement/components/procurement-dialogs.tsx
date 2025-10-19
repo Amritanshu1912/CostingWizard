@@ -28,8 +28,11 @@ import type {
   Material,
   PurchaseOrderItem,
 } from "@/lib/types";
-import { MATERIALS, SUPPLIERS, SUPPLIER_MATERIALS } from "@/lib/constants";
-// import {} from "./supplier-management-constants";
+import { SUPPLIERS } from "@/lib/constants";
+import {
+  MATERIALS,
+  SUPPLIER_MATERIALS,
+} from "../../materials/components/materials-config";
 import { Switch } from "@/components/ui/switch";
 
 // ============================================================================

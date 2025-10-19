@@ -99,8 +99,8 @@ export function ProductionPlanningCreateDialog({
       productId: newProduct.productId,
       productName: product.name,
       quantityKg: newProduct.quantityKg,
-      costPerKg: product.totalCostPerKg,
-      totalCost: newProduct.quantityKg * product.totalCostPerKg,
+      costPerKg: product.costPerKg,
+      totalCost: newProduct.quantityKg * product.costPerKg,
       materialsRequired: [], // Would be calculated based on product recipe
     };
 
@@ -263,7 +263,7 @@ export function ProductionPlanningCreateDialog({
                     <SelectContent>
                       {PRODUCTS.map((product) => (
                         <SelectItem key={product.id} value={product.id}>
-                          {product.name} - ₹{product.totalCostPerKg}/kg
+                          {product.name} - ₹{product.costPerKg}/kg
                         </SelectItem>
                       ))}
                     </SelectContent>
@@ -337,20 +337,19 @@ export function ProductionPlanningCreateDialog({
                       key: "action",
                       label: "Action",
                       sortable: false,
-                      render: (
-                        value: any,
-                        row: ProductionItem,
-                        index: number
-                      ) => (
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => handleRemoveProduct(index)}
-                          className="h-8 w-8 p-0 text-destructive hover:text-destructive"
-                        >
-                          <Trash2 className="h-3 w-3" />
-                        </Button>
-                      ),
+                      render: (value: any, row: ProductionItem) => {
+                        const index = newPlan.products.indexOf(row);
+                        return (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => handleRemoveProduct(index)}
+                            className="h-8 w-8 p-0 text-destructive hover:text-destructive"
+                          >
+                            <Trash2 className="h-3 w-3" />
+                          </Button>
+                        );
+                      },
                     },
                   ]}
                   className="table-enhanced"

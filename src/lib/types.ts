@@ -253,6 +253,7 @@ export interface RecipeIngredientCalculated extends RecipeIngredient {
     quantityInKg: number;            // Normalized to kg for calculations
     costForQuantity: number;         // Total cost for this ingredient
     costWithTax: number;
+    percentage: number;              // Percentage of total cost
 
     // Display helpers
     displayName: string;
@@ -311,6 +312,7 @@ export interface RecipeCostAnalysis {
         costWithTax: number;
         percentageOfTotal: number;
     }>;
+    percentage: number;              // Percentage of total cost
 
     // Top cost drivers
     topCostDrivers: string[];         // Top 3 ingredient names
@@ -448,6 +450,8 @@ export interface Product extends BaseEntity {
     // Pricing
     sellingPricePerUnit: number;      // Price for one unit (e.g., one 5L bottle)
     sellingPricePerCase?: number;     // If selling by case
+    costPerKg: number;                // Total cost per kg of product
+    sellingPricePerKg: number;        // Selling price per kg
 
     // Business metrics (aspirational targets)
     targetProfitMargin?: number;      // Desired margin %

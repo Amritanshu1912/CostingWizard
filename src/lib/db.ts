@@ -20,7 +20,6 @@ import type {
 import {
     CATEGORIES,
     SUPPLIERS,
-    PRODUCTS,
     PRODUCTION_PLANS,
     PURCHASE_ORDERS,
 } from './constants';
@@ -36,6 +35,7 @@ import {
     LABELS,
     SUPPLIER_LABELS,
 } from '../app/labels/components/labels-constants';
+import { RECIPES } from '../app/recipes/components/recipes-constants';
 
 export class CostingWizardDB extends Dexie {
     categories!: Table<Category>;
@@ -62,13 +62,13 @@ export class CostingWizardDB extends Dexie {
             materials: 'id, name, category',
             suppliers: 'id, name, isActive',
             supplierMaterials: 'id, supplierId, materialId, availability',
-            products: 'id, name, status',
-            productionPlans: 'id, planName, status, startDate, endDate',
-            purchaseOrders: 'id, orderId, supplierId, status, dateCreated',
             packaging: 'id, name, type, supplierId, availability',
             supplierPackaging: 'id, supplierId, packagingId, packagingName, availability',
             labels: 'id, name, type, supplierId, availability',
             supplierLabels: 'id, supplierId, labelId, labelName, availability',
+            products: 'id, name, status',
+            productionPlans: 'id, planName, status, startDate, endDate',
+            purchaseOrders: 'id, orderId, supplierId, status, dateCreated',
             inventoryItems: 'id, itemType, itemId, itemName, status',
             inventoryTransactions: 'id, inventoryItemId, type, reference',
             transportationCosts: 'id, supplierId, region',
@@ -100,9 +100,16 @@ export class CostingWizardDB extends Dexie {
                 await db.supplierMaterials.bulkAdd(SUPPLIER_MATERIALS);
             }
 
-            const hasProducts = await db.products.count() > 0;
-            if (!hasProducts) {
-                await db.products.bulkAdd(PRODUCTS);
+            const hasRecipes = await db.recipeVariants.count() > 0;
+            if (!hasRecipes) {
+                const recipeVariants = RECIPES.map(recipe => ({
+                    ...recipe,
+                    originalRecipeId: recipe.id,
+                    costDifference: 0,
+                    costDifferencePercentage: 0,
+                    isActive: true,
+                }));
+                await db.recipeVariants.bulkAdd(recipeVariants);
             }
 
             const hasProductionPlans = await db.productionPlans.count() > 0;

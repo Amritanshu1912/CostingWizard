@@ -22,8 +22,13 @@ import {
   Tooltip,
   ResponsiveContainer,
 } from "recharts";
-import type { ProductIngredient, OptimizationSuggestion } from "@/lib/types";
-import { MATERIALS } from "@/lib/constants";
+import type {
+  RecipeIngredient,
+  RecipeIngredientCalculated,
+  OptimizationSuggestion,
+  SupplierMaterialWithDetails,
+} from "@/lib/types";
+import { useRecipeCalculator } from "@/hooks/use-recipe-calculator";
 import {
   BATCH_SIZE_CONFIG,
   MARGIN_CONFIG,
@@ -45,12 +50,21 @@ import {
 import type { IngredientUnitValue } from "@/app/recipes/components/recipes-constants";
 
 export function CostCalculator() {
+  // Custom hook for recipe calculations
+  const {
+    supplierMaterials,
+    calculateIngredient,
+    updateIngredientPercentages,
+  } = useRecipeCalculator();
+
   // State management
   const [batchSize, setBatchSize] = useState<number>(BATCH_SIZE_CONFIG.DEFAULT);
   const [targetMargin, setTargetMargin] = useState<number>(
     MARGIN_CONFIG.DEFAULT
   );
-  const [ingredients, setIngredients] = useState<ProductIngredient[]>([]);
+  const [ingredients, setIngredients] = useState<RecipeIngredientCalculated[]>(
+    []
+  );
   const [selectedMaterial, setSelectedMaterial] = useState<string>("");
   const [quantity, setQuantity] = useState<number>(0);
   const [unit, setUnit] = useState<string>(UNITS[0].value);
@@ -59,7 +73,7 @@ export function CostCalculator() {
 
   // Calculations
   const totalCost = ingredients.reduce(
-    (sum, ing) => sum + (ing.totalCost || 0),
+    (sum, ing) => sum + (ing.costForQuantity || 0),
     0
   );
   const costPerKg = batchSize > 0 ? totalCost / batchSize : 0;
@@ -72,45 +86,25 @@ export function CostCalculator() {
       ? ((suggestedPrice - costPerKg) / suggestedPrice) * 100
       : 0;
 
-  // Function to calculate cost using the new utility
-  const calculateIngredientCost = (
-    quantity: number,
-    unit: IngredientUnitValue,
-    costPerKg: number
-  ): number => {
-    const quantityInKg = convertToKilograms(quantity, unit);
-    return quantityInKg * costPerKg;
-  };
-
   // Add ingredient handler
   const addIngredient = () => {
     // Validation now checks for the 'unit' state variable
     if (!selectedMaterial || quantity <= 0 || isNaN(quantity) || !unit) return;
 
-    const material = MATERIALS.find((m) => m.id === selectedMaterial);
-    if (!material) return;
-
-    // --- FIXED CALCULATION ---
-    const totalCost = calculateIngredientCost(
+    const newIngredient = calculateIngredient(
+      selectedMaterial,
       quantity,
-      unit as IngredientUnitValue,
-      material.pricePerKg || 0
+      unit as IngredientUnitValue
     );
 
-    const newIngredient: ProductIngredient = {
-      // 1. Add unique ID for client-side state management
-      id: crypto.randomUUID(),
-      materialId: material.id,
-      materialName: material.name,
-      quantity: Number(quantity) || 0,
-      // 2. Add the selected unit
-      unit: unit,
-      costPerKg: material.pricePerKg || 0,
-      totalCost: totalCost, // Using the fixed calculation
-      percentage: 0,
-    };
+    if (!newIngredient) return;
 
-    updateIngredientsWithPercentages([...ingredients, newIngredient]);
+    const updatedIngredients = updateIngredientPercentages([
+      ...ingredients,
+      newIngredient,
+    ]);
+    setIngredients(updatedIngredients);
+
     setSelectedMaterial("");
     setQuantity(0);
     // Reset unit back to default after adding ingredient
@@ -120,21 +114,8 @@ export function CostCalculator() {
   // Remove ingredient handler
   const removeIngredient = (index: number) => {
     const updatedIngredients = ingredients.filter((_, i) => i !== index);
-    updateIngredientsWithPercentages(updatedIngredients);
-  };
-
-  // Helper to update percentages
-  const updateIngredientsWithPercentages = (
-    updatedIngredients: ProductIngredient[]
-  ) => {
-    const newTotalCost = updatedIngredients.reduce(
-      (sum, ing) => sum + (ing.totalCost || 0),
-      0
-    );
-    const ingredientsWithPercentages = updatedIngredients.map((ing) => ({
-      ...ing,
-      percentage: newTotalCost > 0 ? (ing.totalCost / newTotalCost) * 100 : 0,
-    }));
+    const ingredientsWithPercentages =
+      updateIngredientPercentages(updatedIngredients);
     setIngredients(ingredientsWithPercentages);
   };
 
@@ -146,18 +127,21 @@ export function CostCalculator() {
 
     // Bulk discount suggestions
     ingredients.forEach((ing) => {
-      const material = MATERIALS.find((m) => m.id === ing.materialId);
-      if (material?.bulkDiscounts && ing.quantity > 0) {
-        const applicableDiscount = material.bulkDiscounts
+      const supplierMaterial = supplierMaterials.find(
+        (sm) => sm.id === ing.supplierMaterialId
+      );
+      if (supplierMaterial?.bulkDiscounts && ing.quantity > 0) {
+        const applicableDiscount = supplierMaterial.bulkDiscounts
           .filter((d) => ing.quantity >= d.quantity)
           .sort((a, b) => b.discount - a.discount)[0];
 
         if (applicableDiscount) {
-          const savings = ing.totalCost * (applicableDiscount.discount / 100);
+          const savings =
+            ing.costForQuantity * (applicableDiscount.discount / 100);
           if (savings > 0 && !isNaN(savings)) {
             suggestions.push({
               type: "bulk",
-              title: `Bulk Discount for ${ing.materialName}`,
+              title: `Bulk Discount for ${ing.displayName}`,
               description: `Save ${applicableDiscount.discount}% by ordering ${applicableDiscount.quantity}kg+`,
               savings,
               impact:
@@ -178,17 +162,18 @@ export function CostCalculator() {
       .filter(
         (ing) =>
           (ing.percentage || 0) >
-            OPTIMIZATION_THRESHOLDS.HIGH_COST_PERCENTAGE && ing.totalCost > 0
+            OPTIMIZATION_THRESHOLDS.HIGH_COST_PERCENTAGE &&
+          ing.costForQuantity > 0
       )
-      .sort((a, b) => b.totalCost - a.totalCost);
+      .sort((a, b) => b.costForQuantity - a.costForQuantity);
 
     highCostIngredients.forEach((ing) => {
       const potentialSavings =
-        ing.totalCost * OPTIMIZATION_THRESHOLDS.SUBSTITUTION_SAVINGS_RATE;
+        ing.costForQuantity * OPTIMIZATION_THRESHOLDS.SUBSTITUTION_SAVINGS_RATE;
       if (potentialSavings > 0 && !isNaN(potentialSavings)) {
         suggestions.push({
           type: "substitute",
-          title: `Consider Alternative to ${ing.materialName}`,
+          title: `Consider Alternative to ${ing.displayName}`,
           description: `High-cost ingredient (${(ing.percentage || 0).toFixed(
             1
           )}% of total). Alternative materials could reduce costs.`,
@@ -372,7 +357,7 @@ export function CostCalculator() {
 
                 {/* Add Ingredients */}
                 <IngredientForm
-                  materials={MATERIALS}
+                  materials={supplierMaterials}
                   selectedMaterial={selectedMaterial}
                   quantity={quantity}
                   onMaterialChange={setSelectedMaterial}
