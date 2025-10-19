@@ -1,23 +1,9 @@
 // hooks/use-supplier-labels-with-details.ts
 import { useLiveQuery } from "dexie-react-hooks";
 import { db } from "@/lib/db";
-import type { SupplierLabel, Label, Supplier } from "@/lib/types";
+import type { SupplierLabel, Label, Supplier, SupplierLabelWithDetails } from "@/lib/types";
 
-/**
- * Extended SupplierLabel with joined data
- */
-export interface SupplierLabelWithDetails extends SupplierLabel {
-    label?: Label;
-    supplier?: Supplier;
 
-    // Computed display fields (always accurate)
-    displayName: string;
-    displayType: string;
-    displayPrintingType: string;
-    displayMaterial: string;
-    displayShape: string;
-    priceWithTax: number;
-}
 
 /**
  * Hook that automatically joins supplier labels with their labels and suppliers

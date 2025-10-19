@@ -11,11 +11,8 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { Progress } from "@/components/ui/progress";
-import { Star, Package, Search, Edit, Trash2, Plus } from "lucide-react";
+import { Star, Package, Search } from "lucide-react";
 import type { Supplier, SupplierMaterial } from "@/lib/types";
-import { SUPPLIER_MATERIALS } from "@/lib/constants";
-
 import { AddSupplierDialog } from "./procurement-dialogs";
 import { SuppliersTable } from "./procurement-tables";
 import {

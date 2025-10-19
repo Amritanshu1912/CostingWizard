@@ -11,7 +11,7 @@ import { Badge } from "@/components/ui/badge";
 import { SortableTable } from "@/components/ui/sortable-table";
 import { Star, TrendingDown, AlertCircle } from "lucide-react";
 import { useMaterialPriceComparison } from "@/hooks/use-supplier-materials-with-details";
-import type { SupplierMaterialWithDetails } from "@/hooks/use-supplier-materials-with-details";
+import type { SupplierMaterialWithDetails } from "@/lib/types";
 
 export function MaterialsPriceComparison() {
   // Use the smart hook that groups by material automatically

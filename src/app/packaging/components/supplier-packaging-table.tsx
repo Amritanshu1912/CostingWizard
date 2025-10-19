@@ -29,8 +29,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { SortableTable } from "@/components/ui/sortable-table";
 import { Search, Filter, Edit, Trash2, Plus } from "lucide-react";
-import type { SupplierPackagingWithDetails } from "@/hooks/use-supplier-packaging-with-details";
-import type { Supplier } from "@/lib/types";
+import type { Supplier, SupplierPackagingWithDetails } from "@/lib/types";
 import { PACKAGING_TYPES, BUILD_MATERIALS } from "./packaging-constants";
 
 interface SupplierPackagingTableProps {

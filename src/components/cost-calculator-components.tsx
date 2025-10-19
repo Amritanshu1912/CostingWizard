@@ -18,7 +18,7 @@ import { Minus, Plus, Target, TrendingUp, Package, Zap } from "lucide-react";
 import {
   Material,
   SupplierMaterial,
-  ProductIngredient,
+  RecipeIngredient,
   OptimizationSuggestion,
   ScenarioData,
 } from "@/lib/types";
@@ -42,6 +42,17 @@ interface IngredientFormProps {
   onAddIngredient: () => void;
 }
 
+interface ProductIngredient {
+  id: string;
+  materialId: string;
+  materialName: string;
+  quantity: number;
+  unit: string;
+  costPerKg: number;
+  totalCost: number;
+  percentage: number;
+}
+
 export function IngredientForm({
   materials,
   selectedMaterial,
@@ -63,7 +74,7 @@ export function IngredientForm({
             <SelectContent>
               {materials.map((material) => (
                 <SelectItem key={material.id} value={material.id}>
-                  {material.materialName} - ₹{material.unitPrice}/kg
+                  {material.id} - ₹{material.unitPrice}/{material.unit}
                 </SelectItem>
               ))}
             </SelectContent>
@@ -100,7 +111,7 @@ export function IngredientForm({
 // ============================================================================
 
 interface IngredientsTableProps {
-  ingredients: ProductIngredient[];
+  ingredients: any[]; // Using any for now to avoid type conflicts
   onRemoveIngredient: (index: number) => void;
 }
 
@@ -117,7 +128,7 @@ export function IngredientsTable({
         data={ingredients}
         columns={[
           {
-            key: "materialName",
+            key: "displayName",
             label: "Material",
             sortable: true,
             render: (value: string) => (
@@ -125,11 +136,11 @@ export function IngredientsTable({
             ),
           },
           {
-            key: "quantity",
-            label: "Qty (kg)",
+            key: "displayQuantity",
+            label: "Qty",
             sortable: true,
-            render: (value: number) => (
-              <span className="text-muted-foreground">{value.toFixed(3)}</span>
+            render: (value: string) => (
+              <span className="text-muted-foreground">{value}</span>
             ),
           },
           {
@@ -141,13 +152,11 @@ export function IngredientsTable({
             ),
           },
           {
-            key: "totalCost",
+            key: "displayCost",
             label: "Total",
             sortable: true,
-            render: (value: number) => (
-              <span className="text-foreground font-medium">
-                ₹{value.toFixed(2)}
-              </span>
+            render: (value: string) => (
+              <span className="text-foreground font-medium">{value}</span>
             ),
           },
           {
@@ -164,16 +173,19 @@ export function IngredientsTable({
             key: "actions",
             label: "Action",
             sortable: false,
-            render: (value: any, row: ProductIngredient, index: number) => (
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => onRemoveIngredient(index)}
-                className="h-8 w-8 p-0 text-destructive hover:text-destructive hover:bg-destructive/10"
-              >
-                <Minus className="h-3 w-3" />
-              </Button>
-            ),
+            render: (value: any, row: any) => {
+              const index = ingredients.indexOf(row);
+              return (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => onRemoveIngredient(index)}
+                  className="h-8 w-8 p-0 text-destructive hover:text-destructive hover:bg-destructive/10"
+                >
+                  <Minus className="h-3 w-3" />
+                </Button>
+              );
+            },
           },
         ]}
         className="table-enhanced"

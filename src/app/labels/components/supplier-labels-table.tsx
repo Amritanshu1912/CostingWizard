@@ -29,8 +29,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { SortableTable } from "@/components/ui/sortable-table";
 import { Search, Filter, Edit, Trash2, Plus } from "lucide-react";
-import type { SupplierLabelWithDetails } from "@/hooks/use-supplier-labels-with-details";
-import type { Supplier } from "@/lib/types";
+import type { Supplier, SupplierLabelWithDetails } from "@/lib/types";
 import {
   getLabelTypeLabel,
   getPrintingTypeLabel,
