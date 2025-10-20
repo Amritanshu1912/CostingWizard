@@ -1,3 +1,5 @@
+// RecipeTable.tsx - REFACTORED
+
 "use client";
 
 import { useState, useMemo } from "react";
@@ -22,6 +24,7 @@ import {
   AlertDialogAction,
   AlertDialogCancel,
   AlertDialogContent,
+  AlertDialogDescription,
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
@@ -50,10 +53,8 @@ export function RecipeTable({
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
   const [recipeToDelete, setRecipeToDelete] = useState<Recipe | null>(null);
 
-  // Get unique statuses from the data
   const statuses = Array.from(new Set(recipes.map((r) => r.status)));
 
-  // Filter recipes using enriched data
   const filteredRecipes = useMemo(() => {
     return recipes.filter((recipe) => {
       const matchesSearch = recipe.name
@@ -65,19 +66,16 @@ export function RecipeTable({
     });
   }, [recipes, searchTerm, selectedStatus]);
 
-  // Clear filters
   const clearFilters = () => {
     setSearchTerm("");
     setSelectedStatus("all");
   };
 
-  // Initiate delete
   const initiateDelete = (recipe: Recipe) => {
     setRecipeToDelete(recipe);
     setDeleteConfirmOpen(true);
   };
 
-  // Confirm delete
   const confirmDelete = () => {
     if (recipeToDelete) {
       onDelete(recipeToDelete.id);
@@ -85,9 +83,6 @@ export function RecipeTable({
       setRecipeToDelete(null);
     }
   };
-
-  // Helper function to format currency
-  const formatCurrency = (value: number) => `₹${value.toFixed(2)}`;
 
   const columns = useMemo(
     () => [
@@ -100,35 +95,64 @@ export function RecipeTable({
         ),
       },
       {
-        key: "ingredientsCount",
+        key: "ingredientCount",
         label: "Ingredients",
         sortable: true,
         render: (value: number) => (
-          <Badge
-            variant="outline"
-            className="bg-primary/10 text-primary hover:bg-primary/20"
-          >
+          <Badge variant="outline" className="bg-primary/10 text-primary">
             {value}
           </Badge>
         ),
       },
       {
         key: "costPerKg",
-        label: "Cost per kg",
+        label: "Cost/kg",
         sortable: true,
-        render: (value: number | undefined) => (
-          <span className="text-foreground font-medium">
-            {formatCurrency(value || 0)}
+        render: (value: number) => (
+          <span className="font-medium text-foreground">
+            ₹{value.toFixed(2)}
           </span>
         ),
       },
       {
-        key: "targetProfitMargin",
-        label: "Target Margin",
+        key: "targetCostPerKg",
+        label: "Target Cost/kg",
         sortable: true,
         render: (value: number | undefined) => (
-          <span className="text-green-600 font-medium">
-            {(value || 0).toFixed(1)}%
+          <span className="text-muted-foreground">
+            {value ? `₹${value.toFixed(2)}` : "-"}
+          </span>
+        ),
+      },
+      {
+        key: "variance",
+        label: "Variance",
+        sortable: true,
+        render: (value: number | null, row: any) => {
+          if (value === null)
+            return <span className="text-muted-foreground">-</span>;
+          const isGood = value <= 0;
+          return (
+            <span
+              className={
+                isGood
+                  ? "text-green-600 font-medium"
+                  : "text-red-600 font-medium"
+              }
+            >
+              {value > 0 ? "+" : ""}
+              {value.toFixed(1)}%
+            </span>
+          );
+        },
+      },
+      {
+        key: "productionTime",
+        label: "Production Time",
+        sortable: true,
+        render: (value: number | undefined) => (
+          <span className="text-muted-foreground">
+            {value ? `${value} min` : "-"}
           </span>
         ),
       },
@@ -136,7 +160,7 @@ export function RecipeTable({
         key: "status",
         label: "Status",
         sortable: true,
-        render: (value: "draft" | "active" | "discontinued") => (
+        render: (value: Recipe["status"]) => (
           <Badge
             variant={
               value === "active"
@@ -152,19 +176,11 @@ export function RecipeTable({
       },
       {
         key: "createdAt",
-        label: "Date Created",
+        label: "Created",
         sortable: true,
         render: (value: string) => (
-          <span className="text-muted-foreground">{formatDate(value)}</span>
-        ),
-      },
-      {
-        key: "updatedAt",
-        label: "Date Updated",
-        sortable: true,
-        render: (value: string | undefined) => (
-          <span className="text-muted-foreground">
-            {value ? formatDate(value) : "-"}
+          <span className="text-muted-foreground text-sm">
+            {formatDate(value)}
           </span>
         ),
       },
@@ -172,8 +188,11 @@ export function RecipeTable({
         key: "actions",
         label: "Actions",
         sortable: false,
-        render: (_: any, row: Recipe & { ingredientsCount: number }) => (
-          <div className="flex space-x-2">
+        render: (
+          _: any,
+          row: Recipe & { ingredientCount: number; variance: number | null }
+        ) => (
+          <div className="flex gap-2">
             <Button
               variant="ghost"
               size="sm"
@@ -186,7 +205,7 @@ export function RecipeTable({
               variant="ghost"
               size="sm"
               onClick={() => initiateDelete(row)}
-              className="h-8 w-8 p-0 text-destructive hover:text-destructive hover:bg-destructive/10"
+              className="h-8 w-8 p-0 text-destructive hover:bg-destructive/10"
             >
               <Trash2 className="h-4 w-4" />
             </Button>
@@ -197,18 +216,34 @@ export function RecipeTable({
     [onEdit]
   );
 
+  const tableData = useMemo(() => {
+    return filteredRecipes.map((recipe) => {
+      const variance = recipe.targetCostPerKg
+        ? ((recipe.costPerKg - recipe.targetCostPerKg) /
+            recipe.targetCostPerKg) *
+          100
+        : null;
+
+      return {
+        ...recipe,
+        ingredientCount: recipe.ingredients.length,
+        variance,
+      };
+    });
+  }, [filteredRecipes]);
+
   return (
     <>
       <Card className="card-enhanced">
         <CardHeader>
           <div className="flex items-center justify-between">
             <div>
-              <CardTitle className="pb-1.5">Product Recipes</CardTitle>
+              <CardTitle>Recipe Formulations</CardTitle>
               <CardDescription>
-                {recipes.length} recipes from {statuses.length} status types
+                {recipes.length} recipes • {statuses.length} status types
               </CardDescription>
             </div>
-            <Button variant="default" onClick={onAdd} className="shrink-0">
+            <Button variant="default" onClick={onAdd}>
               <Plus className="h-4 w-4 mr-2" />
               Add Recipe
             </Button>
@@ -216,20 +251,20 @@ export function RecipeTable({
         </CardHeader>
         <CardContent className="space-y-4">
           {/* Filters */}
-          <div className="flex flex-col pb-2 sm:flex-row gap-4">
+          <div className="flex flex-col sm:flex-row gap-4">
             <div className="flex-1">
               <div className="relative">
                 <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
                 <Input
-                  placeholder="Search recipes by name..."
+                  placeholder="Search recipes..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pl-10 focus-enhanced"
+                  className="pl-10"
                 />
               </div>
             </div>
             <Select value={selectedStatus} onValueChange={setSelectedStatus}>
-              <SelectTrigger className="w-full sm:w-[180px] focus-enhanced">
+              <SelectTrigger className="w-full sm:w-[180px]">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -241,34 +276,29 @@ export function RecipeTable({
                 ))}
               </SelectContent>
             </Select>
-
-            <Button
-              variant="outline"
-              onClick={clearFilters}
-              className="w-full sm:w-auto"
-            >
+            <Button variant="outline" onClick={clearFilters}>
               <Filter className="h-4 w-4 mr-2" />
               Clear
             </Button>
           </div>
 
           <SortableTable
-            data={filteredRecipes.map((r) => ({
-              ...r,
-              ingredientsCount: r.ingredients.length,
-            }))}
+            data={tableData}
             columns={columns}
-            className="table-enhanced"
             showSerialNumber={true}
           />
         </CardContent>
       </Card>
 
-      {/* Delete Confirmation Dialog */}
+      {/* Delete Confirmation */}
       <AlertDialog open={deleteConfirmOpen} onOpenChange={setDeleteConfirmOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Delete {recipeToDelete?.name}?</AlertDialogTitle>
+            <AlertDialogTitle>Delete Recipe?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete "{recipeToDelete?.name}"? This
+              action cannot be undone.
+            </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancel</AlertDialogCancel>

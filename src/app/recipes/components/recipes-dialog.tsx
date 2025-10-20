@@ -1,4 +1,4 @@
-// RecipeDialog.tsx
+// RecipeDialog.tsx - REFACTORED FOR NEW TYPE SYSTEM
 
 import React, { useState, useEffect, useMemo } from "react";
 import {
@@ -28,69 +28,93 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Minus, Plus, X } from "lucide-react";
+import { Plus, X, Lock, Unlock } from "lucide-react";
 
-import type {
-  Recipe,
-  RecipeIngredient,
-  SupplierMaterialWithDetails,
-} from "@/lib/types";
+import type { Recipe, RecipeIngredient, CapacityUnit } from "@/lib/types";
 import { useSupplierMaterialsWithDetails } from "@/hooks/use-supplier-materials-with-details";
-import {
-  INGREDIENT_UNITS,
-  convertToKilograms,
-  DEFAULT_INGREDIENT_UNIT,
-  IngredientUnitValue,
-} from "./recipes-constants"; // NEW IMPORT
+import { calculateRecipeCost, convertToKg } from "@/lib/recipe-calculations";
+import { CAPACITY_UNITS } from "@/lib/constants";
 
-// Hook to get supplier materials with details
-const useSupplierMaterials = () => {
-  return useSupplierMaterialsWithDetails();
-};
+// Helper functions for quantity conversion
+function getStandardUnit(unit: CapacityUnit): "gm" | "ml" | "pcs" {
+  if (unit === "kg" || unit === "gm") return "gm";
+  if (unit === "L" || unit === "ml") return "ml";
+  return "pcs";
+}
 
-// Helper function to get supplier material by ID
-const getSupplierMaterial = (
-  supplierMaterials: SupplierMaterialWithDetails[],
-  id: string
-) => supplierMaterials.find((sm) => sm.id === id);
+function convertToStandard(
+  quantity: number,
+  materialUnit: CapacityUnit
+): number {
+  const standard = getStandardUnit(materialUnit);
+  if (standard === "gm") {
+    if (materialUnit === "kg") return quantity * 1000;
+    if (materialUnit === "gm") return quantity;
+  } else if (standard === "ml") {
+    if (materialUnit === "L") return quantity * 1000;
+    if (materialUnit === "ml") return quantity;
+  } else {
+    return quantity;
+  }
+  return quantity;
+}
 
-const INITIAL_INGREDIENT: RecipeIngredient = {
-  id: "",
+function convertFromStandard(
+  quantityStandard: number,
+  materialUnit: CapacityUnit
+): number {
+  const standard = getStandardUnit(materialUnit);
+  if (standard === "gm") {
+    if (materialUnit === "kg") return quantityStandard / 1000;
+    if (materialUnit === "gm") return quantityStandard;
+  } else if (standard === "ml") {
+    if (materialUnit === "L") return quantityStandard / 1000;
+    if (materialUnit === "ml") return quantityStandard;
+  } else {
+    return quantityStandard;
+  }
+  return quantityStandard;
+}
+
+const INITIAL_INGREDIENT: Omit<RecipeIngredient, "id" | "createdAt"> = {
   supplierMaterialId: "",
   quantity: 0,
   notes: "",
-  createdAt: "",
 };
 
-// Use existing Recipe fields as a starting point
-const INITIAL_FORM_DATA: Recipe = {
-  id: "",
+const INITIAL_FORM_DATA: Omit<Recipe, "id" | "createdAt" | "costPerKg"> = {
   name: "",
   description: "",
   ingredients: [],
-  costPerKg: 0,
   status: "draft",
-  targetProfitMargin: 35,
-  createdAt: "",
+  productionTime: undefined,
+  manufacturingInstructions: "",
+  targetCostPerKg: undefined,
+  targetProfitMargin: undefined,
+  shelfLife: undefined,
+  notes: "",
 };
 
-interface RecipeProductDialogProps {
+interface RecipeDialogProps {
   isOpen: boolean;
   onClose: () => void;
   onSave: (recipe: Recipe) => void;
   initialRecipe?: Recipe | null;
 }
 
-export function RecipeProductDialog({
+export function RecipeDialog({
   isOpen,
   onClose,
   onSave,
   initialRecipe,
-}: RecipeProductDialogProps) {
-  const [formData, setFormData] =
-    useState<typeof INITIAL_FORM_DATA>(INITIAL_FORM_DATA);
+}: RecipeDialogProps) {
+  const supplierMaterials = useSupplierMaterialsWithDetails();
+
+  const [formData, setFormData] = useState<typeof INITIAL_FORM_DATA | Recipe>(
+    INITIAL_FORM_DATA
+  );
   const [newIngredient, setNewIngredient] =
-    useState<RecipeIngredient>(INITIAL_INGREDIENT);
+    useState<typeof INITIAL_INGREDIENT>(INITIAL_INGREDIENT);
 
   const isEditing = !!initialRecipe;
   const title = isEditing ? "Edit Recipe" : "Create New Recipe";
@@ -98,7 +122,7 @@ export function RecipeProductDialog({
     ? `Updating recipe for ${initialRecipe?.name}`
     : "Define the recipe name and ingredients.";
 
-  // --- Effect to sync internal form state when initialRecipe changes ---
+  // Sync form with initialRecipe
   useEffect(() => {
     if (initialRecipe) {
       setFormData(initialRecipe);
@@ -108,34 +132,12 @@ export function RecipeProductDialog({
     setNewIngredient(INITIAL_INGREDIENT);
   }, [initialRecipe]);
 
-  // --- Ingredient Handlers ---
-
-  // Get supplier materials data
-  const supplierMaterials = useSupplierMaterials();
-
-  // --- Memoization: Calculate total cost on ingredient change ---
-  const totalCostPerKg = useMemo(() => {
-    return formData.ingredients.reduce((sum, ingredient) => {
-      const supplierMaterial = getSupplierMaterial(
-        supplierMaterials,
-        ingredient.supplierMaterialId
-      );
-      const costPerKg = supplierMaterial?.priceWithTax || 0;
-      return sum + costPerKg * ingredient.quantity;
-    }, 0);
+  // Calculate recipe cost in real-time
+  const calculatedCost = useMemo(() => {
+    return calculateRecipeCost(formData.ingredients, supplierMaterials);
   }, [formData.ingredients, supplierMaterials]);
 
-  // Helper function to calculate cost based on quantity and material price
-  const calculateIngredientCost = (ingredient: RecipeIngredient): number => {
-    const material = getSupplierMaterial(
-      supplierMaterials,
-      ingredient.supplierMaterialId
-    );
-    const pricePerKg = material?.priceWithTax || 0;
-    // Assume quantity is in kg for simplicity
-    return pricePerKg * ingredient.quantity;
-  };
-
+  // Handle ingredient changes
   const handleIngredientChange = (
     index: number,
     field: keyof RecipeIngredient,
@@ -144,354 +146,513 @@ export function RecipeProductDialog({
     const updatedIngredients = formData.ingredients.map((ingredient, i) => {
       if (i === index) {
         let updatedIng = { ...ingredient, [field]: value };
-
-        // No need to recalculate cost here as it's done in the memoization
         return updatedIng;
       }
       return ingredient;
     });
+    setFormData({ ...formData, ingredients: updatedIngredients } as Recipe);
+  };
 
-    setFormData({ ...formData, ingredients: updatedIngredients });
+  // Toggle price lock
+  const togglePriceLock = (index: number) => {
+    const ingredient = formData.ingredients[index];
+    const sm = supplierMaterials.find(
+      (s) => s.id === ingredient.supplierMaterialId
+    );
+
+    if (!sm) return;
+
+    const updated = formData.ingredients.map((ing, i) => {
+      if (i === index) {
+        if (ing.lockedPricing) {
+          // Unlock
+          const { lockedPricing, ...rest } = ing;
+          return rest;
+        } else {
+          // Lock current price
+          return {
+            ...ing,
+            lockedPricing: {
+              unitPrice: sm.unitPrice,
+              tax: sm.tax,
+              lockedAt: new Date(),
+              reason: "cost_analysis",
+            },
+          };
+        }
+      }
+      return ing;
+    });
+
+    setFormData({ ...formData, ingredients: updated } as Recipe);
+    toast.success(
+      ingredient.lockedPricing
+        ? "Price unlocked"
+        : "Price locked at current rate"
+    );
   };
 
   const handleRemoveIngredient = (index: number) => {
     setFormData({
       ...formData,
-      // Still filtering by index since we don't need the ID for removal inside map()
       ingredients: formData.ingredients.filter((_, i) => i !== index),
-    });
+    } as Recipe);
   };
 
   const handleAddNewIngredient = () => {
     if (!newIngredient.supplierMaterialId || newIngredient.quantity <= 0) {
-      toast.error(
-        "Please select a supplier material and enter a quantity greater than zero."
-      );
+      toast.error("Please select a material and enter quantity > 0");
       return;
     }
 
-    const supplierMaterial = getSupplierMaterial(
-      supplierMaterials,
-      newIngredient.supplierMaterialId
-    );
-    if (!supplierMaterial) return;
-
-    // GENERATING UNIQUE ID for the new ingredient
-    const newId =
-      Date.now().toString() + Math.random().toString(36).substr(2, 9);
-
-    const ingredientToAdd: RecipeIngredient = {
-      ...newIngredient,
-      id: newId,
-    };
+    const id = Date.now().toString() + Math.random().toString(36).substr(2, 9);
+    const now = new Date().toISOString();
 
     setFormData({
       ...formData,
-      ingredients: [...formData.ingredients, ingredientToAdd],
-    });
+      ingredients: [
+        ...formData.ingredients,
+        { ...newIngredient, id, createdAt: now },
+      ],
+    } as Recipe);
 
-    // Reset the new ingredient input row
     setNewIngredient(INITIAL_INGREDIENT);
   };
 
   const handleNewIngredientChange = (
-    field: keyof RecipeIngredient,
+    field: keyof typeof INITIAL_INGREDIENT,
     value: string | number
   ) => {
-    // Temporarily create a draft ingredient object to calculate new cost
-    const draftIngredient = {
-      ...newIngredient,
-      [field]: value,
-    } as RecipeIngredient;
-
-    if (field === "supplierMaterialId" && typeof value === "string") {
-      setNewIngredient((prev) => ({
-        ...prev,
-        supplierMaterialId: value,
-      }));
-    } else if (field === "quantity" && typeof value === "number") {
-      setNewIngredient((prev) => ({
-        ...prev,
-        quantity: value,
-      }));
-    } else {
-      setNewIngredient(draftIngredient);
-    }
+    setNewIngredient({ ...newIngredient, [field]: value });
   };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
 
     if (!formData.name || formData.ingredients.length === 0) {
-      toast.error("Recipe must have a name and at least one ingredient.");
+      toast.error("Recipe must have a name and at least one ingredient");
       return;
     }
 
-    const savedRecipe: Recipe = {
+    const recipeToSave: Recipe = {
+      ...(initialRecipe || {}),
       ...formData,
-      costPerKg: totalCostPerKg,
+      costPerKg: calculatedCost.costPerKg,
+      id: initialRecipe?.id || Date.now().toString(),
+      createdAt: initialRecipe?.createdAt || new Date().toISOString(),
       updatedAt: new Date().toISOString(),
-    };
+    } as Recipe;
 
-    if (!isEditing) {
-      savedRecipe.id = Date.now().toString();
-      savedRecipe.createdAt = new Date().toISOString();
-    }
-
-    onSave(savedRecipe);
+    onSave(recipeToSave);
     onClose();
   };
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="min-w-2xl max-w-4xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="min-w-4xl max-w-5xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle className="text-foreground">{title}</DialogTitle>
-          <DialogDescription>{description}</DialogDescription>
+          <DialogTitle>{title}</DialogTitle>
+          <DialogDescription>
+            Define recipe formulation with ingredients and quantities
+          </DialogDescription>
         </DialogHeader>
+
         <form onSubmit={handleSubmit} className="space-y-6">
-          {/* --- Recipe Details --- */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 border-b pb-4">
-            <div>
-              <Label htmlFor="recipe-name" className="text-foreground">
-                Recipe Name *
-              </Label>
+          {/* Basic Info */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pb-4 border-b">
+            <div className="md:col-span-2">
+              <Label htmlFor="name">Recipe Name *</Label>
               <Input
-                id="recipe-name"
+                id="name"
                 value={formData.name}
                 onChange={(e) =>
                   setFormData({ ...formData, name: e.target.value })
                 }
-                placeholder="e.g., Ultra Clean Dishwash Gel"
-                className="focus-enhanced"
+                placeholder="e.g., Ultra Clean Floor Formula"
               />
             </div>
 
             <div>
-              <Label htmlFor="target-margin" className="text-foreground">
-                Target Margin (%)
-              </Label>
+              <Label htmlFor="targetCost">Target Cost/kg (₹)</Label>
               <Input
-                id="target-margin"
+                id="targetCost"
                 type="number"
-                value={formData.targetProfitMargin || 0}
+                step="0.01"
+                value={formData.targetCostPerKg || ""}
                 onChange={(e) =>
                   setFormData({
                     ...formData,
-                    targetProfitMargin: Number(e.target.value),
+                    targetCostPerKg: e.target.value
+                      ? Number(e.target.value)
+                      : undefined,
                   })
                 }
-                placeholder="35"
-                className="focus-enhanced"
+                placeholder="Optional target"
               />
             </div>
 
-            <div className="sm:col-span-2">
-              <Label htmlFor="description" className="text-foreground">
-                Description / Notes
-              </Label>
+            <div>
+              <Label htmlFor="targetMargin">Target Profit Margin (%)</Label>
+              <Input
+                id="targetMargin"
+                type="number"
+                step="0.1"
+                value={formData.targetProfitMargin || ""}
+                onChange={(e) =>
+                  setFormData({
+                    ...formData,
+                    targetProfitMargin: e.target.value
+                      ? Number(e.target.value)
+                      : undefined,
+                  })
+                }
+                placeholder="Optional target"
+              />
+            </div>
+
+            <div>
+              <Label htmlFor="productionTime">Production Time (minutes)</Label>
+              <Input
+                id="productionTime"
+                type="number"
+                value={formData.productionTime || ""}
+                onChange={(e) =>
+                  setFormData({
+                    ...formData,
+                    productionTime: e.target.value
+                      ? Number(e.target.value)
+                      : undefined,
+                  })
+                }
+              />
+            </div>
+
+            <div>
+              <Label htmlFor="shelfLife">Shelf Life (days)</Label>
+              <Input
+                id="shelfLife"
+                type="number"
+                value={formData.shelfLife || ""}
+                onChange={(e) =>
+                  setFormData({
+                    ...formData,
+                    shelfLife: e.target.value
+                      ? Number(e.target.value)
+                      : undefined,
+                  })
+                }
+              />
+            </div>
+
+            <div className="md:col-span-2">
+              <Label htmlFor="description">Description</Label>
               <Textarea
                 id="description"
                 value={formData.description || ""}
                 onChange={(e) =>
                   setFormData({ ...formData, description: e.target.value })
                 }
-                placeholder="Manufacturing notes or key instructions..."
-                className="focus-enhanced"
+                placeholder="Recipe description..."
+                rows={2}
               />
             </div>
           </div>
 
-          {/* --- Ingredients Table --- */}
-          <h3 className="text-lg font-semibold text-foreground">
-            Ingredients ({formData.ingredients.length})
-          </h3>
+          {/* Ingredients Table */}
+          <div>
+            <h3 className="text-lg font-semibold mb-3">
+              Ingredients ({formData.ingredients.length})
+            </h3>
 
-          <Table className="border rounded-lg">
-            <TableHeader>
-              <TableRow className="bg-muted/30">
-                <TableHead className="w-[10px]">#</TableHead>
-                <TableHead className="w-[40%]">Supplier Material</TableHead>
-                <TableHead className="w-[20%] text-right">
-                  Quantity (kg)*
-                </TableHead>
-                <TableHead className="w-[15%] text-right">
-                  Cost/kg (₹)
-                </TableHead>
-                <TableHead className="w-[15%] text-right">
-                  Total Cost (₹)
-                </TableHead>
-                <TableHead className="w-[5%]"></TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {/* Existing Ingredients */}
-              {formData.ingredients.map((ingredient, index) => {
-                const supplierMaterial = getSupplierMaterial(
-                  supplierMaterials,
-                  ingredient.supplierMaterialId
-                );
-                const costPerKg = supplierMaterial?.priceWithTax || 0;
-                const totalCost = costPerKg * ingredient.quantity;
+            <div className="border rounded-lg overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow className="bg-muted/30">
+                    <TableHead className="w-12">#</TableHead>
+                    <TableHead className="min-w-[250px]">Material</TableHead>
+                    <TableHead className="w-28 text-right">
+                      Quantity (g/ml/pcs)
+                    </TableHead>
+                    <TableHead className="w-28 text-right">Cost/Unit</TableHead>
+                    <TableHead className="w-28 text-right">
+                      Total Cost
+                    </TableHead>
+                    <TableHead className="w-20">Lock</TableHead>
+                    <TableHead className="w-16"></TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {formData.ingredients.map((ingredient, index) => {
+                    const sm = supplierMaterials.find(
+                      (s) => s.id === ingredient.supplierMaterialId
+                    );
+                    const quantityInStandard = sm
+                      ? convertToStandard(ingredient.quantity, sm.unit)
+                      : ingredient.quantity;
+                    const cost = sm
+                      ? (ingredient.lockedPricing?.unitPrice || sm.unitPrice) *
+                        convertToKg(ingredient.quantity, sm.unit)
+                      : 0;
 
-                return (
-                  <TableRow key={ingredient.id} className="hover:bg-accent/10">
-                    <TableCell className="font-medium">{index + 1}</TableCell>
+                    return (
+                      <TableRow key={ingredient.id}>
+                        <TableCell className="font-medium">
+                          {index + 1}
+                        </TableCell>
+                        <TableCell>
+                          <Select
+                            value={ingredient.supplierMaterialId}
+                            onValueChange={(value) =>
+                              handleIngredientChange(
+                                index,
+                                "supplierMaterialId",
+                                value
+                              )
+                            }
+                          >
+                            <SelectTrigger className="h-9">
+                              <SelectValue placeholder="Select" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {supplierMaterials.map((sm) => (
+                                <SelectItem key={sm.id} value={sm.id}>
+                                  {sm.displayName} - {sm.supplier?.name} (₹
+                                  {sm.unitPrice.toFixed(2)}/{sm.unit})
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </TableCell>
+                        <TableCell>
+                          <Input
+                            type="number"
+                            step="0.01"
+                            min="0"
+                            value={quantityInStandard}
+                            onChange={(e) => {
+                              const newStandardQuantity = Number(
+                                e.target.value
+                              );
+                              const sm = supplierMaterials.find(
+                                (s) => s.id === ingredient.supplierMaterialId
+                              );
+                              const newQuantity = sm
+                                ? convertFromStandard(
+                                    newStandardQuantity,
+                                    sm.unit
+                                  )
+                                : newStandardQuantity;
+                              handleIngredientChange(
+                                index,
+                                "quantity",
+                                newQuantity
+                              );
+                            }}
+                            className="h-9 text-right"
+                          />
+                        </TableCell>
+
+                        <TableCell className="text-right text-muted-foreground">
+                          ₹
+                          {(
+                            ingredient.lockedPricing?.unitPrice ||
+                            sm?.unitPrice ||
+                            0
+                          ).toFixed(2)}
+                        </TableCell>
+                        <TableCell className="text-right font-medium">
+                          ₹{cost.toFixed(2)}
+                        </TableCell>
+                        <TableCell>
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => togglePriceLock(index)}
+                            className="h-8 w-8"
+                          >
+                            {ingredient.lockedPricing ? (
+                              <Lock className="h-4 w-4 text-amber-600" />
+                            ) : (
+                              <Unlock className="h-4 w-4 text-muted-foreground" />
+                            )}
+                          </Button>
+                        </TableCell>
+                        <TableCell>
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => handleRemoveIngredient(index)}
+                            className="h-8 w-8 text-destructive hover:bg-destructive/10"
+                          >
+                            <X className="h-4 w-4" />
+                          </Button>
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
+
+                  {/* Add New Row */}
+                  <TableRow className="bg-primary/5">
+                    <TableCell className="font-medium text-primary">
+                      {formData.ingredients.length + 1}
+                    </TableCell>
                     <TableCell>
                       <Select
-                        value={ingredient.supplierMaterialId}
+                        value={newIngredient.supplierMaterialId}
                         onValueChange={(value) =>
-                          handleIngredientChange(
-                            index,
-                            "supplierMaterialId",
-                            value
-                          )
+                          handleNewIngredientChange("supplierMaterialId", value)
                         }
                       >
-                        <SelectTrigger className="h-8 text-xs focus-enhanced">
-                          <SelectValue placeholder="Select Supplier Material" />
+                        <SelectTrigger className="h-9">
+                          <SelectValue placeholder="Select Material" />
                         </SelectTrigger>
                         <SelectContent>
                           {supplierMaterials.map((sm) => (
                             <SelectItem key={sm.id} value={sm.id}>
-                              {sm.displayName} ({sm.priceWithTax?.toFixed(2)}/
-                              {sm.displayUnit})
+                              {sm.displayName} - {sm.supplier?.name} (₹
+                              {sm.unitPrice.toFixed(2)}/{sm.unit})
                             </SelectItem>
                           ))}
                         </SelectContent>
                       </Select>
                     </TableCell>
-                    <TableCell className="text-right">
+                    <TableCell>
                       <Input
                         type="number"
                         step="0.01"
                         min="0"
-                        value={ingredient.quantity}
-                        onChange={(e) =>
-                          handleIngredientChange(
-                            index,
-                            "quantity",
-                            Number(e.target.value)
-                          )
+                        value={
+                          newIngredient.supplierMaterialId &&
+                          newIngredient.quantity > 0
+                            ? convertToStandard(
+                                newIngredient.quantity,
+                                supplierMaterials.find(
+                                  (s) =>
+                                    s.id === newIngredient.supplierMaterialId
+                                )?.unit || "kg"
+                              )
+                            : newIngredient.quantity
                         }
-                        className="h-8 text-right focus-enhanced"
+                        onChange={(e) => {
+                          const newStandardQuantity = Number(e.target.value);
+                          const sm = supplierMaterials.find(
+                            (s) => s.id === newIngredient.supplierMaterialId
+                          );
+                          const newQuantity = sm
+                            ? convertFromStandard(newStandardQuantity, sm.unit)
+                            : newStandardQuantity;
+                          handleNewIngredientChange("quantity", newQuantity);
+                        }}
+                        className="h-9 text-right"
                       />
                     </TableCell>
+
                     <TableCell className="text-right text-muted-foreground">
-                      {costPerKg.toFixed(2)}
+                      {newIngredient.supplierMaterialId
+                        ? `₹${
+                            supplierMaterials
+                              .find(
+                                (s) => s.id === newIngredient.supplierMaterialId
+                              )
+                              ?.unitPrice.toFixed(2) || "0.00"
+                          }`
+                        : "-"}
                     </TableCell>
-                    <TableCell className="text-right font-medium">
-                      {totalCost.toFixed(2)}
+                    <TableCell className="text-right font-medium text-primary">
+                      {newIngredient.supplierMaterialId &&
+                      newIngredient.quantity > 0
+                        ? `₹${(
+                            (supplierMaterials.find(
+                              (s) => s.id === newIngredient.supplierMaterialId
+                            )?.unitPrice || 0) *
+                            convertToKg(
+                              newIngredient.quantity,
+                              supplierMaterials.find(
+                                (s) => s.id === newIngredient.supplierMaterialId
+                              )?.unit || "kg"
+                            )
+                          ).toFixed(2)}`
+                        : "-"}
                     </TableCell>
+                    <TableCell></TableCell>
                     <TableCell>
                       <Button
+                        type="button"
                         variant="ghost"
                         size="icon"
-                        type="button"
-                        onClick={() => handleRemoveIngredient(index)}
-                        className="h-7 w-7 text-destructive hover:bg-destructive/10"
+                        onClick={handleAddNewIngredient}
+                        className="h-9 w-9 text-primary hover:bg-primary/10"
                       >
-                        <X className="h-4 w-4" />
+                        <Plus className="h-4 w-4" />
                       </Button>
                     </TableCell>
                   </TableRow>
-                );
-              })}
-
-              {/* Add New Ingredient Row */}
-              <TableRow className="bg-primary/5 border-t">
-                <TableCell className="font-medium text-primary">
-                  {formData.ingredients.length + 1}
-                </TableCell>
-                <TableCell>
-                  <Select
-                    value={newIngredient.supplierMaterialId}
-                    onValueChange={(value) =>
-                      handleNewIngredientChange("supplierMaterialId", value)
-                    }
-                  >
-                    <SelectTrigger className="h-9 focus-enhanced">
-                      <SelectValue placeholder="Select Supplier Material" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {supplierMaterials.map((sm) => (
-                        <SelectItem key={sm.id} value={sm.id}>
-                          {sm.displayName} ({sm.priceWithTax?.toFixed(2)}/
-                          {sm.displayUnit})
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </TableCell>
-                <TableCell className="text-right">
-                  <Input
-                    type="number"
-                    step="0.01"
-                    min="0"
-                    value={newIngredient.quantity}
-                    onChange={(e) =>
-                      handleNewIngredientChange(
-                        "quantity",
-                        Number(e.target.value)
-                      )
-                    }
-                    className="h-9 text-right focus-enhanced"
-                  />
-                </TableCell>
-                <TableCell className="text-right text-muted-foreground">
-                  {(
-                    getSupplierMaterial(
-                      supplierMaterials,
-                      newIngredient.supplierMaterialId
-                    )?.priceWithTax || 0
-                  ).toFixed(2)}
-                </TableCell>
-                <TableCell className="text-right font-medium text-primary">
-                  {(
-                    (getSupplierMaterial(
-                      supplierMaterials,
-                      newIngredient.supplierMaterialId
-                    )?.priceWithTax || 0) * newIngredient.quantity
-                  ).toFixed(2)}
-                </TableCell>
-                <TableCell>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    type="button"
-                    onClick={handleAddNewIngredient}
-                    className="h-9 w-9 text-primary hover:bg-primary/10"
-                  >
-                    <Plus className="h-4 w-4" />
-                  </Button>
-                </TableCell>
-              </TableRow>
-            </TableBody>
-          </Table>
-
-          {/* --- Summary and Actions --- */}
-          <div className="flex justify-between items-center p-4 rounded-lg bg-primary/5 border border-primary/20">
-            <div className="space-y-1">
-              <div className="text-sm text-muted-foreground">
-                Total Recipe Cost
-              </div>
-              <div className="text-2xl font-bold text-primary">
-                ₹{totalCostPerKg.toFixed(2)}
-              </div>
+                </TableBody>
+              </Table>
             </div>
-            <div className="space-y-1 text-right">
-              <div className="text-sm text-muted-foreground">Target Margin</div>
-              <div className="text-xl font-bold text-primary">
-                {formData.targetProfitMargin || 0}%
+          </div>
+
+          {/* Cost Summary */}
+          <div className="p-4 rounded-lg bg-primary/5 border border-primary/20">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              <div>
+                <div className="text-sm text-muted-foreground">Total Cost</div>
+                <div className="text-2xl font-bold text-primary">
+                  ₹{calculatedCost.totalCost.toFixed(2)}
+                </div>
+              </div>
+              <div>
+                <div className="text-sm text-muted-foreground">Cost per kg</div>
+                <div className="text-2xl font-bold text-primary">
+                  ₹{calculatedCost.costPerKg.toFixed(2)}
+                </div>
+              </div>
+              <div>
+                <div className="text-sm text-muted-foreground">
+                  Target Cost/kg
+                </div>
+                <div className="text-xl font-bold text-foreground">
+                  {formData.targetCostPerKg
+                    ? `₹${formData.targetCostPerKg.toFixed(2)}`
+                    : "Not set"}
+                </div>
+              </div>
+              <div>
+                <div className="text-sm text-muted-foreground">Variance</div>
+                <div
+                  className={`text-xl font-bold ${
+                    formData.targetCostPerKg
+                      ? calculatedCost.costPerKg <= formData.targetCostPerKg
+                        ? "text-green-600"
+                        : "text-red-600"
+                      : "text-muted-foreground"
+                  }`}
+                >
+                  {formData.targetCostPerKg
+                    ? `${(
+                        ((calculatedCost.costPerKg - formData.targetCostPerKg) /
+                          formData.targetCostPerKg) *
+                        100
+                      ).toFixed(1)}%`
+                    : "-"}
+                </div>
               </div>
             </div>
           </div>
 
-          <div className="flex space-x-2 pt-2">
-            <Button type="submit" className="flex-1 btn-secondary">
+          {/* Actions */}
+          <div className="flex gap-2 pt-2">
+            <Button type="submit" className="flex-1">
               {isEditing ? "Update Recipe" : "Create Recipe"}
             </Button>
-            <Button variant="outline" onClick={onClose} className="flex-1">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={onClose}
+              className="flex-1"
+            >
               Cancel
             </Button>
           </div>

@@ -55,27 +55,26 @@ export function useRecipeCalculator() {
 
         const quantityInKg = convertToKilograms(quantity, unit);
         const costForQuantity = quantityInKg * supplierMaterial.unitPrice;
-        const costWithTax = costForQuantity * (1 + supplierMaterial.tax / 100);
+        const taxedCostForQuantity = costForQuantity * (1 + supplierMaterial.tax / 100);
 
         return {
             id: crypto.randomUUID(),
             supplierMaterialId,
-            quantity,
             createdAt: new Date().toISOString(),
             supplierMaterial,
-            effectiveUnitPrice: supplierMaterial.unitPrice,
+            effectivePricePerKg: supplierMaterial.unitPrice,
             effectiveTax: supplierMaterial.tax,
-            quantityInKg,
+            quantity,
             costForQuantity,
-            costWithTax,
+            taxedCostForQuantity,
             displayName: supplierMaterial.displayName,
             displaySupplier: supplierMaterial.supplier?.name || supplierMaterial.supplierId,
             displayQuantity: `${quantity} ${unit}`,
-            displayCost: `₹${costWithTax.toFixed(2)}`,
+
             isPriceLocked: false,
             priceChangedSinceLock: false,
             isAvailable: supplierMaterial.availability === 'in-stock',
-            percentage: 0, // Will be calculated by parent component
+            priceSharePercentage: 0, // Will be calculated by parent component
         };
     };
 

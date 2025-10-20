@@ -1,4 +1,4 @@
-// RecipeManager.tsx
+// RecipeManager.tsx - REFACTORED
 
 "use client";
 
@@ -18,88 +18,104 @@ import {
   FlaskConical,
   TrendingUp,
   BarChart3,
-  Calculator,
+  Beaker,
 } from "lucide-react";
 
-import { RecipesAnalytics } from "./recipes-analytics";
-import { CostCalculator } from "@/components/cost-calculator";
-import { RecipeProductDialog } from "./recipes-dialog";
+import { RecipeDialog } from "./recipes-dialog";
 import { RecipeTable } from "./recipes-table";
+import { RecipeAnalytics } from "./recipes-analytics";
+import { RecipeTweaker } from "./recipes-tweaker";
+import { RecipeVariants } from "./recipe-variants";
+
+import type { Recipe } from "@/lib/types";
+import { useDexieTable } from "@/hooks/use-dexie-table";
+import { db } from "@/lib/db";
 import { MetricCard } from "@/components/ui/metric-card";
 import { RECIPES } from "./recipes-constants";
-import type { Recipe } from "@/lib/types";
 
 export function RecipeManager() {
-  const [recipes, setRecipes] = useState<Recipe[]>(RECIPES);
+  const {
+    data: recipes,
+    addItem,
+    updateItem,
+    deleteItem,
+  } = useDexieTable<Recipe>(db.recipes, []);
 
-  const [isAddMode, setIsAddMode] = useState(false);
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingRecipe, setEditingRecipe] = useState<Recipe | null>(null);
 
-  // --- Optimization: Memoize expensive Quick Stat calculations ---
-  const quickStats = useMemo(() => {
+  // Calculate metrics
+  const metrics = useMemo(() => {
     const totalRecipes = recipes.length;
-
-    if (totalRecipes === 0) {
-      return {
-        totalRecipes: 0,
-        avgCostPerKg: 0,
-        avgTargetMargin: 0,
-        totalIngredients: 0,
-      };
-    }
+    const activeRecipes = recipes.filter((r) => r.status === "active").length;
 
     const avgCostPerKg =
-      recipes.reduce((sum, r) => sum + (r.costPerKg || 0), 0) / totalRecipes;
-
-    const avgTargetMargin =
-      recipes.reduce((sum, r) => sum + (r.targetProfitMargin || 0), 0) /
-      totalRecipes;
+      recipes.length > 0
+        ? recipes.reduce((sum, r) => sum + (r.costPerKg || 0), 0) /
+          recipes.length
+        : 0;
 
     const totalIngredients = recipes.reduce(
       (sum, r) => sum + r.ingredients.length,
       0
     );
 
+    const recipesWithTarget = recipes.filter((r) => r.targetCostPerKg).length;
+    const recipesMetTarget = recipes.filter(
+      (r) => r.targetCostPerKg && r.costPerKg <= r.targetCostPerKg
+    ).length;
+    const targetAchievementRate =
+      recipesWithTarget > 0 ? (recipesMetTarget / recipesWithTarget) * 100 : 0;
+
     return {
       totalRecipes,
+      activeRecipes,
       avgCostPerKg,
-      avgTargetMargin,
       totalIngredients,
+      targetAchievementRate,
     };
   }, [recipes]);
 
-  const { totalRecipes, avgCostPerKg, avgTargetMargin, totalIngredients } =
-    quickStats;
-
-  const handleSaveRecipe = (recipe: Recipe) => {
-    if (recipes.some((r) => r.id === recipe.id)) {
-      // EDIT mode
-      setRecipes(recipes.map((r) => (r.id === recipe.id ? recipe : r)));
-      toast.success(`Recipe '${recipe.name}' updated successfully.`);
-    } else {
-      // ADD mode
-      setRecipes([...recipes, recipe]);
-      toast.success(`New recipe '${recipe.name}' created successfully.`);
+  const handleSaveRecipe = async (recipe: Recipe) => {
+    try {
+      if (recipes.some((r) => r.id === recipe.id)) {
+        await updateItem(recipe);
+        toast.success(`Recipe "${recipe.name}" updated successfully`);
+      } else {
+        await addItem(recipe);
+        toast.success(`Recipe "${recipe.name}" created successfully`);
+      }
+      setIsDialogOpen(false);
+      setEditingRecipe(null);
+    } catch (error) {
+      toast.error("Failed to save recipe");
+      console.error(error);
     }
   };
 
-  const handleDeleteRecipe = (id: string) => {
-    setRecipes(recipes.filter((r) => r.id !== id));
-    toast.success("Recipe deleted successfully");
+  const handleDeleteRecipe = async (id: string) => {
+    try {
+      await deleteItem(id);
+      toast.success("Recipe deleted successfully");
+    } catch (error) {
+      toast.error("Failed to delete recipe");
+      console.error(error);
+    }
   };
 
-  // Dialog control handlers
   const handleEdit = (recipe: Recipe) => {
     setEditingRecipe(recipe);
-  };
-
-  const handleCloseDialog = () => {
-    setIsAddMode(false);
-    setEditingRecipe(null);
+    setIsDialogOpen(true);
   };
 
   const handleAdd = () => {
-    setIsAddMode(true);
+    setEditingRecipe(null);
+    setIsDialogOpen(true);
+  };
+
+  const handleCloseDialog = () => {
+    setIsDialogOpen(false);
+    setEditingRecipe(null);
   };
 
   return (
@@ -107,60 +123,63 @@ export function RecipeManager() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div className="min-w-0 flex-1">
-          <h1 className="text-2xl sm:text-3xl font-bold text-foreground truncate">
-            Product Recipe Manager
+          <h1 className="text-2xl sm:text-3xl font-bold text-foreground">
+            Recipe Formulations
           </h1>
-          <p className="text-muted-foreground mt-1 text-sm sm:text-base">
-            Create, manage, and analyze your product recipes.
+          <p className="text-muted-foreground mt-1">
+            Create and optimize product recipes
           </p>
         </div>
+        <Button onClick={handleAdd} className="btn-secondary">
+          <Plus className="h-4 w-4 mr-2" />
+          Create Recipe
+        </Button>
       </div>
 
       <Tabs defaultValue="recipes" className="space-y-6">
-        <TabsList className="grid w-full grid-cols-3">
+        <TabsList className="grid w-full grid-cols-4">
           <TabsTrigger value="recipes">Recipes</TabsTrigger>
-          <TabsTrigger value="calculator">Calculator</TabsTrigger>
+          <TabsTrigger value="tweaker">Optimizer</TabsTrigger>
+          <TabsTrigger value="variants">Variants</TabsTrigger>
           <TabsTrigger value="analytics">Analytics</TabsTrigger>
         </TabsList>
 
         <TabsContent value="recipes" className="space-y-6">
-          {/* Quick Stats */}
-          <div className="grid grid-cols-1 md:grid-cols-5 gap-6">
+          {/* Metrics */}
+          <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
             <MetricCard
               title="Total Recipes"
-              value={totalRecipes}
+              value={metrics.totalRecipes}
               icon={FlaskConical}
               iconClassName="text-primary"
-              trend={{ value: "+8%", isPositive: true }}
             />
 
             <MetricCard
-              title="Avg Cost per kg"
-              value={`₹${avgCostPerKg.toFixed(2)}`}
+              title="Active Recipes"
+              value={metrics.activeRecipes}
+              icon={Beaker}
+              iconClassName="text-green-600"
+            />
+
+            <MetricCard
+              title="Avg Cost/kg"
+              value={`₹${metrics.avgCostPerKg.toFixed(2)}`}
               icon={BarChart3}
-              iconClassName="text-primary"
-              trend={{ value: "-2.1%", isPositive: false }}
+              iconClassName="text-blue-600"
             />
 
             <MetricCard
-              title="Avg Target Margin"
-              value={`${avgTargetMargin.toFixed(1)}%`}
+              title="Total Ingredients"
+              value={metrics.totalIngredients}
+              icon={FlaskConical}
+              iconClassName="text-purple-600"
+            />
+
+            <MetricCard
+              title="Target Achievement"
+              value={`${metrics.targetAchievementRate.toFixed(0)}%`}
               icon={TrendingUp}
-              iconClassName="text-primary"
-            />
-
-            <MetricCard
-              title="Total Ingredients Used"
-              value={totalIngredients}
-              icon={Calculator}
-              iconClassName="text-primary"
-            />
-
-            <MetricCard
-              title="Total Ingredients Used"
-              value={totalIngredients}
-              icon={BarChart3}
-              iconClassName="text-primary"
+              iconClassName="text-amber-600"
             />
           </div>
 
@@ -172,18 +191,30 @@ export function RecipeManager() {
           />
         </TabsContent>
 
-        <TabsContent value="calculator" className="space-y-6">
+        <TabsContent value="tweaker" className="space-y-6">
           <Card className="card-enhanced">
             <CardHeader>
-              <CardTitle className="text-foreground">
-                Advanced Cost Calculator
-              </CardTitle>
+              <CardTitle>Recipe Optimizer</CardTitle>
               <CardDescription>
-                Comprehensive cost calculation and optimization tools
+                Tweak recipes to maximize profitability and find cost savings
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <CostCalculator />
+              <RecipeTweaker recipes={recipes} />
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="variants" className="space-y-6">
+          <Card className="card-enhanced">
+            <CardHeader>
+              <CardTitle>Recipe Variants</CardTitle>
+              <CardDescription>
+                View and manage saved recipe optimizations
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <RecipeVariants recipes={recipes} />
             </CardContent>
           </Card>
         </TabsContent>
@@ -191,23 +222,21 @@ export function RecipeManager() {
         <TabsContent value="analytics" className="space-y-6">
           <Card className="card-enhanced">
             <CardHeader>
-              <CardTitle className="text-foreground">
-                Recipe Analytics
-              </CardTitle>
+              <CardTitle>Recipe Analytics</CardTitle>
               <CardDescription>
-                Insights and trends for your product recipes
+                Cost trends and performance insights
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <RecipesAnalytics />
+              <RecipeAnalytics recipes={recipes} />
             </CardContent>
           </Card>
         </TabsContent>
       </Tabs>
 
-      {/* Unified Recipe Dialog */}
-      <RecipeProductDialog
-        isOpen={isAddMode || !!editingRecipe}
+      {/* Dialog */}
+      <RecipeDialog
+        isOpen={isDialogOpen}
         onClose={handleCloseDialog}
         onSave={handleSaveRecipe}
         initialRecipe={editingRecipe}
