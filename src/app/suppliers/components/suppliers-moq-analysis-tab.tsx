@@ -25,7 +25,7 @@ import {
   YAxis,
   Tooltip,
 } from "recharts";
-import { MATERIAL_COST_DATA } from "./procurement-constants";
+import { MATERIAL_COST_DATA } from "../../procurement/components/procurement-constants";
 
 export function MoqAnalysisTab() {
   return (

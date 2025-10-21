@@ -80,3 +80,4 @@ DEVELOPMENT_PLAN.md
 src/app/planning/components/material-req-layouts/*
 claude_plan
 notes
+src/lib/t1.ts

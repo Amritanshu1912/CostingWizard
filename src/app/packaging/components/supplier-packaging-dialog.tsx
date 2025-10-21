@@ -53,9 +53,9 @@ import type {
   CapacityUnit,
   BuildMaterial,
 } from "@/lib/types";
+import { CAPACITY_UNITS } from "@/lib/constants";
 import {
   PACKAGING_TYPES,
-  CAPACITY_UNITS,
   BUILD_MATERIALS,
   getPackagingTypeColor,
   getBuildMaterialColor,

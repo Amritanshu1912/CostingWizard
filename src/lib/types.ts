@@ -30,12 +30,14 @@ export interface CategoryManagerProps {
     deleteCategory: (id: string) => void;
 }
 
+export type CapacityUnit = "kg" | "L" | "ml" | "gm" | "pcs";
+
+
 // ============================================================================
 // SUPPLIERS
 // ============================================================================
 
 export interface Supplier extends BaseEntity {
-    id: string;
     name: string;
     contactPerson: string;
     email: string;
@@ -67,7 +69,7 @@ export interface SupplierMaterial extends BaseEntity {
     supplierId: string;
     materialId: string;
 
-    unit: "kg" | "g" | "l" | "ml" | "pcs" | string;
+    unit: CapacityUnit;
     unitPrice: number;
     tax: number;
     moq?: number;
@@ -108,7 +110,6 @@ export interface SupplierMaterialWithDetails extends SupplierMaterial {
 // PACKAGING
 // ============================================================================
 export type PackagingType = "bottle" | "jar" | "can" | "box" | "pouch" | "other";
-export type CapacityUnit = "kg" | "L" | "ml" | "gm";
 export type BuildMaterial = "PET" | "HDPE" | "Glass" | "Plastic" | "Paper" | "Other";
 
 
@@ -217,8 +218,6 @@ export interface SupplierLabelWithDetails extends SupplierLabel {
 // RECIPES
 // ============================================================================
 
-export type RecipeIngredientUnit = "kg" | "g" | "L" | "ml" | "pcs";
-
 /**
  * A single ingredient in a recipe formulation.
  * Links to a SupplierMaterial and defines how much is needed.
@@ -248,18 +247,17 @@ export interface RecipeIngredientCalculated extends RecipeIngredient {
     supplierMaterial: SupplierMaterialWithDetails;
 
     // Computed costs
-    effectiveUnitPrice: number;      // Uses locked price if available, else current
+    effectivePricePerKg: number;     // Uses locked price if available, else current
     effectiveTax: number;
-    quantityInKg: number;            // Normalized to kg for calculations
+    quantity: number;                // Normalized to kg for calculations
     costForQuantity: number;         // Total cost for this ingredient
-    costWithTax: number;
-    percentage: number;              // Percentage of total cost
+    taxedCostForQuantity: number;
+    priceSharePercentage: number;              // Percentage of total cost
 
     // Display helpers
     displayName: string;
     displaySupplier: string;
     displayQuantity: string;
-    displayCost: string;
 
     // Status flags
     isPriceLocked: boolean;
@@ -322,31 +320,41 @@ export interface RecipeCostAnalysis {
     warnings: string[];
 }
 
-// ============================================================================
-// RECIPE TWEAKER
-// ============================================================================
-
 export interface RecipeVariant extends BaseEntity {
     originalRecipeId: string;
     name: string;
     description?: string;
+
+    // The modified formulation
     ingredients: RecipeIngredient[];
 
+    // Computed cost
     costPerKg: number;
 
-    // Add these:
-    costDifference: number;           // vs original recipe
-    costDifferencePercentage: number; // % cheaper/expensive
+    // Comparison with original
+    costDifference: number;           // Amount saved/increased vs original
+    costDifferencePercentage: number; // % cheaper/expensive vs original
 
+    // Business metrics
     profitMargin?: number;
+
+    // Why was this variant created?
+    optimizationGoal?: "cost_reduction" | "quality_improvement" | "supplier_diversification" | "other";
+
+    // Status
     isActive: boolean;
 
-    // Add reason for variant
-    optimizationGoal?: "cost_reduction" | "quality_improvement" | "supplier_diversification" | "other";
+    // Changelog - what was changed
+    changes?: Array<{
+        type: "quantity_change" | "supplier_change" | "ingredient_added" | "ingredient_removed";
+        ingredientName: string;
+        oldValue?: string | number;
+        newValue?: string | number;
+        reason?: string;
+    }>;
 
     notes?: string;
 }
-
 /**
  * Suggestion for recipe optimization
  */
@@ -371,31 +379,6 @@ export interface RecipeOptimizationSuggestion {
     reasoning: string;
     confidence: number;               // 0-100
 }
-
-/**
- * What-if scenario for recipe tweaking
- */
-export interface RecipeScenario {
-    scenarioName: string;
-    baseRecipeId: string;
-
-    // Modifications
-    ingredientChanges: Array<{
-        ingredientId: string;
-        action: "modify" | "remove" | "add";
-        newQuantity?: number;
-        newSupplierMaterialId?: string;
-    }>;
-
-    // Results
-    originalCost: number;
-    newCost: number;
-    costDifference: number;
-    costDifferencePercentage: number;
-
-    notes?: string;
-}
-
 
 // ============================================================================
 // PRODUCT SYSTEM (Final SKU)
@@ -444,7 +427,7 @@ export interface Product extends BaseEntity {
 
     // Unit definition (what customers buy)
     unitSize: number;                 // e.g., 5 (for 5L bottle)
-    unitType: RecipeIngredientUnit;   // e.g., "L"
+    unitType: CapacityUnit;   // e.g., "L"
     unitsPerCase?: number;            // For bulk sales
 
     // Pricing
@@ -658,26 +641,5 @@ export interface ProductionPlanExtended extends ProductionPlan {
     };
 }
 
-// ============================================================================
-// OPTIMIZATION & ANALYTICS
-// ============================================================================
-
-export interface OptimizationSuggestion {
-    type: "substitute" | "bulk" | "supplier" | "recipe" | "packaging" | "transport";
-    title: string;
-    description: string;
-    savings: number;
-    impact: "low" | "medium" | "high";
-    confidence: number; // 0-100
-}
-
-export interface ScenarioData {
-    name: string;
-    batchSize: number;
-    totalCost: number;
-    costPerKg: number;
-    margin: number;
-    price: number;
-}
 
 

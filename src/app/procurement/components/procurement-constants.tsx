@@ -398,18 +398,6 @@ export const MATERIAL_CATEGORIES = [
   "Other",
 ] as const;
 
-export const PAYMENT_TERMS = [
-  "15 days",
-  "30 days",
-  "45 days",
-  "60 days",
-  "Advance",
-] as const;
-
-export const CURRENCIES = ["INR", "USD", "EUR"] as const;
-
-export const UNITS = ["kg", "liters", "pieces", "meters"] as const;
-
 export const AVAILABILITY_OPTIONS = [
   "in-stock",
   "limited",

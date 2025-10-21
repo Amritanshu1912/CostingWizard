@@ -13,8 +13,8 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Star, Package, Search } from "lucide-react";
 import type { Supplier, SupplierMaterial } from "@/lib/types";
-import { AddSupplierDialog } from "./procurement-dialogs";
-import { SuppliersTable } from "./procurement-tables";
+import { AddSupplierDialog } from "./suppliers-dialog";
+import { SuppliersTable } from "../../procurement/components/procurement-tables";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -26,7 +26,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 
-interface SuppliersTabProps {
+interface SuppliersOverviewTabProps {
   suppliers: Supplier[];
   materialsBySupplier: Record<string, number>;
   supplierMaterials: SupplierMaterial[];
@@ -35,14 +35,14 @@ interface SuppliersTabProps {
   onDeleteSupplier: (id: string) => void;
 }
 
-export function SuppliersTab({
+export function SuppliersOverviewTab({
   suppliers,
   materialsBySupplier,
   supplierMaterials,
   onAddSupplier,
   onEditSupplier,
   onDeleteSupplier,
-}: SuppliersTabProps) {
+}: SuppliersOverviewTabProps) {
   const [searchTerm, setSearchTerm] = useState("");
   const [showAddSupplier, setShowAddSupplier] = useState(false);
   const [editingSupplier, setEditingSupplier] = useState<Supplier | null>(null);

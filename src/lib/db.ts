@@ -16,6 +16,7 @@ import type {
     TransportationCost,
     RecipeVariant,
     ProductionPlanExtended,
+    Recipe,
 } from './types';
 import {
     CATEGORIES,
@@ -42,17 +43,21 @@ export class CostingWizardDB extends Dexie {
     materials!: Table<Material>;
     suppliers!: Table<Supplier>;
     supplierMaterials!: Table<SupplierMaterial>;
-    products!: Table<Product>;
-    productionPlans!: Table<ProductionPlanExtended>;
-    purchaseOrders!: Table<PurchaseOrder>;
     packaging!: Table<Packaging>;
     supplierPackaging!: Table<SupplierPackaging>;
     labels!: Table<Label>;
     supplierLabels!: Table<SupplierLabel>;
+    recipes!: Table<Recipe>;  // NEW: Recipe table
+    recipeVariants!: Table<RecipeVariant>;
+
+    products!: Table<Product>;
+    productionPlans!: Table<ProductionPlanExtended>;
+    purchaseOrders!: Table<PurchaseOrder>;
+
     inventoryItems!: Table<InventoryItem>;
     inventoryTransactions!: Table<InventoryTransaction>;
     transportationCosts!: Table<TransportationCost>;
-    recipeVariants!: Table<RecipeVariant>;
+
 
     constructor() {
         super('CostingWizardDB');
@@ -66,13 +71,14 @@ export class CostingWizardDB extends Dexie {
             supplierPackaging: 'id, supplierId, packagingId, packagingName, availability',
             labels: 'id, name, type, supplierId, availability',
             supplierLabels: 'id, supplierId, labelId, labelName, availability',
+            recipes: 'id, name, status, createdAt',  // NEW
+            recipeVariants: 'id, originalRecipeId, name, isActive',
             products: 'id, name, status',
             productionPlans: 'id, planName, status, startDate, endDate',
             purchaseOrders: 'id, orderId, supplierId, status, dateCreated',
             inventoryItems: 'id, itemType, itemId, itemName, status',
             inventoryTransactions: 'id, inventoryItemId, type, reference',
             transportationCosts: 'id, supplierId, region',
-            recipeVariants: 'id, originalRecipeId, name, isActive',
         });
 
         // Migration: Populate initial data if tables are empty
@@ -100,8 +106,13 @@ export class CostingWizardDB extends Dexie {
                 await db.supplierMaterials.bulkAdd(SUPPLIER_MATERIALS);
             }
 
-            const hasRecipes = await db.recipeVariants.count() > 0;
+            const hasRecipes = await db.recipes.count() > 0;
             if (!hasRecipes) {
+                await db.recipes.bulkAdd(RECIPES);
+            }
+
+            const hasRecipeVariants = await db.recipeVariants.count() > 0;
+            if (!hasRecipeVariants) {
                 const recipeVariants = RECIPES.map(recipe => ({
                     ...recipe,
                     originalRecipeId: recipe.id,

@@ -19,6 +19,13 @@ import {
 // MASTER DATA - Single Source of Truth
 // ============================================================================
 
+export const CAPACITY_UNITS = [
+    { value: "kg" as const, label: "Kilograms (kg)" },
+    { value: "L" as const, label: "Liters (L)" },
+    { value: "ml" as const, label: "Milliliters (ml)" },
+    { value: "gm" as const, label: "Grams (gm)" },
+    { value: "pcs" as const, label: "Pieces (pcs)" },
+] as const;
 
 export const CATEGORIES: Category[] = [
     { id: "1", name: "Acids", description: "Acidic compounds and solutions", createdAt: "2024-01-01T00:00:00.000Z" },

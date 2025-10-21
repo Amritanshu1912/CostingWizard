@@ -5,7 +5,6 @@ import {
   PackagingType,
   SupplierPackaging,
 } from "@/lib/types";
-import { CAPACITY_UNITS } from "@/lib/constants";
 import {
   TrendingUp,
   Target,
@@ -178,6 +177,13 @@ export const BUILD_MATERIALS = [
   { value: "Plastic" as const, label: "Plastic", color: "#f59e0b" },
   { value: "Paper" as const, label: "Paper", color: "#84cc16" },
   { value: "Other" as const, label: "Other", color: "#6b7280" },
+] as const;
+
+export const CAPACITY_UNITS = [
+  { value: "kg" as const, label: "Kilograms (kg)" },
+  { value: "L" as const, label: "Liters (L)" },
+  { value: "ml" as const, label: "Milliliters (ml)" },
+  { value: "gm" as const, label: "Grams (gm)" },
 ] as const;
 
 export const PACKAGING_AVAILABILITY = [
