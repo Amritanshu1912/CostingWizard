@@ -16,6 +16,7 @@ import {
   X,
   Box,
   Tag,
+  Users,
 } from "lucide-react";
 
 const navigation = [
@@ -53,6 +54,11 @@ const navigation = [
     name: "Procurement",
     href: "/procurement",
     icon: ShoppingCart,
+  },
+  {
+    name: "Suppliers",
+    href: "/suppliers",
+    icon: Users,
   },
   {
     name: "Data Management",

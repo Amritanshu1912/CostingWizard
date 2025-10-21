@@ -18,10 +18,8 @@ import {
   ORDER_STATUS_DATA,
   getSupplierPerformanceData,
 } from "./procurement-constants";
-import { OrderDialog } from "./procurement-dialogs";
-import { SuppliersTab } from "./procurement-suppliers-tab";
+import { OrderDialog } from "./procurement-orders-dialogs";
 import { OrdersTab } from "./procurement-orders-tab";
-import { MoqAnalysisTab } from "./procurement-moq-analysis-tab";
 import { ProcurementAnalytics } from "./procurement-analytics";
 
 export function ProcurementManager() {
@@ -148,41 +146,14 @@ export function ProcurementManager() {
         </div>
       </div>
 
-      <Tabs defaultValue="suppliers" className="space-y-6">
-        <TabsList className="grid w-full grid-cols-4">
-          <TabsTrigger value="suppliers">Suppliers</TabsTrigger>
+      <Tabs defaultValue="orders" className="space-y-6">
+        <TabsList className="grid w-full grid-cols-2">
           <TabsTrigger value="orders">Purchase Orders</TabsTrigger>
-          <TabsTrigger value="moq-analysis">MOQ Analysis</TabsTrigger>
           <TabsTrigger value="analytics">Analytics</TabsTrigger>
         </TabsList>
 
-        <TabsContent value="suppliers" className="space-y-6">
-          <SuppliersTab
-            suppliers={suppliers}
-            materialsBySupplier={materialsBySupplier}
-            supplierMaterials={SUPPLIER_MATERIALS}
-            onAddSupplier={handleAddSupplier}
-            onEditSupplier={(supplier) =>
-              setSuppliers(
-                suppliers.map((s) => (s.id === supplier.id ? supplier : s))
-              )
-            }
-            onDeleteSupplier={(id) =>
-              setSuppliers(
-                suppliers.map((s) =>
-                  s.id === id ? { ...s, isActive: false } : s
-                )
-              )
-            }
-          />
-        </TabsContent>
-
         <TabsContent value="orders" className="space-y-6">
           <OrdersTab orders={orders} />
-        </TabsContent>
-
-        <TabsContent value="moq-analysis" className="space-y-6">
-          <MoqAnalysisTab />
         </TabsContent>
 
         <TabsContent value="analytics" className="space-y-6">
