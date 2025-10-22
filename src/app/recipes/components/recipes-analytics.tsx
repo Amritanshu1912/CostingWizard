@@ -2,7 +2,7 @@
 
 "use client";
 
-import React, { useMemo } from "react";
+import React, { useState, useMemo } from "react";
 import {
   Card,
   CardContent,
@@ -12,6 +12,14 @@ import {
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
+import { Button } from "@/components/ui/button";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import { Checkbox } from "@/components/ui/checkbox";
+import { ChevronDown } from "lucide-react";
 import {
   BarChart,
   Bar,
@@ -28,8 +36,9 @@ import {
   ResponsiveContainer,
 } from "recharts";
 import { TrendingUp, TrendingDown, AlertCircle } from "lucide-react";
-
+import { recipesAIInsights } from "./recipes-constants";
 import type { Recipe } from "@/lib/types";
+import { useRecipesWithDetails } from "@/hooks/use-recipes-with-details";
 import { useSupplierMaterialsWithDetails } from "@/hooks/use-supplier-materials-with-details";
 import { analyzeRecipeCost } from "@/lib/recipe-calculations";
 import { CHART_COLORS } from "@/lib/color-utils";
@@ -39,51 +48,84 @@ interface RecipeAnalyticsProps {
 }
 
 export function RecipeAnalytics({ recipes }: RecipeAnalyticsProps) {
+  const recipesWithDetails = useRecipesWithDetails();
   const supplierMaterials = useSupplierMaterialsWithDetails();
 
-  // Cost comparison data
-  const costComparisonData = useMemo(() => {
-    return recipes
+  const [selectedRecipes, setSelectedRecipes] = useState<string[]>([]);
+
+  // Initialize selected recipes when data loads
+  React.useEffect(() => {
+    if (recipesWithDetails.length > 0 && selectedRecipes.length === 0) {
+      setSelectedRecipes(recipesWithDetails.map((r) => r.name));
+    }
+  }, [recipesWithDetails, selectedRecipes.length]);
+
+  const [visibleMetrics, setVisibleMetrics] = useState({
+    costPerKg: true,
+    sellingPricePerKg: true,
+    profitPerKg: true,
+  });
+
+  const handleRecipeToggle = (recipe: string) => {
+    setSelectedRecipes((prev) =>
+      prev.includes(recipe)
+        ? prev.filter((r) => r !== recipe)
+        : [...prev, recipe]
+    );
+  };
+
+  const handleMetricToggle = (metric: keyof typeof visibleMetrics) => {
+    setVisibleMetrics((prev) => ({
+      ...prev,
+      [metric]: !prev[metric],
+    }));
+  };
+
+  // Recipe Financial Overview data
+  const recipeFinancialOverview = useMemo(() => {
+    return recipesWithDetails
       .filter((r) => r.status === "active")
-      .map((recipe) => ({
-        name: recipe.name,
-        costPerKg: recipe.costPerKg,
-        targetCostPerKg: recipe.targetCostPerKg || 0,
-        variance: recipe.targetCostPerKg
-          ? ((recipe.costPerKg - recipe.targetCostPerKg) /
-              recipe.targetCostPerKg) *
-            100
-          : 0,
-      }))
-      .sort((a, b) => b.costPerKg - a.costPerKg);
-  }, [recipes]);
+      .map((recipe) => {
+        const sellingPricePerKg =
+          recipe.actualCostPerKg * (1 + (recipe.targetProfitMargin || 0) / 100);
+        const profitPerKg = sellingPricePerKg - recipe.actualCostPerKg;
 
-  // Target achievement data
-  const targetAchievementData = useMemo(() => {
-    const withTargets = recipes.filter((r) => r.targetCostPerKg);
-    const met = withTargets.filter(
-      (r) => r.costPerKg <= r.targetCostPerKg!
-    ).length;
-    const exceeded = withTargets.length - met;
+        return {
+          name: recipe.name,
+          costPerKg: recipe.actualCostPerKg,
+          sellingPricePerKg,
+          profitPerKg,
+        };
+      });
+  }, [recipesWithDetails]);
 
-    return [
-      { name: "Met Target", value: met, color: CHART_COLORS.light.chart3 },
-      {
-        name: "Exceeded Target",
-        value: exceeded,
-        color: CHART_COLORS.light.chart5,
-      },
-    ];
-  }, [recipes]);
+  // Profit Margins data
+  const recipeProfitMargins = useMemo(() => {
+    return recipesWithDetails
+      .filter((r) => r.status === "active")
+      .map((recipe) => {
+        const sellingPricePerKg =
+          recipe.actualCostPerKg * (1 + (recipe.targetProfitMargin || 0) / 100);
+        const margin =
+          sellingPricePerKg > 0
+            ? ((sellingPricePerKg - recipe.actualCostPerKg) /
+                sellingPricePerKg) *
+              100
+            : 0;
 
-  // Top cost drivers analysis
-  const topCostDrivers = useMemo(() => {
-    const ingredientCosts = new Map<
-      string,
-      { name: string; totalCost: number }
-    >();
+        return {
+          recipe: recipe.name,
+          margin: parseFloat(margin.toFixed(2)),
+        };
+      })
+      .sort((a, b) => b.margin - a.margin);
+  }, [recipesWithDetails]);
 
-    recipes.forEach((recipe) => {
+  // Ingredient Cost Distribution data
+  const ingredientCostDistribution = useMemo(() => {
+    const ingredientCosts = new Map<string, { name: string; cost: number }>();
+
+    recipesWithDetails.forEach((recipe) => {
       const analysis = analyzeRecipeCost(
         recipe.id,
         recipe.name,
@@ -94,98 +136,79 @@ export function RecipeAnalytics({ recipes }: RecipeAnalyticsProps) {
       analysis.ingredientBreakdown.forEach((item) => {
         const existing = ingredientCosts.get(item.name) || {
           name: item.name,
-          totalCost: 0,
+          cost: 0,
         };
-        existing.totalCost += item.cost;
+        existing.cost += item.cost;
         ingredientCosts.set(item.name, existing);
       });
     });
 
+    const totalCost = Array.from(ingredientCosts.values()).reduce(
+      (sum, item) => sum + item.cost,
+      0
+    );
+
     return Array.from(ingredientCosts.values())
-      .sort((a, b) => b.totalCost - a.totalCost)
+      .sort((a, b) => b.cost - a.cost)
       .slice(0, 5)
       .map((item) => ({
         name: item.name,
-        cost: item.totalCost,
+        value:
+          totalCost > 0
+            ? parseFloat(((item.cost / totalCost) * 100).toFixed(1))
+            : 0,
+        cost: item.cost,
       }));
-  }, [recipes, supplierMaterials]);
+  }, [recipesWithDetails, supplierMaterials]);
 
-  // Recipe complexity (ingredient count)
-  const complexityData = useMemo(() => {
-    return recipes.map((recipe) => ({
-      name: recipe.name,
-      ingredients: recipe.ingredients.length,
-      costPerKg: recipe.costPerKg,
-    }));
-  }, [recipes]);
+  // Product Profitability data
+  const productProfitability = useMemo(() => {
+    return recipesWithDetails
+      .filter((r) => r.status === "active")
+      .map((recipe) => {
+        const sellingPricePerKg =
+          recipe.actualCostPerKg * (1 + (recipe.targetProfitMargin || 0) / 100);
+        const margin =
+          sellingPricePerKg > 0
+            ? ((sellingPricePerKg - recipe.actualCostPerKg) /
+                sellingPricePerKg) *
+              100
+            : 0;
+        const revenue = recipe.actualCostPerKg * 1000; // Assuming 1kg for demo, should be actual production volume
 
-  // Status distribution
-  const statusDistribution = useMemo(() => {
-    const counts = recipes.reduce((acc, recipe) => {
-      acc[recipe.status] = (acc[recipe.status] || 0) + 1;
-      return acc;
-    }, {} as Record<string, number>);
+        // Placeholder trend logic - in real app this would come from historical data
+        const trend =
+          margin > 30
+            ? "up"
+            : margin < 20
+            ? "down"
+            : Math.random() > 0.5
+            ? "up"
+            : "down";
 
-    return Object.entries(counts).map(([status, count]) => ({
-      name: status.charAt(0).toUpperCase() + status.slice(1),
-      value: count,
-    }));
-  }, [recipes]);
+        return {
+          name: recipe.name,
+          margin: parseFloat(margin.toFixed(2)),
+          revenue,
+          trend,
+        };
+      })
+      .sort((a, b) => b.margin - a.margin);
+  }, [recipesWithDetails]);
 
-  // Insights
-  const insights = useMemo(() => {
-    const insights: Array<{
-      title: string;
-      description: string;
-      impact: "High" | "Medium" | "Low";
-      confidence: number;
-    }> = [];
+  // Recipe Cost Trends data (adapted for current values)
+  const recipeCostTrends = useMemo(() => {
+    // Since we don't have historical data, create a single "current" month entry
+    const currentData: Record<string, any> = { month: "Current" };
 
-    // Check for high-cost recipes
-    const avgCost =
-      recipes.reduce((sum, r) => sum + r.costPerKg, 0) / recipes.length;
-    const expensiveRecipes = recipes.filter((r) => r.costPerKg > avgCost * 1.2);
-    if (expensiveRecipes.length > 0) {
-      insights.push({
-        title: "High-Cost Recipes Detected",
-        description: `${expensiveRecipes.length} recipe(s) are 20% above average cost. Consider optimization.`,
-        impact: "High",
-        confidence: 92,
+    recipesWithDetails
+      .filter((r) => r.status === "active")
+      .forEach((recipe) => {
+        currentData[recipe.name] = recipe.actualCostPerKg;
       });
-    }
 
-    // Check target achievement
-    const withTargets = recipes.filter((r) => r.targetCostPerKg);
-    const belowTarget = withTargets.filter(
-      (r) => r.costPerKg > r.targetCostPerKg!
-    );
-    if (belowTarget.length > 0) {
-      insights.push({
-        title: "Target Cost Exceeded",
-        description: `${belowTarget.length} recipe(s) exceeded their target cost. Review formulations.`,
-        impact: "Medium",
-        confidence: 88,
-      });
-    }
-
-    // Check for complex recipes
-    const avgIngredients =
-      recipes.reduce((sum, r) => sum + r.ingredients.length, 0) /
-      recipes.length;
-    const complexRecipes = recipes.filter(
-      (r) => r.ingredients.length > avgIngredients * 1.5
-    );
-    if (complexRecipes.length > 0) {
-      insights.push({
-        title: "Complex Formulations",
-        description: `${complexRecipes.length} recipe(s) have high ingredient counts. Consider simplification.`,
-        impact: "Low",
-        confidence: 75,
-      });
-    }
-
-    return insights;
-  }, [recipes]);
+    return [currentData];
+  }, [recipesWithDetails]);
 
   if (recipes.length === 0) {
     return (
@@ -198,23 +221,45 @@ export function RecipeAnalytics({ recipes }: RecipeAnalyticsProps) {
 
   return (
     <div className="space-y-6">
-      {/* Cost Comparison Chart */}
+      {/* Recipe Financial Overview - Grouped Bar Chart */}
       <Card className="card-enhanced">
-        <CardHeader>
-          <CardTitle>Recipe Cost Comparison</CardTitle>
-          <CardDescription>Cost per kg for active recipes</CardDescription>
+        <CardHeader className="flex flex-row items-center justify-between space-y-0">
+          <div className="space-y-1">
+            <CardTitle className="text-foreground">
+              Recipe Financial Overview
+            </CardTitle>
+            <CardDescription>
+              Cost, Selling Price, and Profit per kg for all recipes
+            </CardDescription>
+          </div>
+          <div className="flex flex-wrap gap-4">
+            {Object.entries({
+              costPerKg: "Cost Price",
+              sellingPricePerKg: "Selling Price",
+              profitPerKg: "Profit",
+            }).map(([key, label]) => (
+              <label key={key} className="flex items-center space-x-2">
+                <input
+                  type="checkbox"
+                  checked={visibleMetrics[key as keyof typeof visibleMetrics]}
+                  onChange={() =>
+                    handleMetricToggle(key as keyof typeof visibleMetrics)
+                  }
+                  className="rounded"
+                />
+                <span className="text-sm">{label}</span>
+              </label>
+            ))}
+          </div>
         </CardHeader>
         <CardContent>
           <ResponsiveContainer width="100%" height={300}>
-            <BarChart data={costComparisonData}>
+            <BarChart data={recipeFinancialOverview} barCategoryGap="20%">
               <CartesianGrid strokeDasharray="3 3" className="stroke-border" />
               <XAxis
                 dataKey="name"
                 className="stroke-muted-foreground"
-                tick={{ fill: "hsl(var(--muted-foreground))", fontSize: 12 }}
-                angle={-45}
-                textAnchor="end"
-                height={100}
+                tick={{ fill: "hsl(var(--muted-foreground))" }}
               />
               <YAxis
                 className="stroke-muted-foreground"
@@ -222,51 +267,154 @@ export function RecipeAnalytics({ recipes }: RecipeAnalyticsProps) {
               />
               <Tooltip
                 contentStyle={{
-                  backgroundColor: "hsl(var(--card))",
+                  backgroundColor: "rgba(0,0,0 0.3)",
+                  backdropFilter: "blur(4px)",
                   border: "1px solid hsl(var(--border))",
                   borderRadius: "8px",
                 }}
+                itemStyle={{
+                  color: "hsl(var(--foreground))",
+                  fontWeight: 400,
+                }}
+                formatter={(value) =>
+                  typeof value === "number" ? value.toFixed(2) : value
+                }
               />
               <Legend />
-              <Bar
-                dataKey="costPerKg"
-                fill={CHART_COLORS.light.chart1}
-                name="Actual Cost/kg"
-                radius={[4, 4, 0, 0]}
-              />
-              <Bar
-                dataKey="targetCostPerKg"
-                fill={CHART_COLORS.light.chart2}
-                name="Target Cost/kg"
-                radius={[4, 4, 0, 0]}
-              />
+              {visibleMetrics.costPerKg && (
+                <Bar
+                  dataKey="costPerKg"
+                  fill={CHART_COLORS.light.chart1}
+                  name="Cost per kg"
+                  radius={[2, 2, 0, 0]}
+                />
+              )}
+              {visibleMetrics.sellingPricePerKg && (
+                <Bar
+                  dataKey="sellingPricePerKg"
+                  fill={CHART_COLORS.light.chart2}
+                  name="Selling Price per kg"
+                  radius={[2, 2, 0, 0]}
+                />
+              )}
+              {visibleMetrics.profitPerKg && (
+                <Bar
+                  dataKey="profitPerKg"
+                  fill={CHART_COLORS.light.chart3}
+                  name="Profit per kg"
+                  radius={[2, 2, 0, 0]}
+                />
+              )}
             </BarChart>
           </ResponsiveContainer>
         </CardContent>
       </Card>
 
-      {/* Charts Grid */}
+      {/* Profit Margins and Ingredient Cost Distribution - Side by Side */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Target Achievement Pie Chart */}
+        {/* Profit Margins Bar Chart */}
         <Card className="card-enhanced">
           <CardHeader>
-            <CardTitle>Target Achievement</CardTitle>
-            <CardDescription>Recipes meeting cost targets</CardDescription>
+            <CardTitle className="text-foreground">
+              Profit Margins by Recipe
+            </CardTitle>
+            <CardDescription>
+              Profit margin percentage for each recipe
+            </CardDescription>
           </CardHeader>
           <CardContent>
-            <ResponsiveContainer width="100%" height={250}>
+            <ResponsiveContainer width="100%" height={300}>
+              <BarChart data={recipeProfitMargins}>
+                <CartesianGrid
+                  strokeDasharray="3 3"
+                  className="stroke-border"
+                />
+                <XAxis
+                  dataKey="recipe"
+                  className="stroke-muted-foreground"
+                  tick={{ fill: "hsl(var(--muted-foreground))" }}
+                />
+                <YAxis
+                  className="stroke-muted-foreground"
+                  tick={{ fill: "hsl(var(--muted-foreground))" }}
+                />
+                <Tooltip
+                  content={({ active, payload, label }) => {
+                    if (active && payload && payload.length) {
+                      return (
+                        <div
+                          style={{
+                            backgroundColor: "hsl(var(--card))",
+                            border: "1px solid hsl(var(--border))",
+                            borderRadius: "8px",
+                            padding: "8px",
+                            color: "hsl(var(--foreground))",
+                          }}
+                        >
+                          <p
+                            style={{
+                              margin: 0,
+                              fontWeight: "bold",
+                              color: "black",
+                            }}
+                          >
+                            {label}
+                          </p>
+                          {payload.map((entry, index) => (
+                            <p
+                              key={index}
+                              style={{
+                                margin: 0,
+                                color: "hsl(var(--foreground))",
+                              }}
+                            >
+                              {entry.name}: {entry.value}%
+                            </p>
+                          ))}
+                        </div>
+                      );
+                    }
+                    return null;
+                  }}
+                />
+                <Bar
+                  dataKey="margin"
+                  fill={CHART_COLORS.light.chart1}
+                  radius={[4, 4, 0, 0]}
+                />
+              </BarChart>
+            </ResponsiveContainer>
+          </CardContent>
+        </Card>
+
+        {/* Ingredient Cost Distribution Pie Chart */}
+        <Card className="card-enhanced">
+          <CardHeader>
+            <CardTitle className="text-foreground">
+              Ingredient Cost Distribution
+            </CardTitle>
+            <CardDescription>
+              Percentage breakdown of ingredient costs
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <ResponsiveContainer width="100%" height={300}>
               <PieChart>
                 <Pie
-                  data={targetAchievementData}
+                  data={ingredientCostDistribution}
                   dataKey="value"
                   nameKey="name"
                   cx="50%"
                   cy="50%"
-                  outerRadius={80}
+                  outerRadius={100}
+                  fill={CHART_COLORS.light.chart1}
                   label
                 >
-                  {targetAchievementData.map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={entry.color} />
+                  {ingredientCostDistribution.map((entry, index) => (
+                    <Cell
+                      key={`cell-${index}`}
+                      fill={Object.values(CHART_COLORS.light)[index % 5]}
+                    />
                   ))}
                 </Pie>
                 <Tooltip
@@ -274,99 +422,204 @@ export function RecipeAnalytics({ recipes }: RecipeAnalyticsProps) {
                     backgroundColor: "hsl(var(--card))",
                     border: "1px solid hsl(var(--border))",
                     borderRadius: "8px",
+                    color: "hsl(var(--foreground))",
                   }}
+                  formatter={(value) =>
+                    typeof value === "number" ? value.toFixed(2) : value
+                  }
                 />
                 <Legend />
               </PieChart>
             </ResponsiveContainer>
           </CardContent>
         </Card>
+      </div>
 
-        {/* Top Cost Drivers */}
+      {/* Product Profitability and Recipe Cost Trends - Side by Side */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* Product Profitability List */}
         <Card className="card-enhanced">
           <CardHeader>
-            <CardTitle>Top Cost Drivers</CardTitle>
-            <CardDescription>
-              Most expensive ingredients across all recipes
-            </CardDescription>
+            <CardTitle className="text-foreground">
+              Product Profitability
+            </CardTitle>
+            <CardDescription>Margin analysis by product</CardDescription>
           </CardHeader>
           <CardContent>
-            <ResponsiveContainer width="100%" height={250}>
-              <BarChart data={topCostDrivers} layout="vertical">
+            <div className="space-y-4">
+              {productProfitability.map((product) => (
+                <div
+                  key={product.name}
+                  className="flex items-center justify-between p-3 rounded-lg bg-muted/30 border border-border/50"
+                >
+                  <div className="flex-1">
+                    <div className="font-medium text-foreground">
+                      {product.name}
+                    </div>
+                    <div className="text-sm text-muted-foreground">
+                      Revenue: ₹{product.revenue.toLocaleString()}
+                    </div>
+                  </div>
+                  <div className="flex items-center space-x-3">
+                    <div className="text-right">
+                      <div className="font-medium text-foreground">
+                        {product.margin}%
+                      </div>
+                      <div className="text-xs text-muted-foreground">
+                        margin
+                      </div>
+                    </div>
+                    {product.trend === "up" ? (
+                      <TrendingUp className="h-4 w-4 text-accent" />
+                    ) : (
+                      <TrendingDown className="h-4 w-4 text-destructive" />
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Recipe Cost Trends - Interactive Line Chart */}
+        <Card className="card-enhanced">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0">
+            <div>
+              <CardTitle className="text-foreground">
+                Recipe Cost Trends
+              </CardTitle>
+              <CardDescription>
+                Select recipes to view cost trends over recent months
+              </CardDescription>
+            </div>
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button variant="outline" className="w-64 justify-between">
+                  {selectedRecipes.length === 0
+                    ? "Select recipes..."
+                    : `${selectedRecipes.length} recipe${
+                        selectedRecipes.length > 1 ? "s" : ""
+                      } selected`}
+                  <ChevronDown className="h-4 w-4" />
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-80">
+                <div className="space-y-2">
+                  {recipesWithDetails
+                    .filter((r) => r.status === "active")
+                    .map((recipe) => (
+                      <div
+                        key={recipe.name}
+                        className="flex items-center space-x-2"
+                      >
+                        <Checkbox
+                          id={recipe.name}
+                          checked={selectedRecipes.includes(recipe.name)}
+                          onCheckedChange={() =>
+                            handleRecipeToggle(recipe.name)
+                          }
+                        />
+                        <label
+                          htmlFor={recipe.name}
+                          className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                        >
+                          {recipe.name}
+                        </label>
+                      </div>
+                    ))}
+                </div>
+              </PopoverContent>
+            </Popover>
+          </CardHeader>
+          <CardContent>
+            <ResponsiveContainer width="100%" height={300}>
+              <LineChart data={recipeCostTrends}>
                 <CartesianGrid
                   strokeDasharray="3 3"
                   className="stroke-border"
                 />
-                <XAxis type="number" />
+                <XAxis
+                  dataKey="month"
+                  className="stroke-muted-foreground"
+                  tick={{ fill: "hsl(var(--muted-foreground))" }}
+                />
                 <YAxis
-                  type="category"
-                  dataKey="name"
-                  width={120}
-                  tick={{ fontSize: 12 }}
+                  className="stroke-muted-foreground"
+                  tick={{ fill: "hsl(var(--muted-foreground))" }}
                 />
                 <Tooltip
                   contentStyle={{
                     backgroundColor: "hsl(var(--card))",
                     border: "1px solid hsl(var(--border))",
                     borderRadius: "8px",
+                    color: "hsl(var(--foreground))",
                   }}
+                  formatter={(value) =>
+                    typeof value === "number" ? value.toFixed(2) : value
+                  }
                 />
-                <Bar
-                  dataKey="cost"
-                  fill={CHART_COLORS.light.chart4}
-                  radius={[0, 4, 4, 0]}
-                />
-              </BarChart>
+                <Legend />
+                {selectedRecipes.map((recipe, index) => (
+                  <Line
+                    key={recipe}
+                    type="monotone"
+                    dataKey={recipe}
+                    stroke={Object.values(CHART_COLORS.light)[index % 5]}
+                    strokeWidth={2}
+                    name={recipe}
+                  />
+                ))}
+              </LineChart>
             </ResponsiveContainer>
           </CardContent>
         </Card>
       </div>
 
-      {/* AI Insights */}
-      {insights.length > 0 && (
-        <Card className="card-enhanced">
-          <CardHeader>
-            <CardTitle>AI-Powered Insights</CardTitle>
-            <CardDescription>
-              Automated recommendations and analysis
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              {insights.map((insight, index) => (
-                <div
-                  key={index}
-                  className="p-4 rounded-lg bg-muted/30 border border-border/50"
-                >
-                  <div className="flex items-start justify-between mb-2">
-                    <div className="flex-1">
-                      <h4 className="font-medium text-foreground">
-                        {insight.title}
-                      </h4>
-                      <p className="text-sm text-muted-foreground mt-1">
-                        {insight.description}
-                      </p>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <Badge
-                        variant={
-                          insight.impact === "High" ? "default" : "secondary"
-                        }
-                      >
-                        {insight.impact}
-                      </Badge>
-                      <span className="text-xs text-muted-foreground">
-                        {insight.confidence}%
-                      </span>
+      {/* AI-Powered Insights */}
+      <Card className="card-enhanced">
+        <CardHeader>
+          <CardTitle className="text-foreground">AI-Powered Insights</CardTitle>
+          <CardDescription>
+            Automated recommendations and predictions (Note: Using dummy data
+            for demonstration)
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-4">
+            {recipesAIInsights.map((insight, index) => (
+              <div
+                key={index}
+                className="p-4 rounded-lg bg-muted/30 border border-border/50"
+              >
+                <div className="flex items-start justify-between mb-2">
+                  <div className="flex-1">
+                    <h4 className="font-medium text-foreground">
+                      {insight.title}
+                    </h4>
+                    <p className="text-sm text-muted-foreground mt-1">
+                      {insight.description}
+                    </p>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <Badge
+                      variant={
+                        insight.impact === "High" ? "default" : "secondary"
+                      }
+                      className="text-xs"
+                    >
+                      {insight.impact}
+                    </Badge>
+                    <div className="text-xs text-muted-foreground">
+                      {insight.confidence}% confidence
                     </div>
                   </div>
-                  <Progress value={insight.confidence} className="h-1" />
                 </div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
-      )}
+                <Progress value={insight.confidence} className="h-1" />
+              </div>
+            ))}
+          </div>
+        </CardContent>
+      </Card>
     </div>
   );
 }

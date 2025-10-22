@@ -12,6 +12,9 @@ import {
     Package,
     ShoppingCart,
     FlaskConical as Flask,
+    AlertTriangle,
+    CheckCircle,
+    XCircle,
 } from "lucide-react";
 
 
@@ -20,11 +23,11 @@ import {
 // ============================================================================
 
 export const CAPACITY_UNITS = [
-    { value: "kg" as const, label: "Kilograms (kg)" },
-    { value: "L" as const, label: "Liters (L)" },
-    { value: "ml" as const, label: "Milliliters (ml)" },
-    { value: "gm" as const, label: "Grams (gm)" },
-    { value: "pcs" as const, label: "Pieces (pcs)" },
+    { value: "kg" as const, label: "Kilograms (kg)", factor: 1 },
+    { value: "L" as const, label: "Liters (L)", factor: 1 }, // Assuming 1L = 1kg for liquids
+    { value: "ml" as const, label: "Milliliters (ml)", factor: 0.001 },
+    { value: "gm" as const, label: "Grams (gm)", factor: 0.001 },
+    { value: "pcs" as const, label: "Pieces (pcs)", factor: 1 }, // Assuming pieces are treated as kg
 ] as const;
 
 export const CATEGORIES: Category[] = [
@@ -36,6 +39,29 @@ export const CATEGORIES: Category[] = [
     { id: "6", name: "Oils", description: "Oil-based materials", createdAt: "2024-01-01T00:00:00.000Z" },
     { id: "7", name: "Other", description: "Miscellaneous materials", createdAt: "2024-01-01T00:00:00.000Z" },
 ];
+
+export const AVAILABILITY_MAP = {
+    "in-stock": {
+        label: "In Stock",
+        variant: "default" as const,
+        icon: CheckCircle,
+    },
+    limited: {
+        label: "Limited Stock",
+        variant: "secondary" as const,
+        icon: AlertTriangle,
+    },
+    "out-of-stock": {
+        label: "Out of Stock",
+        variant: "destructive" as const,
+        icon: XCircle,
+    },
+    default: {
+        label: "Unknown",
+        variant: "outline" as const,
+        icon: Package,
+    },
+} as const;
 
 // ============================================================================
 // SUPPLIERS

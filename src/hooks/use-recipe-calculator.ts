@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { db } from '@/lib/db';
 import type { RecipeIngredientCalculated, SupplierMaterialWithDetails } from '@/lib/types';
 import { convertToKilograms } from '@/app/recipes/components/recipes-constants';
-import type { IngredientUnitValue } from '@/app/recipes/components/recipes-constants';
+import { CapacityUnit } from "@/lib/types";
 
 /**
  * Hook to calculate recipe ingredient costs with proper data joining
@@ -48,7 +48,7 @@ export function useRecipeCalculator() {
     const calculateIngredient = (
         supplierMaterialId: string,
         quantity: number,
-        unit: IngredientUnitValue
+        unit: CapacityUnit
     ): RecipeIngredientCalculated | null => {
         const supplierMaterial = supplierMaterials.find(sm => sm.id === supplierMaterialId);
         if (!supplierMaterial) return null;

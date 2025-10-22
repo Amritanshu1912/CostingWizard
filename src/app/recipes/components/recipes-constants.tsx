@@ -1,33 +1,18 @@
 // recipe-constants.ts
 
 import { Recipe } from "@/lib/types";
-
-/**
- * Defines the available units for ingredients and their conversion factors
- * to the base unit (kilogram: kg).
- * * Conversion Recipe: quantity_in_kg = quantity_input * conversionFactor
- */
-export const INGREDIENT_UNITS = [
-  { value: "kg", label: "Kilograms (kg)", factor: 1 },
-  { value: "g", label: "Grams (g)", factor: 0.001 },
-  { value: "L", label: "Litres (L)", factor: 1 }, // Assuming 1L = 1kg (density of water) for simplicity
-  { value: "mL", label: "Millilitres (mL)", factor: 0.001 }, // Assuming 1mL = 1g
-] as const;
-
-export type IngredientUnitValue = (typeof INGREDIENT_UNITS)[number]["value"];
+import { CAPACITY_UNITS } from "@/lib/constants";
+import { CapacityUnit } from "@/lib/types";
 
 /**
  * Converts a quantity in a specific unit to the base unit (kilograms).
  * This is essential for calculating the total batch cost based on Material costPerKg.
- * * @param quantity The amount of the ingredient.
- * @param unit The unit of measure (e.g., 'g', 'L').
- * @returns The converted quantity in Kilograms (kg).
  */
 export function convertToKilograms(
   quantity: number,
-  unit: IngredientUnitValue
+  unit: CapacityUnit
 ): number {
-  const unitDef = INGREDIENT_UNITS.find((u) => u.value === unit);
+  const unitDef = CAPACITY_UNITS.find((u) => u.value === unit);
   if (!unitDef) {
     console.error(`Unknown unit: ${unit}. Defaulting to kg.`);
     return quantity; // Default to 1 (kg)
@@ -36,7 +21,7 @@ export function convertToKilograms(
 }
 
 // Default unit for new ingredients
-export const DEFAULT_INGREDIENT_UNIT: IngredientUnitValue = "kg";
+export const DEFAULT_INGREDIENT_UNIT: CapacityUnit = "gm";
 
 // Sample recipes data - in real app this would come from API
 export const RECIPES: Recipe[] = [
@@ -49,37 +34,37 @@ export const RECIPES: Recipe[] = [
       {
         id: "1-1", // Unique ID
         supplierMaterialId: "6",
-        quantity: 0.35,
+        quantity: 350,
         createdAt: "2024-01-10",
       },
       {
         id: "1-2", // Unique ID
         supplierMaterialId: "7",
-        quantity: 0.25,
+        quantity: 350,
         createdAt: "",
       },
       {
         id: "1-3", // Unique ID
         supplierMaterialId: "8",
-        quantity: 0.22,
+        quantity: 220,
         createdAt: "",
       },
       {
         id: "1-4", // Unique ID
         supplierMaterialId: "2",
-        quantity: 0.08,
+        quantity: 80,
         createdAt: "",
       },
       {
         id: "1-5", // Unique ID
         supplierMaterialId: "4",
-        quantity: 0.018,
+        quantity: 18,
         createdAt: "",
       },
       {
         id: "1-6", // Unique ID
         supplierMaterialId: "9",
-        quantity: 0.025,
+        quantity: 25,
         createdAt: "",
       },
     ],
@@ -96,25 +81,25 @@ export const RECIPES: Recipe[] = [
       {
         id: "2-1", // Corrected ID
         supplierMaterialId: "5",
-        quantity: 0.15,
+        quantity: 150,
         createdAt: "",
       },
       {
         id: "2-2", // Corrected ID
         supplierMaterialId: "4",
-        quantity: 0.05,
+        quantity: 50,
         createdAt: "",
       },
       {
         id: "2-3", // Corrected ID
         supplierMaterialId: "2",
-        quantity: 0.12,
+        quantity: 120,
         createdAt: "",
       },
       {
         id: "2-4", // Corrected ID
         supplierMaterialId: "1",
-        quantity: 1,
+        quantity: 1000,
         createdAt: "",
       },
     ],
@@ -131,7 +116,7 @@ export const RECIPES: Recipe[] = [
       {
         id: "3-1", // Added ID
         supplierMaterialId: "2",
-        quantity: 0.1,
+        quantity: 100,
         createdAt: "",
       },
       {
@@ -160,19 +145,19 @@ export const RECIPES: Recipe[] = [
       {
         id: "4-1", // Added ID
         supplierMaterialId: "4",
-        quantity: 0.2,
+        quantity: 200,
         createdAt: "",
       },
       {
         id: "4-2", // Added ID
         supplierMaterialId: "8",
-        quantity: 0.15,
+        quantity: 150,
         createdAt: "",
       },
       {
         id: "4-3", // Added ID
         supplierMaterialId: "9",
-        quantity: 0.08,
+        quantity: 80,
         createdAt: "",
       },
     ],
@@ -180,5 +165,40 @@ export const RECIPES: Recipe[] = [
     targetProfitMargin: 35,
     status: "active",
     createdAt: "2024-01-18",
+  },
+];
+
+// AI Insights (using hardcoded data as requested)
+export const recipesAIInsights = [
+  {
+    type: "optimization",
+    title: "Recipe Optimization",
+    description:
+      "Reducing NaCl by 5% could save ₹12,000/month without quality loss",
+    impact: "High" as const,
+    confidence: 91,
+  },
+  {
+    type: "pricing",
+    title: "Pricing Strategy",
+    description:
+      "Floor Cleaner price increase to ₹48/kg could boost margins by 8%",
+    impact: "Medium" as const,
+    confidence: 84,
+  },
+  {
+    type: "demand",
+    title: "Demand Forecasting",
+    description: "Glass Cleaner demand expected to rise 15% next quarter",
+    impact: "High" as const,
+    confidence: 88,
+  },
+  {
+    type: "quality",
+    title: "Quality Enhancement",
+    description:
+      "Adding premium ingredients could increase customer satisfaction by 12%",
+    impact: "Medium" as const,
+    confidence: 76,
   },
 ];

@@ -27,7 +27,7 @@ import {
 import {
     MATERIALS,
     SUPPLIER_MATERIALS,
-} from '../app/materials/components/materials-config';
+} from '../app/materials/components/materials-constants';
 import {
     PACKAGING,
     SUPPLIER_PACKAGING,
