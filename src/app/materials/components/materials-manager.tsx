@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
@@ -19,13 +19,18 @@ import { MaterialsPriceComparison } from "./materials-price-comparison";
 import { MaterialsAnalytics } from "./materials-analytics";
 import { EnhancedMaterialDialog } from "./supplier-materials-dialog";
 import { MaterialsDrawer } from "./materials-drawer";
+import { CategoryManager } from "@/components/category-manager";
 
-import type { SupplierMaterial } from "@/lib/types";
+import type { Category, SupplierMaterial } from "@/lib/types";
 import type { MaterialFormData } from "./supplier-materials-dialog";
 import { SUPPLIERS } from "@/lib/constants";
 import { useDexieTable } from "@/hooks/use-dexie-table";
 import { useSupplierMaterialsWithDetails } from "@/hooks/use-supplier-materials-with-details";
-import { DEFAULT_MATERIAL_FORM } from "./materials-config";
+import {
+  DEFAULT_MATERIAL_FORM,
+  calculateMaterialStats,
+  calculateUnitPrice,
+} from "./materials-constants";
 import { db } from "@/lib/db";
 import { MetricCard } from "@/components/ui/metric-card";
 import { normalizeText } from "@/lib/text-utils";
@@ -49,17 +54,12 @@ export function MaterialsManager() {
   const { data: materials } = useDexieTable(db.materials, []);
   const { data: categories } = useDexieTable(db.categories, []);
 
-  const totalMaterials = enrichedMaterials.length;
-  const avgPrice =
-    enrichedMaterials.reduce((sum, sm) => sum + sm.unitPrice, 0) /
-    (enrichedMaterials.length || 1);
-  const highestPrice =
-    enrichedMaterials.length > 0
-      ? Math.max(...enrichedMaterials.map((sm) => sm.unitPrice))
-      : 0;
-  const avgTax =
-    enrichedMaterials.reduce((sum, sm) => sum + sm.tax, 0) /
-    (enrichedMaterials.length || 1);
+  // Calculate stats using utility function
+  const materialStats = useMemo(
+    () => calculateMaterialStats(enrichedMaterials),
+    [enrichedMaterials]
+  );
+  const { totalMaterials, avgPrice, highestPrice, avgTax } = materialStats;
 
   // Handle add material with transaction
   const handleAddMaterial = useCallback(async () => {
@@ -124,10 +124,10 @@ export function MaterialsManager() {
             }
           }
 
-          // Step 3: Calculate unit price
+          // Step 3: Calculate unit price using utility function
           const quantityForBulkPrice = formData.quantityForBulkPrice || 1;
           const bulkPrice = formData.bulkPrice || 0;
-          const unitPrice = bulkPrice / quantityForBulkPrice;
+          const unitPrice = calculateUnitPrice(bulkPrice, quantityForBulkPrice);
 
           // Step 4: Create supplier material
           await db.supplierMaterials.add({
@@ -247,10 +247,10 @@ export function MaterialsManager() {
             }
           }
 
-          // Step 3: Calculate unit price
+          // Step 3: Calculate unit price using utility function
           const quantityForBulkPrice = formData.quantityForBulkPrice || 1;
           const bulkPrice = formData.bulkPrice || 0;
-          const unitPrice = bulkPrice / quantityForBulkPrice;
+          const unitPrice = calculateUnitPrice(bulkPrice, quantityForBulkPrice);
 
           // Step 4: Update supplier material
           await db.supplierMaterials.update(editingMaterial.id, {
@@ -299,6 +299,47 @@ export function MaterialsManager() {
     setRefreshTrigger((prev) => prev + 1);
   }, []);
 
+  // Category management functions
+  const handleAddCategory = useCallback(
+    async (categoryData: Omit<Category, "id">) => {
+      try {
+        await db.categories.add({
+          id: nanoid(),
+          name: categoryData.name,
+          description: categoryData.description,
+          color: assignCategoryColor(categoryData.name),
+          createdAt: categoryData.createdAt,
+        });
+      } catch (error) {
+        console.error("Error adding category:", error);
+        throw error;
+      }
+    },
+    []
+  );
+
+  const handleUpdateCategory = useCallback(async (category: Category) => {
+    try {
+      await db.categories.update(category.id, {
+        name: category.name,
+        description: category.description,
+        updatedAt: category.updatedAt,
+      });
+    } catch (error) {
+      console.error("Error updating category:", error);
+      throw error;
+    }
+  }, []);
+
+  const handleDeleteCategory = useCallback(async (id: string) => {
+    try {
+      await db.categories.delete(id);
+    } catch (error) {
+      console.error("Error deleting category:", error);
+      throw error;
+    }
+  }, []);
+
   return (
     <div className="space-y-6 animate-fade-in">
       {/* Header */}
@@ -312,6 +353,12 @@ export function MaterialsManager() {
           </p>
         </div>
         <div className="flex gap-2 w-full sm:w-auto">
+          <CategoryManager
+            categories={categories}
+            addCategory={handleAddCategory}
+            updateCategory={handleUpdateCategory}
+            deleteCategory={handleDeleteCategory}
+          />
           <Button
             onClick={() => setShowMaterialsDrawer(true)}
             variant="outline"

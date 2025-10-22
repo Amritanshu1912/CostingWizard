@@ -51,9 +51,13 @@ import type {
   Material,
   Category,
 } from "@/lib/types";
-import { UNITS, AVAILABILITY_OPTIONS } from "./materials-config";
+import { CAPACITY_UNITS, AVAILABILITY_MAP } from "@/lib/constants";
 import { cn } from "@/lib/utils";
 import { useDuplicateCheck } from "@/hooks/use-duplicate-check";
+import {
+  validateMaterialForm,
+  calculateUnitPrice,
+} from "./materials-constants";
 
 // Form-specific type
 export interface MaterialFormData extends Partial<SupplierMaterial> {
@@ -172,11 +176,11 @@ export function EnhancedMaterialDialog({
     }
   }, [isEditing, material.materialId, materials]);
 
-  // Calculate unit price when bulk fields change
+  // Calculate unit price when bulk fields change using utility function
   const calculatedUnitPrice = useMemo(() => {
     const qty = material.quantityForBulkPrice || 1;
     const price = material.bulkPrice || 0;
-    return qty > 0 ? price / qty : 0;
+    return calculateUnitPrice(price, qty);
   }, [material.bulkPrice, material.quantityForBulkPrice]);
 
   // Handle material selection
@@ -253,36 +257,11 @@ export function EnhancedMaterialDialog({
     // Clear warning when user starts typing
   };
 
-  // Validate form
+  // Validate form using utility function
   const validateForm = (): boolean => {
-    const newErrors: Record<string, string> = {};
-
-    if (!material.supplierId) {
-      newErrors.supplierId = "Supplier is required";
-    }
-
-    if (!material.materialName || material.materialName.trim().length === 0) {
-      newErrors.materialName = "Material name is required";
-    }
-
-    if (!material.bulkPrice || material.bulkPrice <= 0) {
-      newErrors.bulkPrice = "Valid price is required";
-    }
-
-    if (!material.unit) {
-      newErrors.unit = "Unit is required";
-    }
-
-    if (material.tax && (material.tax < 0 || material.tax > 100)) {
-      newErrors.tax = "Tax must be between 0 and 100";
-    }
-
-    if (material.moq && material.moq < 1) {
-      newErrors.moq = "MOQ must be at least 1";
-    }
-
-    setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
+    const validation = validateMaterialForm(material);
+    setErrors(validation.errors);
+    return validation.isValid;
   };
 
   // Handle save with validation
@@ -675,9 +654,9 @@ export function EnhancedMaterialDialog({
                         <SelectValue placeholder="Unit" />
                       </SelectTrigger>
                       <SelectContent>
-                        {UNITS.map((unit) => (
-                          <SelectItem key={unit} value={unit}>
-                            {unit}
+                        {CAPACITY_UNITS.map((unit) => (
+                          <SelectItem key={unit.value} value={unit.value}>
+                            {unit.label}
                           </SelectItem>
                         ))}
                       </SelectContent>
@@ -737,7 +716,7 @@ export function EnhancedMaterialDialog({
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    {AVAILABILITY_OPTIONS.map((option) => (
+                    {Object.keys(AVAILABILITY_MAP).map((option) => (
                       <SelectItem key={option} value={option}>
                         <div className="flex items-center gap-2">
                           <div

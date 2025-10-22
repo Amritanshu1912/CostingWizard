@@ -311,6 +311,9 @@ export function LabelsAnalytics() {
                     borderRadius: "8px",
                     color: "hsl(var(--foreground))",
                   }}
+                  formatter={(value) =>
+                    typeof value === "number" ? value.toFixed(2) : value
+                  }
                 />
                 <Legend />
                 <Line
@@ -372,6 +375,9 @@ export function LabelsAnalytics() {
                     borderRadius: "8px",
                     color: "hsl(var(--foreground))",
                   }}
+                  formatter={(value) =>
+                    typeof value === "number" ? value.toFixed(2) : value
+                  }
                 />
                 <Legend />
                 <Bar
@@ -420,7 +426,11 @@ export function LabelsAnalytics() {
                     <Cell key={`cell-${index}`} fill={entry.color} />
                   ))}
                 </Pie>
-                <Tooltip />
+                <Tooltip
+                  formatter={(value) =>
+                    typeof value === "number" ? value.toFixed(2) : value
+                  }
+                />
               </PieChart>
             </ResponsiveContainer>
           </CardContent>
@@ -458,7 +468,11 @@ export function LabelsAnalytics() {
                     <Cell key={`cell-${index}`} fill={entry.color} />
                   ))}
                 </Pie>
-                <Tooltip />
+                <Tooltip
+                  formatter={(value) =>
+                    typeof value === "number" ? value.toFixed(2) : value
+                  }
+                />
               </PieChart>
             </ResponsiveContainer>
           </CardContent>

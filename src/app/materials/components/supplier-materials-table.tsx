@@ -35,7 +35,7 @@ import type {
   Supplier,
   SupplierMaterialWithDetails,
 } from "@/lib/types";
-import { MATERIAL_CATEGORIES } from "./materials-config";
+import { MATERIAL_CATEGORIES } from "./materials-constants";
 
 interface MaterialsTableProps {
   materials: SupplierMaterialWithDetails[];
