@@ -163,6 +163,9 @@ export function PlanningAnalytics({ plans }: PlanningAnalyticsProps) {
                   color: "hsl(var(--foreground))",
                   fontWeight: 400,
                 }}
+                formatter={(value) =>
+                  typeof value === "number" ? value.toFixed(2) : value
+                }
               />
               <Legend />
               <Bar
@@ -228,6 +231,9 @@ export function PlanningAnalytics({ plans }: PlanningAnalyticsProps) {
                     color: "hsl(var(--foreground))",
                     fontWeight: 400,
                   }}
+                  formatter={(value) =>
+                    typeof value === "number" ? value.toFixed(2) : value
+                  }
                 />
                 <Legend
                   verticalAlign="middle"
@@ -269,6 +275,9 @@ export function PlanningAnalytics({ plans }: PlanningAnalyticsProps) {
                     color: "hsl(var(--foreground))",
                     fontWeight: 400,
                   }}
+                  formatter={(value) =>
+                    typeof value === "number" ? value.toFixed(2) : value
+                  }
                 />
                 <Legend />
                 <Bar
