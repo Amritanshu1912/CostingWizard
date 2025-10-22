@@ -1,5 +1,6 @@
 "use client";
 
+import React, { useMemo } from "react";
 import {
   Card,
   CardContent,
@@ -31,22 +32,221 @@ import {
   PieLabelRenderProps,
 } from "recharts";
 import { Sparkles } from "lucide-react";
-import {
-  PRICE_HISTORY_DATA,
-  PACKAGING_USAGE_DATA,
-  KEY_METRICS,
-  AI_INSIGHTS,
-  SUPPLIER_PERFORMANCE_DATA,
-  PACKAGING_TYPE_DISTRIBUTION,
-} from "./packaging-constants";
+import { AI_INSIGHTS } from "./packaging-constants";
 import { CHART_COLORS } from "@/lib/color-utils";
+import { useSupplierPackagingWithDetails } from "@/hooks/use-supplier-packaging-with-details";
+import {
+  TrendingUp,
+  Target,
+  AlertTriangle,
+  DollarSign,
+  Clock,
+} from "lucide-react";
 
 export function PackagingAnalytics() {
+  const supplierPackaging = useSupplierPackagingWithDetails();
+
+  // Calculate key metrics dynamically
+  const keyMetrics = useMemo(() => {
+    if (!supplierPackaging.length) return [];
+
+    // Price Volatility - calculate variance in prices
+    const prices = supplierPackaging.map((sp) => sp.unitPrice);
+    const avgPrice =
+      prices.reduce((sum, price) => sum + price, 0) / prices.length;
+    const variance =
+      prices.reduce((sum, price) => sum + Math.pow(price - avgPrice, 2), 0) /
+      prices.length;
+    const volatility = (Math.sqrt(variance) / avgPrice) * 100;
+
+    // Stock Alerts - count packaging with limited or out-of-stock
+    const stockAlerts = supplierPackaging.filter(
+      (sp) =>
+        sp.availability === "limited" || sp.availability === "out-of-stock"
+    ).length;
+
+    // Total Value - sum of unitPrice * quantityForBulkPrice for all packaging
+    const totalValue = supplierPackaging.reduce((sum, sp) => {
+      const quantity = sp.quantityForBulkPrice || sp.moq || 1000;
+      return sum + sp.unitPrice * quantity;
+    }, 0);
+
+    // Avg Lead Time - average lead time across all supplier packaging
+    const avgLeadTime =
+      supplierPackaging.reduce((sum, sp) => sum + (sp.leadTime || 0), 0) /
+      supplierPackaging.length;
+
+    return [
+      {
+        type: "progress",
+        title: "Price Volatility",
+        value: `+${volatility.toFixed(1)}%`,
+        icon: TrendingUp,
+        iconClassName: "text-accent",
+        progress: {
+          current: Math.min(volatility * 2, 100), // Scale for progress bar
+          max: 100,
+          label: volatility > 10 ? "High" : volatility > 5 ? "Moderate" : "Low",
+          color: (volatility > 10 ? "warning" : "success") as
+            | "warning"
+            | "success",
+        },
+      },
+      {
+        type: "progress",
+        title: "Supply Efficiency",
+        value: "91%",
+        icon: Target,
+        iconClassName: "text-primary",
+        progress: {
+          current: 91,
+          max: 100,
+          label: "Excellent",
+          color: "success" as const,
+        },
+      },
+      {
+        type: "badge",
+        title: "Stock Alerts",
+        value: stockAlerts,
+        icon: AlertTriangle,
+        iconClassName:
+          stockAlerts > 0 ? "text-destructive" : "text-muted-foreground",
+        badges:
+          stockAlerts > 0
+            ? [
+                {
+                  text: "Low Stock",
+                  variant: "destructive" as const,
+                },
+              ]
+            : [],
+      },
+      {
+        type: "standard",
+        title: "Total Value",
+        value: `₹${(totalValue / 100000).toFixed(1)}L`,
+        icon: DollarSign,
+        iconClassName: "text-accent",
+        trend: {
+          value: "+15%",
+          isPositive: true,
+          label: "this month",
+        },
+      },
+      {
+        type: "standard",
+        title: "Avg Lead Time",
+        value: `${Math.round(avgLeadTime)} days`,
+        icon: Clock,
+        iconClassName: "text-primary",
+        trend: {
+          value: "-2 days",
+          isPositive: true,
+          label: "improvement",
+        },
+      },
+    ];
+  }, [supplierPackaging]);
+
+  // Price History Data - create mock trend data based on current prices
+  const priceHistoryData = useMemo(() => {
+    if (!supplierPackaging.length) return [];
+
+    const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun"];
+    const baseAvgPrice =
+      supplierPackaging.reduce((sum, sp) => sum + sp.unitPrice, 0) /
+      supplierPackaging.length;
+    const basePackaging = supplierPackaging.length * 1000; // Mock packaging count
+
+    return months.map((month, index) => {
+      const variation = (Math.random() - 0.5) * 0.4; // ±20% variation
+      const avgPrice = baseAvgPrice * (1 + variation);
+      const packaging = Math.round(basePackaging * (1 + index * 0.05)); // Gradual increase
+
+      return {
+        month,
+        avgPrice: parseFloat(avgPrice.toFixed(2)),
+        packaging,
+      };
+    });
+  }, [supplierPackaging]);
+
+  // Packaging Usage Data - calculate based on packaging types
+  const packagingUsageData = useMemo(() => {
+    if (!supplierPackaging.length) return [];
+
+    const typeGroups = supplierPackaging.reduce((acc, sp) => {
+      const type = sp.displayType || "Unknown";
+      if (!acc[type]) {
+        acc[type] = { count: 0, totalCost: 0 };
+      }
+      acc[type].count += 1;
+      acc[type].totalCost +=
+        sp.unitPrice * (sp.quantityForBulkPrice || sp.moq || 1000);
+      return acc;
+    }, {} as Record<string, { count: number; totalCost: number }>);
+
+    return Object.entries(typeGroups).map(([packaging, data]) => ({
+      packaging,
+      usage: data.count * 1000, // Mock usage based on count
+      cost: Math.round(data.totalCost),
+      efficiency: 85 + Math.floor(Math.random() * 10), // Mock efficiency 85-95%
+    }));
+  }, [supplierPackaging]);
+
+  // Packaging Type Distribution
+  const packagingTypeDistribution = useMemo(() => {
+    if (!supplierPackaging.length) return [];
+
+    const typeCounts = supplierPackaging.reduce((acc, sp) => {
+      const type = sp.displayType || "Other";
+      acc[type] = (acc[type] || 0) + 1;
+      return acc;
+    }, {} as Record<string, number>);
+
+    const total = supplierPackaging.length;
+    const chartColors = Object.values(CHART_COLORS.light);
+
+    return Object.entries(typeCounts).map(([name, count], index) => ({
+      name,
+      value: Math.round((count / total) * 100),
+      color: chartColors[index % chartColors.length],
+    }));
+  }, [supplierPackaging]);
+
+  // Supplier Performance Data
+  const supplierPerformanceData = useMemo(() => {
+    if (!supplierPackaging.length) return [];
+
+    const supplierGroups = supplierPackaging.reduce((acc, sp) => {
+      const supplierName = sp.supplier?.name || "Unknown Supplier";
+      if (!acc[supplierName]) {
+        acc[supplierName] = { leadTimes: [], prices: [] };
+      }
+      acc[supplierName].leadTimes.push(sp.leadTime || 0);
+      acc[supplierName].prices.push(sp.unitPrice);
+      return acc;
+    }, {} as Record<string, { leadTimes: number[]; prices: number[] }>);
+
+    return Object.entries(supplierGroups).map(([supplier, data]) => ({
+      supplier,
+      avgLeadTime: Math.round(
+        data.leadTimes.reduce((sum, lt) => sum + lt, 0) / data.leadTimes.length
+      ),
+      avgPrice: parseFloat(
+        (
+          data.prices.reduce((sum, p) => sum + p, 0) / data.prices.length
+        ).toFixed(2)
+      ),
+    }));
+  }, [supplierPackaging]);
+
   return (
     <div className="space-y-6">
       {/* Key Metrics */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
-        {KEY_METRICS.map((metric) => {
+        {keyMetrics.map((metric) => {
           const Icon = metric.icon;
           if (metric.type === "progress") {
             return (
@@ -97,7 +297,7 @@ export function PackagingAnalytics() {
           </CardHeader>
           <CardContent>
             <ResponsiveContainer width="100%" height={300}>
-              <LineChart data={PRICE_HISTORY_DATA}>
+              <LineChart data={priceHistoryData}>
                 <CartesianGrid
                   strokeDasharray="3 3"
                   className="stroke-border"
@@ -118,6 +318,9 @@ export function PackagingAnalytics() {
                     borderRadius: "8px",
                     color: "hsl(var(--foreground))",
                   }}
+                  formatter={(value) =>
+                    typeof value === "number" ? value.toFixed(2) : value
+                  }
                 />
                 <Legend />
                 <Line
@@ -156,7 +359,7 @@ export function PackagingAnalytics() {
           <CardContent>
             <ResponsiveContainer width="100%" height={300}>
               <BarChart
-                data={PACKAGING_USAGE_DATA}
+                data={packagingUsageData}
                 margin={{ top: 20, right: 30, left: 20, bottom: 5 }}
               >
                 <CartesianGrid
@@ -179,6 +382,9 @@ export function PackagingAnalytics() {
                     borderRadius: "8px",
                     color: "hsl(var(--foreground))",
                   }}
+                  formatter={(value) =>
+                    typeof value === "number" ? value.toFixed(2) : value
+                  }
                 />
                 <Legend />
                 <Bar
@@ -209,7 +415,7 @@ export function PackagingAnalytics() {
             <ResponsiveContainer width="100%" height={300}>
               <PieChart>
                 <Pie
-                  data={PACKAGING_TYPE_DISTRIBUTION}
+                  data={packagingTypeDistribution}
                   cx="50%"
                   cy="50%"
                   labelLine={false}
@@ -223,11 +429,15 @@ export function PackagingAnalytics() {
                   fill="#8884d8"
                   dataKey="value"
                 >
-                  {PACKAGING_TYPE_DISTRIBUTION.map((entry, index) => (
+                  {packagingTypeDistribution.map((entry, index) => (
                     <Cell key={`cell-${index}`} fill={entry.color} />
                   ))}
                 </Pie>
-                <Tooltip />
+                <Tooltip
+                  formatter={(value) =>
+                    typeof value === "number" ? value.toFixed(2) : value
+                  }
+                />
               </PieChart>
             </ResponsiveContainer>
           </CardContent>
@@ -243,7 +453,7 @@ export function PackagingAnalytics() {
           </CardHeader>
           <CardContent>
             <ResponsiveContainer width="100%" height={300}>
-              <BarChart data={SUPPLIER_PERFORMANCE_DATA}>
+              <BarChart data={supplierPerformanceData}>
                 <CartesianGrid
                   strokeDasharray="3 3"
                   className="stroke-border"
@@ -271,6 +481,9 @@ export function PackagingAnalytics() {
                     borderRadius: "8px",
                     color: "hsl(var(--foreground))",
                   }}
+                  formatter={(value) =>
+                    typeof value === "number" ? value.toFixed(2) : value
+                  }
                 />
                 <Legend />
                 <Bar
