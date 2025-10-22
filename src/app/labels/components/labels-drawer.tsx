@@ -23,11 +23,11 @@ import { Loader2, Plus, Tag, AlertCircle } from "lucide-react";
 import { toast } from "sonner";
 import { db } from "@/lib/db";
 import type { LabelsWithSuppliers } from "@/lib/types";
-import { useLiveQuery } from "dexie-react-hooks";
 import { normalizeText } from "@/lib/text-utils";
 import { nanoid } from "nanoid";
 import { LabelsTableDrawer } from "./labels-table";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { useSupplierLabelsWithDetails } from "@/hooks/use-supplier-labels-with-details";
 
 interface LabelsDrawerProps {
   onRefresh?: () => void;
@@ -58,28 +58,37 @@ export function LabelsDrawer({
   const [isAddingNew, setIsAddingNew] = useState(false);
   const [shakeFields, setShakeFields] = useState(false);
 
-  // Fetch labels with supplier count
-  const labelsWithSuppliers = useLiveQuery(async () => {
-    const [labels, supplierLabels, suppliers] = await Promise.all([
-      db.labels.toArray(),
-      db.supplierLabels.toArray(),
-      db.suppliers.toArray(),
-    ]);
+  // Fetch labels with supplier count using optimized hook
+  const supplierLabelsData = useSupplierLabelsWithDetails();
 
-    const result = labels.map((label) => {
-      const supplierLabelList = supplierLabels.filter(
-        (sl) => sl.labelId === label.id
-      );
-      const suppliersList = supplierLabelList
-        .map((sm) => suppliers.find((s) => s.id === sm.supplierId))
-        .filter((s): s is (typeof suppliers)[0] => s !== undefined);
+  const labelsWithSuppliers = useMemo(() => {
+    // Group supplier labels by labelId for efficient lookup
+    const supplierLabelsByLabel = supplierLabelsData.reduce((acc, sl) => {
+      if (sl.labelId) {
+        if (!acc[sl.labelId]) acc[sl.labelId] = [];
+        acc[sl.labelId].push(sl);
+      }
+      return acc;
+    }, {} as Record<string, typeof supplierLabelsData>);
 
-      return {
-        ...label,
-        supplierCount: supplierLabelList.length,
-        suppliersList,
-      } as LabelsWithSuppliers;
-    });
+    const result = supplierLabelsData
+      .filter((sl) => sl.label) // Only include supplier labels with valid labels
+      .map((sl) => sl.label!)
+      .filter(
+        (label, index, arr) => arr.findIndex((l) => l.id === label.id) === index
+      ) // Remove duplicates
+      .map((label) => {
+        const supplierLabelList = supplierLabelsByLabel[label.id] || [];
+        const suppliersList = supplierLabelList
+          .map((sl) => sl.supplier)
+          .filter((s): s is NonNullable<typeof s> => s !== undefined);
+
+        return {
+          ...label,
+          supplierCount: supplierLabelList.length,
+          suppliersList,
+        } as LabelsWithSuppliers;
+      });
 
     // Add empty row for new label if adding
     if (isAddingNew) {
@@ -100,7 +109,7 @@ export function LabelsDrawer({
     }
 
     return result;
-  }, [isAddingNew]);
+  }, [supplierLabelsData, isAddingNew]);
 
   // Start editing
   const startEdit = (label: LabelsWithSuppliers) => {
@@ -173,10 +182,10 @@ export function LabelsDrawer({
         const now = new Date().toISOString();
 
         if (isAddingNew) {
-          // Check for duplicate label with same properties
-          const normalized = normalizeText(trimmedName);
+          // Check for duplicate label with same properties using normalized comparison
+          const normalizedName = normalizeText(trimmedName);
           const existingLabel = await db.labels
-            .filter((l) => normalizeText(l.name) === normalized)
+            .filter((l) => normalizeText(l.name) === normalizedName)
             .first();
 
           if (existingLabel) {
@@ -222,11 +231,12 @@ export function LabelsDrawer({
           toast.success("Label added successfully");
         } else {
           // Check for duplicate label with same properties (excluding current label)
-          const normalized = normalizeText(trimmedName);
+          const normalizedName = normalizeText(trimmedName);
           const existingLabel = await db.labels
             .filter(
               (l) =>
-                l.id !== editingLabelId && normalizeText(l.name) === normalized
+                l.id !== editingLabelId &&
+                normalizeText(l.name) === normalizedName
             )
             .first();
 
@@ -245,19 +255,6 @@ export function LabelsDrawer({
                 normalizeText(trimmedSize) &&
               normalizeText(existingLabel.labelFor || "") ===
                 normalizeText(trimmedLabelFor);
-
-            console.log("Editing label - Exact duplicate check:");
-            console.log("existingLabel.type:", existingLabel.type);
-            console.log("trimmedType:", trimmedType);
-            console.log(
-              "normalizeText(existingLabel.type):",
-              normalizeText(existingLabel.type || "")
-            );
-            console.log(
-              "normalizeText(trimmedType):",
-              normalizeText(trimmedType)
-            );
-            console.log("isExactDuplicate:", isExactDuplicate);
 
             if (isExactDuplicate) {
               setShakeFields(true);

@@ -63,8 +63,12 @@ import {
   getPrintingTypeColor,
   getMaterialTypeColor,
   getShapeTypeColor,
-  LABEL_AVAILABILITY,
+  getLabelTypeLabel,
+  getPrintingTypeLabel,
+  getMaterialTypeLabel,
+  getShapeTypeLabel,
 } from "./labels-constants";
+import { AVAILABILITY_MAP } from "@/lib/constants";
 import { cn } from "@/lib/utils";
 import { useDuplicateCheck } from "@/hooks/use-duplicate-check";
 import { normalizeText } from "@/lib/text-utils";
@@ -398,19 +402,19 @@ export function EnhancedSupplierLabelsDialog({
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      {LABEL_AVAILABILITY.map((option) => (
-                        <SelectItem key={option.value} value={option.value}>
+                      {Object.keys(AVAILABILITY_MAP).map((option) => (
+                        <SelectItem key={option} value={option}>
                           <div className="flex items-center gap-2">
                             <div
                               className={`w-2 h-2 rounded-full ${
-                                option.value === "in-stock"
+                                option === "in-stock"
                                   ? "bg-green-500"
-                                  : option.value === "limited"
+                                  : option === "limited"
                                   ? "bg-yellow-500"
                                   : "bg-red-500"
                               }`}
                             />
-                            {option.label}
+                            {option.replace("-", " ")}
                           </div>
                         </SelectItem>
                       ))}
@@ -554,9 +558,11 @@ export function EnhancedSupplierLabelsDialog({
                         <div className="flex items-center gap-2">
                           <div
                             className="w-3 h-3 rounded-full"
-                            style={{ backgroundColor: type.color }}
+                            style={{
+                              backgroundColor: getLabelTypeColor(type.value),
+                            }}
                           />
-                          {type.label}
+                          {getLabelTypeLabel(type.value)}
                         </div>
                       </SelectItem>
                     ))}
@@ -590,9 +596,13 @@ export function EnhancedSupplierLabelsDialog({
                         <div className="flex items-center gap-2">
                           <div
                             className="w-3 h-3 rounded-full"
-                            style={{ backgroundColor: printing.color }}
+                            style={{
+                              backgroundColor: getPrintingTypeColor(
+                                printing.value
+                              ),
+                            }}
                           />
-                          {printing.label}
+                          {getPrintingTypeLabel(printing.value)}
                         </div>
                       </SelectItem>
                     ))}
@@ -621,9 +631,13 @@ export function EnhancedSupplierLabelsDialog({
                         <div className="flex items-center gap-2">
                           <div
                             className="w-3 h-3 rounded-full"
-                            style={{ backgroundColor: material.color }}
+                            style={{
+                              backgroundColor: getMaterialTypeColor(
+                                material.value
+                              ),
+                            }}
                           />
-                          {material.label}
+                          {getMaterialTypeLabel(material.value)}
                         </div>
                       </SelectItem>
                     ))}
@@ -652,9 +666,11 @@ export function EnhancedSupplierLabelsDialog({
                         <div className="flex items-center gap-2">
                           <div
                             className="w-3 h-3 rounded-full"
-                            style={{ backgroundColor: shape.color }}
+                            style={{
+                              backgroundColor: getShapeTypeColor(shape.value),
+                            }}
                           />
-                          {shape.label}
+                          {getShapeTypeLabel(shape.value)}
                         </div>
                       </SelectItem>
                     ))}
