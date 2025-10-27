@@ -27,8 +27,14 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { toast } from "sonner";
 import { VariantDialog } from "./variant-dialog";
 import { db } from "@/lib/db";
-import type { Recipe, RecipeIngredient, RecipeVariant } from "@/lib/types";
+import type {
+  Recipe,
+  RecipeIngredient,
+  RecipeVariant,
+  RecipeDisplay,
+} from "@/lib/types";
 import { useSupplierMaterialsWithDetails } from "@/hooks/use-supplier-materials-with-details";
+import { useEnrichedRecipes } from "@/hooks/use-recipes";
 import {
   calculateRecipeCost,
   findCheaperAlternatives,
@@ -42,6 +48,7 @@ interface RecipeTweakerProps {
 
 export function RecipeTweaker({ recipes }: RecipeTweakerProps) {
   const supplierMaterials = useSupplierMaterialsWithDetails();
+  const enrichedRecipes = useEnrichedRecipes();
 
   const [selectedRecipeId, setSelectedRecipeId] = useState<string>(
     recipes.length > 0 ? recipes[0].id : ""
@@ -51,7 +58,7 @@ export function RecipeTweaker({ recipes }: RecipeTweakerProps) {
   >([]);
   const [variantDialogOpen, setVariantDialogOpen] = useState(false);
 
-  const selectedRecipe = recipes.find((r) => r.id === selectedRecipeId);
+  const selectedRecipe = enrichedRecipes.find((r) => r.id === selectedRecipeId);
 
   // Initialize modified ingredients when recipe is selected
   React.useEffect(() => {
@@ -89,13 +96,15 @@ export function RecipeTweaker({ recipes }: RecipeTweakerProps) {
     if (selectedRecipe.ingredients.length !== modifiedIngredients.length)
       return true;
 
-    return selectedRecipe.ingredients.some((orig, index) => {
-      const mod = modifiedIngredients[index];
-      return (
-        orig.quantity !== mod.quantity ||
-        orig.supplierMaterialId !== mod.supplierMaterialId
-      );
-    });
+    return selectedRecipe.ingredients.some(
+      (orig: RecipeIngredient, index: number) => {
+        const mod = modifiedIngredients[index];
+        return (
+          orig.quantity !== mod.quantity ||
+          orig.supplierMaterialId !== mod.supplierMaterialId
+        );
+      }
+    );
   }, [selectedRecipe, modifiedIngredients]);
 
   // Find alternatives for each ingredient
@@ -210,7 +219,7 @@ export function RecipeTweaker({ recipes }: RecipeTweakerProps) {
             <SelectValue placeholder="Select a recipe..." />
           </SelectTrigger>
           <SelectContent>
-            {recipes.map((recipe) => (
+            {enrichedRecipes.map((recipe) => (
               <SelectItem key={recipe.id} value={recipe.id}>
                 {recipe.name} (₹{recipe.costPerKg.toFixed(2)}/kg)
               </SelectItem>
@@ -230,7 +239,7 @@ export function RecipeTweaker({ recipes }: RecipeTweakerProps) {
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
-            {recipes.map((recipe) => (
+            {enrichedRecipes.map((recipe) => (
               <SelectItem key={recipe.id} value={recipe.id}>
                 {recipe.name} (₹{recipe.costPerKg.toFixed(2)}/kg)
               </SelectItem>

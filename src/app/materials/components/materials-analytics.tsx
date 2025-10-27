@@ -36,13 +36,13 @@ import {
 } from "lucide-react";
 import { AI_INSIGHTS } from "./materials-constants";
 import { useSupplierMaterialsWithDetails } from "@/hooks/use-supplier-materials-with-details";
-import { useRecipesWithDetails } from "@/hooks/use-recipes-with-details";
+import { useEnrichedRecipes } from "@/hooks/use-recipes";
 import { CHART_COLORS } from "@/lib/color-utils";
 import { calculateMaterialStats } from "./materials-constants";
 
 export function MaterialsAnalytics() {
   const supplierMaterials = useSupplierMaterialsWithDetails();
-  const recipes = useRecipesWithDetails();
+  const recipes = useEnrichedRecipes();
 
   // Calculate real metrics using utility function
   const keyMetrics = useMemo(() => {

@@ -19,6 +19,7 @@ import {
 import { useState } from "react";
 import type { Recipe, RecipeVariant, RecipeIngredient } from "@/lib/types";
 import { toast } from "sonner";
+import { useEnrichedRecipe } from "@/hooks/use-recipes";
 
 interface VariantDialogProps {
   isOpen: boolean;
@@ -39,6 +40,8 @@ export function VariantDialog({
   costSavings,
   modifiedCostPerKg,
 }: VariantDialogProps) {
+  const enrichedOriginalRecipe = useEnrichedRecipe(originalRecipe.id);
+
   const [name, setName] = useState(`${originalRecipe.name} - Optimized`);
   const [description, setDescription] = useState("");
   const [optimizationGoal, setOptimizationGoal] =
@@ -56,10 +59,7 @@ export function VariantDialog({
       originalRecipeId: originalRecipe.id,
       name: name.trim(),
       description: description.trim() || undefined,
-      ingredients: modifiedIngredients,
-      costPerKg: modifiedCostPerKg,
-      costDifference: costSavings.amount,
-      costDifferencePercentage: costSavings.percentage,
+      ingredientIds: modifiedIngredients.map((ing) => ing.id),
       optimizationGoal,
       isActive: true,
       notes: notes.trim() || undefined,
@@ -122,7 +122,7 @@ export function VariantDialog({
             <div>
               <div className="text-sm text-muted-foreground">Original Cost</div>
               <div className="text-lg font-bold">
-                ₹{originalRecipe.costPerKg.toFixed(2)}
+                ₹{enrichedOriginalRecipe?.costPerKg.toFixed(2) || "0.00"}
               </div>
             </div>
             <div>

@@ -198,9 +198,8 @@ export interface LabelsWithSuppliers extends Label {
     suppliersList: Supplier[];
 }
 
-/**
- * Extended SupplierLabel with joined data
- */
+// Extended SupplierLabel with joined data
+
 export interface SupplierLabelWithDetails extends SupplierLabel {
     label?: Label;
     supplier?: Supplier;
@@ -218,166 +217,199 @@ export interface SupplierLabelWithDetails extends SupplierLabel {
 // RECIPES
 // ============================================================================
 
-/**
- * A single ingredient in a recipe formulation.
- * Links to a SupplierMaterial and defines how much is needed.
- */
-export interface RecipeIngredient extends BaseEntity {
-    supplierMaterialId: string;
-    quantity: number;
-
-    // Optional: Lock pricing for cost stability
-    lockedPricing?: {
-        unitPrice: number;        // Locked supplier unit price
-        tax: number;              // Locked tax percentage
-        lockedAt: Date;
-        reason?: "cost_analysis" | "quote" | "production_batch" | "other";
-        notes?: string;
-    };
-
-    // Display/reference (not for calculations)
+export interface LockedPricing {
+    unitPrice: number;    // locked supplier unit price
+    tax: number;              // Locked tax percentage
+    lockedAt: Date;
+    reason?: "cost_analysis" | "quote" | "production_batch" | "other";
     notes?: string;
 }
+// A single ingredient in a recipe formulation.
 
-/**
- * Computed values for a recipe ingredient (NOT stored in DB)
- * These are calculated at runtime from SupplierMaterial data
- */
-export interface RecipeIngredientCalculated extends RecipeIngredient {
-    supplierMaterial: SupplierMaterialWithDetails;
-
-    // Computed costs
-    effectivePricePerKg: number;     // Uses locked price if available, else current
-    effectiveTax: number;
-    quantity: number;                // Normalized to kg for calculations
-    costForQuantity: number;         // Total cost for this ingredient
-    taxedCostForQuantity: number;
-    priceSharePercentage: number;              // Percentage of total cost
-
-    // Display helpers
-    displayName: string;
-    displaySupplier: string;
-    displayQuantity: string;
-
-    // Status flags
-    isPriceLocked: boolean;
-    priceChangedSinceLock: boolean;
-    priceDifference?: number;
-    isAvailable: boolean;
+export interface RecipeIngredient extends BaseEntity {
+    recipeId: string;
+    supplierMaterialId: string;
+    quantity: number;
+    unit: CapacityUnit;
+    lockedPricing?: LockedPricing;
 }
 
-/**
- * Recipe/Formulation - The formula for making a product substance
- */
+// Recipe/Formulation - The formula for making a product substance
+
 export interface Recipe extends BaseEntity {
     name: string;
     description?: string;
-
-    // The formulation
-    ingredients: RecipeIngredient[];
-
-    // Manufacturing details
-    productionTime?: number;          // Minutes
-    manufacturingInstructions?: string;
-
-    costPerKg: number;
-    // Cost targets (aspirational, not enforced)
+    totalWeight: number;
     targetCostPerKg?: number;
-    targetProfitMargin?: number;
-
-    // Status
-    status: "draft" | "active" | "archived" | "discontinued";
-    version?: number;                 // For version control
-    parentRecipeId?: string;          // If this is a variant/version of another recipe
-
-    // Compliance & Safety
-    shelfLife?: number;               // Days
+    status: "draft" | "testing" | "active" | "archived" | "discontinued";
+    version?: number;
+    instructions?: string;
     notes?: string;
 }
 
-/**
- * Computed recipe cost analysis (NOT stored in DB)
- */
-export interface RecipeCostAnalysis {
-    recipeId: string;
-    recipeName: string;
-
-    // Breakdown by ingredient
-    ingredientBreakdown: Array<{
-        ingredientId: string;
-        name: string;
-        cost: number;
-        costWithTax: number;
-        percentageOfTotal: number;
-    }>;
-    percentage: number;              // Percentage of total cost
-
-    // Top cost drivers
-    topCostDrivers: string[];         // Top 3 ingredient names
-
-    // Alerts & Warnings
-    hasPriceChanges: boolean;
-    warnings: string[];
-}
 
 export interface RecipeVariant extends BaseEntity {
     originalRecipeId: string;
     name: string;
     description?: string;
 
-    // The modified formulation
-    ingredients: RecipeIngredient[];
+    // Core formulation
+    ingredientIds: string[];
 
-    // Computed cost
-    costPerKg: number;
-
-    // Comparison with original
-    costDifference: number;           // Amount saved/increased vs original
-    costDifferencePercentage: number; // % cheaper/expensive vs original
-
-    // Business metrics
-    profitMargin?: number;
-
-    // Why was this variant created?
+    // Business context
     optimizationGoal?: "cost_reduction" | "quality_improvement" | "supplier_diversification" | "other";
-
-    // Status
     isActive: boolean;
 
-    // Changelog - what was changed
-    changes?: Array<{
-        type: "quantity_change" | "supplier_change" | "ingredient_added" | "ingredient_removed";
-        ingredientName: string;
-        oldValue?: string | number;
-        newValue?: string | number;
-        reason?: string;
-    }>;
-
+    // Audit trail
+    changes?: RecipeVariantChange[];
     notes?: string;
 }
-/**
- * Suggestion for recipe optimization
- */
+
+export interface RecipeVariantChange {
+    type: "quantity_change" | "supplier_change" | "ingredient_added" | "ingredient_removed";
+    ingredientName?: string;
+    oldValue?: string | number;
+    newValue?: string | number;
+    reason?: string;
+    changedAt: Date; // Add timestamp for better audit
+}
+
+// --- Snapshot for variant (optional) ---
+// If you need the variant to be a full snapshot of formulation at that moment,
+// use this structure instead of referencing ingredientIds. This avoids future edits
+// to base ingredients from changing historic variants.
+export interface VariantIngredientSnapshot {
+    supplierMaterialId: string;
+    quantity: number;
+    unit: CapacityUnit;
+    lockedPricing?: LockedPricing;
+    notes?: string;
+}
+
+// Computed values for a recipe ingredient (NOT stored in DB)
+// These are calculated at runtime from SupplierMaterial data
+
+export interface RecipeIngredientDisplay extends RecipeIngredient {
+    displayQuantity: string;
+
+    // Material & supplier friendly fields (populated via join)
+    materialName?: string;
+    supplierName?: string;
+    displayName: string; // human-friendly: "Sodium Chloride (Supplier X)"
+
+    pricePerKg: number;
+    costForQuantity: number;
+    taxedPriceForQuantity: number;
+
+    priceSharePercentage: number; // share of recipe cost
+    isPriceLocked: boolean;
+    priceChangedSinceLock: boolean;
+    priceDifference?: number; // positive if current price > locked price
+    isAvailable: boolean;
+}
+
+// For UI display - computed from Recipe + RecipeIngredientDisplay[]
+export interface RecipeDisplay extends Recipe {
+    ingredients: RecipeIngredientDisplay[];
+    ingredientCount: number;
+    variantCount: number;
+
+    totalCost: number;
+    taxedTotalCost: number;
+    costPerKg: number;
+    taxedCostPerKg: number;
+
+    varianceFromTarget?: number;
+    variancePercentage?: number;
+    isAboveTarget?: boolean;
+}
+
+//Computed recipe cost analysis (NOT stored in DB)
+
+// Represents cost contribution of an ingredient within a recipe.
+// Derived from RecipeIngredientDisplay.
+export interface IngredientCostBreakdown {
+    ingredientId: string;
+    displayName: string;         // "Sodium Chloride (Supplier X)"
+    materialName?: string;
+    supplierName?: string;
+
+    quantity: number;
+    unit: CapacityUnit;
+    pricePerKg: number;
+    costForQuantity: number;     // total cost (excluding tax)
+    taxedCostForQuantity: number; // total cost (including tax)
+    percentageOfTotal: number;   // contribution % of total cost
+    isPriceLocked: boolean;
+}
+
+// Represents a comparison between current supplier vs potential alternative.
+// Optional, useful for cost-optimization or recommendation modules.
+export interface PotentialSaving {
+    ingredientId: string;
+    ingredientName: string;
+    currentSupplier: string;
+    alternativeSupplier: string;
+
+    currentCostPerKg: number;
+    alternativeCostPerKg: number;
+
+    currentCostTotal: number;
+    alternativeCostTotal: number;
+
+    absoluteSavings: number;   // ₹ difference
+    savingsPercentage: number; // (alt - current) / current * 100
+    recommendationReason?: string; // "bulk discount", "same quality lower price", etc.
+}
+
+export interface RecipeCostAnalysis {
+    recipeId: string;
+    recipeName: string;
+    totalCost: number;
+    taxedTotalCost: number;
+    costPerKg: number;
+    taxedCostPerKg: number;
+    totalWeight: number;
+
+    ingredientBreakdown: IngredientCostBreakdown[];
+    potentialSavings?: PotentialSaving[];
+
+    targetCostPerKg?: number;
+    varianceFromTarget?: number;
+    variancePercentage?: number;
+    isAboveTarget?: boolean;
+
+    // 💡 Add optimization suggestions
+    optimizationSuggestions?: RecipeOptimizationSuggestion[];
+}
+// Suggestion for recipe optimization
+
 export interface RecipeOptimizationSuggestion {
+    // Core classification
     type: "reduce_quantity" | "substitute_ingredient" | "remove_ingredient";
+
+    // Target ingredient
     ingredientId: string;
     ingredientName: string;
 
-    // For quantity reduction
+    // Quantity modification (for "reduce_quantity")
     currentQuantity?: number;
     suggestedQuantity?: number;
+    unit?: CapacityUnit;
 
-    // For substitution
+    // Substitution (for "substitute_ingredient")
     alternativeSupplierMaterialId?: string;
     alternativeSupplierMaterialName?: string;
+    alternativeSupplierName?: string;
 
-    // Impact
-    costSaving: number;
-    costSavingPercentage: number;
+    // Expected impact (quantified)
+    costSaving: number;              // absolute saving (e.g., ₹)
+    costSavingPercentage: number;    // relative saving
     qualityImpact?: "none" | "low" | "medium" | "high";
 
+    // Explanation & confidence
     reasoning: string;
-    confidence: number;               // 0-100
+    confidence: number;              // 0–100 (could later be mapped to a color scale)
 }
 
 // ============================================================================

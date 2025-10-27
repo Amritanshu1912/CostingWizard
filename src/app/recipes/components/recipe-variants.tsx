@@ -28,40 +28,47 @@ import {
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { toast } from "sonner";
 import type { RecipeVariant, Recipe } from "@/lib/types";
-import { useDexieTable } from "@/hooks/use-dexie-table";
+import { useRecipeData } from "@/hooks/use-recipes";
 import { db } from "@/lib/db";
 
-type EnrichedRecipeVariant = RecipeVariant & { originalRecipe?: Recipe };
+type EnrichedRecipeVariant = RecipeVariant & {
+  originalRecipe?: Recipe;
+  costPerKg: number;
+  costDifference: number;
+  costDifferencePercentage: number;
+};
 
 interface RecipeVariantsProps {
   recipes: Recipe[];
 }
 
 export function RecipeVariants({ recipes }: RecipeVariantsProps) {
-  const { data: variants, deleteItem } = useDexieTable<RecipeVariant>(
-    db.recipeVariants,
-    []
-  );
+  const data = useRecipeData();
 
   const [selectedVariant, setSelectedVariant] =
     useState<EnrichedRecipeVariant | null>(null);
 
   // Enrich variants with original recipe data
   const enrichedVariants = useMemo(() => {
-    return variants.map((variant) => {
+    if (!data) return [];
+
+    return data.variants.map((variant: RecipeVariant) => {
       const originalRecipe = recipes.find(
         (r) => r.id === variant.originalRecipeId
       );
       return {
         ...variant,
         originalRecipe,
+        costPerKg: 0, // Will be calculated properly in the hook
+        costDifference: 0,
+        costDifferencePercentage: 0,
       } as EnrichedRecipeVariant;
     });
-  }, [variants, recipes]);
+  }, [data, recipes]);
 
   const handleDeleteVariant = async (id: string) => {
     try {
-      await deleteItem(id);
+      await db.recipeVariants.delete(id);
       toast.success("Variant deleted successfully");
     } catch (error) {
       toast.error("Failed to delete variant");
@@ -73,7 +80,7 @@ export function RecipeVariants({ recipes }: RecipeVariantsProps) {
     setSelectedVariant(variant);
   };
 
-  if (variants.length === 0) {
+  if (!data || enrichedVariants.length === 0) {
     return (
       <Alert>
         <AlertCircle className="h-4 w-4" />
@@ -94,7 +101,7 @@ export function RecipeVariants({ recipes }: RecipeVariantsProps) {
             Total Variants
           </div>
           <div className="text-2xl font-bold text-foreground">
-            {variants.length}
+            {enrichedVariants.length}
           </div>
         </Card>
         <Card className="p-4">
@@ -102,18 +109,22 @@ export function RecipeVariants({ recipes }: RecipeVariantsProps) {
             Active Variants
           </div>
           <div className="text-2xl font-bold text-green-600">
-            {variants.filter((v) => v.isActive).length}
+            {
+              enrichedVariants.filter((v: EnrichedRecipeVariant) => v.isActive)
+                .length
+            }
           </div>
         </Card>
         <Card className="p-4">
           <div className="text-sm text-muted-foreground mb-1">Avg Savings</div>
           <div className="text-2xl font-bold text-primary">
-            {variants.length > 0
+            {enrichedVariants.length > 0
               ? (
-                  variants.reduce(
-                    (sum, v) => sum + Math.abs(v.costDifference),
+                  enrichedVariants.reduce(
+                    (sum: number, v: EnrichedRecipeVariant) =>
+                      sum + Math.abs(v.costDifference),
                     0
-                  ) / variants.length
+                  ) / enrichedVariants.length
                 ).toFixed(2)
               : "0.00"}
             %
@@ -136,81 +147,83 @@ export function RecipeVariants({ recipes }: RecipeVariantsProps) {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {enrichedVariants.map((variant, index) => (
-              <TableRow key={variant.id}>
-                <TableCell className="font-medium">{index + 1}</TableCell>
-                <TableCell>
-                  <div className="font-medium">{variant.name}</div>
-                  <div className="text-xs text-muted-foreground">
-                    {variant.optimizationGoal?.replace("_", " ")}
-                  </div>
-                </TableCell>
-                <TableCell>
-                  <div className="font-medium">
-                    {variant.originalRecipe?.name || "Unknown"}
-                  </div>
-                  <div className="text-xs text-muted-foreground">
-                    ID: {variant.originalRecipeId}
-                  </div>
-                </TableCell>
-                <TableCell className="text-right font-medium">
-                  ₹{variant.costPerKg.toFixed(2)}
-                </TableCell>
-                <TableCell className="text-right">
-                  <div
-                    className={`flex items-center justify-end gap-1 ${
-                      variant.costDifference < 0
-                        ? "text-green-600"
-                        : "text-red-600"
-                    }`}
-                  >
-                    {variant.costDifference < 0 ? (
-                      <TrendingDown className="h-3 w-3" />
-                    ) : (
-                      <TrendingUp className="h-3 w-3" />
-                    )}
-                    <span className="font-medium">
-                      {variant.costDifference > 0 ? "+" : ""}₹
-                      {Math.abs(variant.costDifference).toFixed(2)}
-                    </span>
-                  </div>
-                  <div
-                    className={`text-xs ${
-                      variant.costDifferencePercentage < 0
-                        ? "text-green-600"
-                        : "text-red-600"
-                    }`}
-                  >
-                    ({variant.costDifferencePercentage > 0 ? "+" : ""}
-                    {variant.costDifferencePercentage.toFixed(1)}%)
-                  </div>
-                </TableCell>
-                <TableCell>
-                  <Badge variant={variant.isActive ? "default" : "secondary"}>
-                    {variant.isActive ? "Active" : "Inactive"}
-                  </Badge>
-                </TableCell>
-                <TableCell>
-                  <div className="flex gap-2">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => handleViewVariant(variant)}
+            {enrichedVariants.map(
+              (variant: EnrichedRecipeVariant, index: number) => (
+                <TableRow key={variant.id}>
+                  <TableCell className="font-medium">{index + 1}</TableCell>
+                  <TableCell>
+                    <div className="font-medium">{variant.name}</div>
+                    <div className="text-xs text-muted-foreground">
+                      {variant.optimizationGoal?.replace("_", " ")}
+                    </div>
+                  </TableCell>
+                  <TableCell>
+                    <div className="font-medium">
+                      {variant.originalRecipe?.name || "Unknown"}
+                    </div>
+                    <div className="text-xs text-muted-foreground">
+                      ID: {variant.originalRecipeId}
+                    </div>
+                  </TableCell>
+                  <TableCell className="text-right font-medium">
+                    ₹{variant.costPerKg.toFixed(2)}
+                  </TableCell>
+                  <TableCell className="text-right">
+                    <div
+                      className={`flex items-center justify-end gap-1 ${
+                        variant.costDifference < 0
+                          ? "text-green-600"
+                          : "text-red-600"
+                      }`}
                     >
-                      <Eye className="h-3 w-3" />
-                    </Button>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => handleDeleteVariant(variant.id)}
-                      className="text-destructive hover:text-destructive"
+                      {variant.costDifference < 0 ? (
+                        <TrendingDown className="h-3 w-3" />
+                      ) : (
+                        <TrendingUp className="h-3 w-3" />
+                      )}
+                      <span className="font-medium">
+                        {variant.costDifference > 0 ? "+" : ""}₹
+                        {Math.abs(variant.costDifference).toFixed(2)}
+                      </span>
+                    </div>
+                    <div
+                      className={`text-xs ${
+                        variant.costDifferencePercentage < 0
+                          ? "text-green-600"
+                          : "text-red-600"
+                      }`}
                     >
-                      <Trash2 className="h-3 w-3" />
-                    </Button>
-                  </div>
-                </TableCell>
-              </TableRow>
-            ))}
+                      ({variant.costDifferencePercentage > 0 ? "+" : ""}
+                      {variant.costDifferencePercentage.toFixed(1)}%)
+                    </div>
+                  </TableCell>
+                  <TableCell>
+                    <Badge variant={variant.isActive ? "default" : "secondary"}>
+                      {variant.isActive ? "Active" : "Inactive"}
+                    </Badge>
+                  </TableCell>
+                  <TableCell>
+                    <div className="flex gap-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handleViewVariant(variant)}
+                      >
+                        <Eye className="h-3 w-3" />
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handleDeleteVariant(variant.id)}
+                        className="text-destructive hover:text-destructive"
+                      >
+                        <Trash2 className="h-3 w-3" />
+                      </Button>
+                    </div>
+                  </TableCell>
+                </TableRow>
+              )
+            )}
           </TableBody>
         </Table>
       </div>

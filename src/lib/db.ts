@@ -15,6 +15,7 @@ import type {
     InventoryTransaction,
     TransportationCost,
     RecipeVariant,
+    RecipeIngredient,
     ProductionPlanExtended,
     Recipe,
 } from './types';
@@ -36,7 +37,7 @@ import {
     LABELS,
     SUPPLIER_LABELS,
 } from '../app/labels/components/labels-constants';
-import { RECIPES } from '../app/recipes/components/recipes-constants';
+import { RECIPES, RECIPE_INGREDIENTS, RECIPE_VARIANTS } from '../app/recipes/components/recipes-constants';
 
 export class CostingWizardDB extends Dexie {
     categories!: Table<Category>;
@@ -49,6 +50,7 @@ export class CostingWizardDB extends Dexie {
     supplierLabels!: Table<SupplierLabel>;
     recipes!: Table<Recipe>;  // NEW: Recipe table
     recipeVariants!: Table<RecipeVariant>;
+    recipeIngredients!: Table<RecipeIngredient>;
 
     products!: Table<Product>;
     productionPlans!: Table<ProductionPlanExtended>;
@@ -73,6 +75,7 @@ export class CostingWizardDB extends Dexie {
             supplierLabels: 'id, supplierId, labelId, labelName, availability',
             recipes: 'id, name, status, createdAt',  // NEW
             recipeVariants: 'id, originalRecipeId, name, isActive',
+            recipeIngredients: 'id, recipeId, supplierMaterialId',
             products: 'id, name, status',
             productionPlans: 'id, planName, status, startDate, endDate',
             purchaseOrders: 'id, orderId, supplierId, status, dateCreated',
@@ -111,16 +114,14 @@ export class CostingWizardDB extends Dexie {
                 await db.recipes.bulkAdd(RECIPES);
             }
 
+            const hasRecipeIngredients = await db.recipeIngredients.count() > 0;
+            if (!hasRecipeIngredients) {
+                await db.recipeIngredients.bulkAdd(RECIPE_INGREDIENTS);
+            }
+
             const hasRecipeVariants = await db.recipeVariants.count() > 0;
             if (!hasRecipeVariants) {
-                const recipeVariants = RECIPES.map(recipe => ({
-                    ...recipe,
-                    originalRecipeId: recipe.id,
-                    costDifference: 0,
-                    costDifferencePercentage: 0,
-                    isActive: true,
-                }));
-                await db.recipeVariants.bulkAdd(recipeVariants);
+                await db.recipeVariants.bulkAdd(RECIPE_VARIANTS);
             }
 
             const hasProductionPlans = await db.productionPlans.count() > 0;
