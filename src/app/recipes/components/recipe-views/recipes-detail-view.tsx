@@ -54,6 +54,7 @@ import { getStatusColors } from "../recipe-colors";
 import { formatDate } from "@/lib/utils";
 import { recipeCalculator } from "@/hooks/use-recipes";
 import { useSupplierMaterialsWithDetails } from "@/hooks/use-supplier-materials-with-details";
+import { useMaterialsWithSuppliers } from "@/hooks/use-recipes";
 import { toast } from "sonner";
 import { RecipeCostDistributionChart } from "./recipe-cost-distribution-chart";
 import { RecipeWeightDistributionChart } from "./recipe-weight-distribution-chart";
@@ -83,6 +84,8 @@ interface RecipeDetailViewProps {
 
 interface EditableIngredient extends RecipeIngredient {
   _isNew?: boolean;
+  // Temporary fields for two-dropdown selection
+  selectedMaterialId?: string;
 }
 
 export function RecipeDetailView({
@@ -97,6 +100,7 @@ export function RecipeDetailView({
   onSaveEdit,
 }: RecipeDetailViewProps) {
   const supplierMaterials = useSupplierMaterialsWithDetails();
+  const materialsWithSuppliers = useMaterialsWithSuppliers();
 
   // Edit state - ONLY for fields we save to DB
   const [editedName, setEditedName] = useState("");
@@ -127,16 +131,23 @@ export function RecipeDetailView({
         setEditedStatus(recipe.status);
         setEditedNotes(recipe.notes || "");
         setEditedIngredients(
-          ingredients.map((ing) => ({
-            id: ing.id,
-            recipeId: ing.recipeId,
-            supplierMaterialId: ing.supplierMaterialId,
-            quantity: ing.quantity,
-            unit: ing.unit,
-            lockedPricing: ing.lockedPricing,
-            createdAt: ing.createdAt,
-            updatedAt: ing.updatedAt,
-          }))
+          ingredients.map((ing) => {
+            // Find the material for this supplier material
+            const sm = supplierMaterials.find(
+              (s) => s.id === ing.supplierMaterialId
+            );
+            return {
+              id: ing.id,
+              recipeId: ing.recipeId,
+              supplierMaterialId: ing.supplierMaterialId,
+              quantity: ing.quantity,
+              unit: ing.unit,
+              lockedPricing: ing.lockedPricing,
+              createdAt: ing.createdAt,
+              updatedAt: ing.updatedAt,
+              selectedMaterialId: sm?.materialId,
+            };
+          })
         );
       } else if (!recipe || isCreatingNew) {
         // CREATING NEW RECIPE: initialize with empty/default values
@@ -262,9 +273,20 @@ export function RecipeDetailView({
     value: any
   ) => {
     setEditedIngredients(
-      editedIngredients.map((ing, i) =>
-        i === index ? { ...ing, [field]: value } : ing
-      )
+      editedIngredients.map((ing, i) => {
+        if (i === index) {
+          if (field === "selectedMaterialId") {
+            // When material changes, clear supplier selection
+            return {
+              ...ing,
+              selectedMaterialId: value,
+              supplierMaterialId: "", // Clear supplier when material changes
+            };
+          }
+          return { ...ing, [field]: value };
+        }
+        return ing;
+      })
     );
   };
 
@@ -351,7 +373,7 @@ export function RecipeDetailView({
         notes: editedNotes,
         version: editedVersion,
         ingredients: editedIngredients.map((ing) => {
-          const { _isNew, ...rest } = ing;
+          const { _isNew, selectedMaterialId, ...rest } = ing;
           return rest;
         }),
       });
@@ -811,6 +833,7 @@ export function RecipeDetailView({
                         <TableRow className="bg-muted/30">
                           <TableHead className="w-12">#</TableHead>
                           <TableHead>Material</TableHead>
+                          <TableHead>Supplier</TableHead>
                           <TableHead className="w-32">Quantity (gms)</TableHead>
                           <TableHead className="w-28">Cost/Unit</TableHead>
                           <TableHead className="w-28">Total</TableHead>
@@ -831,9 +854,42 @@ export function RecipeDetailView({
                             ing.lockedPricing?.unitPrice || sm?.unitPrice || 0;
                           const cost = pricePerKg * quantityInKg;
 
+                          // Get suppliers for the selected material
+                          const selectedMaterial = materialsWithSuppliers.find(
+                            (m) => m.id === ing.selectedMaterialId
+                          );
+                          const availableSuppliers =
+                            selectedMaterial?.suppliers || [];
+
                           return (
                             <TableRow key={ing.id}>
                               <TableCell>{index + 1}</TableCell>
+                              <TableCell>
+                                <Select
+                                  value={ing.selectedMaterialId || ""}
+                                  onValueChange={(value) =>
+                                    handleIngredientChange(
+                                      index,
+                                      "selectedMaterialId",
+                                      value
+                                    )
+                                  }
+                                >
+                                  <SelectTrigger className="h-9">
+                                    <SelectValue placeholder="Select material" />
+                                  </SelectTrigger>
+                                  <SelectContent>
+                                    {materialsWithSuppliers.map((material) => (
+                                      <SelectItem
+                                        key={material.id}
+                                        value={material.id}
+                                      >
+                                        {material.name}
+                                      </SelectItem>
+                                    ))}
+                                  </SelectContent>
+                                </Select>
+                              </TableCell>
                               <TableCell>
                                 <Select
                                   value={ing.supplierMaterialId}
@@ -844,15 +900,21 @@ export function RecipeDetailView({
                                       value
                                     )
                                   }
+                                  disabled={!ing.selectedMaterialId}
                                 >
                                   <SelectTrigger className="h-9">
-                                    <SelectValue placeholder="Select material" />
+                                    <SelectValue placeholder="Select supplier" />
                                   </SelectTrigger>
                                   <SelectContent>
-                                    {supplierMaterials.map((sm) => (
-                                      <SelectItem key={sm.id} value={sm.id}>
-                                        {sm.displayName} - {sm.supplier?.name}{" "}
-                                        (₹{sm.unitPrice.toFixed(2)}/{sm.unit})
+                                    {availableSuppliers.map((supplierSM) => (
+                                      <SelectItem
+                                        key={supplierSM.id}
+                                        value={supplierSM.id}
+                                      >
+                                        {supplierSM.supplier?.name} - ₹
+                                        {supplierSM.unitPrice.toFixed(2)}/kg
+                                        {supplierSM.moq &&
+                                          ` - MOQ: ${supplierSM.moq}`}
                                       </SelectItem>
                                     ))}
                                   </SelectContent>

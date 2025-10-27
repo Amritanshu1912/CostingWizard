@@ -11,6 +11,7 @@ import type {
     RecipeDisplay,
     RecipeIngredientDisplay,
     CapacityUnit,
+    SupplierMaterialWithDetails,
 } from "@/lib/types";
 
 // ============================================================================
@@ -685,6 +686,63 @@ export const recipeCalculator = {
 };
 
 // ============================================================================
+// MATERIALS WITH SUPPLIERS HOOK (for two-dropdown ingredient selection)
+// ============================================================================
+
+/**
+ * Returns materials with their available suppliers for ingredient selection
+ * Used in recipe editing to provide material-first, then supplier selection
+ */
+export function useMaterialsWithSuppliers() {
+    const data = useRecipeData();
+
+    const materialsWithSuppliers = useMemo(() => {
+        if (!data) return [];
+
+        const { materials, supplierMaterials, suppliers, materialMap, supplierMap } = data;
+
+        // Group supplier materials by material ID
+        const suppliersByMaterial = new Map<string, SupplierMaterialWithDetails[]>();
+
+        supplierMaterials.forEach((sm) => {
+            const material = materialMap.get(sm.materialId);
+            const supplier = supplierMap.get(sm.supplierId);
+
+            if (!material || !supplier) return; // Skip orphaned records
+
+            const enrichedSM: SupplierMaterialWithDetails = {
+                ...sm,
+                material,
+                supplier,
+                displayName: material.name,
+                displayCategory: material.category,
+                displayUnit: sm.unit ?? "kg",
+                priceWithTax: sm.unitPrice * (1 + ((sm.tax ?? 0) / 100)),
+            };
+
+            if (!suppliersByMaterial.has(sm.materialId)) {
+                suppliersByMaterial.set(sm.materialId, []);
+            }
+            suppliersByMaterial.get(sm.materialId)!.push(enrichedSM);
+        });
+
+        // Sort suppliers by price (cheapest first) for each material
+        suppliersByMaterial.forEach((suppliers) => {
+            suppliers.sort((a, b) => a.unitPrice - b.unitPrice);
+        });
+
+        // Return materials with their suppliers
+        return materials.map((material) => ({
+            ...material,
+            suppliers: suppliersByMaterial.get(material.id) || [],
+            supplierCount: suppliersByMaterial.get(material.id)?.length || 0,
+        }));
+    }, [data]);
+
+    return materialsWithSuppliers;
+}
+
+// ============================================================================
 // EXPORT ALL
 // ============================================================================
 
@@ -698,5 +756,6 @@ export default {
     useRecipeStats,
     useRecipeComparison,
     useRecipeOptimizations,
+    useMaterialsWithSuppliers,
     recipeCalculator,
 };
