@@ -65,6 +65,8 @@ import {
   BUILD_MATERIAL_LABELS,
   CAPACITY_UNIT_VALUES,
   getPackagingTypeLabel,
+  getBuildMaterialLabel,
+  getCapacityUnitLabel,
 } from "./packaging-constants";
 
 const packagingTypes = PACKAGING_TYPE_LABELS;

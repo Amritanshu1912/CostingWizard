@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Users, Plus } from "lucide-react";
 import { SUPPLIERS } from "@/lib/constants";
-import { SUPPLIER_MATERIALS } from "../../materials/components/materials-config";
+import { SUPPLIER_MATERIALS } from "../../materials/components/materials-constants";
 import type { Supplier } from "@/lib/types";
 import { SuppliersOverviewTab } from "./suppliers-overview-tab";
 import { SuppliersItemsTab } from "./suppliers-items-tab";

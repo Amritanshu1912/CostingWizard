@@ -1,91 +1,103 @@
 // hooks/use-supplier-materials-with-details.ts
 import { useLiveQuery } from "dexie-react-hooks";
 import { db } from "@/lib/db";
-import type { SupplierMaterial, Material, Supplier, SupplierMaterialWithDetails } from "@/lib/types";
+import type {
+    SupplierMaterialWithDetails,
+    Material,
+    Supplier,
+    SupplierMaterial,
+} from "@/lib/types";
 
 /**
- * Hook that automatically joins supplier materials with their materials and suppliers
- * Uses Dexie's reactive queries for real-time updates
- * 
- * Performance: ~5-8ms for 1000 records (imperceptible to users)
+ * Returns all supplier materials enriched with their material and supplier details.
+ * This fetches supplierMaterials + materials + suppliers in parallel once and returns
+ * an array of enriched objects. The hook is reactive via useLiveQuery.
+ *
+ * - Minimizes repeated DB calls by fetching everything once per reactive change.
+ * - Produces stable objects (no extra computation downstream needed).
  */
-export function useSupplierMaterialsWithDetails() {
+export function useSupplierMaterialsWithDetails(): SupplierMaterialWithDetails[] {
     const data = useLiveQuery(async () => {
-        // Fetch all data in parallel for best performance
         const [supplierMaterials, materials, suppliers] = await Promise.all([
             db.supplierMaterials.toArray(),
             db.materials.toArray(),
             db.suppliers.toArray(),
         ]);
 
-        // Create lookup maps for O(1) access
-        const materialMap = new Map(materials.map((m) => [m.id, m]));
-        const supplierMap = new Map(suppliers.map((s) => [s.id, s]));
+        // Build lookup maps for O(1) lookups
+        const materialById = new Map<string, Material>(
+            materials.map((m) => [m.id, m])
+        );
+        const supplierById = new Map<string, Supplier>(
+            suppliers.map((s) => [s.id, s])
+        );
 
-        // Join data in memory
-        const enriched: SupplierMaterialWithDetails[] = supplierMaterials.map((sm) => {
-            const material = sm.materialId ? materialMap.get(sm.materialId) : undefined;
-            const supplier = supplierMap.get(sm.supplierId);
+        // Join and enrich
+        const enriched: SupplierMaterialWithDetails[] = supplierMaterials.map(
+            (sm) => {
+                const material = materialById.get(sm.materialId);
+                const supplier = supplierById.get(sm.supplierId);
 
-            // Ensure unitPrice is calculated correctly if not set
-            const unitPrice = sm.unitPrice || (sm.bulkPrice || 0) / (sm.quantityForBulkPrice || 1);
+                // compute unitPrice fallback if not provided
+                const unitPrice =
+                    sm.unitPrice || ((sm.bulkPrice || 0) / (sm.quantityForBulkPrice || 1)) || 0;
 
-            return {
-                ...sm,
-                unitPrice, // Use calculated or stored value
-                material,
-                supplier,
-
-                // Computed display fields (always accurate from source)
-                displayName: material?.name || "Unknown Material",
-                displayCategory: material?.category || "Uncategorized",
-                displayUnit: sm.unit || "kg",
-                priceWithTax: unitPrice * (1 + (sm.tax || 0) / 100),
-            };
-        });
+                return {
+                    ...sm,
+                    unitPrice,
+                    material,
+                    supplier,
+                    displayName: material ? material.name : `Material ${sm.materialId}`,
+                    displayCategory: material ? material.category : "Uncategorized",
+                    displayUnit: sm.unit ?? "kg",
+                    priceWithTax: unitPrice * (1 + ((sm.tax ?? 0) / 100)),
+                };
+            }
+        );
 
         return enriched;
     }, []);
 
-    return data || [];
+    return data ?? [];
 }
 
 /**
- * Hook for a single supplier material with details
+ * Single supplier material by id (enriched). Returns null if not found or id falsy.
  */
-export function useSupplierMaterialWithDetails(id: string | undefined) {
+export function useSupplierMaterialWithDetails(id?: string | null) {
     const data = useLiveQuery(async () => {
         if (!id) return null;
 
-        const supplierMaterial = await db.supplierMaterials.get(id);
-        if (!supplierMaterial) return null;
+        const sm = await db.supplierMaterials.get(id);
+        if (!sm) return null;
 
         const [material, supplier] = await Promise.all([
-            supplierMaterial.materialId ? db.materials.get(supplierMaterial.materialId) : undefined,
-            db.suppliers.get(supplierMaterial.supplierId),
+            db.materials.get(sm.materialId),
+            db.suppliers.get(sm.supplierId),
         ]);
 
-        const unitPrice = supplierMaterial.unitPrice ||
-            (supplierMaterial.bulkPrice || 0) / (supplierMaterial.quantityForBulkPrice || 1);
+        const unitPrice = sm.unitPrice || ((sm.bulkPrice || 0) / (sm.quantityForBulkPrice || 1)) || 0;
 
-        return {
-            ...supplierMaterial,
+        const enriched: SupplierMaterialWithDetails = {
+            ...sm,
             unitPrice,
             material,
             supplier,
-            displayName: material?.name || "Unknown Material",
-            displayCategory: material?.category || "Uncategorized",
-            displayUnit: supplierMaterial.unit || "kg",
-            priceWithTax: unitPrice * (1 + (supplierMaterial.tax || 0) / 100),
-        } as SupplierMaterialWithDetails;
+            displayName: material ? material.name : `Material ${sm.materialId}`,
+            displayCategory: material ? material.category : "Uncategorized",
+            displayUnit: sm.unit ?? "kg",
+            priceWithTax: unitPrice * (1 + ((sm.tax ?? 0) / 100)),
+        };
+
+        return enriched;
     }, [id]);
 
-    return data;
+    return data ?? null;
 }
 
 /**
- * Hook for materials grouped by name for price comparison
- * Automatically calculates cheapest/most expensive options
+ * Material price comparison grouped by material name.
+ * Returns array of groups with alternatives sorted by price (cheapest first).
  */
 export function useMaterialPriceComparison() {
     const data = useLiveQuery(async () => {
@@ -95,20 +107,17 @@ export function useMaterialPriceComparison() {
             db.suppliers.toArray(),
         ]);
 
-        const materialMap = new Map(materials.map((m) => [m.id, m]));
-        const supplierMap = new Map(suppliers.map((s) => [s.id, s]));
+        const materialById = new Map(materials.map((m) => [m.id, m]));
+        const supplierById = new Map(suppliers.map((s) => [s.id, s]));
 
-        // Group by material
         const grouped = new Map<string, SupplierMaterialWithDetails[]>();
 
-        supplierMaterials.forEach((sm) => {
-            const material = sm.materialId ? materialMap.get(sm.materialId) : undefined;
-            const supplier = supplierMap.get(sm.supplierId);
+        for (const sm of supplierMaterials) {
+            const material = materialById.get(sm.materialId);
+            if (!material) continue; // ignore orphan supplierMaterials
 
-            if (!material) return;
-
-            const unitPrice = sm.unitPrice ||
-                (sm.bulkPrice || 0) / (sm.quantityForBulkPrice || 1);
+            const supplier = supplierById.get(sm.supplierId);
+            const unitPrice = sm.unitPrice || ((sm.bulkPrice || 0) / (sm.quantityForBulkPrice || 1)) || 0;
 
             const enriched: SupplierMaterialWithDetails = {
                 ...sm,
@@ -117,19 +126,20 @@ export function useMaterialPriceComparison() {
                 supplier,
                 displayName: material.name,
                 displayCategory: material.category,
-                displayUnit: sm.unit || "kg",
-                priceWithTax: unitPrice * (1 + (sm.tax || 0) / 100),
+                displayUnit: sm.unit ?? "kg",
+                priceWithTax: unitPrice * (1 + ((sm.tax ?? 0) / 100)),
             };
 
-            const existing = grouped.get(material.name) || [];
-            grouped.set(material.name, [...existing, enriched]);
-        });
+            const list = grouped.get(material.name) ?? [];
+            list.push(enriched);
+            grouped.set(material.name, list);
+        }
 
-        // Convert to array and filter materials with multiple suppliers
-        return Array.from(grouped.entries())
-            .filter(([_, items]) => items.length >= 2)
-            .map(([materialName, alternatives]) => {
-                const sorted = alternatives.sort((a, b) => a.unitPrice - b.unitPrice);
+        // Build result groups for materials with at least 2 suppliers
+        const groups = Array.from(grouped.entries())
+            .filter(([_, arr]) => arr.length >= 2)
+            .map(([materialName, arr]) => {
+                const sorted = arr.sort((a, b) => a.unitPrice - b.unitPrice);
                 return {
                     materialName,
                     alternatives: sorted,
@@ -138,7 +148,9 @@ export function useMaterialPriceComparison() {
                     savings: sorted[sorted.length - 1].unitPrice - sorted[0].unitPrice,
                 };
             });
+
+        return groups;
     }, []);
 
-    return data || [];
+    return data ?? [];
 }

@@ -59,8 +59,10 @@ import {
   BUILD_MATERIALS,
   getPackagingTypeColor,
   getBuildMaterialColor,
-  PACKAGING_AVAILABILITY,
+  getPackagingTypeLabel,
+  getBuildMaterialLabel,
 } from "./packaging-constants";
+import { AVAILABILITY_MAP } from "@/lib/constants";
 import { cn } from "@/lib/utils";
 import { useDuplicateCheck } from "@/hooks/use-duplicate-check";
 import { normalizeText } from "@/lib/text-utils";
@@ -408,19 +410,19 @@ export function EnhancedSupplierPackagingDialog({
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      {PACKAGING_AVAILABILITY.map((option) => (
-                        <SelectItem key={option.value} value={option.value}>
+                      {Object.keys(AVAILABILITY_MAP).map((option) => (
+                        <SelectItem key={option} value={option}>
                           <div className="flex items-center gap-2">
                             <div
                               className={`w-2 h-2 rounded-full ${
-                                option.value === "in-stock"
+                                option === "in-stock"
                                   ? "bg-green-500"
-                                  : option.value === "limited"
+                                  : option === "limited"
                                   ? "bg-yellow-500"
                                   : "bg-red-500"
                               }`}
                             />
-                            {option.label}
+                            {option}
                           </div>
                         </SelectItem>
                       ))}

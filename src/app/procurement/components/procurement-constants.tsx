@@ -109,29 +109,6 @@ export const ORDER_STATUS_MAP = {
  * Provides a consistent label, color, and icon for Availability statuses.
  */
 
-export const AVAILABILITY_MAP = {
-  "in-stock": {
-    label: "In Stock",
-    variant: "default" as const,
-    icon: CheckCircle,
-  },
-  limited: {
-    label: "Limited Stock",
-    variant: "secondary" as const,
-    icon: AlertTriangle,
-  },
-  "out-of-stock": {
-    label: "Out of Stock",
-    variant: "destructive" as const,
-    icon: XCircle,
-  },
-  default: {
-    label: "Unknown",
-    variant: "outline" as const,
-    icon: Package,
-  },
-} as const;
-
 // ===========================================================================
 // TABLE COLUMNS (Procurement Orders)
 // ===========================================================================
@@ -396,12 +373,6 @@ export const MATERIAL_CATEGORIES = [
   "Bottles",
   "Labels",
   "Other",
-] as const;
-
-export const AVAILABILITY_OPTIONS = [
-  "in-stock",
-  "limited",
-  "out-of-stock",
 ] as const;
 
 export const DEFAULT_SUPPLIER_FORM = {

@@ -1,5 +1,6 @@
 "use client";
 
+import React, { useMemo } from "react";
 import {
   Card,
   CardContent,
@@ -32,21 +33,215 @@ import {
 } from "recharts";
 import { Sparkles } from "lucide-react";
 import {
-  PRICE_HISTORY_DATA,
-  LABELS_USAGE_DATA,
-  KEY_METRICS,
   AI_INSIGHTS,
-  PRINTING_TYPE_DISTRIBUTION,
-  LABEL_TYPE_DISTRIBUTION,
+  getLabelTypeColor,
+  getPrintingTypeColor,
 } from "./labels-constants";
 import { CHART_COLORS } from "@/lib/color-utils";
+import { useSupplierLabelsWithDetails } from "@/hooks/use-supplier-labels-with-details";
+import {
+  TrendingUp,
+  Target,
+  AlertTriangle,
+  DollarSign,
+  Tag,
+  Clock,
+} from "lucide-react";
 
 export function LabelsAnalytics() {
+  const supplierLabels = useSupplierLabelsWithDetails();
+
+  // Calculate key metrics dynamically
+  const keyMetrics = useMemo(() => {
+    if (!supplierLabels.length) return [];
+
+    // Price Volatility - calculate variance in prices
+    const prices = supplierLabels.map((sl) => sl.unitPrice);
+    const avgPrice =
+      prices.reduce((sum, price) => sum + price, 0) / prices.length;
+    const variance =
+      prices.reduce((sum, price) => sum + Math.pow(price - avgPrice, 2), 0) /
+      prices.length;
+    const volatility = (Math.sqrt(variance) / avgPrice) * 100;
+
+    // Stock Alerts - count labels with limited or out-of-stock
+    const stockAlerts = supplierLabels.filter(
+      (sl) =>
+        sl.availability === "limited" || sl.availability === "out-of-stock"
+    ).length;
+
+    // Total Value - sum of unitPrice * quantityForBulkPrice for all labels
+    const totalValue = supplierLabels.reduce((sum, sl) => {
+      const quantity = sl.quantityForBulkPrice || sl.moq || 1000;
+      return sum + sl.unitPrice * quantity;
+    }, 0);
+
+    // Avg Lead Time - average lead time across all supplier labels
+    const avgLeadTime =
+      supplierLabels.reduce((sum, sl) => sum + sl.leadTime, 0) /
+      supplierLabels.length;
+
+    return [
+      {
+        type: "progress",
+        title: "Price Volatility",
+        value: `+${volatility.toFixed(1)}%`,
+        icon: TrendingUp,
+        iconClassName: "text-accent",
+        progress: {
+          current: Math.min(volatility * 2, 100), // Scale for progress bar
+          max: 100,
+          label: volatility > 10 ? "High" : volatility > 5 ? "Moderate" : "Low",
+          color: (volatility > 10 ? "warning" : "success") as
+            | "warning"
+            | "success",
+        },
+      },
+      {
+        type: "progress",
+        title: "Print Quality Score",
+        value: "92%",
+        icon: Target,
+        iconClassName: "text-primary",
+        progress: {
+          current: 92,
+          max: 100,
+          label: "Excellent",
+          color: "success" as const,
+        },
+      },
+      {
+        type: "badge",
+        title: "Stock Alerts",
+        value: stockAlerts,
+        icon: AlertTriangle,
+        iconClassName:
+          stockAlerts > 0 ? "text-destructive" : "text-muted-foreground",
+        badges:
+          stockAlerts > 0
+            ? [
+                {
+                  text: "Low Stock",
+                  variant: "destructive" as const,
+                },
+              ]
+            : [],
+      },
+      {
+        type: "standard",
+        title: "Total Value",
+        value: `₹${(totalValue / 100000).toFixed(1)}L`,
+        icon: DollarSign,
+        iconClassName: "text-accent",
+        trend: {
+          value: "+18%",
+          isPositive: true,
+          label: "this month",
+        },
+      },
+      {
+        type: "standard",
+        title: "Avg Lead Time",
+        value: `${Math.round(avgLeadTime)} days`,
+        icon: Clock,
+        iconClassName: "text-primary",
+        trend: {
+          value: "-1 day",
+          isPositive: true,
+          label: "improvement",
+        },
+      },
+    ];
+  }, [supplierLabels]);
+
+  // Price History Data - create mock trend data based on current prices
+  const priceHistoryData = useMemo(() => {
+    if (!supplierLabels.length) return [];
+
+    const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun"];
+    const baseAvgPrice =
+      supplierLabels.reduce((sum, sl) => sum + sl.unitPrice, 0) /
+      supplierLabels.length;
+    const baseLabels = supplierLabels.length * 1000; // Mock label count
+
+    return months.map((month, index) => {
+      const variation = (Math.random() - 0.5) * 0.4; // ±20% variation
+      const avgPrice = baseAvgPrice * (1 + variation);
+      const labels = Math.round(baseLabels * (1 + index * 0.05)); // Gradual increase
+
+      return {
+        month,
+        avgPrice: parseFloat(avgPrice.toFixed(2)),
+        labels,
+      };
+    });
+  }, [supplierLabels]);
+
+  // Labels Usage Data - calculate based on label types
+  const labelsUsageData = useMemo(() => {
+    if (!supplierLabels.length) return [];
+
+    const typeGroups = supplierLabels.reduce((acc, sl) => {
+      const type = sl.displayType || "Unknown";
+      if (!acc[type]) {
+        acc[type] = { count: 0, totalCost: 0 };
+      }
+      acc[type].count += 1;
+      acc[type].totalCost +=
+        sl.unitPrice * (sl.quantityForBulkPrice || sl.moq || 1000);
+      return acc;
+    }, {} as Record<string, { count: number; totalCost: number }>);
+
+    return Object.entries(typeGroups).map(([label, data]) => ({
+      label,
+      usage: data.count * 1000, // Mock usage based on count
+      cost: Math.round(data.totalCost),
+      efficiency: 85 + Math.floor(Math.random() * 10), // Mock efficiency 85-95%
+    }));
+  }, [supplierLabels]);
+
+  // Label Type Distribution
+  const labelTypeDistribution = useMemo(() => {
+    if (!supplierLabels.length) return [];
+
+    const typeCounts = supplierLabels.reduce((acc, sl) => {
+      const type = sl.displayType || "Other";
+      acc[type] = (acc[type] || 0) + 1;
+      return acc;
+    }, {} as Record<string, number>);
+
+    const total = supplierLabels.length;
+    const chartColors = Object.values(CHART_COLORS.light);
+    return Object.entries(typeCounts).map(([name, count], index) => ({
+      name,
+      value: Math.round((count / total) * 100),
+      color: chartColors[index % chartColors.length],
+    }));
+  }, [supplierLabels]);
+
+  // Printing Type Distribution
+  const printingTypeDistribution = useMemo(() => {
+    if (!supplierLabels.length) return [];
+
+    const printingCounts = supplierLabels.reduce((acc, sl) => {
+      const printing = sl.displayPrintingType || "Other";
+      acc[printing] = (acc[printing] || 0) + 1;
+      return acc;
+    }, {} as Record<string, number>);
+
+    const total = supplierLabels.length;
+    const chartColors = Object.values(CHART_COLORS.light);
+    return Object.entries(printingCounts).map(([name, count], index) => ({
+      name,
+      value: Math.round((count / total) * 100),
+      color: chartColors[index % chartColors.length],
+    }));
+  }, [supplierLabels]);
   return (
     <div className="space-y-6">
       {/* Key Metrics */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
-        {KEY_METRICS.map((metric) => {
+        {keyMetrics.map((metric) => {
           const Icon = metric.icon;
           if (metric.type === "progress") {
             return (
@@ -95,7 +290,7 @@ export function LabelsAnalytics() {
           </CardHeader>
           <CardContent>
             <ResponsiveContainer width="100%" height={300}>
-              <LineChart data={PRICE_HISTORY_DATA}>
+              <LineChart data={priceHistoryData}>
                 <CartesianGrid
                   strokeDasharray="3 3"
                   className="stroke-border"
@@ -116,6 +311,9 @@ export function LabelsAnalytics() {
                     borderRadius: "8px",
                     color: "hsl(var(--foreground))",
                   }}
+                  formatter={(value) =>
+                    typeof value === "number" ? value.toFixed(2) : value
+                  }
                 />
                 <Legend />
                 <Line
@@ -154,7 +352,7 @@ export function LabelsAnalytics() {
           <CardContent>
             <ResponsiveContainer width="100%" height={300}>
               <BarChart
-                data={LABELS_USAGE_DATA}
+                data={labelsUsageData}
                 margin={{ top: 20, right: 30, left: 20, bottom: 5 }}
               >
                 <CartesianGrid
@@ -177,6 +375,9 @@ export function LabelsAnalytics() {
                     borderRadius: "8px",
                     color: "hsl(var(--foreground))",
                   }}
+                  formatter={(value) =>
+                    typeof value === "number" ? value.toFixed(2) : value
+                  }
                 />
                 <Legend />
                 <Bar
@@ -207,7 +408,7 @@ export function LabelsAnalytics() {
             <ResponsiveContainer width="100%" height={300}>
               <PieChart>
                 <Pie
-                  data={LABEL_TYPE_DISTRIBUTION}
+                  data={labelTypeDistribution}
                   cx="50%"
                   cy="50%"
                   labelLine={false}
@@ -221,11 +422,15 @@ export function LabelsAnalytics() {
                   fill="#8884d8"
                   dataKey="value"
                 >
-                  {LABEL_TYPE_DISTRIBUTION.map((entry, index) => (
+                  {labelTypeDistribution.map((entry, index) => (
                     <Cell key={`cell-${index}`} fill={entry.color} />
                   ))}
                 </Pie>
-                <Tooltip />
+                <Tooltip
+                  formatter={(value) =>
+                    typeof value === "number" ? value.toFixed(2) : value
+                  }
+                />
               </PieChart>
             </ResponsiveContainer>
           </CardContent>
@@ -245,7 +450,7 @@ export function LabelsAnalytics() {
             <ResponsiveContainer width="100%" height={300}>
               <PieChart>
                 <Pie
-                  data={PRINTING_TYPE_DISTRIBUTION}
+                  data={printingTypeDistribution}
                   cx="50%"
                   cy="50%"
                   labelLine={false}
@@ -259,11 +464,15 @@ export function LabelsAnalytics() {
                   fill="#8884d8"
                   dataKey="value"
                 >
-                  {PRINTING_TYPE_DISTRIBUTION.map((entry, index) => (
+                  {printingTypeDistribution.map((entry, index) => (
                     <Cell key={`cell-${index}`} fill={entry.color} />
                   ))}
                 </Pie>
-                <Tooltip />
+                <Tooltip
+                  formatter={(value) =>
+                    typeof value === "number" ? value.toFixed(2) : value
+                  }
+                />
               </PieChart>
             </ResponsiveContainer>
           </CardContent>

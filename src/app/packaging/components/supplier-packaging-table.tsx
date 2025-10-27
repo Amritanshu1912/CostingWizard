@@ -30,7 +30,12 @@ import { Badge } from "@/components/ui/badge";
 import { SortableTable } from "@/components/ui/sortable-table";
 import { Search, Filter, Edit, Trash2, Plus } from "lucide-react";
 import type { Supplier, SupplierPackagingWithDetails } from "@/lib/types";
-import { PACKAGING_TYPES, BUILD_MATERIALS } from "./packaging-constants";
+import {
+  PACKAGING_TYPES,
+  getPackagingTypeColor,
+  getBuildMaterialColor,
+  getPackagingTypeLabel,
+} from "./packaging-constants";
 
 interface SupplierPackagingTableProps {
   supplierPackaging: SupplierPackagingWithDetails[];
@@ -114,17 +119,15 @@ export function SupplierPackagingTable({
         label: "Type",
         sortable: true,
         render: (value: string) => {
-          const typeOption = PACKAGING_TYPES.find((t) => t.value === value);
-          const displayLabel = typeOption?.label || value;
+          const displayLabel = getPackagingTypeLabel(value as any);
+          const color = getPackagingTypeColor(value as any);
           return (
             <Badge
               variant="outline"
               className="text-xs"
               style={{
-                backgroundColor: typeOption
-                  ? typeOption.color + "30"
-                  : undefined,
-                borderColor: typeOption ? typeOption.color : undefined,
+                backgroundColor: color ? color + "30" : undefined,
+                borderColor: color || undefined,
                 color: "#000",
               }}
             >
@@ -156,22 +159,18 @@ export function SupplierPackagingTable({
           if (!material)
             return <span className="text-muted-foreground">—</span>;
 
-          const materialOption = BUILD_MATERIALS.find(
-            (m) => m.value === material
-          );
+          const color = getBuildMaterialColor(material as any);
           return (
             <Badge
               variant="outline"
               className="text-xs"
               style={{
-                backgroundColor: materialOption
-                  ? materialOption.color + "30"
-                  : undefined,
-                borderColor: materialOption ? materialOption.color : undefined,
+                backgroundColor: color ? color + "30" : undefined,
+                borderColor: color || undefined,
                 color: "#000",
               }}
             >
-              {materialOption?.label || material}
+              {material}
             </Badge>
           );
         },

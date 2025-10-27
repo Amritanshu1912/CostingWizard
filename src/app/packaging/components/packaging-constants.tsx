@@ -16,91 +16,8 @@ import {
 } from "lucide-react";
 
 // ============================================================================
-// ANALYTICS DATA
+// ANALYTICS CONFIGURATION
 // ============================================================================
-
-export const PRICE_HISTORY_DATA = [
-  { month: "Jan", avgPrice: 4.2, packaging: 1250 },
-  { month: "Feb", avgPrice: 4.5, packaging: 1280 },
-  { month: "Mar", avgPrice: 4.1, packaging: 1320 },
-  { month: "Apr", avgPrice: 4.8, packaging: 1350 },
-  { month: "May", avgPrice: 5.2, packaging: 1380 },
-  { month: "Jun", avgPrice: 4.9, packaging: 1420 },
-];
-
-export const PACKAGING_USAGE_DATA = [
-  { packaging: "PET Bottles", usage: 8500, cost: 42500, efficiency: 92 },
-  { packaging: "Glass Jars", usage: 3200, cost: 27200, efficiency: 88 },
-  { packaging: "HDPE Containers", usage: 1800, cost: 27000, efficiency: 95 },
-  { packaging: "Plastic Pouches", usage: 4500, cost: 2250, efficiency: 90 },
-  { packaging: "Paper Boxes", usage: 2800, cost: 8960, efficiency: 85 },
-];
-
-export const KEY_METRICS = [
-  {
-    type: "progress",
-    title: "Price Volatility",
-    value: "+3.8%",
-    icon: TrendingUp,
-    iconClassName: "text-accent",
-    progress: {
-      current: 62,
-      max: 100,
-      label: "Below average",
-      color: "success" as const,
-    },
-  },
-  {
-    type: "progress",
-    title: "Supply Efficiency",
-    value: "91%",
-    icon: Target,
-    iconClassName: "text-primary",
-    progress: {
-      current: 91,
-      max: 100,
-      label: "Excellent",
-      color: "success" as const,
-    },
-  },
-  {
-    type: "badge",
-    title: "Stock Alerts",
-    value: 2,
-    icon: AlertTriangle,
-    iconClassName: "text-destructive",
-    badges: [
-      {
-        text: "Low Stock",
-        variant: "destructive" as const,
-      },
-    ],
-  },
-  {
-    type: "standard",
-    title: "Total Value",
-    value: "₹2.8L",
-    icon: DollarSign,
-    iconClassName: "text-accent",
-    trend: {
-      value: "+15%",
-      isPositive: true,
-      label: "this month",
-    },
-  },
-  {
-    type: "standard",
-    title: "Avg Lead Time",
-    value: "9 days",
-    icon: Clock,
-    iconClassName: "text-primary",
-    trend: {
-      value: "-2 days",
-      isPositive: true,
-      label: "improvement",
-    },
-  },
-];
 
 export const AI_INSIGHTS = [
   {
@@ -140,24 +57,6 @@ export const AI_INSIGHTS = [
 // SUPPLIER PERFORMANCE DATA
 // ============================================================================
 
-export const SUPPLIER_PERFORMANCE_DATA = [
-  { supplier: "Supplier A", avgLeadTime: 8, avgPrice: 4.2, reliability: 95 },
-  { supplier: "Supplier B", avgLeadTime: 10, avgPrice: 3.8, reliability: 92 },
-  { supplier: "Supplier C", avgLeadTime: 12, avgPrice: 5.1, reliability: 88 },
-];
-
-// ============================================================================
-// PACKAGING TYPE DISTRIBUTION DATA
-// ============================================================================
-
-export const PACKAGING_TYPE_DISTRIBUTION = [
-  { name: "Bottles", value: 45, color: "#3b82f6" },
-  { name: "Jars", value: 25, color: "#8b5cf6" },
-  { name: "Cans", value: 15, color: "#ef4444" },
-  { name: "Boxes", value: 10, color: "#f59e0b" },
-  { name: "Pouches", value: 5, color: "#10b981" },
-];
-
 // ============================================================================
 // CORE DATA - Single source of truth with labels and colors
 // ============================================================================
@@ -178,12 +77,6 @@ export const BUILD_MATERIALS = [
   { value: "Plastic" as const, label: "Plastic", color: "#f59e0b" },
   { value: "Paper" as const, label: "Paper", color: "#84cc16" },
   { value: "Other" as const, label: "Other", color: "#6b7280" },
-] as const;
-
-export const PACKAGING_AVAILABILITY = [
-  { value: "in-stock" as const, label: "In Stock" },
-  { value: "limited" as const, label: "Limited" },
-  { value: "out-of-stock" as const, label: "Out of Stock" },
 ] as const;
 
 // ============================================================================

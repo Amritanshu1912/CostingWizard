@@ -119,6 +119,9 @@ export function ProcurementAnalytics({
                     border: "1px solid hsl(var(--border))",
                     borderRadius: "8px",
                   }}
+                  formatter={(value) =>
+                    typeof value === "number" ? value.toFixed(2) : value
+                  }
                 />
                 <Area
                   type="monotone"
@@ -158,7 +161,11 @@ export function ProcurementAnalytics({
                     <Cell key={`cell-${index}`} fill={entry.color} />
                   ))}
                 </Pie>
-                <Tooltip />
+                <Tooltip
+                  formatter={(value) =>
+                    typeof value === "number" ? value.toFixed(2) : value
+                  }
+                />
                 <Legend />
               </PieChart>
             </ResponsiveContainer>
@@ -194,6 +201,9 @@ export function ProcurementAnalytics({
                   border: "1px solid hsl(var(--border))",
                   borderRadius: "8px",
                 }}
+                formatter={(value) =>
+                  typeof value === "number" ? value.toFixed(2) : value
+                }
               />
               <Legend />
               <Bar
@@ -249,6 +259,9 @@ export function ProcurementAnalytics({
                     border: "1px solid hsl(var(--border))",
                     borderRadius: "8px",
                   }}
+                  formatter={(value) =>
+                    typeof value === "number" ? value.toFixed(2) : value
+                  }
                 />
                 <Bar
                   dataKey="spend"
@@ -294,6 +307,9 @@ export function ProcurementAnalytics({
                     border: "1px solid hsl(var(--border))",
                     borderRadius: "8px",
                   }}
+                  formatter={(value) =>
+                    typeof value === "number" ? value.toFixed(2) : value
+                  }
                 />
                 <Legend />
                 <Line

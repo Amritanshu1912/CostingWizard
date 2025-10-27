@@ -141,6 +141,7 @@ export function analyzeRecipeCost(
     const breakdown: RecipeCostAnalysis["ingredientBreakdown"] = [];
     let totalCost = 0;
     let totalCostWithTax = 0;
+    let totalWeight = 0;
     let hasPriceChanges = false;
 
     for (const ingredient of ingredients) {
@@ -151,14 +152,21 @@ export function analyzeRecipeCost(
 
         breakdown.push({
             ingredientId: ingredient.id,
-            name: sm.displayName,
-            cost: calc.cost,
-            costWithTax: calc.costWithTax,
+            displayName: `${sm.material?.name || "Unknown"} (${sm.supplier?.name || "Unknown"})`,
+            materialName: sm.material?.name,
+            supplierName: sm.supplier?.name,
+            quantity: ingredient.quantity,
+            unit: ingredient.unit,
+            pricePerKg: calc.effectiveUnitPrice,
+            costForQuantity: calc.cost,
+            taxedCostForQuantity: calc.costWithTax,
             percentageOfTotal: 0, // Will calculate after
+            isPriceLocked: !!ingredient.lockedPricing,
         });
 
         totalCost += calc.cost;
         totalCostWithTax += calc.costWithTax;
+        totalWeight += calc.quantityInKg;
 
         // Check if price changed since lock
         if (ingredient.lockedPricing) {
@@ -173,23 +181,21 @@ export function analyzeRecipeCost(
 
     // Calculate percentages
     breakdown.forEach((item) => {
-        item.percentageOfTotal = totalCost > 0 ? (item.cost / totalCost) * 100 : 0;
+        item.percentageOfTotal = totalCost > 0 ? (item.costForQuantity / totalCost) * 100 : 0;
     });
 
     // Sort by cost descending
-    breakdown.sort((a, b) => b.cost - a.cost);
+    breakdown.sort((a, b) => b.costForQuantity - a.costForQuantity);
 
     return {
         recipeId,
         recipeName,
+        totalCost,
+        taxedTotalCost: totalCostWithTax,
+        costPerKg: totalWeight > 0 ? totalCost / totalWeight : 0,
+        taxedCostPerKg: totalWeight > 0 ? totalCostWithTax / totalWeight : 0,
+        totalWeight,
         ingredientBreakdown: breakdown,
-        topCostDrivers: breakdown.slice(0, 3).map((b) => b.name),
-        hasPriceChanges,
-        warnings: hasPriceChanges
-            ? ["Some ingredient prices have changed since they were locked"]
-            : [],
-        percentage: 0,
-
     };
 }
 

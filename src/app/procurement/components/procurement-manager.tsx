@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ShoppingCart, Search, TrendingUp, Package, Plus } from "lucide-react";
 import { SUPPLIERS, PURCHASE_ORDERS } from "@/lib/constants";
-import { SUPPLIER_MATERIALS } from "../../materials/components/materials-config";
+import { SUPPLIER_MATERIALS } from "../../materials/components/materials-constants";
 import type { Supplier, PurchaseOrder } from "@/lib/types";
 import {
   ORDER_STATUS_MAP,

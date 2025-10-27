@@ -32,7 +32,7 @@ import { SUPPLIERS } from "@/lib/constants";
 import {
   MATERIALS,
   SUPPLIER_MATERIALS,
-} from "../../materials/components/materials-config";
+} from "../../materials/components/materials-constants";
 import { Switch } from "@/components/ui/switch";
 
 // ============================================================================

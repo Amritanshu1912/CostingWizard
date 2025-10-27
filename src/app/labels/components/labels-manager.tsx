@@ -52,7 +52,7 @@ export function LabelsManager() {
   const { data: suppliers } = useDexieTable(db.suppliers, SUPPLIERS);
   const { data: labels } = useDexieTable(db.labels, []);
 
-  // Enriched data
+  // Enriched data using optimized hook
   const enrichedSupplierLabels = useSupplierLabelsWithDetails();
 
   // Calculate metrics
@@ -79,21 +79,24 @@ export function LabelsManager() {
       await db.transaction("rw", [db.labels, db.supplierLabels], async () => {
         const now = new Date().toISOString();
 
-        // Step 1: Check if exact label combination already exists
+        // Step 1: Check if exact label combination already exists using normalized comparison
+        const normalizedName = normalizeText(formData.labelName!);
         const existingLabel = await db.labels
           .filter(
             (l) =>
-              normalizeText(l.name) === normalizeText(formData.labelName!) &&
+              normalizeText(l.name) === normalizedName &&
               l.type === formData.labelType &&
               l.printingType === formData.printingType &&
               l.material === formData.material &&
               l.shape === formData.shape &&
-              l.size === formData.size &&
-              l.labelFor === formData.labelFor
+              normalizeText(l.size || "") ===
+                normalizeText(formData.size || "") &&
+              normalizeText(l.labelFor || "") ===
+                normalizeText(formData.labelFor || "")
           )
           .first();
 
-        // Step 2: Create new label (since no exact match exists)
+        // Step 2: Create new label if no exact match exists
         let labelId: string;
         if (existingLabel) {
           labelId = existingLabel.id;
@@ -119,7 +122,6 @@ export function LabelsManager() {
         const unitPrice = bulkPrice / bulkQuantity;
 
         // Step 4: Create supplier label
-
         await db.supplierLabels.add({
           id: nanoid(),
           supplierId: formData.supplierId!,
@@ -184,7 +186,7 @@ export function LabelsManager() {
           (l) => l.id === editingSupplierLabel.labelId
         );
 
-        // Check if any label properties changed
+        // Check if any label properties changed using normalized comparison
         const labelChanged =
           !originalLabel ||
           normalizeText(originalLabel.name) !==
@@ -193,26 +195,29 @@ export function LabelsManager() {
           originalLabel.printingType !== formData.printingType ||
           originalLabel.material !== formData.material ||
           originalLabel.shape !== formData.shape ||
-          originalLabel.size !== formData.size ||
-          originalLabel.labelFor !== formData.labelFor;
+          normalizeText(originalLabel.size || "") !==
+            normalizeText(formData.size || "") ||
+          normalizeText(originalLabel.labelFor || "") !==
+            normalizeText(formData.labelFor || "");
 
         let labelId = editingSupplierLabel.labelId;
 
         if (labelChanged) {
+          const normalizedName = normalizeText(formData.labelName!);
           const existingLabel = await db.labels
             .filter(
               (l) =>
-                normalizeText(l.name) === normalizeText(formData.labelName!) &&
+                normalizeText(l.name) === normalizedName &&
                 l.type === formData.labelType &&
                 l.printingType === formData.printingType &&
                 l.material === formData.material &&
                 l.shape === formData.shape &&
-                l.size === formData.size &&
-                l.labelFor === formData.labelFor
+                normalizeText(l.size || "") ===
+                  normalizeText(formData.size || "") &&
+                normalizeText(l.labelFor || "") ===
+                  normalizeText(formData.labelFor || "")
             )
             .first();
-
-          console.log("existingLabel found:", existingLabel);
 
           if (existingLabel) {
             // Use existing label (exact duplicate)
