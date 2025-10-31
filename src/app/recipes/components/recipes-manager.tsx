@@ -25,7 +25,7 @@ import { RecipesTab } from "./recipes-tab";
 import { RecipeAnalytics } from "./recipes-analytics";
 import { RecipeTweaker } from "./recipes-tweaker";
 import { RecipeVariants } from "./recipe-variants";
-
+import RecipeLab from "./recipes-lab/recipe-lab";
 import type { Recipe } from "@/lib/types";
 import { MetricCard } from "@/components/ui/metric-card";
 import { useEnrichedRecipes, useRecipeStats } from "@/hooks/use-recipes";
@@ -34,19 +34,6 @@ export function RecipeManager() {
   // Use optimized hooks
   const enrichedRecipes = useEnrichedRecipes();
   const stats = useRecipeStats();
-
-  // Handlers - simplified since inline editing is used
-  const handleEdit = (recipe: Recipe) => {
-    // Inline editing handled in RecipesTab
-  };
-
-  const handleDeleteRecipe = async (id: string) => {
-    // Deletion handled in RecipesTab
-  };
-
-  const handleAdd = () => {
-    // Addition handled in RecipesTab
-  };
 
   return (
     <div className="space-y-6 animate-fade-in">
@@ -64,10 +51,9 @@ export function RecipeManager() {
 
       {/* Tabs */}
       <Tabs defaultValue="recipes" className="space-y-6">
-        <TabsList className="grid w-full grid-cols-4">
+        <TabsList className="grid w-full grid-cols-3">
           <TabsTrigger value="recipes">Recipes</TabsTrigger>
-          <TabsTrigger value="tweaker">Optimizer</TabsTrigger>
-          <TabsTrigger value="variants">Variants</TabsTrigger>
+          <TabsTrigger value="lab">Recipe Lab</TabsTrigger>
           <TabsTrigger value="analytics">Analytics</TabsTrigger>
         </TabsList>
 
@@ -128,8 +114,10 @@ export function RecipeManager() {
           </div>
           <RecipesTab />
         </TabsContent>
-
-        <TabsContent value="tweaker" className="space-y-6">
+        <TabsContent value="lab" className="space-y-6">
+          <RecipeLab />
+        </TabsContent>
+        {/* <TabsContent value="tweaker" className="space-y-6">
           <Card className="card-enhanced">
             <CardHeader>
               <CardTitle>Recipe Optimizer</CardTitle>
@@ -155,7 +143,7 @@ export function RecipeManager() {
               <RecipeVariants recipes={enrichedRecipes} />
             </CardContent>
           </Card>
-        </TabsContent>
+        </TabsContent> */}
 
         <TabsContent value="analytics" className="space-y-6">
           <Card className="card-enhanced">

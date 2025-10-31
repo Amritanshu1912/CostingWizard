@@ -30,8 +30,11 @@ export function normalizeToKg(quantity: number, unit: CapacityUnit): number {
         ml: 0.001,
         pcs: 0.001, // Default for pieces
     };
-    return quantity * (conversions[unit] || 1);
+
+    const conversionFactor = conversions[unit] ?? 1;
+    return parseFloat((quantity * conversionFactor).toFixed(3));
 }
+
 
 /**
  * Format quantity for display
