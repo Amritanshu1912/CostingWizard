@@ -235,47 +235,6 @@ export function PackagingDrawer({
               normalizeText(existingPackaging.buildMaterial || "") ===
                 normalizeText(trimmedBuildMaterial);
 
-            console.log("Editing packaging - Exact duplicate check:");
-            console.log("existingPackaging.type:", existingPackaging.type);
-            console.log("trimmedType:", trimmedType);
-            console.log(
-              "normalizeText(existingPackaging.type):",
-              normalizeText(existingPackaging.type || "")
-            );
-            console.log(
-              "normalizeText(trimmedType):",
-              normalizeText(trimmedType)
-            );
-            console.log(
-              "existingPackaging.capacity === (capacityValue || 0):",
-              existingPackaging.capacity === (capacityValue || 0)
-            );
-            console.log(
-              "existingPackaging.unit === trimmedUnit:",
-              existingPackaging.unit === trimmedUnit
-            );
-            console.log(
-              "normalizeText(existingPackaging.unit):",
-              normalizeText(existingPackaging.unit || "")
-            );
-            console.log(
-              "normalizeText(trimmedUnit):",
-              normalizeText(trimmedUnit)
-            );
-            console.log(
-              "existingPackaging.buildMaterial === trimmedBuildMaterial:",
-              existingPackaging.buildMaterial === trimmedBuildMaterial
-            );
-            console.log(
-              "normalizeText(existingPackaging.buildMaterial):",
-              normalizeText(existingPackaging.buildMaterial || "")
-            );
-            console.log(
-              "normalizeText(trimmedBuildMaterial):",
-              normalizeText(trimmedBuildMaterial)
-            );
-            console.log("isExactDuplicate:", isExactDuplicate);
-
             if (isExactDuplicate) {
               setShakeFields(true);
               setTimeout(() => setShakeFields(false), 500);
