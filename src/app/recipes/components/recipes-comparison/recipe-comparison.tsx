@@ -30,7 +30,7 @@ function formatDate(dateString: string | Date): string {
   return date.toLocaleDateString();
 }
 
-interface VariantComparisonProps {
+interface RecipeComparisonProps {
   baseRecipe: RecipeDisplay;
   variants: (RecipeVariant & {
     costPerKg: number;
@@ -41,12 +41,12 @@ interface VariantComparisonProps {
   onClose: () => void;
 }
 
-export function VariantComparison({
+export function RecipeComparison({
   baseRecipe,
   variants,
   selectedVariantIds,
   onClose,
-}: VariantComparisonProps) {
+}: RecipeComparisonProps) {
   const selectedVariants = useMemo(() => {
     return variants.filter((v) => selectedVariantIds.includes(v.id));
   }, [variants, selectedVariantIds]);
@@ -74,7 +74,7 @@ export function VariantComparison({
           </p>
         </div>
         <Button variant="outline" onClick={onClose}>
-          Back to Lab
+          Clear Selection
         </Button>
       </div>
 

@@ -1,5 +1,5 @@
 // components/recipes/recipe-lab/recipe-lab.tsx
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -44,7 +44,6 @@ import { useRecipeExperiment } from "@/hooks/use-recipe-experiment";
 import { RecipeLabSidebar } from "./recipe-lab-sidebar";
 import { RecipeLabIngredientCard } from "./recipe-lab-ingredient-card";
 import { RecipeLabMetrics } from "./recipe-lab-metrics";
-import { VariantComparison } from "./recipe-lab-comparison";
 
 type OptimizationGoal =
   | "cost_reduction"
@@ -57,12 +56,11 @@ export default function RecipeLab() {
 
   const [selectedRecipeId, setSelectedRecipeId] = useState<string>("");
   const [saveDialogOpen, setSaveDialogOpen] = useState(false);
+  const [updateVariantDialogOpen, setUpdateVariantDialogOpen] = useState(false);
   const [variantName, setVariantName] = useState("");
   const [variantDescription, setVariantDescription] = useState("");
   const [optimizationGoal, setOptimizationGoal] =
     useState<OptimizationGoal>("cost_reduction");
-  const [comparisonMode, setComparisonMode] = useState(false);
-  const [selectedVariantIds, setSelectedVariantIds] = useState<string[]>([]);
 
   const selectedRecipe = useEnrichedRecipe(selectedRecipeId);
   const variants = useRecipeVariants(selectedRecipeId);
@@ -177,7 +175,38 @@ export default function RecipeLab() {
         updatedAt: new Date().toISOString(),
       };
 
-      await db.recipeVariants.add(variant);
+      // Store the actual ingredient data for the variant
+      const variantIngredients = experimentIngredients.map((ing) => ({
+        id: ing.id,
+        recipeId: selectedRecipe.id,
+        supplierMaterialId: ing.supplierMaterialId,
+        quantity: ing.quantity,
+        unit: ing.unit,
+        lockedPricing: ing.lockedPricing,
+        createdAt: ing.createdAt || new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      }));
+
+      // Update the recipe ingredients with the variant data
+      await db.transaction(
+        "rw",
+        [db.recipeVariants, db.recipeIngredients],
+        async () => {
+          await db.recipeVariants.add(variant);
+
+          // Delete existing ingredients for this recipe
+          await db.recipeIngredients
+            .where("recipeId")
+            .equals(selectedRecipe.id)
+            .delete();
+
+          // Add the new variant ingredients
+          for (const ing of variantIngredients) {
+            await db.recipeIngredients.add(ing);
+          }
+        }
+      );
+
       toast.success(`Variant "${variantName}" saved successfully!`);
       setSaveDialogOpen(false);
       setVariantName("");
@@ -185,6 +214,118 @@ export default function RecipeLab() {
     } catch (error) {
       console.error("Save variant error:", error);
       toast.error("Failed to save variant");
+    }
+  };
+
+  const handleUpdateVariant = async () => {
+    if (!selectedRecipe || !loadedVariantName) {
+      toast.error("No variant loaded to update");
+      return;
+    }
+
+    try {
+      const existingVariant = variants.find(
+        (v) => v.name === loadedVariantName
+      );
+      if (!existingVariant) {
+        toast.error("Variant not found");
+        return;
+      }
+
+      const changes = experimentIngredients
+        .filter((ing) => ing._changed)
+        .map((ing) => {
+          const sm = supplierMaterials.find(
+            (s) => s.id === ing.supplierMaterialId
+          );
+          const changeTypes = Array.from(ing._changeTypes || []);
+
+          if (
+            changeTypes.includes("quantity") &&
+            changeTypes.includes("supplier")
+          ) {
+            return [
+              {
+                type: "quantity_change" as const,
+                ingredientName: sm?.displayName || "Unknown",
+                oldValue: `${ing._originalQuantity}`,
+                newValue: `${ing.quantity}`,
+                changedAt: new Date(),
+              },
+              {
+                type: "supplier_change" as const,
+                ingredientName: sm?.displayName || "Unknown",
+                oldValue:
+                  supplierMaterials.find(
+                    (s) => s.id === ing._originalSupplierId
+                  )?.supplier?.name || "Unknown",
+                newValue: sm?.supplier?.name || "Unknown",
+                changedAt: new Date(),
+              },
+            ];
+          } else if (changeTypes.includes("quantity")) {
+            return {
+              type: "quantity_change" as const,
+              ingredientName: sm?.displayName || "Unknown",
+              oldValue: `${ing._originalQuantity}`,
+              newValue: `${ing.quantity}`,
+              changedAt: new Date(),
+            };
+          } else if (changeTypes.includes("supplier")) {
+            return {
+              type: "supplier_change" as const,
+              ingredientName: sm?.displayName || "Unknown",
+              oldValue:
+                supplierMaterials.find((s) => s.id === ing._originalSupplierId)
+                  ?.supplier?.name || "Unknown",
+              newValue: sm?.supplier?.name || "Unknown",
+              changedAt: new Date(),
+            };
+          }
+          return null;
+        })
+        .flat()
+        .filter(Boolean);
+
+      // Store the updated ingredient data for the variant
+      const updatedVariantIngredients = experimentIngredients.map((ing) => ({
+        id: ing.id,
+        recipeId: selectedRecipe.id,
+        supplierMaterialId: ing.supplierMaterialId,
+        quantity: ing.quantity,
+        unit: ing.unit,
+        lockedPricing: ing.lockedPricing,
+        createdAt: ing.createdAt || new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      }));
+
+      await db.transaction(
+        "rw",
+        [db.recipeVariants, db.recipeIngredients],
+        async () => {
+          await db.recipeVariants.update(existingVariant.id, {
+            ingredientIds: experimentIngredients.map((ing) => ing.id),
+            changes: changes as any,
+            updatedAt: new Date().toISOString(),
+          });
+
+          // Update the recipe ingredients with the variant data
+          await db.recipeIngredients
+            .where("recipeId")
+            .equals(selectedRecipe.id)
+            .delete();
+
+          for (const ing of updatedVariantIngredients) {
+            await db.recipeIngredients.add(ing);
+          }
+        }
+      );
+
+      toast.success(`Variant "${loadedVariantName}" updated successfully!`);
+      setUpdateVariantDialogOpen(false);
+    } catch (error) {
+      console.error("Update variant error:", error);
+      toast.error("Failed to update variant");
     }
   };
 
@@ -241,18 +382,11 @@ export default function RecipeLab() {
     }
   };
 
-  const handleCompareVariant = (variantId: string) => {
-    setSelectedVariantIds((prev) => {
-      if (prev.includes(variantId)) {
-        return prev.filter((id) => id !== variantId);
-      }
-      if (prev.length >= 3) {
-        toast.error("Maximum 3 variants can be compared");
-        return prev;
-      }
-      return [...prev, variantId];
-    });
-  };
+  const handleLoadOriginalRecipe = useCallback(() => {
+    if (selectedRecipe) {
+      initializeExperiment(selectedRecipe);
+    }
+  }, [selectedRecipe, initializeExperiment]);
 
   if (!selectedRecipe) {
     return (
@@ -293,145 +427,155 @@ export default function RecipeLab() {
   }
 
   return (
-    <div className="flex gap-6 h-[calc(100vh-12rem)] relative">
-      {/* Show compare button when 2+ variants selected */}
-      {selectedVariantIds.length >= 2 && !comparisonMode && (
-        <div className="absolute top-4 left-1/2 -translate-x-1/2 z-10">
-          <Button onClick={() => setComparisonMode(true)} className="shadow-lg">
-            <GitBranch className="w-4 h-4 mr-2" />
-            Compare {selectedVariantIds.length} Variants
-          </Button>
-        </div>
-      )}
-      {comparisonMode ? (
-        // COMPARISON VIEW
-        <div className="flex-1">
-          <VariantComparison
-            baseRecipe={selectedRecipe}
-            variants={variants}
-            selectedVariantIds={selectedVariantIds}
-            onClose={() => {
-              setComparisonMode(false);
-              setSelectedVariantIds([]);
-            }}
-          />
-        </div>
-      ) : (
-        // EXPERIMENT VIEW (existing layout)
-        <>
-          {/* LEFT SIDEBAR */}
-          <RecipeLabSidebar
-            recipes={enrichedRecipes}
-            selectedRecipeId={selectedRecipeId}
-            variants={variants}
-            changeCount={metrics.changeCount}
-            onSelectRecipe={setSelectedRecipeId}
-            onLoadVariant={loadVariant}
-            onCompareVariant={handleCompareVariant}
-            onResetAll={handleResetAll}
-          />
+    <div className="flex gap-6 h-[calc(100vh-12rem)]">
+      {/* EXPERIMENT VIEW (existing layout) */}
+      <>
+        {/* LEFT SIDEBAR */}
+        <RecipeLabSidebar
+          recipes={enrichedRecipes}
+          selectedRecipeId={selectedRecipeId}
+          variants={variants}
+          changeCount={metrics.changeCount}
+          loadedVariantName={loadedVariantName}
+          onSelectRecipe={setSelectedRecipeId}
+          onLoadVariant={(variant) =>
+            loadVariant(variant.name, variant.ingredientIds)
+          }
+          onResetAll={handleResetAll}
+        />
 
-          {/* CENTER CANVAS */}
-          <Card className="flex-1 flex flex-col py-2">
-            <div className="p-4 border-b flex items-center justify-between">
-              <div>
-                <h3 className="font-semibold flex items-center gap-2">
-                  <Edit3 className="w-4 h-4" />
-                  {loadedVariantName ? (
-                    <>
-                      Editing Variant:{" "}
-                      <span className="text-blue-600">{loadedVariantName}</span>
-                    </>
-                  ) : (
-                    "Experiment Workspace"
+        {/* CENTER CANVAS */}
+        <Card className="flex-1 flex flex-col py-2">
+          <div className="p-4 border-b flex items-center justify-between">
+            <div>
+              <h3 className="font-semibold flex items-center gap-2">
+                <Edit3 className="w-4 h-4" />
+                Experiment Workspace
+              </h3>
+              <p className="text-sm text-muted-foreground mt-1">
+                {loadedVariantName ? (
+                  <>
+                    <span
+                      className="text-blue-600 cursor-pointer hover:underline"
+                      onClick={handleLoadOriginalRecipe}
+                    >
+                      {selectedRecipe.name}
+                    </span>
+                    {" → "}
+                    <span className="text-black">{loadedVariantName}</span>
+                  </>
+                ) : (
+                  selectedRecipe.name
+                )}
+              </p>
+            </div>
+          </div>
+
+          <ScrollArea className="flex-1 min-h-0 px-4 py-0">
+            <div className="space-y-3">
+              {experimentIngredients.map((ing, index) => (
+                <RecipeLabIngredientCard
+                  key={ing.id}
+                  ingredient={ing}
+                  index={index}
+                  supplierMaterial={supplierMaterials.find(
+                    (s) => s.id === ing.supplierMaterialId
                   )}
-                </h3>
-                <p className="text-sm text-muted-foreground mt-1">
-                  {selectedRecipe.name}
-                </p>
+                  alternatives={getAlternatives(ing)}
+                  isExpanded={expandedAlternatives.has(ing.id)}
+                  onQuantityChange={handleQuantityChange}
+                  onSupplierChange={handleSupplierChange}
+                  onTogglePriceLock={handleTogglePriceLock}
+                  onRemove={handleRemoveIngredient}
+                  onReset={handleResetIngredient}
+                  onToggleAlternatives={toggleAlternatives}
+                />
+              ))}
+            </div>
+          </ScrollArea>
+
+          {/* Floating Action Panel */}
+          {metrics.changeCount > 0 && (
+            <div className="p-4 border-t bg-slate-50">
+              <div className="flex items-center justify-between mb-3">
+                <div>
+                  <p className="text-sm text-muted-foreground">
+                    {metrics.changeCount} change
+                    {metrics.changeCount > 1 ? "s" : ""} •{" "}
+                    <span
+                      className={
+                        metrics.savings > 0
+                          ? "text-green-600 font-semibold"
+                          : "text-red-600 font-semibold"
+                      }
+                    >
+                      {metrics.savings > 0 ? "-" : "+"}₹
+                      {Math.abs(metrics.savings).toFixed(2)}/kg
+                    </span>{" "}
+                    ({metrics.savingsPercent.toFixed(1)}%)
+                  </p>
+                </div>
+              </div>
+              <div className="flex gap-2">
+                <Button
+                  variant="outline"
+                  className="flex-1"
+                  onClick={handleResetAll}
+                >
+                  Discard Changes
+                </Button>
+                {loadedVariantName ? (
+                  <>
+                    <Button
+                      variant="outline"
+                      className="flex-1"
+                      onClick={() => setUpdateVariantDialogOpen(true)}
+                    >
+                      <Save className="w-4 h-4 mr-2" />
+                      Save Variant
+                    </Button>
+                    <Button
+                      variant="outline"
+                      className="flex-1"
+                      onClick={() => setSaveDialogOpen(true)}
+                    >
+                      <Save className="w-4 h-4 mr-2" />
+                      Save as New Variant
+                    </Button>
+                    <Button className="flex-1" onClick={handleUpdateOriginal}>
+                      Update Original Recipe
+                    </Button>
+                  </>
+                ) : (
+                  <>
+                    <Button
+                      variant="outline"
+                      className="flex-1"
+                      onClick={() => setSaveDialogOpen(true)}
+                    >
+                      <Save className="w-4 h-4 mr-2" />
+                      Save as Variant
+                    </Button>
+                    <Button className="flex-1" onClick={handleUpdateOriginal}>
+                      Update Recipe
+                    </Button>
+                  </>
+                )}
               </div>
             </div>
+          )}
+        </Card>
 
-            <ScrollArea className="flex-1 min-h-0 px-4 py-0">
-              <div className="space-y-3">
-                {experimentIngredients.map((ing, index) => (
-                  <RecipeLabIngredientCard
-                    key={ing.id}
-                    ingredient={ing}
-                    index={index}
-                    supplierMaterial={supplierMaterials.find(
-                      (s) => s.id === ing.supplierMaterialId
-                    )}
-                    alternatives={getAlternatives(ing)}
-                    isExpanded={expandedAlternatives.has(ing.id)}
-                    onQuantityChange={handleQuantityChange}
-                    onSupplierChange={handleSupplierChange}
-                    onTogglePriceLock={handleTogglePriceLock}
-                    onRemove={handleRemoveIngredient}
-                    onReset={handleResetIngredient}
-                    onToggleAlternatives={toggleAlternatives}
-                  />
-                ))}
-              </div>
-            </ScrollArea>
-
-            {/* Floating Action Panel */}
-            {metrics.changeCount > 0 && (
-              <div className="p-4 border-t bg-slate-50">
-                <div className="flex items-center justify-between mb-3">
-                  <div>
-                    <p className="text-sm text-muted-foreground">
-                      {metrics.changeCount} change
-                      {metrics.changeCount > 1 ? "s" : ""} •{" "}
-                      <span
-                        className={
-                          metrics.savings > 0
-                            ? "text-green-600 font-semibold"
-                            : "text-red-600 font-semibold"
-                        }
-                      >
-                        {metrics.savings > 0 ? "-" : "+"}₹
-                        {Math.abs(metrics.savings).toFixed(2)}/kg
-                      </span>{" "}
-                      ({metrics.savingsPercent.toFixed(1)}%)
-                    </p>
-                  </div>
-                </div>
-                <div className="flex gap-2">
-                  <Button
-                    variant="outline"
-                    className="flex-1"
-                    onClick={handleResetAll}
-                  >
-                    Discard
-                  </Button>
-                  <Button
-                    variant="outline"
-                    className="flex-1"
-                    onClick={() => setSaveDialogOpen(true)}
-                  >
-                    <Save className="w-4 h-4 mr-2" />
-                    Save as Variant
-                  </Button>
-                  <Button className="flex-1" onClick={handleUpdateOriginal}>
-                    Update Recipe
-                  </Button>
-                </div>
-              </div>
-            )}
-          </Card>
-
-          {/* RIGHT PANEL - METRICS */}
-          <RecipeLabMetrics
-            metrics={metrics}
-            targetCost={targetCost}
-            experimentIngredients={experimentIngredients}
-            supplierMaterials={supplierMaterials}
-            onApplySuggestion={handleSupplierChange}
-            getAlternatives={getAlternatives}
-          />
-        </>
-      )}
+        {/* RIGHT PANEL - METRICS */}
+        <RecipeLabMetrics
+          metrics={metrics}
+          targetCost={targetCost}
+          experimentIngredients={experimentIngredients}
+          supplierMaterials={supplierMaterials}
+          onApplySuggestion={handleSupplierChange}
+          getAlternatives={getAlternatives}
+        />
+      </>
 
       {/* Save Variant Dialog */}
       <AlertDialog open={saveDialogOpen} onOpenChange={setSaveDialogOpen}>
@@ -545,7 +689,72 @@ export default function RecipeLab() {
           <AlertDialogFooter>
             <AlertDialogCancel>Cancel</AlertDialogCancel>
             <AlertDialogAction onClick={handleSaveVariant}>
-              Save Variant
+              Update Variant
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Update Variant Dialog */}
+      <AlertDialog
+        open={updateVariantDialogOpen}
+        onOpenChange={setUpdateVariantDialogOpen}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Update Variant</AlertDialogTitle>
+            <AlertDialogDescription>
+              Update the currently loaded variant "{loadedVariantName}" with
+              your changes
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+
+          <div className="space-y-4 py-4">
+            <div className="p-3 bg-slate-50 rounded-lg">
+              <p className="text-sm font-medium mb-2">Changes Summary</p>
+              <div className="space-y-1">
+                {experimentIngredients
+                  .filter((ing) => ing._changed)
+                  .map((ing) => {
+                    const sm = supplierMaterials.find(
+                      (s) => s.id === ing.supplierMaterialId
+                    );
+                    const changeTypes = Array.from(ing._changeTypes || []);
+                    return (
+                      <div
+                        key={ing.id}
+                        className="text-xs text-muted-foreground"
+                      >
+                        • {sm?.displayName || "Unknown"}:{" "}
+                        {changeTypes.includes("quantity") && (
+                          <span>
+                            Qty changed ({ing._originalQuantity} →{" "}
+                            {ing.quantity})
+                          </span>
+                        )}
+                        {changeTypes.includes("quantity") &&
+                          changeTypes.includes("supplier") &&
+                          ", "}
+                        {changeTypes.includes("supplier") && (
+                          <span>Supplier switched</span>
+                        )}
+                      </div>
+                    );
+                  })}
+              </div>
+              <div className="mt-2 pt-2 border-t">
+                <p className="text-sm font-semibold text-green-600">
+                  Total Savings: ₹{metrics.savings.toFixed(2)}/kg (
+                  {metrics.savingsPercent.toFixed(1)}%)
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={handleUpdateVariant}>
+              Update Variant
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

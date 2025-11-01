@@ -261,6 +261,13 @@ export function useRecipeExperiment(recipe: RecipeDisplay | null) {
     const loadVariant = useCallback((variantName: string, ingredientIds: string[]) => {
         if (!recipe) return;
 
+        // For variants, we need to load the actual ingredient data from the database
+        // since variants store their own ingredient data
+        // The ingredientIds in the variant point to the recipe ingredients that were modified
+
+        // For now, we'll load the current recipe ingredients and mark them as unchanged
+        // This is a simplified approach - in a full implementation, variants would store
+        // their complete ingredient snapshots
         const variantIngredients = recipe.ingredients
             .filter(ing => ingredientIds.includes(ing.id))
             .map(ing => ({
@@ -273,7 +280,7 @@ export function useRecipeExperiment(recipe: RecipeDisplay | null) {
                 lockedPricing: ing.lockedPricing,
                 createdAt: ing.createdAt,
                 updatedAt: ing.updatedAt,
-                // Experiment tracking fields
+                // Experiment tracking fields - variants start with no changes
                 _originalQuantity: ing.quantity,
                 _originalSupplierId: ing.supplierMaterialId,
                 _changeTypes: new Set<'quantity' | 'supplier'>(),

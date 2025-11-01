@@ -24,9 +24,9 @@ interface RecipeLabSidebarProps {
     costDifferencePercentage: number;
   })[];
   changeCount: number;
+  loadedVariantName?: string | null;
   onSelectRecipe: (recipeId: string) => void;
-  onLoadVariant: (variantName: string, ingredientIds: string[]) => void;
-  onCompareVariant: (variantId: string) => void;
+  onLoadVariant: (variant: RecipeVariant) => void;
   onResetAll: () => void;
 }
 
@@ -35,9 +35,9 @@ export function RecipeLabSidebar({
   selectedRecipeId,
   variants,
   changeCount,
+  loadedVariantName,
   onSelectRecipe,
   onLoadVariant,
-  onCompareVariant,
   onResetAll,
 }: RecipeLabSidebarProps) {
   return (
@@ -87,7 +87,14 @@ export function RecipeLabSidebar({
                 </p>
               ) : (
                 variants.map((variant) => (
-                  <Card key={variant.id} className="p-3">
+                  <Card
+                    key={variant.id}
+                    className={`p-3 ${
+                      variant.name === loadedVariantName
+                        ? "border-2 border-blue-500 bg-blue-50"
+                        : ""
+                    }`}
+                  >
                     <div className="flex items-start justify-between mb-2">
                       <div className="flex-1 min-w-0">
                         <p className="font-medium text-sm truncate">
@@ -109,19 +116,9 @@ export function RecipeLabSidebar({
                         size="sm"
                         variant="outline"
                         className="flex-1 h-7 text-xs"
-                        onClick={() =>
-                          onLoadVariant(variant.name, variant.ingredientIds)
-                        }
+                        onClick={() => onLoadVariant(variant)}
                       >
                         Load
-                      </Button>
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        className="flex-1 h-7 text-xs"
-                        onClick={() => onCompareVariant(variant.id)}
-                      >
-                        Compare
                       </Button>
                     </div>
                   </Card>
