@@ -255,6 +255,10 @@ export interface RecipeVariant extends BaseEntity {
 
     // Core formulation
     ingredientIds: string[];
+    // Optional full snapshot of variant ingredients to avoid referencing mutable
+    // recipe ingredient records. This allows historic variants to stay immutable
+    // even if the base recipe changes.
+    ingredientsSnapshot?: VariantIngredientSnapshot[];
 
     // Business context
     optimizationGoal?: "cost_reduction" | "quality_improvement" | "supplier_diversification" | "other";

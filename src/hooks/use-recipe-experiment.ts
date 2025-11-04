@@ -258,37 +258,51 @@ export function useRecipeExperiment(recipe: RecipeDisplay | null) {
         });
     }, []);
 
-    const loadVariant = useCallback((variantName: string, ingredientIds: string[]) => {
-        if (!recipe) return;
 
-        // For variants, we need to load the actual ingredient data from the database
-        // since variants store their own ingredient data
-        // The ingredientIds in the variant point to the recipe ingredients that were modified
+    // Load a variant into the experiment. Prefer using an embedded snapshot
+    // (ingredientsSnapshot) if present. This ensures variant isolation and
+    // prevents edits in one variant from affecting others or the base recipe.
+    const loadVariant = useCallback((variant: any) => {
+        if (!recipe || !variant) return;
 
-        // For now, we'll load the current recipe ingredients and mark them as unchanged
-        // This is a simplified approach - in a full implementation, variants would store
-        // their complete ingredient snapshots
-        const variantIngredients = recipe.ingredients
-            .filter(ing => ingredientIds.includes(ing.id))
-            .map(ing => ({
-                // Only include RecipeIngredient properties + experiment fields
-                id: ing.id,
-                recipeId: ing.recipeId,
+        let variantIngredients: ExperimentIngredient[] = [];
+
+        if (Array.isArray(variant.ingredientsSnapshot) && variant.ingredientsSnapshot.length > 0) {
+            variantIngredients = variant.ingredientsSnapshot.map((ing: any) => ({
+                id: ing.id || `temp-${Date.now()}-${Math.random()}`,
+                recipeId: recipe.id,
                 supplierMaterialId: ing.supplierMaterialId,
                 quantity: ing.quantity,
                 unit: ing.unit,
                 lockedPricing: ing.lockedPricing,
-                createdAt: ing.createdAt,
-                updatedAt: ing.updatedAt,
-                // Experiment tracking fields - variants start with no changes
+                createdAt: ing.createdAt || new Date().toISOString(),
+                updatedAt: ing.updatedAt || new Date().toISOString(),
                 _originalQuantity: ing.quantity,
                 _originalSupplierId: ing.supplierMaterialId,
                 _changeTypes: new Set<'quantity' | 'supplier'>(),
             }));
+        } else {
+            // Fallback: use current recipe's ingredients filtered by variant ingredientIds
+            variantIngredients = recipe.ingredients
+                .filter((ing) => (variant.ingredientIds || []).includes(ing.id))
+                .map((ing) => ({
+                    id: ing.id,
+                    recipeId: ing.recipeId,
+                    supplierMaterialId: ing.supplierMaterialId,
+                    quantity: ing.quantity,
+                    unit: ing.unit,
+                    lockedPricing: ing.lockedPricing,
+                    createdAt: ing.createdAt,
+                    updatedAt: ing.updatedAt,
+                    _originalQuantity: ing.quantity,
+                    _originalSupplierId: ing.supplierMaterialId,
+                    _changeTypes: new Set<'quantity' | 'supplier'>(),
+                }));
+        }
 
         setExperimentIngredients(variantIngredients);
-        setLoadedVariantName(variantName);
-        toast.success(`Loaded variant: ${variantName}`);
+        setLoadedVariantName(variant.name || null);
+        toast.success(`Loaded variant: ${variant.name || 'Variant'}`);
     }, [recipe]);
 
     return {

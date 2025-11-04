@@ -44,6 +44,7 @@ import { useRecipeExperiment } from "@/hooks/use-recipe-experiment";
 import { RecipeLabSidebar } from "./recipe-lab-sidebar";
 import { RecipeLabIngredientCard } from "./recipe-lab-ingredient-card";
 import { RecipeLabMetrics } from "./recipe-lab-metrics";
+import { CenterPanel } from "./recipe-lab-center-panel";
 
 type OptimizationGoal =
   | "cost_reduction"
@@ -175,10 +176,9 @@ export default function RecipeLab() {
         updatedAt: new Date().toISOString(),
       };
 
-      // Store the actual ingredient data for the variant
-      const variantIngredients = experimentIngredients.map((ing) => ({
-        id: ing.id,
-        recipeId: selectedRecipe.id,
+      // Create a snapshot of the variant ingredients to keep the variant
+      // immutable and isolated from later edits to the base recipe.
+      const ingredientsSnapshot = experimentIngredients.map((ing) => ({
         supplierMaterialId: ing.supplierMaterialId,
         quantity: ing.quantity,
         unit: ing.unit,
@@ -187,25 +187,11 @@ export default function RecipeLab() {
         updatedAt: new Date().toISOString(),
       }));
 
-      // Update the recipe ingredients with the variant data
-      await db.transaction(
-        "rw",
-        [db.recipeVariants, db.recipeIngredients],
-        async () => {
-          await db.recipeVariants.add(variant);
-
-          // Delete existing ingredients for this recipe
-          await db.recipeIngredients
-            .where("recipeId")
-            .equals(selectedRecipe.id)
-            .delete();
-
-          // Add the new variant ingredients
-          for (const ing of variantIngredients) {
-            await db.recipeIngredients.add(ing);
-          }
-        }
-      );
+      // Save the variant (no longer touching recipeIngredients)
+      await db.recipeVariants.add({
+        ...variant,
+        ingredientsSnapshot,
+      });
 
       toast.success(`Variant "${variantName}" saved successfully!`);
       setSaveDialogOpen(false);
@@ -287,10 +273,8 @@ export default function RecipeLab() {
         .flat()
         .filter(Boolean);
 
-      // Store the updated ingredient data for the variant
-      const updatedVariantIngredients = experimentIngredients.map((ing) => ({
-        id: ing.id,
-        recipeId: selectedRecipe.id,
+      // Create updated snapshot
+      const ingredientsSnapshot = experimentIngredients.map((ing) => ({
         supplierMaterialId: ing.supplierMaterialId,
         quantity: ing.quantity,
         unit: ing.unit,
@@ -299,27 +283,12 @@ export default function RecipeLab() {
         updatedAt: new Date().toISOString(),
       }));
 
-      await db.transaction(
-        "rw",
-        [db.recipeVariants, db.recipeIngredients],
-        async () => {
-          await db.recipeVariants.update(existingVariant.id, {
-            ingredientIds: experimentIngredients.map((ing) => ing.id),
-            changes: changes as any,
-            updatedAt: new Date().toISOString(),
-          });
-
-          // Update the recipe ingredients with the variant data
-          await db.recipeIngredients
-            .where("recipeId")
-            .equals(selectedRecipe.id)
-            .delete();
-
-          for (const ing of updatedVariantIngredients) {
-            await db.recipeIngredients.add(ing);
-          }
-        }
-      );
+      await db.recipeVariants.update(existingVariant.id, {
+        ingredientIds: experimentIngredients.map((ing) => ing.id),
+        ingredientsSnapshot,
+        changes: changes as any,
+        updatedAt: new Date().toISOString(),
+      });
 
       toast.success(`Variant "${loadedVariantName}" updated successfully!`);
       setUpdateVariantDialogOpen(false);
@@ -438,133 +407,29 @@ export default function RecipeLab() {
           changeCount={metrics.changeCount}
           loadedVariantName={loadedVariantName}
           onSelectRecipe={setSelectedRecipeId}
-          onLoadVariant={(variant) =>
-            loadVariant(variant.name, variant.ingredientIds)
-          }
+          onLoadVariant={(variant) => loadVariant(variant)}
           onResetAll={handleResetAll}
         />
-
-        {/* CENTER CANVAS */}
-        <Card className="flex-1 flex flex-col py-2">
-          <div className="p-4 border-b flex items-center justify-between">
-            <div>
-              <h3 className="font-semibold flex items-center gap-2">
-                <Edit3 className="w-4 h-4" />
-                Experiment Workspace
-              </h3>
-              <p className="text-sm text-muted-foreground mt-1">
-                {loadedVariantName ? (
-                  <>
-                    <span
-                      className="text-blue-600 cursor-pointer hover:underline"
-                      onClick={handleLoadOriginalRecipe}
-                    >
-                      {selectedRecipe.name}
-                    </span>
-                    {" → "}
-                    <span className="text-black">{loadedVariantName}</span>
-                  </>
-                ) : (
-                  selectedRecipe.name
-                )}
-              </p>
-            </div>
-          </div>
-
-          <ScrollArea className="flex-1 min-h-0 px-4 py-0">
-            <div className="space-y-3">
-              {experimentIngredients.map((ing, index) => (
-                <RecipeLabIngredientCard
-                  key={ing.id}
-                  ingredient={ing}
-                  index={index}
-                  supplierMaterial={supplierMaterials.find(
-                    (s) => s.id === ing.supplierMaterialId
-                  )}
-                  alternatives={getAlternatives(ing)}
-                  isExpanded={expandedAlternatives.has(ing.id)}
-                  onQuantityChange={handleQuantityChange}
-                  onSupplierChange={handleSupplierChange}
-                  onTogglePriceLock={handleTogglePriceLock}
-                  onRemove={handleRemoveIngredient}
-                  onReset={handleResetIngredient}
-                  onToggleAlternatives={toggleAlternatives}
-                />
-              ))}
-            </div>
-          </ScrollArea>
-
-          {/* Floating Action Panel */}
-          {metrics.changeCount > 0 && (
-            <div className="p-4 border-t bg-slate-50">
-              <div className="flex items-center justify-between mb-3">
-                <div>
-                  <p className="text-sm text-muted-foreground">
-                    {metrics.changeCount} change
-                    {metrics.changeCount > 1 ? "s" : ""} •{" "}
-                    <span
-                      className={
-                        metrics.savings > 0
-                          ? "text-green-600 font-semibold"
-                          : "text-red-600 font-semibold"
-                      }
-                    >
-                      {metrics.savings > 0 ? "-" : "+"}₹
-                      {Math.abs(metrics.savings).toFixed(2)}/kg
-                    </span>{" "}
-                    ({metrics.savingsPercent.toFixed(1)}%)
-                  </p>
-                </div>
-              </div>
-              <div className="flex gap-2">
-                <Button
-                  variant="outline"
-                  className="flex-1"
-                  onClick={handleResetAll}
-                >
-                  Discard Changes
-                </Button>
-                {loadedVariantName ? (
-                  <>
-                    <Button
-                      variant="outline"
-                      className="flex-1"
-                      onClick={() => setUpdateVariantDialogOpen(true)}
-                    >
-                      <Save className="w-4 h-4 mr-2" />
-                      Save Variant
-                    </Button>
-                    <Button
-                      variant="outline"
-                      className="flex-1"
-                      onClick={() => setSaveDialogOpen(true)}
-                    >
-                      <Save className="w-4 h-4 mr-2" />
-                      Save as New Variant
-                    </Button>
-                    <Button className="flex-1" onClick={handleUpdateOriginal}>
-                      Update Original Recipe
-                    </Button>
-                  </>
-                ) : (
-                  <>
-                    <Button
-                      variant="outline"
-                      className="flex-1"
-                      onClick={() => setSaveDialogOpen(true)}
-                    >
-                      <Save className="w-4 h-4 mr-2" />
-                      Save as Variant
-                    </Button>
-                    <Button className="flex-1" onClick={handleUpdateOriginal}>
-                      Update Recipe
-                    </Button>
-                  </>
-                )}
-              </div>
-            </div>
-          )}
-        </Card>
+        <CenterPanel
+          selectedRecipeName={selectedRecipe.name}
+          loadedVariantName={loadedVariantName}
+          experimentIngredients={experimentIngredients}
+          supplierMaterials={supplierMaterials}
+          expandedAlternatives={expandedAlternatives}
+          metrics={metrics}
+          getAlternatives={getAlternatives}
+          handleQuantityChange={handleQuantityChange}
+          handleSupplierChange={handleSupplierChange}
+          handleTogglePriceLock={handleTogglePriceLock}
+          handleRemoveIngredient={handleRemoveIngredient}
+          handleResetIngredient={handleResetIngredient}
+          toggleAlternatives={toggleAlternatives}
+          handleResetAll={handleResetAll}
+          setSaveDialogOpen={setSaveDialogOpen}
+          setUpdateVariantDialogOpen={setUpdateVariantDialogOpen}
+          handleLoadOriginalRecipe={handleLoadOriginalRecipe}
+          handleUpdateOriginal={handleUpdateOriginal}
+        />
 
         {/* RIGHT PANEL - METRICS */}
         <RecipeLabMetrics
