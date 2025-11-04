@@ -247,6 +247,10 @@ export interface Recipe extends BaseEntity {
     notes?: string;
 }
 
+export type OptimizationGoalType =
+    | "cost_reduction"
+    | "supplier_diversification"
+    | "custom";
 
 export interface RecipeVariant extends BaseEntity {
     originalRecipeId: string;

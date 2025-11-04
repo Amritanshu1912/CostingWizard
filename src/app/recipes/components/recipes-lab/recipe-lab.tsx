@@ -1,11 +1,5 @@
-// components/recipes/recipe-lab/recipe-lab.tsx
+// components/recipes/recipes-lab/recipe-lab.tsx
 import React, { useState, useEffect, useCallback } from "react";
-import { Card } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import {
   Select,
   SelectContent,
@@ -13,23 +7,18 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { FlaskConical } from "lucide-react";
 import {
   AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
+  AlertDialogTrigger,
   AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogCancel,
+  AlertDialogAction,
 } from "@/components/ui/alert-dialog";
-import {
-  FlaskConical,
-  TrendingDown,
-  GitBranch,
-  Save,
-  Edit3,
-} from "lucide-react";
 import { toast } from "sonner";
 import { db } from "@/lib/db";
 import type { RecipeVariant } from "@/lib/types";
@@ -42,14 +31,10 @@ import {
 import { useSupplierMaterialsWithDetails } from "@/hooks/use-supplier-materials-with-details";
 import { useRecipeExperiment } from "@/hooks/use-recipe-experiment";
 import { RecipeLabSidebar } from "./recipe-lab-sidebar";
-import { RecipeLabIngredientCard } from "./recipe-lab-ingredient-card";
+import { RecipeLabWorkspace } from "./recipe-lab-workspace";
 import { RecipeLabMetrics } from "./recipe-lab-metrics";
-import { CenterPanel } from "./recipe-lab-center-panel";
-
-type OptimizationGoal =
-  | "cost_reduction"
-  | "supplier_diversification"
-  | "custom";
+import { RecipeLabDialogs } from "./recipe-lab-dialogs";
+import { OptimizationGoalType } from "@/lib/types";
 
 export default function RecipeLab() {
   const enrichedRecipes = useEnrichedRecipes();
@@ -61,7 +46,7 @@ export default function RecipeLab() {
   const [variantName, setVariantName] = useState("");
   const [variantDescription, setVariantDescription] = useState("");
   const [optimizationGoal, setOptimizationGoal] =
-    useState<OptimizationGoal>("cost_reduction");
+    useState<OptimizationGoalType>("cost_reduction");
 
   const selectedRecipe = useEnrichedRecipe(selectedRecipeId);
   const variants = useRecipeVariants(selectedRecipeId);
@@ -99,6 +84,55 @@ export default function RecipeLab() {
     }
   }, [selectedRecipe, initializeExperiment]);
 
+  const createVariantChanges = useCallback(() => {
+    return experimentIngredients
+      .filter((ing) => ing._changed)
+      .map((ing) => {
+        const sm = supplierMaterials.find(
+          (s) => s.id === ing.supplierMaterialId
+        );
+        const changeTypes = Array.from(ing._changeTypes || []);
+        const changes = [];
+
+        if (changeTypes.includes("quantity")) {
+          changes.push({
+            type: "quantity_change" as const,
+            ingredientName: sm?.displayName || "Unknown",
+            oldValue: `${ing._originalQuantity}`,
+            newValue: `${ing.quantity}`,
+            changedAt: new Date(),
+          });
+        }
+
+        if (changeTypes.includes("supplier")) {
+          changes.push({
+            type: "supplier_change" as const,
+            ingredientName: sm?.displayName || "Unknown",
+            oldValue:
+              supplierMaterials.find((s) => s.id === ing._originalSupplierId)
+                ?.supplier?.name || "Unknown",
+            newValue: sm?.supplier?.name || "Unknown",
+            changedAt: new Date(),
+          });
+        }
+
+        return changes;
+      })
+      .flat()
+      .filter(Boolean);
+  }, [experimentIngredients, supplierMaterials]);
+
+  const createVariantSnapshot = useCallback(() => {
+    return experimentIngredients.map((ing) => ({
+      supplierMaterialId: ing.supplierMaterialId,
+      quantity: ing.quantity,
+      unit: ing.unit,
+      lockedPricing: ing.lockedPricing,
+      createdAt: ing.createdAt || new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    }));
+  }, [experimentIngredients]);
+
   const handleSaveVariant = async () => {
     if (!selectedRecipe || !variantName.trim()) {
       toast.error("Variant name is required");
@@ -106,61 +140,6 @@ export default function RecipeLab() {
     }
 
     try {
-      const changes = experimentIngredients
-        .filter((ing) => ing._changed)
-        .map((ing) => {
-          const sm = supplierMaterials.find(
-            (s) => s.id === ing.supplierMaterialId
-          );
-          const changeTypes = Array.from(ing._changeTypes || []);
-
-          if (
-            changeTypes.includes("quantity") &&
-            changeTypes.includes("supplier")
-          ) {
-            return [
-              {
-                type: "quantity_change" as const,
-                ingredientName: sm?.displayName || "Unknown",
-                oldValue: `${ing._originalQuantity}`,
-                newValue: `${ing.quantity}`,
-                changedAt: new Date(),
-              },
-              {
-                type: "supplier_change" as const,
-                ingredientName: sm?.displayName || "Unknown",
-                oldValue:
-                  supplierMaterials.find(
-                    (s) => s.id === ing._originalSupplierId
-                  )?.supplier?.name || "Unknown",
-                newValue: sm?.supplier?.name || "Unknown",
-                changedAt: new Date(),
-              },
-            ];
-          } else if (changeTypes.includes("quantity")) {
-            return {
-              type: "quantity_change" as const,
-              ingredientName: sm?.displayName || "Unknown",
-              oldValue: `${ing._originalQuantity}`,
-              newValue: `${ing.quantity}`,
-              changedAt: new Date(),
-            };
-          } else if (changeTypes.includes("supplier")) {
-            return {
-              type: "supplier_change" as const,
-              ingredientName: sm?.displayName || "Unknown",
-              oldValue:
-                supplierMaterials.find((s) => s.id === ing._originalSupplierId)
-                  ?.supplier?.name || "Unknown",
-              newValue: sm?.supplier?.name || "Unknown",
-              changedAt: new Date(),
-            };
-          }
-          return null;
-        })
-        .flat()
-        .filter(Boolean);
-
       const variant: RecipeVariant = {
         id: Date.now().toString(),
         originalRecipeId: selectedRecipe.id,
@@ -170,46 +149,26 @@ export default function RecipeLab() {
         optimizationGoal:
           optimizationGoal === "custom" ? "other" : optimizationGoal,
         isActive: false,
-        changes: changes as any,
+        changes: createVariantChanges() as any,
         notes: variantDescription,
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
       };
 
-      // Create a snapshot of the variant ingredients to keep the variant
-      // immutable and isolated from later edits to the base recipe.
-      const ingredientsSnapshot = experimentIngredients.map((ing) => ({
-        supplierMaterialId: ing.supplierMaterialId,
-        quantity: ing.quantity,
-        unit: ing.unit,
-        lockedPricing: ing.lockedPricing,
-        createdAt: ing.createdAt || new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-      }));
-
-      // Save the variant (no longer touching recipeIngredients)
       await db.recipeVariants.add({
         ...variant,
-        ingredientsSnapshot,
+        ingredientsSnapshot: createVariantSnapshot(),
       });
 
       toast.success(`Variant "${variantName}" saved successfully!`);
-      // Load the newly created variant into the experiment for a smoother UX.
-      // Fetch the stored record to avoid timing/shape mismatches.
+
       try {
         const saved = await db.recipeVariants.get(variant.id);
-        if (saved) {
-          loadVariant(saved as any);
-        } else {
-          // Fallback: optimistic load of the in-memory object
-          loadVariant({ ...variant, ingredientsSnapshot } as any);
-        }
+        if (saved) loadVariant(saved as any);
       } catch (err) {
-        console.debug(
-          "Failed to load newly created variant into experiment",
-          err
-        );
+        console.debug("Failed to load newly created variant", err);
       }
+
       setSaveDialogOpen(false);
       setVariantName("");
       setVariantDescription("");
@@ -234,98 +193,22 @@ export default function RecipeLab() {
         return;
       }
 
-      const changes = experimentIngredients
-        .filter((ing) => ing._changed)
-        .map((ing) => {
-          const sm = supplierMaterials.find(
-            (s) => s.id === ing.supplierMaterialId
-          );
-          const changeTypes = Array.from(ing._changeTypes || []);
-
-          if (
-            changeTypes.includes("quantity") &&
-            changeTypes.includes("supplier")
-          ) {
-            return [
-              {
-                type: "quantity_change" as const,
-                ingredientName: sm?.displayName || "Unknown",
-                oldValue: `${ing._originalQuantity}`,
-                newValue: `${ing.quantity}`,
-                changedAt: new Date(),
-              },
-              {
-                type: "supplier_change" as const,
-                ingredientName: sm?.displayName || "Unknown",
-                oldValue:
-                  supplierMaterials.find(
-                    (s) => s.id === ing._originalSupplierId
-                  )?.supplier?.name || "Unknown",
-                newValue: sm?.supplier?.name || "Unknown",
-                changedAt: new Date(),
-              },
-            ];
-          } else if (changeTypes.includes("quantity")) {
-            return {
-              type: "quantity_change" as const,
-              ingredientName: sm?.displayName || "Unknown",
-              oldValue: `${ing._originalQuantity}`,
-              newValue: `${ing.quantity}`,
-              changedAt: new Date(),
-            };
-          } else if (changeTypes.includes("supplier")) {
-            return {
-              type: "supplier_change" as const,
-              ingredientName: sm?.displayName || "Unknown",
-              oldValue:
-                supplierMaterials.find((s) => s.id === ing._originalSupplierId)
-                  ?.supplier?.name || "Unknown",
-              newValue: sm?.supplier?.name || "Unknown",
-              changedAt: new Date(),
-            };
-          }
-          return null;
-        })
-        .flat()
-        .filter(Boolean);
-
-      // Create updated snapshot
-      const ingredientsSnapshot = experimentIngredients.map((ing) => ({
-        supplierMaterialId: ing.supplierMaterialId,
-        quantity: ing.quantity,
-        unit: ing.unit,
-        lockedPricing: ing.lockedPricing,
-        createdAt: ing.createdAt || new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-      }));
-
       await db.recipeVariants.update(existingVariant.id, {
         ingredientIds: experimentIngredients.map((ing) => ing.id),
-        ingredientsSnapshot,
-        changes: changes as any,
+        ingredientsSnapshot: createVariantSnapshot(),
+        changes: createVariantChanges() as any,
         updatedAt: new Date().toISOString(),
       });
 
       toast.success(`Variant "${loadedVariantName}" updated successfully!`);
-      // After updating the stored snapshot, reload the authoritative record
-      // from the DB so the experiment reflects the saved snapshot.
+
       try {
         const saved = await db.recipeVariants.get(existingVariant.id);
-        if (saved) {
-          loadVariant(saved as any);
-        } else {
-          // Fallback: optimistic reload using the constructed object
-          loadVariant({
-            ...existingVariant,
-            ingredientIds: experimentIngredients.map((ing) => ing.id),
-            ingredientsSnapshot,
-            changes: changes as any,
-            updatedAt: new Date().toISOString(),
-          } as any);
-        }
+        if (saved) loadVariant(saved as any);
       } catch (err) {
         console.debug("Failed to reload variant after update", err);
       }
+
       setUpdateVariantDialogOpen(false);
     } catch (error) {
       console.error("Update variant error:", error);
@@ -333,13 +216,17 @@ export default function RecipeLab() {
     }
   };
 
-  const handleUpdateOriginal = async () => {
-    if (!selectedRecipe) return;
+  const [updateOriginalDialogOpen, setUpdateOriginalDialogOpen] =
+    useState(false);
 
-    const confirmed = window.confirm(
-      "This will permanently update the original recipe. Are you sure?"
-    );
-    if (!confirmed) return;
+  const handleUpdateOriginal = () => {
+    if (!selectedRecipe) return;
+    setUpdateOriginalDialogOpen(true);
+  };
+
+  const performUpdateOriginal = async () => {
+    if (!selectedRecipe) return;
+    setUpdateOriginalDialogOpen(false);
 
     try {
       const totalWeight = experimentIngredients.reduce((sum, ing) => {
@@ -392,6 +279,35 @@ export default function RecipeLab() {
     }
   }, [selectedRecipe, initializeExperiment]);
 
+  const handleDeleteVariant = async (variantId: string) => {
+    try {
+      await db.recipeVariants.delete(variantId);
+      toast.success("Variant deleted successfully");
+      handleResetAll();
+    } catch (error) {
+      console.error("Delete variant error:", error);
+      toast.error("Failed to delete variant");
+    }
+  };
+
+  const handleUpdateVariantDetails = async (variant: RecipeVariant) => {
+    try {
+      await db.recipeVariants.update(variant.id, {
+        name: variant.name,
+        description: variant.description,
+        optimizationGoal: variant.optimizationGoal,
+        isActive: variant.isActive,
+        notes: variant.notes,
+        updatedAt: new Date().toISOString(),
+      });
+      toast.success("Variant updated successfully");
+      loadVariant(variant as any);
+    } catch (error) {
+      console.error("Update variant error:", error);
+      toast.error("Failed to update variant");
+    }
+  };
+
   if (!selectedRecipe) {
     return (
       <div className="flex items-center justify-center h-96">
@@ -430,275 +346,88 @@ export default function RecipeLab() {
     );
   }
 
-  const handleDeleteVariant = async (variantId: string) => {
-    try {
-      await db.recipeVariants.delete(variantId);
-      toast.success("Variant deleted successfully");
-      handleResetAll(); // Reset to original recipe state
-    } catch (error) {
-      console.error("Delete variant error:", error);
-      toast.error("Failed to delete variant");
-    }
-  };
-
-  const handleUpdateVariantDetails = async (variant: RecipeVariant) => {
-    try {
-      await db.recipeVariants.update(variant.id, {
-        name: variant.name,
-        description: variant.description,
-        optimizationGoal: variant.optimizationGoal,
-        isActive: variant.isActive,
-        notes: variant.notes,
-        updatedAt: new Date().toISOString(),
-      });
-      toast.success("Variant updated successfully");
-      // Ensure the updated variant remains loaded in the experiment.
-      // This fixes the UI showing the original recipe when the variant
-      // name or properties were changed (e.g. renamed) because
-      // `loadedVariantName` may no longer match the updated variant.
-      try {
-        loadVariant(variant as any);
-      } catch (err) {
-        // non-fatal: log and continue
-        console.debug("Failed to reload updated variant into experiment", err);
-      }
-    } catch (error) {
-      console.error("Update variant error:", error);
-      toast.error("Failed to update variant");
-    }
-  };
-
   return (
     <div className="flex gap-6 h-[calc(100vh-12rem)]">
-      {/* EXPERIMENT VIEW (existing layout) */}
-      <>
-        {/* LEFT SIDEBAR */}
-        <RecipeLabSidebar
-          recipes={enrichedRecipes}
-          selectedRecipeId={selectedRecipeId}
-          variants={variants}
-          changeCount={metrics.changeCount}
-          loadedVariantName={loadedVariantName}
-          onSelectRecipe={setSelectedRecipeId}
-          onLoadVariant={(variant) => loadVariant(variant)}
-        />
-        <CenterPanel
-          selectedRecipeName={selectedRecipe.name}
-          loadedVariantName={loadedVariantName}
-          currentVariant={variants.find((v) => v.name === loadedVariantName)}
-          experimentIngredients={experimentIngredients}
-          supplierMaterials={supplierMaterials}
-          expandedAlternatives={expandedAlternatives}
-          metrics={metrics}
-          getAlternatives={getAlternatives}
-          handleQuantityChange={handleQuantityChange}
-          handleSupplierChange={handleSupplierChange}
-          handleTogglePriceLock={handleTogglePriceLock}
-          handleRemoveIngredient={handleRemoveIngredient}
-          handleResetIngredient={handleResetIngredient}
-          toggleAlternatives={toggleAlternatives}
-          handleResetAll={handleResetAll}
-          setSaveDialogOpen={setSaveDialogOpen}
-          setUpdateVariantDialogOpen={setUpdateVariantDialogOpen}
-          handleLoadOriginalRecipe={handleLoadOriginalRecipe}
-          handleUpdateOriginal={handleUpdateOriginal}
-          onDeleteVariant={handleDeleteVariant}
-          onUpdateVariant={handleUpdateVariantDetails}
-        />
+      <RecipeLabSidebar
+        recipes={enrichedRecipes}
+        selectedRecipeId={selectedRecipeId}
+        variants={variants}
+        changeCount={metrics.changeCount}
+        loadedVariantName={loadedVariantName}
+        onSelectRecipe={setSelectedRecipeId}
+        onLoadVariant={loadVariant}
+      />
 
-        {/* RIGHT PANEL - METRICS */}
-        <RecipeLabMetrics
-          metrics={metrics}
-          targetCost={targetCost}
-          experimentIngredients={experimentIngredients}
-          supplierMaterials={supplierMaterials}
-          onApplySuggestion={handleSupplierChange}
-          getAlternatives={getAlternatives}
-        />
-      </>
+      <RecipeLabWorkspace
+        selectedRecipeName={selectedRecipe.name}
+        loadedVariantName={loadedVariantName}
+        currentVariant={variants.find((v) => v.name === loadedVariantName)}
+        experimentIngredients={experimentIngredients}
+        supplierMaterials={supplierMaterials}
+        expandedAlternatives={expandedAlternatives}
+        metrics={metrics}
+        getAlternatives={getAlternatives}
+        onQuantityChange={handleQuantityChange}
+        onSupplierChange={handleSupplierChange}
+        onTogglePriceLock={handleTogglePriceLock}
+        onRemoveIngredient={handleRemoveIngredient}
+        onResetIngredient={handleResetIngredient}
+        onToggleAlternatives={toggleAlternatives}
+        onResetAll={handleResetAll}
+        onSaveAsVariant={() => setSaveDialogOpen(true)}
+        onUpdateVariant={() => setUpdateVariantDialogOpen(true)}
+        onLoadOriginalRecipe={handleLoadOriginalRecipe}
+        onUpdateOriginal={handleUpdateOriginal}
+        onDeleteVariant={handleDeleteVariant}
+        onUpdateVariantDetails={handleUpdateVariantDetails}
+      />
 
-      {/* Save Variant Dialog */}
-      <AlertDialog open={saveDialogOpen} onOpenChange={setSaveDialogOpen}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>
-              {loadedVariantName ? "Save as New Variant" : "Save as Variant"}
-            </AlertDialogTitle>
-            <AlertDialogDescription>
-              {loadedVariantName
-                ? `Create a new variant based on "${loadedVariantName}"`
-                : `Create a new variant of "${selectedRecipe.name}"`}
-            </AlertDialogDescription>
-          </AlertDialogHeader>
+      <RecipeLabMetrics
+        metrics={metrics}
+        targetCost={targetCost}
+        experimentIngredients={experimentIngredients}
+        supplierMaterials={supplierMaterials}
+        onApplySuggestion={handleSupplierChange}
+        getAlternatives={getAlternatives}
+      />
 
-          <div className="space-y-4 py-4">
-            <div>
-              <Label htmlFor="variant-name">Variant Name *</Label>
-              <Input
-                id="variant-name"
-                value={variantName}
-                onChange={(e) => setVariantName(e.target.value)}
-                placeholder="e.g., Cost Optimized V1"
-                className="mt-1"
-              />
-            </div>
-
-            <div>
-              <Label htmlFor="variant-description">Description</Label>
-              <Textarea
-                id="variant-description"
-                value={variantDescription}
-                onChange={(e) => setVariantDescription(e.target.value)}
-                placeholder="Describe the changes and rationale..."
-                rows={3}
-                className="mt-1"
-              />
-            </div>
-
-            <div>
-              <Label htmlFor="optimization-goal">Optimization Goal *</Label>
-              <Select
-                value={optimizationGoal}
-                onValueChange={(v) =>
-                  setOptimizationGoal(v as OptimizationGoal)
-                }
-              >
-                <SelectTrigger className="mt-1">
-                  <SelectValue placeholder="Select optimization goal..." />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="cost_reduction">
-                    <div className="flex items-center gap-2">
-                      <TrendingDown className="w-4 h-4" />
-                      <span>Minimize Cost</span>
-                    </div>
-                  </SelectItem>
-                  <SelectItem value="supplier_diversification">
-                    <div className="flex items-center gap-2">
-                      <GitBranch className="w-4 h-4" />
-                      <span>Diversify Suppliers</span>
-                    </div>
-                  </SelectItem>
-                  <SelectItem value="custom">
-                    <div className="flex items-center gap-2">
-                      <Edit3 className="w-4 h-4" />
-                      <span>Custom Experiment</span>
-                    </div>
-                  </SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div className="p-3 bg-slate-50 rounded-lg">
-              <p className="text-sm font-medium mb-2">Changes Summary</p>
-              <div className="space-y-1">
-                {experimentIngredients
-                  .filter((ing) => ing._changed)
-                  .map((ing) => {
-                    const sm = supplierMaterials.find(
-                      (s) => s.id === ing.supplierMaterialId
-                    );
-                    const changeTypes = Array.from(ing._changeTypes || []);
-                    return (
-                      <div
-                        key={ing.id}
-                        className="text-xs text-muted-foreground"
-                      >
-                        • {sm?.displayName || "Unknown"}:{" "}
-                        {changeTypes.includes("quantity") && (
-                          <span>
-                            Qty changed ({ing._originalQuantity} →{" "}
-                            {ing.quantity})
-                          </span>
-                        )}
-                        {changeTypes.includes("quantity") &&
-                          changeTypes.includes("supplier") &&
-                          ", "}
-                        {changeTypes.includes("supplier") && (
-                          <span>Supplier switched</span>
-                        )}
-                      </div>
-                    );
-                  })}
-              </div>
-              <div className="mt-2 pt-2 border-t">
-                <p className="text-sm font-semibold text-green-600">
-                  Total Savings: ₹{metrics.savings.toFixed(2)}/kg (
-                  {metrics.savingsPercent.toFixed(1)}%)
-                </p>
-              </div>
-            </div>
-          </div>
-
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={handleSaveVariant}>
-              {loadedVariantName ? "Save as New Variant" : "Save as Variant"}
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
-
-      {/* Update Variant Dialog */}
+      <RecipeLabDialogs
+        saveDialogOpen={saveDialogOpen}
+        updateVariantDialogOpen={updateVariantDialogOpen}
+        recipeName={selectedRecipe.name}
+        loadedVariantName={loadedVariantName}
+        variantName={variantName}
+        variantDescription={variantDescription}
+        optimizationGoal={optimizationGoal}
+        experimentIngredients={experimentIngredients}
+        supplierMaterials={supplierMaterials}
+        savings={metrics.savings}
+        savingsPercent={metrics.savingsPercent}
+        onSaveDialogOpenChange={setSaveDialogOpen}
+        onUpdateDialogOpenChange={setUpdateVariantDialogOpen}
+        onVariantNameChange={setVariantName}
+        onVariantDescriptionChange={setVariantDescription}
+        onOptimizationGoalChange={setOptimizationGoal}
+        onSaveVariant={handleSaveVariant}
+        onUpdateVariant={handleUpdateVariant}
+      />
       <AlertDialog
-        open={updateVariantDialogOpen}
-        onOpenChange={setUpdateVariantDialogOpen}
+        open={updateOriginalDialogOpen}
+        onOpenChange={setUpdateOriginalDialogOpen}
       >
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Update Variant</AlertDialogTitle>
+            <AlertDialogTitle>Update Original Recipe</AlertDialogTitle>
             <AlertDialogDescription>
-              Update the currently loaded variant "{loadedVariantName}" with
-              your changes
+              This will permanently update the original recipe with the current
+              changes. This action cannot be undone. Are you sure you want to
+              proceed?
             </AlertDialogDescription>
           </AlertDialogHeader>
-
-          <div className="space-y-4 py-4">
-            <div className="p-3 bg-slate-50 rounded-lg">
-              <p className="text-sm font-medium mb-2">Changes Summary</p>
-              <div className="space-y-1">
-                {experimentIngredients
-                  .filter((ing) => ing._changed)
-                  .map((ing) => {
-                    const sm = supplierMaterials.find(
-                      (s) => s.id === ing.supplierMaterialId
-                    );
-                    const changeTypes = Array.from(ing._changeTypes || []);
-                    return (
-                      <div
-                        key={ing.id}
-                        className="text-xs text-muted-foreground"
-                      >
-                        • {sm?.displayName || "Unknown"}:{" "}
-                        {changeTypes.includes("quantity") && (
-                          <span>
-                            Qty changed ({ing._originalQuantity} →{" "}
-                            {ing.quantity})
-                          </span>
-                        )}
-                        {changeTypes.includes("quantity") &&
-                          changeTypes.includes("supplier") &&
-                          ", "}
-                        {changeTypes.includes("supplier") && (
-                          <span>Supplier switched</span>
-                        )}
-                      </div>
-                    );
-                  })}
-              </div>
-              <div className="mt-2 pt-2 border-t">
-                <p className="text-sm font-semibold text-green-600">
-                  Total Savings: ₹{metrics.savings.toFixed(2)}/kg (
-                  {metrics.savingsPercent.toFixed(1)}%)
-                </p>
-              </div>
-            </div>
-          </div>
-
           <AlertDialogFooter>
             <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={handleUpdateVariant}>
-              Update Variant
+            <AlertDialogAction onClick={performUpdateOriginal}>
+              Update Recipe
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
