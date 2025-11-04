@@ -194,6 +194,22 @@ export default function RecipeLab() {
       });
 
       toast.success(`Variant "${variantName}" saved successfully!`);
+      // Load the newly created variant into the experiment for a smoother UX.
+      // Fetch the stored record to avoid timing/shape mismatches.
+      try {
+        const saved = await db.recipeVariants.get(variant.id);
+        if (saved) {
+          loadVariant(saved as any);
+        } else {
+          // Fallback: optimistic load of the in-memory object
+          loadVariant({ ...variant, ingredientsSnapshot } as any);
+        }
+      } catch (err) {
+        console.debug(
+          "Failed to load newly created variant into experiment",
+          err
+        );
+      }
       setSaveDialogOpen(false);
       setVariantName("");
       setVariantDescription("");
@@ -291,6 +307,25 @@ export default function RecipeLab() {
       });
 
       toast.success(`Variant "${loadedVariantName}" updated successfully!`);
+      // After updating the stored snapshot, reload the authoritative record
+      // from the DB so the experiment reflects the saved snapshot.
+      try {
+        const saved = await db.recipeVariants.get(existingVariant.id);
+        if (saved) {
+          loadVariant(saved as any);
+        } else {
+          // Fallback: optimistic reload using the constructed object
+          loadVariant({
+            ...existingVariant,
+            ingredientIds: experimentIngredients.map((ing) => ing.id),
+            ingredientsSnapshot,
+            changes: changes as any,
+            updatedAt: new Date().toISOString(),
+          } as any);
+        }
+      } catch (err) {
+        console.debug("Failed to reload variant after update", err);
+      }
       setUpdateVariantDialogOpen(false);
     } catch (error) {
       console.error("Update variant error:", error);
@@ -395,6 +430,44 @@ export default function RecipeLab() {
     );
   }
 
+  const handleDeleteVariant = async (variantId: string) => {
+    try {
+      await db.recipeVariants.delete(variantId);
+      toast.success("Variant deleted successfully");
+      handleResetAll(); // Reset to original recipe state
+    } catch (error) {
+      console.error("Delete variant error:", error);
+      toast.error("Failed to delete variant");
+    }
+  };
+
+  const handleUpdateVariantDetails = async (variant: RecipeVariant) => {
+    try {
+      await db.recipeVariants.update(variant.id, {
+        name: variant.name,
+        description: variant.description,
+        optimizationGoal: variant.optimizationGoal,
+        isActive: variant.isActive,
+        notes: variant.notes,
+        updatedAt: new Date().toISOString(),
+      });
+      toast.success("Variant updated successfully");
+      // Ensure the updated variant remains loaded in the experiment.
+      // This fixes the UI showing the original recipe when the variant
+      // name or properties were changed (e.g. renamed) because
+      // `loadedVariantName` may no longer match the updated variant.
+      try {
+        loadVariant(variant as any);
+      } catch (err) {
+        // non-fatal: log and continue
+        console.debug("Failed to reload updated variant into experiment", err);
+      }
+    } catch (error) {
+      console.error("Update variant error:", error);
+      toast.error("Failed to update variant");
+    }
+  };
+
   return (
     <div className="flex gap-6 h-[calc(100vh-12rem)]">
       {/* EXPERIMENT VIEW (existing layout) */}
@@ -408,11 +481,11 @@ export default function RecipeLab() {
           loadedVariantName={loadedVariantName}
           onSelectRecipe={setSelectedRecipeId}
           onLoadVariant={(variant) => loadVariant(variant)}
-          onResetAll={handleResetAll}
         />
         <CenterPanel
           selectedRecipeName={selectedRecipe.name}
           loadedVariantName={loadedVariantName}
+          currentVariant={variants.find((v) => v.name === loadedVariantName)}
           experimentIngredients={experimentIngredients}
           supplierMaterials={supplierMaterials}
           expandedAlternatives={expandedAlternatives}
@@ -429,6 +502,8 @@ export default function RecipeLab() {
           setUpdateVariantDialogOpen={setUpdateVariantDialogOpen}
           handleLoadOriginalRecipe={handleLoadOriginalRecipe}
           handleUpdateOriginal={handleUpdateOriginal}
+          onDeleteVariant={handleDeleteVariant}
+          onUpdateVariant={handleUpdateVariantDetails}
         />
 
         {/* RIGHT PANEL - METRICS */}

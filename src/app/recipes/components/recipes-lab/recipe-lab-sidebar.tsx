@@ -27,7 +27,6 @@ interface RecipeLabSidebarProps {
   loadedVariantName?: string | null;
   onSelectRecipe: (recipeId: string) => void;
   onLoadVariant: (variant: RecipeVariant) => void;
-  onResetAll: () => void;
 }
 
 export function RecipeLabSidebar({
@@ -38,7 +37,6 @@ export function RecipeLabSidebar({
   loadedVariantName,
   onSelectRecipe,
   onLoadVariant,
-  onResetAll,
 }: RecipeLabSidebarProps) {
   return (
     <Card className="w-80 flex flex-col py-2">
@@ -89,13 +87,14 @@ export function RecipeLabSidebar({
                 variants.map((variant) => (
                   <Card
                     key={variant.id}
-                    className={`p-3 ${
+                    className={`p-3 cursor-pointer hover:border-blue-300 transition-colors ${
                       variant.name === loadedVariantName
                         ? "border-2 border-blue-500 bg-blue-50"
                         : ""
                     }`}
+                    onClick={() => onLoadVariant(variant)}
                   >
-                    <div className="flex items-start justify-between mb-2">
+                    <div className="flex items-start justify-between">
                       <div className="flex-1 min-w-0">
                         <p className="font-medium text-sm truncate">
                           {variant.name}
@@ -111,16 +110,6 @@ export function RecipeLabSidebar({
                         {variant.isActive ? "Active" : "Inactive"}
                       </Badge>
                     </div>
-                    <div className="flex items-center gap-2">
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        className="flex-1 h-7 text-xs"
-                        onClick={() => onLoadVariant(variant)}
-                      >
-                        Load
-                      </Button>
-                    </div>
                   </Card>
                 ))
               )}
@@ -128,19 +117,6 @@ export function RecipeLabSidebar({
           </div>
         </div>
       </ScrollArea>
-
-      {/* Quick Actions */}
-      <div className="p-4 border-t space-y-2">
-        <Button
-          variant="outline"
-          className="w-full"
-          onClick={onResetAll}
-          disabled={changeCount === 0}
-        >
-          <RotateCcw className="w-4 h-4 mr-2" />
-          Reset Changes ({changeCount})
-        </Button>
-      </div>
     </Card>
   );
 }
