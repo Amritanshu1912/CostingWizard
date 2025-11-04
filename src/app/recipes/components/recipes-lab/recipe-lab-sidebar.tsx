@@ -49,7 +49,7 @@ export function RecipeLabSidebar({
         </h3>
       </div>
 
-      <ScrollArea className="flex-1 p-4">
+      <ScrollArea className="flex-1 p-4 min-h-0">
         <div className="space-y-6">
           {/* Recipe Selector */}
           <div>

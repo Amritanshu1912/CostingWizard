@@ -446,9 +446,13 @@ export default function RecipeLab() {
       <AlertDialog open={saveDialogOpen} onOpenChange={setSaveDialogOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Save as Variant</AlertDialogTitle>
+            <AlertDialogTitle>
+              {loadedVariantName ? "Save as New Variant" : "Save as Variant"}
+            </AlertDialogTitle>
             <AlertDialogDescription>
-              Create a new variant of {selectedRecipe.name}
+              {loadedVariantName
+                ? `Create a new variant based on "${loadedVariantName}"`
+                : `Create a new variant of "${selectedRecipe.name}"`}
             </AlertDialogDescription>
           </AlertDialogHeader>
 
@@ -554,7 +558,7 @@ export default function RecipeLab() {
           <AlertDialogFooter>
             <AlertDialogCancel>Cancel</AlertDialogCancel>
             <AlertDialogAction onClick={handleSaveVariant}>
-              Update Variant
+              {loadedVariantName ? "Save as New Variant" : "Save as Variant"}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
