@@ -124,13 +124,7 @@ export function getStatusColors(status: keyof typeof RECIPE_STATUS_COLORS) {
     return RECIPE_STATUS_COLORS[status] || RECIPE_STATUS_COLORS.draft;
 }
 
-// Helper function to get progress color based on percentage
-export function getProgressColor(percentage: number): string {
-    if (percentage >= 90) return PROGRESS_COLORS.excellent;
-    if (percentage >= 75) return PROGRESS_COLORS.good;
-    if (percentage >= 50) return PROGRESS_COLORS.warning;
-    return PROGRESS_COLORS.danger;
-}
+
 
 // Helper function to get variance color (positive = red, negative = green)
 export function getVarianceColor(variance: number): string {

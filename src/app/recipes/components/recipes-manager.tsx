@@ -1,7 +1,7 @@
 // recipes-manager.tsx
 "use client";
 
-import React, { useState } from "react";
+import React from "react";
 import {
   Card,
   CardContent,
@@ -9,11 +9,8 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { toast } from "sonner";
 import {
-  Plus,
   FlaskConical,
   TrendingUp,
   BarChart3,
@@ -23,10 +20,8 @@ import {
 
 import { RecipesTab } from "./recipes-tab";
 import { RecipeAnalytics } from "./recipes-analytics";
-import { RecipeTweaker } from "./recipes-tweaker";
-import { RecipeVariants } from "./recipe-variants";
-
-import type { Recipe } from "@/lib/types";
+import RecipeLab from "./recipes-lab/recipe-lab";
+import { RecipeComparisonTab } from "./recipes-comparison/recipe-comparison-tab";
 import { MetricCard } from "@/components/ui/metric-card";
 import { useEnrichedRecipes, useRecipeStats } from "@/hooks/use-recipes";
 
@@ -34,19 +29,6 @@ export function RecipeManager() {
   // Use optimized hooks
   const enrichedRecipes = useEnrichedRecipes();
   const stats = useRecipeStats();
-
-  // Handlers - simplified since inline editing is used
-  const handleEdit = (recipe: Recipe) => {
-    // Inline editing handled in RecipesTab
-  };
-
-  const handleDeleteRecipe = async (id: string) => {
-    // Deletion handled in RecipesTab
-  };
-
-  const handleAdd = () => {
-    // Addition handled in RecipesTab
-  };
 
   return (
     <div className="space-y-6 animate-fade-in">
@@ -66,8 +48,8 @@ export function RecipeManager() {
       <Tabs defaultValue="recipes" className="space-y-6">
         <TabsList className="grid w-full grid-cols-4">
           <TabsTrigger value="recipes">Recipes</TabsTrigger>
-          <TabsTrigger value="tweaker">Optimizer</TabsTrigger>
-          <TabsTrigger value="variants">Variants</TabsTrigger>
+          <TabsTrigger value="lab">Recipe Lab</TabsTrigger>
+          <TabsTrigger value="comparison">Compare Recipes</TabsTrigger>
           <TabsTrigger value="analytics">Analytics</TabsTrigger>
         </TabsList>
 
@@ -128,33 +110,12 @@ export function RecipeManager() {
           </div>
           <RecipesTab />
         </TabsContent>
-
-        <TabsContent value="tweaker" className="space-y-6">
-          <Card className="card-enhanced">
-            <CardHeader>
-              <CardTitle>Recipe Optimizer</CardTitle>
-              <CardDescription>
-                Tweak recipes to maximize profitability and find cost savings
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <RecipeTweaker recipes={enrichedRecipes} />
-            </CardContent>
-          </Card>
+        <TabsContent value="lab" className="space-y-6">
+          <RecipeLab />
         </TabsContent>
 
-        <TabsContent value="variants" className="space-y-6">
-          <Card className="card-enhanced">
-            <CardHeader>
-              <CardTitle>Recipe Variants</CardTitle>
-              <CardDescription>
-                View and manage saved recipe optimizations
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <RecipeVariants recipes={enrichedRecipes} />
-            </CardContent>
-          </Card>
+        <TabsContent value="comparison" className="space-y-6">
+          <RecipeComparisonTab />
         </TabsContent>
 
         <TabsContent value="analytics" className="space-y-6">

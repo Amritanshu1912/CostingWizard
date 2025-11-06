@@ -213,8 +213,6 @@ export function PackagingManager() {
               )
               .first();
 
-            console.log("existingPackaging found:", existingPackaging);
-
             if (existingPackaging) {
               // Use existing packaging (exact duplicate)
               packagingId = existingPackaging.id;

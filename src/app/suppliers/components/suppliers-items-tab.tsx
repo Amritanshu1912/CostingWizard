@@ -27,7 +27,6 @@ export function SuppliersItemsTab({ suppliers }: SuppliersItemsTabProps) {
 
   const handleAddItem = (type: string) => {
     // TODO: Implement add item functionality
-    console.log(`Adding ${type} for supplier ${selectedSupplierId}`);
   };
 
   return (
