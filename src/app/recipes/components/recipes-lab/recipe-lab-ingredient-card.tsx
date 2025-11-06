@@ -57,25 +57,30 @@ export function RecipeLabIngredientCard({
   const pricePerKg = ing.lockedPricing?.unitPrice || sm?.unitPrice || 0;
   const cost = pricePerKg * quantityInKg;
 
-  const quantityChanged = ing._changeTypes?.has("quantity");
-  const supplierChanged = ing._changeTypes?.has("supplier");
   const hasAlternatives = alternatives.length > 0;
+
+  const quantityIsDifferent =
+    ing._changeTypes?.has("quantity") && ing.quantity !== ing._originalQuantity;
+
+  const supplierIsDifferent =
+    ing._changeTypes?.has("supplier") &&
+    ing.supplierMaterialId !== ing._originalSupplierId;
 
   return (
     <Card
       className={`p-3 transition-all ${
         ing._changed
-          ? "border-l-4 border-l-primary bg-blue-50/30"
+          ? "border-l-4 border-l-blue-500 bg-blue-50/30"
           : "border border-slate-200"
       }`}
     >
       <div className="flex items-center gap-3">
-        {/* 0. Serial Number (NEW) */}
-        <div className="w-8 text-center text-sm font-medium text-slate-500">
+        {/* Serial Number */}
+        <div className="w-6 text-center text-sm font-medium text-slate-500">
           {index + 1}.
         </div>
 
-        {/* 1. Material Name & Status Badges */}
+        {/* 1. Material Name & Alt Badges */}
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 flex-wrap">
             <h4 className="font-semibold text-sm truncate">
@@ -89,20 +94,25 @@ export function RecipeLabIngredientCard({
                 {alternatives.length} alt
               </Badge>
             )}
-            {quantityChanged && (
+            {/* Conditional "Qty" badge */}
+            {quantityIsDifferent && (
               <Badge
                 variant="outline"
-                className="text-xs bg-blue-50 text-blue-700 border-blue-200"
+                className="text-xs font-normal bg-blue-50 text-blue-700 border-blue-200 flex items-center gap-1"
               >
-                Qty ↻
+                Qty
+                <RotateCcw className="h-2.5 w-2.5" />
               </Badge>
             )}
-            {supplierChanged && (
+
+            {/* Conditional "Supplier" badge */}
+            {supplierIsDifferent && (
               <Badge
                 variant="outline"
-                className="text-xs bg-purple-50 text-purple-700 border-purple-200"
+                className="text-xs font-normal bg-purple-50 text-purple-700 border-purple-200 flex items-center gap-1"
               >
-                Supplier ↻
+                Supplier
+                <RotateCcw className="h-2.5 w-2.5" />
               </Badge>
             )}
           </div>
@@ -110,18 +120,6 @@ export function RecipeLabIngredientCard({
 
         {/* 2. Supplier Selector */}
         <div className="w-64">
-          {/* FIXED: Placeholder for "Was:" text to prevent vertical shift */}
-          <div className="h-5">
-            {supplierChanged && ing._originalSupplierId && (
-              <p className="text-xs text-muted-foreground mb-1">
-                Was:{" "}
-                {alternatives.find((a) => a.id === ing._originalSupplierId)
-                  ?.supplier?.name ||
-                  sm?.supplier?.name ||
-                  "Unknown"}
-              </p>
-            )}
-          </div>
           <Select
             value={ing.supplierMaterialId}
             onValueChange={(value) => onSupplierChange(index, value)}
@@ -218,21 +216,13 @@ export function RecipeLabIngredientCard({
 
         {/* 3. Quantity Input */}
         <div className="w-32">
-          {/* FIXED: Placeholder for "Was:" text to prevent vertical shift */}
-          <div className="h-5">
-            {quantityChanged && ing._originalQuantity !== undefined && (
-              <p className="text-xs text-muted-foreground mb-1">
-                Was: {ing._originalQuantity.toFixed(2)} {ing.unit}
-              </p>
-            )}
-          </div>
           <div className="flex items-center gap-1">
             <Input
               type="number"
               value={ing.quantity.toFixed(2)}
               onChange={(e) => onQuantityChange(index, Number(e.target.value))}
               className="h-9 text-sm text-center"
-              step="0.1"
+              step="1"
               min="0"
             />
             <span className="text-xs text-muted-foreground w-8">
@@ -242,7 +232,7 @@ export function RecipeLabIngredientCard({
         </div>
 
         {/* 4. Cost Display */}
-        <div className="w-32 text-right">
+        <div className="w-[97px] text-right ml-2">
           <div className="flex items-center justify-end gap-1">
             <div>
               <p className="text-base font-bold">₹{cost.toFixed(2)}</p>
@@ -268,11 +258,11 @@ export function RecipeLabIngredientCard({
 
         {/* 5. Action Buttons */}
         <div className="flex items-center gap-1">
-          {/* FIXED: Reset button is now always rendered but invisible to prevent horizontal shift */}
+          {/* Reset button remains the same, invisible until needed */}
           <Button
             variant="ghost"
             size="icon"
-            className={`h-8 w-8 transition-opacity ${
+            className={`h-6 w-6 transition-opacity ${
               ing._changed ? "opacity-100" : "opacity-0 invisible"
             }`}
             onClick={() => onReset(index)}
@@ -284,7 +274,7 @@ export function RecipeLabIngredientCard({
           <Button
             variant="ghost"
             size="icon"
-            className="h-8 w-8"
+            className="h-6 w-6"
             onClick={() => onRemove(index)}
             title="Remove ingredient"
           >
