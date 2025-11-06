@@ -121,8 +121,10 @@ export function useRecipeExperiment(recipe: RecipeDisplay | null) {
         // Target gap
         const targetGap = targetCost ? modifiedCostPerKg - targetCost : undefined;
 
-        // Count changes
-        const changeCount = experimentIngredients.filter(ing => ing._changed).length;
+        // Count changes - include both modified ingredients and deletions
+        const deletedCount = recipe.ingredients.length - experimentIngredients.length;
+        const modifiedCount = experimentIngredients.filter(ing => ing._changed).length;
+        const changeCount = deletedCount + modifiedCount;
 
         return {
             originalCost: originalCostPerKg,
@@ -214,7 +216,12 @@ export function useRecipeExperiment(recipe: RecipeDisplay | null) {
     }, [experimentIngredients, supplierMaterials]);
 
     const handleRemoveIngredient = useCallback((index: number) => {
-        setExperimentIngredients(prev => prev.filter((_, i) => i !== index));
+        setExperimentIngredients(prev => {
+            // Keep track of deleted ingredients by filtering them out
+            const filtered = prev.filter((_, i) => i !== index);
+            // The existence of fewer ingredients than original will be counted as changes
+            return filtered;
+        });
         toast.success('Ingredient removed');
     }, []);
 
@@ -241,10 +248,19 @@ export function useRecipeExperiment(recipe: RecipeDisplay | null) {
 
     const handleResetAll = useCallback(() => {
         if (recipe) {
-            initializeExperiment(recipe);
-            toast.success('Reset to original recipe');
+            // Instead of mapping over current ingredients (which might have some removed),
+            // start fresh from recipe.ingredients to also restore deleted ones
+            const resetIngredients = recipe.ingredients.map(ing => ({
+                ...ing,
+                _originalQuantity: ing.quantity,
+                _originalSupplierId: ing.supplierMaterialId,
+                _changed: false,
+                _changeTypes: new Set<'quantity' | 'supplier'>(),
+            }));
+            setExperimentIngredients(resetIngredients);
+            toast.success('Reset all changes');
         }
-    }, [recipe, initializeExperiment]);
+    }, [recipe]);
 
     const toggleAlternatives = useCallback((ingredientId: string) => {
         setExpandedAlternatives(prev => {
@@ -257,7 +273,6 @@ export function useRecipeExperiment(recipe: RecipeDisplay | null) {
             return next;
         });
     }, []);
-
 
     // Load a variant into the experiment. Prefer using an embedded snapshot
     // (ingredientsSnapshot) if present. This ensures variant isolation and

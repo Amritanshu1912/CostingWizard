@@ -24,7 +24,16 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-import { Edit3, RotateCcw, Save, Trash2, Check, X } from "lucide-react";
+import {
+  Edit3,
+  RotateCcw,
+  Save,
+  Trash2,
+  Check,
+  X,
+  ChevronUp,
+  ChevronDown,
+} from "lucide-react";
 import { RecipeLabIngredientCard } from "./recipe-lab-ingredient-card";
 import type { ExperimentIngredient } from "@/hooks/use-recipe-experiment";
 import type { SupplierMaterialWithDetails, RecipeVariant } from "@/lib/types";
@@ -44,9 +53,11 @@ interface RecipeLabWorkspaceProps {
   onRemoveIngredient: (index: number) => void;
   onResetIngredient: (index: number) => void;
   onToggleAlternatives: (id: string) => void;
+  /** Reset all ingredient changes made to the current recipe/variant back to their original state */
   onResetAll: () => void;
   onSaveAsVariant: () => void;
   onUpdateVariant: () => void;
+  /** Load and display the original recipe when viewing a variant */
   onLoadOriginalRecipe: () => void;
   onUpdateOriginal: () => void;
   onDeleteVariant: (variantId: string) => Promise<void>;
@@ -80,6 +91,7 @@ export function RecipeLabWorkspace({
   const [editedVariant, setEditedVariant] = useState<RecipeVariant | undefined>(
     currentVariant
   );
+  const [isDetailsExpanded, setIsDetailsExpanded] = useState(false);
 
   useEffect(() => {
     setEditedVariant(currentVariant);
@@ -101,104 +113,57 @@ export function RecipeLabWorkspace({
   return (
     <Card className="flex-1 flex flex-col py-2">
       {/* Header */}
-      <div className="p-4 border-b">
-        <div className="flex items-center justify-between">
-          <div>
-            <h3 className="font-semibold flex items-center gap-2">
-              <Edit3 className="w-4 h-4" />
-              Experiment Workspace
-            </h3>
-            <p className="text-sm text-muted-foreground mt-1">
-              {loadedVariantName ? (
-                <>
-                  <span
-                    className="text-blue-600 cursor-pointer hover:underline"
-                    onClick={onLoadOriginalRecipe}
-                    title="Click to load original recipe"
-                  >
-                    {selectedRecipeName}
-                  </span>
-                  <span className="mx-2">→</span>
-                  <span className="font-medium text-slate-900">
-                    {loadedVariantName}
-                  </span>
-                </>
-              ) : (
-                <span className="font-medium">{selectedRecipeName}</span>
-              )}
-            </p>
-          </div>
-          {metrics.changeCount > 0 && (
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={onResetAll}
-              className="flex items-center gap-2"
-            >
-              <RotateCcw className="w-4 h-4" />
-              Reset All
-            </Button>
-          )}
-        </div>
-
-        {/* Variant Details - Inline Editable */}
-        {loadedVariantName && currentVariant && editedVariant && (
-          <div
-            className={`mt-4 p-4 rounded-lg border ${
-              isEditingVariant
-                ? "border-2 border-blue-300 bg-gradient-to-r from-blue-50 to-slate-50"
-                : "bg-gradient-to-r from-blue-50 to-slate-50 border-blue-200"
-            }`}
-          >
-            {!isEditingVariant ? (
-              // View Mode
-              <div className="flex items-start justify-between">
-                <div className="flex-1">
-                  <div className="flex items-center gap-3 mb-3">
-                    <h4 className="text-lg font-semibold text-slate-900">
-                      {currentVariant.name}
-                    </h4>
+      <div className="flex items-start justify-between p-4">
+        {/* Card for Recipe/Variant Info */}
+        <Card className="flex-1 p-4 gap-4 bg-gradient-to-r from-blue-50 to-slate-50 border border-blue-200 shadow-sm relative">
+          {/* Top Row: Name, Links, and Action Buttons */}
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <Edit3 className="w-5 h-5 text-slate-600 flex-shrink-0" />
+              <div className="flex-1">
+                <h3 className="text-lg font-semibold text-slate-900">
+                  {loadedVariantName ? loadedVariantName : selectedRecipeName}
+                </h3>
+                {loadedVariantName && (
+                  <p className="text-sm text-muted-foreground">
+                    Original:{" "}
                     <span
-                      className={`px-2 py-0.5 text-xs font-medium rounded-full ${
-                        currentVariant.isActive
-                          ? "bg-green-100 text-green-700"
-                          : "bg-slate-100 text-slate-600"
-                      }`}
+                      onClick={onLoadOriginalRecipe}
+                      className="text-blue-600 cursor-pointer hover:underline"
+                      title="Click to load original recipe"
                     >
-                      {currentVariant.isActive ? "Active" : "Inactive"}
+                      {selectedRecipeName}
                     </span>
-                  </div>
-                  <div className="grid grid-cols-2 gap-4 text-sm">
-                    <div>
-                      <Label className="text-xs text-slate-500">
-                        Description
-                      </Label>
-                      <p className="text-slate-700 mt-0.5">
-                        {currentVariant.description || "No description"}
-                      </p>
-                    </div>
-                    <div>
-                      <Label className="text-xs text-slate-500">Goal</Label>
-                      <p className="text-slate-700 mt-0.5 capitalize">
-                        {currentVariant.optimizationGoal?.replace(/_/g, " ") ||
-                          "Not specified"}
-                      </p>
-                    </div>
-                    {currentVariant.notes && (
-                      <div className="col-span-2">
-                        <Label className="text-xs text-slate-500">Notes</Label>
-                        <p className="text-slate-700 mt-0.5">
-                          {currentVariant.notes}
-                        </p>
-                      </div>
-                    )}
-                  </div>
-                </div>
-                <div className="flex gap-2 ml-4">
+                  </p>
+                )}
+              </div>
+            </div>
+
+            {/* --- Actions for Variants --- */}
+
+            <div className="flex items-center gap-2">
+              {metrics.changeCount > 0 && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={onResetAll}
+                  className="flex items-center gap-2"
+                  title="Reset all ingredient changes back to their original values"
+                >
+                  <RotateCcw className="w-3.5 h-3.5" />
+                  Reset Changes
+                </Button>
+              )}
+              {loadedVariantName && currentVariant && (
+                <div className="flex items-center gap-2">
                   <Button
                     variant="outline"
                     size="sm"
-                    onClick={() => setIsEditingVariant(true)}
+                    onClick={() => {
+                      // When clicking edit, always expand the details
+                      setIsDetailsExpanded(true);
+                      setIsEditingVariant(true);
+                    }}
                   >
                     <Edit3 className="w-3.5 h-3.5 mr-1" />
                     Edit
@@ -206,11 +171,12 @@ export function RecipeLabWorkspace({
                   <AlertDialog>
                     <AlertDialogTrigger asChild>
                       <Button
-                        variant="outline"
-                        size="sm"
-                        className="text-red-600"
+                        variant="destructive"
+                        size="icon"
+                        className="w-9 h-9"
+                        title={`Delete variant "${currentVariant.name}"`}
                       >
-                        <Trash2 className="w-3.5 h-3.5" />
+                        <Trash2 className="w-4 h-4" />
                       </Button>
                     </AlertDialogTrigger>
                     <AlertDialogContent>
@@ -233,132 +199,213 @@ export function RecipeLabWorkspace({
                     </AlertDialogContent>
                   </AlertDialog>
                 </div>
-              </div>
-            ) : (
-              // Edit Mode
-              <div className="space-y-3">
-                <div className="grid grid-cols-4 gap-4">
-                  <div className="col-span-2 flex-1">
-                    <Label className="text-xs text-slate-500 mb-1">
-                      Name *
-                    </Label>
-                    <Input
-                      value={editedVariant.name}
-                      onChange={(e) =>
-                        setEditedVariant({
-                          ...editedVariant,
-                          name: e.target.value,
-                        })
-                      }
-                      className="h-9"
-                    />
-                  </div>
-                  <div className="w-full">
-                    <Label className="text-xs text-slate-500 mb-1">Goal</Label>
-                    <Select
-                      value={editedVariant.optimizationGoal || ""}
-                      onValueChange={(value) =>
-                        setEditedVariant({
-                          ...editedVariant,
-                          optimizationGoal:
-                            value as RecipeVariant["optimizationGoal"],
-                        })
-                      }
-                    >
-                      <SelectTrigger className="h-9">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="cost_reduction">
-                          Cost Reduction
-                        </SelectItem>
-                        <SelectItem value="quality_improvement">
-                          Quality Improvement
-                        </SelectItem>
-                        <SelectItem value="supplier_diversification">
-                          Supplier Diversification
-                        </SelectItem>
-                        <SelectItem value="other">Other</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div className="w-full">
-                    <Label className="text-xs text-slate-500 mb-1">
-                      Status
-                    </Label>
-                    <label className="flex items-center gap-2 h-9 px-3 border rounded-md bg-white cursor-pointer hover:bg-slate-50">
-                      <input
-                        type="checkbox"
-                        checked={editedVariant.isActive}
-                        onChange={(e) =>
-                          setEditedVariant({
-                            ...editedVariant,
-                            isActive: e.target.checked,
-                          })
-                        }
-                        className="w-4 h-4"
-                      />
-                      <span className="text-sm">Active</span>
-                    </label>
-                  </div>
-                </div>
-                <div className="grid grid-cols-2 gap-4 text-sm">
-                  <div>
-                    <Label className="text-xs text-slate-500 mb-1">
-                      Description
-                    </Label>
-                    <Textarea
-                      value={editedVariant.description || ""}
-                      onChange={(e) =>
-                        setEditedVariant({
-                          ...editedVariant,
-                          description: e.target.value,
-                        })
-                      }
-                      rows={2}
-                      className="resize-none"
-                    />
-                  </div>
+              )}
+            </div>
+          </div>
+          {/* Chevron for Details Toggle */}
+          {loadedVariantName && currentVariant && (
+            <button
+              className="absolute left-1/2 bottom-1 transform -translate-x-1/2 -mb-px text-slate-400 hover:text-blue-500 transition-colors"
+              onClick={() => setIsDetailsExpanded(!isDetailsExpanded)}
+              title={isDetailsExpanded ? "Hide details" : "Show details"}
+            >
+              {isDetailsExpanded ? (
+                <ChevronUp className="w-4 h-4" />
+              ) : (
+                <ChevronDown className="w-4 h-4" />
+              )}
+            </button>
+          )}{" "}
+          {/* --- Expandable Details Section --- */}
+          {isDetailsExpanded &&
+            loadedVariantName &&
+            currentVariant &&
+            editedVariant && (
+              <div className="pt-4 border-t border-slate-200">
+                {!isEditingVariant ? (
+                  // --- View Mode for Details ---
+                  <>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6 text-sm">
+                      <div>
+                        <Label className="text-xs text-slate-500">Status</Label>
+                        <p
+                          className={`inline-flex items-center gap-2 font-medium ${
+                            currentVariant.isActive
+                              ? "text-green-700"
+                              : "text-slate-600"
+                          }`}
+                        >
+                          <span
+                            className={`inline-block w-2 h-2 rounded-full ${
+                              currentVariant.isActive
+                                ? "bg-green-500"
+                                : "bg-slate-400"
+                            }`}
+                          ></span>
+                          {currentVariant.isActive ? "Active" : "Inactive"}
+                        </p>
+                      </div>
 
-                  <div>
-                    <Label className="text-xs text-slate-500 mb-1">Notes</Label>
-                    <Textarea
-                      value={editedVariant.notes || ""}
-                      onChange={(e) =>
-                        setEditedVariant({
-                          ...editedVariant,
-                          notes: e.target.value,
-                        })
-                      }
-                      rows={2}
-                      className="resize-none"
-                    />
-                  </div>
-                </div>
+                      <div>
+                        <Label className="text-xs text-slate-500">
+                          Optimization Goal
+                        </Label>
+                        <p className="text-slate-700 capitalize">
+                          {currentVariant.optimizationGoal?.replace(
+                            /_/g,
+                            " "
+                          ) || (
+                            <span className="italic text-slate-500">
+                              Not specified
+                            </span>
+                          )}
+                        </p>
+                      </div>
+                    </div>
 
-                <div className="flex justify-end gap-2 pt-2">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={handleCancelEdit}
-                    className="flex items-center gap-2"
-                  >
-                    <X className="w-3.5 h-3.5" />
-                    Cancel
-                  </Button>
-                  <Button
-                    size="sm"
-                    onClick={handleSaveVariantDetails}
-                    className="flex items-center gap-2"
-                  >
-                    <Check className="w-3.5 h-3.5" />
-                    Save
-                  </Button>
-                </div>
+                    <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-6 text-sm">
+                      <div>
+                        <Label className="text-xs text-slate-500">
+                          Description
+                        </Label>
+                        <p className="text-slate-700 leading-relaxed">
+                          {currentVariant.description || (
+                            <span className="italic text-slate-500">
+                              No description provided
+                            </span>
+                          )}
+                        </p>
+                      </div>
+
+                      <div>
+                        <Label className="text-xs text-slate-500">Notes</Label>
+                        <p className="text-slate-700 leading-relaxed">
+                          {currentVariant.notes ? (
+                            currentVariant.notes
+                          ) : (
+                            <span className="italic text-slate-500">
+                              No notes available
+                            </span>
+                          )}
+                        </p>
+                      </div>
+                    </div>
+                  </>
+                ) : (
+                  // --- Edit Mode for Details ---
+                  <div className="space-y-4">
+                    <div className="grid grid-cols-4 gap-4">
+                      <div className="col-span-2">
+                        <Label className="text-xs">Name *</Label>
+                        <Input
+                          value={editedVariant.name}
+                          onChange={(e) =>
+                            setEditedVariant({
+                              ...editedVariant,
+                              name: e.target.value,
+                            })
+                          }
+                          className="mt-1"
+                        />
+                      </div>
+                      <div>
+                        <Label className="text-xs">Goal</Label>
+                        <Select
+                          value={editedVariant.optimizationGoal || ""}
+                          onValueChange={(value) =>
+                            setEditedVariant({
+                              ...editedVariant,
+                              optimizationGoal:
+                                value as RecipeVariant["optimizationGoal"],
+                            })
+                          }
+                        >
+                          <SelectTrigger className="mt-1">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="cost_reduction">
+                              Cost Reduction
+                            </SelectItem>
+                            <SelectItem value="quality_improvement">
+                              Quality Improvement
+                            </SelectItem>
+                            <SelectItem value="supplier_diversification">
+                              Supplier Diversification
+                            </SelectItem>
+                            <SelectItem value="other">Other</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div className="flex items-end">
+                        <label className="flex items-center gap-2 cursor-pointer ml-1 mb-1">
+                          <input
+                            type="checkbox"
+                            checked={editedVariant.isActive}
+                            onChange={(e) =>
+                              setEditedVariant({
+                                ...editedVariant,
+                                isActive: e.target.checked,
+                              })
+                            }
+                            className="w-4 h-4"
+                          />
+                          <span className="text-sm font-medium">
+                            Active Variant
+                          </span>
+                        </label>
+                      </div>
+                    </div>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <Label className="text-xs">Description</Label>
+                        <Textarea
+                          value={editedVariant.description || ""}
+                          onChange={(e) =>
+                            setEditedVariant({
+                              ...editedVariant,
+                              description: e.target.value,
+                            })
+                          }
+                          rows={2}
+                          className="mt-1"
+                        />
+                      </div>
+                      <div>
+                        <Label className="text-xs">Notes</Label>
+                        <Textarea
+                          value={editedVariant.notes || ""}
+                          onChange={(e) =>
+                            setEditedVariant({
+                              ...editedVariant,
+                              notes: e.target.value,
+                            })
+                          }
+                          rows={2}
+                          className="mt-1"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="flex justify-end pt-2 gap-2">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={handleCancelEdit}
+                      >
+                        <X className="w-4 h-4 mr-1" />
+                        Cancel
+                      </Button>
+                      <Button size="sm" onClick={handleSaveVariantDetails}>
+                        <Check className="w-4 h-4 mr-1" />
+                        Save Changes
+                      </Button>
+                    </div>
+                  </div>
+                )}
               </div>
             )}
-          </div>
-        )}
+        </Card>
       </div>
 
       {/* Ingredients List */}
@@ -414,8 +461,9 @@ export function RecipeLabWorkspace({
               className="flex-1"
               onClick={onResetAll}
               size="sm"
+              title="Reset all ingredient changes back to their original values"
             >
-              Discard
+              Reset Changes
             </Button>
 
             {loadedVariantName ? (
