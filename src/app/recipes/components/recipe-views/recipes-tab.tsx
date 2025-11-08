@@ -1,8 +1,8 @@
 // recipes-tab.tsx - Fixed with proper DB save logic
 import React, { useState, useCallback, useEffect } from "react";
-import { RecipeListView } from "./recipe-views/recipes-list-view";
-import { RecipeDetailView } from "./recipe-views/recipes-detail-view";
-import { RecipeErrorBoundary } from "./recipe-views/recipes-error-boundary";
+import { RecipeListView } from "./recipes-list-view";
+import { RecipeDetailView } from "./recipes-detail-view";
+import { RecipeErrorBoundary } from "./recipes-error-boundary";
 import {
   useEnrichedRecipes,
   useEnrichedRecipe,
@@ -119,7 +119,6 @@ export function RecipesTab() {
                 id: newRecipeId,
                 name: recipeData.name,
                 description: recipeData.description || "",
-                totalWeight: totalWeight, // CALCULATED
                 targetCostPerKg: recipeData.targetCostPerKg,
                 status: recipeData.status || "draft",
                 version: recipeData.version || 1,
@@ -185,7 +184,6 @@ export function RecipesTab() {
               await db.recipes.update(selectedRecipeId, {
                 name: recipeData.name,
                 description: recipeData.description,
-                totalWeight: totalWeight, // CALCULATED
                 targetCostPerKg: recipeData.targetCostPerKg,
                 status: recipeData.status,
                 instructions: recipeData.instructions,

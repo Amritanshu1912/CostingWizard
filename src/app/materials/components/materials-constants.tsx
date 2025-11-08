@@ -394,6 +394,23 @@ export const SUPPLIER_MATERIALS: SupplierMaterial[] = [
     transportationCost: 10,
     createdAt: "2024-02-01",
   },
+  {
+    id: "10",
+    supplierId: "1",
+    materialId: "9",
+    unit: "kg",
+    unitPrice: 140,
+    tax: 5,
+    moq: 30,
+    bulkDiscounts: [
+      { quantity: 75, discount: 5 },
+      { quantity: 200, discount: 12 },
+    ],
+    leadTime: 7,
+    availability: "in-stock",
+    transportationCost: 20,
+    createdAt: "2024-01-20",
+  },
 ];
 
 // Analytics Data

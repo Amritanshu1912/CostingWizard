@@ -229,16 +229,11 @@ export default function RecipeLab() {
     setUpdateOriginalDialogOpen(false);
 
     try {
-      const totalWeight = experimentIngredients.reduce((sum, ing) => {
-        return sum + recipeCalculator.convertToStandard(ing.quantity, ing.unit);
-      }, 0);
-
       await db.transaction(
         "rw",
         [db.recipes, db.recipeIngredients],
         async () => {
           await db.recipes.update(selectedRecipe.id, {
-            totalWeight,
             version: (selectedRecipe.version || 1) + 1,
             updatedAt: new Date().toISOString(),
           });

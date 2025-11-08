@@ -12,7 +12,6 @@ export const RECIPES: Recipe[] = [
     id: "recipe-1",
     name: "Premium Floor Cleaner",
     description: "High-performance floor cleaning solution",
-    totalWeight: 1000, // 1000g = 1kg batch
     targetCostPerKg: 70,
     status: "active",
     version: 2,
@@ -24,7 +23,6 @@ export const RECIPES: Recipe[] = [
     id: "recipe-2",
     name: "Eco-Friendly Dish Soap",
     description: "Gentle yet effective dish cleaning formula",
-    totalWeight: 1000,
     targetCostPerKg: 80,
     status: "testing",
     version: 1,
@@ -36,7 +34,6 @@ export const RECIPES: Recipe[] = [
     id: "recipe-3",
     name: "Ultra Bleach Formula",
     description: "Professional-grade bleaching solution",
-    totalWeight: 1000,
     targetCostPerKg: 40,
     status: "active",
     version: 5,
@@ -48,7 +45,6 @@ export const RECIPES: Recipe[] = [
     id: "recipe-4",
     name: "Kitchen Degreaser Pro",
     description: "Heavy-duty degreasing formulation",
-    totalWeight: 1000,
     targetCostPerKg: 95,
     status: "active",
     version: 3,
@@ -60,7 +56,6 @@ export const RECIPES: Recipe[] = [
     id: "recipe-5",
     name: "Glass Cleaner Streak-Free",
     description: "Professional glass and mirror cleaning solution",
-    totalWeight: 1000,
     targetCostPerKg: 60,
     status: "draft",
     version: 1,
@@ -277,6 +272,120 @@ export const RECIPE_INGREDIENTS: RecipeIngredient[] = [
     createdAt: "2024-01-28T15:00:00Z",
     updatedAt: "2024-01-28T15:00:00Z",
   },
+
+  // Ingredients for Variant 1 (Cost Optimized v1 of Recipe 1)
+  {
+    id: "ving-1-1",
+    recipeId: "variant-1",
+    supplierMaterialId: "6", // NaCl
+    quantity: 315, // Changed from 350
+    unit: "gm",
+    createdAt: "2024-01-15T10:00:00Z",
+    updatedAt: "2024-01-15T10:00:00Z",
+  },
+  {
+    id: "ving-1-2",
+    recipeId: "variant-1",
+    supplierMaterialId: "7", // Soda Ash
+    quantity: 350,
+    unit: "gm",
+    createdAt: "2024-01-15T10:00:00Z",
+    updatedAt: "2024-01-15T10:00:00Z",
+  },
+  {
+    id: "ving-1-3",
+    recipeId: "variant-1",
+    supplierMaterialId: "3", // Citric Acid
+    quantity: 220,
+    unit: "gm",
+    createdAt: "2024-01-15T10:00:00Z",
+    updatedAt: "2024-01-15T10:00:00Z",
+  },
+  {
+    id: "ving-1-4",
+    recipeId: "variant-1",
+    supplierMaterialId: "4", // Acid Blue Color
+    quantity: 80,
+    unit: "gm",
+    createdAt: "2024-01-15T10:00:00Z",
+    updatedAt: "2024-01-15T10:00:00Z",
+  },
+
+  // Ingredients for Variant 2 (Quality Enhanced v1 of Recipe 1)
+  {
+    id: "ving-2-1",
+    recipeId: "variant-2",
+    supplierMaterialId: "6", // NaCl
+    quantity: 350,
+    unit: "gm",
+    createdAt: "2024-01-20T14:00:00Z",
+    updatedAt: "2024-01-20T14:00:00Z",
+  },
+  {
+    id: "ving-2-2",
+    recipeId: "variant-2",
+    supplierMaterialId: "7", // Soda Ash
+    quantity: 350,
+    unit: "gm",
+    createdAt: "2024-01-20T14:00:00Z",
+    updatedAt: "2024-01-20T14:00:00Z",
+  },
+  {
+    id: "ving-2-3",
+    recipeId: "variant-2",
+    supplierMaterialId: "3", // Citric Acid
+    quantity: 250, // Changed from 220
+    unit: "gm",
+    createdAt: "2024-01-20T14:00:00Z",
+    updatedAt: "2024-01-20T14:00:00Z",
+  },
+  {
+    id: "ving-2-4",
+    recipeId: "variant-2",
+    supplierMaterialId: "4", // Acid Blue Color
+    quantity: 80,
+    unit: "gm",
+    createdAt: "2024-01-20T14:00:00Z",
+    updatedAt: "2024-01-20T14:00:00Z",
+  },
+
+  // Ingredients for Variant 3 (Supplier Diversification of Recipe 2)
+  {
+    id: "ving-3-1",
+    recipeId: "variant-3",
+    supplierMaterialId: "10", // AOS Powder from ChemCorp (ID 10) instead of ColorTech (ID 5)
+    quantity: 150,
+    unit: "gm",
+    createdAt: "2024-01-18T11:00:00Z",
+    updatedAt: "2024-01-18T11:00:00Z",
+  },
+  {
+    id: "ving-3-2",
+    recipeId: "variant-3",
+    supplierMaterialId: "2", // Caustic Soda
+    quantity: 50,
+    unit: "gm",
+    createdAt: "2024-01-18T11:00:00Z",
+    updatedAt: "2024-01-18T11:00:00Z",
+  },
+  {
+    id: "ving-3-3",
+    recipeId: "variant-3",
+    supplierMaterialId: "3", // Citric Acid
+    quantity: 120,
+    unit: "gm",
+    createdAt: "2024-01-18T11:00:00Z",
+    updatedAt: "2024-01-18T11:00:00Z",
+  },
+  {
+    id: "ving-3-4",
+    recipeId: "variant-3",
+    supplierMaterialId: "4", // Acid Blue Color
+    quantity: 10,
+    unit: "gm",
+    createdAt: "2024-01-18T11:00:00Z",
+    updatedAt: "2024-01-18T11:00:00Z",
+  },
 ];
 
 // ============================================================================
@@ -289,19 +398,9 @@ export const RECIPE_VARIANTS: RecipeVariant[] = [
     originalRecipeId: "recipe-1",
     name: "Cost Optimized v1",
     description: "Reduced NaCl by 10% to achieve cost savings",
-    ingredientIds: ["ing-1-1-mod", "ing-1-2", "ing-1-3", "ing-1-4"], // Modified ingredient
+    ingredientIds: ["ving-1-1", "ving-1-2", "ving-1-3", "ving-1-4"],
     optimizationGoal: "cost_reduction",
     isActive: true,
-    changes: [
-      {
-        type: "quantity_change",
-        ingredientName: "NaCl",
-        oldValue: 350,
-        newValue: 315,
-        reason: "Cost optimization without quality impact",
-        changedAt: new Date("2024-01-15T10:00:00Z"),
-      },
-    ],
     notes:
       "Achieved 8.5% cost reduction while maintaining cleaning performance",
     createdAt: "2024-01-15T10:00:00Z",
@@ -312,19 +411,9 @@ export const RECIPE_VARIANTS: RecipeVariant[] = [
     originalRecipeId: "recipe-1",
     name: "Quality Enhanced v1",
     description: "Increased thickener for better viscosity",
-    ingredientIds: ["ing-1-1", "ing-1-2", "ing-1-3-mod", "ing-1-4"],
+    ingredientIds: ["ving-2-1", "ving-2-2", "ving-2-3", "ving-2-4"],
     optimizationGoal: "quality_improvement",
     isActive: false,
-    changes: [
-      {
-        type: "quantity_change",
-        ingredientName: "Citric Acid",
-        oldValue: 220,
-        newValue: 250,
-        reason: "Improved cleaning performance",
-        changedAt: new Date("2024-01-20T14:00:00Z"),
-      },
-    ],
     notes: "Enhanced quality but cost increased by 2.3%",
     createdAt: "2024-01-20T14:00:00Z",
     updatedAt: "2024-01-20T14:00:00Z",
@@ -334,19 +423,9 @@ export const RECIPE_VARIANTS: RecipeVariant[] = [
     originalRecipeId: "recipe-2",
     name: "Supplier Diversification v1",
     description: "Switched to alternative supplier for AOS Powder",
-    ingredientIds: ["ing-2-1-alt", "ing-2-2", "ing-2-3", "ing-2-4"],
+    ingredientIds: ["ving-3-1", "ving-3-2", "ving-3-3", "ving-3-4"],
     optimizationGoal: "supplier_diversification",
     isActive: true,
-    changes: [
-      {
-        type: "supplier_change",
-        ingredientName: "AOS Powder",
-        oldValue: "Global Chemicals",
-        newValue: "ColorTech",
-        reason: "Better pricing and reliability",
-        changedAt: new Date("2024-01-18T11:00:00Z"),
-      },
-    ],
     notes: "Reduced dependency on single supplier, saved 5.2%",
     createdAt: "2024-01-18T11:00:00Z",
     updatedAt: "2024-01-18T11:00:00Z",

@@ -74,7 +74,7 @@ export class CostingWizardDB extends Dexie {
             labels: 'id, name, type, supplierId, availability',
             supplierLabels: 'id, supplierId, labelId, labelName, availability',
             recipes: 'id, name, status, createdAt',  // NEW
-            recipeVariants: 'id, originalRecipeId, name, isActive',
+            recipeVariants: 'id, originalRecipeId, name, isActive, &ingredientsSnapshot',
             recipeIngredients: 'id, recipeId, supplierMaterialId',
             products: 'id, name, status',
             productionPlans: 'id, planName, status, startDate, endDate',

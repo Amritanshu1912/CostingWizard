@@ -18,10 +18,10 @@ import {
   GitBranch,
 } from "lucide-react";
 
-import { RecipesTab } from "./recipes-tab";
+import { RecipesTab } from "./recipe-views/recipes-tab";
 import { RecipeAnalytics } from "./recipes-analytics";
 import RecipeLab from "./recipes-lab/recipe-lab";
-import { RecipeComparisonTab } from "./recipes-comparison/recipe-comparison-tab";
+import { RecipeComparison } from "./recipes-comparison/recipe-comparison";
 import { MetricCard } from "@/components/ui/metric-card";
 import { useEnrichedRecipes, useRecipeStats } from "@/hooks/use-recipes";
 
@@ -115,7 +115,7 @@ export function RecipeManager() {
         </TabsContent>
 
         <TabsContent value="comparison" className="space-y-6">
-          <RecipeComparisonTab />
+          <RecipeComparison />
         </TabsContent>
 
         <TabsContent value="analytics" className="space-y-6">

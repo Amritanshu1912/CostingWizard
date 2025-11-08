@@ -210,14 +210,9 @@ export function RecipeDetailView({
 
     // Calculate per kg costs
     const costPerKg =
-      totalWeightGrams > 0
-        ? totalCost / recipeCalculator.normalizeToKg(totalWeightGrams, "gm")
-        : 0;
+      totalWeightGrams > 0 ? (totalCost / totalWeightGrams) * 1000 : 0;
     const taxedCostPerKg =
-      totalWeightGrams > 0
-        ? taxedTotalCost /
-          recipeCalculator.normalizeToKg(totalWeightGrams, "gm")
-        : 0;
+      totalWeightGrams > 0 ? (totalCost / totalWeightGrams) * 1000 : 0;
 
     // Calculate variance from target
     const varianceFromTarget = editedTargetCost
