@@ -36,11 +36,16 @@ export type CapacityUnit = "kg" | "L" | "ml" | "gm" | "pcs";
 // SUPPLIERS
 // ============================================================================
 
+export interface ContactPerson {
+  name: string;
+  email?: string;
+  phone?: string;
+  role?: string;
+}
+
 export interface Supplier extends BaseEntity {
   name: string;
-  contactPerson: string;
-  email: string;
-  phone: string;
+  contactPersons?: ContactPerson[];
   address?: string;
   rating: number;
   isActive: boolean;

@@ -27,6 +27,7 @@ import type {
   Supplier,
   Material,
   PurchaseOrderItem,
+  ContactPerson,
 } from "@/lib/types";
 import { SUPPLIERS } from "@/lib/constants";
 import {
@@ -45,9 +46,9 @@ interface AddSupplierDialogProps {
 
 const initialSupplierState = {
   name: "",
-  contactPerson: "",
-  email: "",
-  phone: "",
+  contactPersons: [
+    { name: "", email: undefined, phone: undefined, role: undefined },
+  ] as ContactPerson[],
   address: "",
   rating: 5, // Default to high rating
   paymentTerms: "30 days",
@@ -71,9 +72,11 @@ export const AddSupplierDialog = ({
       if (isEdit && initialData) {
         setSupplierData({
           name: initialData.name || "",
-          contactPerson: initialData.contactPerson || "",
-          email: initialData.email || "",
-          phone: initialData.phone || "",
+          contactPersons:
+            initialData.contactPersons ||
+            ([
+              { name: "", email: undefined, phone: undefined, role: undefined },
+            ] as ContactPerson[]),
           address: initialData.address || "",
           rating: initialData.rating || 5,
           paymentTerms: initialData.paymentTerms || "30 days",
@@ -89,23 +92,59 @@ export const AddSupplierDialog = ({
 
   const handleChange = (
     field: keyof typeof initialSupplierState,
-    value: string | number
+    value: string | number | ContactPerson[]
   ) => {
     setSupplierData((prev) => ({ ...prev, [field]: value }));
   };
 
+  const handleContactChange = (
+    index: number,
+    field: keyof ContactPerson,
+    value: string
+  ) => {
+    const updatedContacts = [...supplierData.contactPersons];
+    updatedContacts[index] = { ...updatedContacts[index], [field]: value };
+    handleChange("contactPersons", updatedContacts);
+  };
+
+  const addContact = () => {
+    const newContact: ContactPerson = {
+      name: "",
+      email: undefined,
+      phone: undefined,
+      role: undefined,
+    };
+    handleChange("contactPersons", [
+      ...supplierData.contactPersons,
+      newContact,
+    ]);
+  };
+
+  const removeContact = (index: number) => {
+    if (supplierData.contactPersons.length > 1) {
+      const updatedContacts = supplierData.contactPersons.filter(
+        (_, i) => i !== index
+      );
+      handleChange("contactPersons", updatedContacts);
+    }
+  };
+
   const handleSave = () => {
-    if (!supplierData.name || !supplierData.contactPerson) {
-      toast.error("Supplier Name and Contact Person are required.");
+    if (
+      !supplierData.name ||
+      supplierData.contactPersons.length === 0 ||
+      !supplierData.contactPersons[0].name
+    ) {
+      toast.error(
+        "Supplier Name and at least one Contact Person are required."
+      );
       return;
     }
 
     const supplier: Supplier = {
       id: isEdit && initialData ? initialData.id : crypto.randomUUID(),
       name: supplierData.name,
-      contactPerson: supplierData.contactPerson,
-      email: supplierData.email,
-      phone: supplierData.phone,
+      contactPersons: supplierData.contactPersons,
       address: supplierData.address,
       rating: supplierData.rating,
       isActive: supplierData.isActive,
@@ -158,33 +197,85 @@ export const AddSupplierDialog = ({
               className="focus-enhanced"
             />
           </div>
-          <div>
-            <Label>Contact Person *</Label>
-            <Input
-              value={supplierData.contactPerson}
-              onChange={(e) => handleChange("contactPerson", e.target.value)}
-              placeholder="Enter contact person"
-              className="focus-enhanced"
-            />
-          </div>
-          <div>
-            <Label>Email</Label>
-            <Input
-              type="email"
-              value={supplierData.email}
-              onChange={(e) => handleChange("email", e.target.value)}
-              placeholder="Enter email"
-              className="focus-enhanced"
-            />
-          </div>
-          <div>
-            <Label>Phone</Label>
-            <Input
-              value={supplierData.phone}
-              onChange={(e) => handleChange("phone", e.target.value)}
-              placeholder="Enter phone number"
-              className="focus-enhanced"
-            />
+          <div className="md:col-span-2">
+            <Label>Contact Persons *</Label>
+            {supplierData.contactPersons.map((contact, index) => (
+              <div
+                key={index}
+                className="border rounded-lg p-4 mb-4 bg-muted/20"
+              >
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <Label>Name *</Label>
+                    <Input
+                      value={contact.name}
+                      onChange={(e) =>
+                        handleContactChange(index, "name", e.target.value)
+                      }
+                      placeholder="Contact name"
+                      className="focus-enhanced"
+                    />
+                  </div>
+                  <div>
+                    <Label>Role</Label>
+                    <Input
+                      value={contact.role ?? ""}
+                      onChange={(e) =>
+                        handleContactChange(index, "role", e.target.value)
+                      }
+                      placeholder="e.g., Sales Manager"
+                      className="focus-enhanced"
+                    />
+                  </div>
+                  <div>
+                    <Label>Email</Label>
+                    <Input
+                      type="email"
+                      value={contact.email ?? ""}
+                      onChange={(e) =>
+                        handleContactChange(index, "email", e.target.value)
+                      }
+                      placeholder="Enter email"
+                      className="focus-enhanced"
+                    />
+                  </div>
+                  <div>
+                    <Label>Phone</Label>
+                    <Input
+                      value={contact.phone ?? ""}
+                      onChange={(e) =>
+                        handleContactChange(index, "phone", e.target.value)
+                      }
+                      placeholder="Enter phone number"
+                      className="focus-enhanced"
+                    />
+                  </div>
+                </div>
+                {supplierData.contactPersons.length > 1 && (
+                  <div className="flex justify-end mt-2">
+                    <Button
+                      type="button"
+                      variant="destructive"
+                      size="sm"
+                      onClick={() => removeContact(index)}
+                      className="gap-1"
+                    >
+                      <XCircle className="h-4 w-4" />
+                      Remove Contact
+                    </Button>
+                  </div>
+                )}
+              </div>
+            ))}
+            <Button
+              type="button"
+              variant="outline"
+              onClick={addContact}
+              className="gap-1"
+            >
+              <Plus className="h-4 w-4" />
+              Add Another Contact
+            </Button>
           </div>
           <div>
             <Label>Payment Terms</Label>
