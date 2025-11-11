@@ -4,7 +4,6 @@ import React from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { SuppliersOverviewTab } from "./suppliers-overview-tab/suppliers-overview-tab";
 import { SuppliersItemsTab } from "./suppliers-items-tab/suppliers-items-tab";
-import { MoqAnalysisTab } from "./suppliers-moq-analysis-tab";
 import { useSuppliers, useItemsBySupplier } from "@/hooks/use-suppliers";
 
 export function SuppliersManager() {
@@ -27,10 +26,9 @@ export function SuppliersManager() {
       </div>
 
       <Tabs defaultValue="overview" className="space-y-6">
-        <TabsList className="grid w-full grid-cols-3">
+        <TabsList className="grid w-full grid-cols-2">
           <TabsTrigger value="overview">Overview</TabsTrigger>
           <TabsTrigger value="items">Supplier Items</TabsTrigger>
-          <TabsTrigger value="moq-analysis">MOQ Analysis</TabsTrigger>
         </TabsList>
 
         <TabsContent value="overview" className="space-y-6">
@@ -42,10 +40,6 @@ export function SuppliersManager() {
 
         <TabsContent value="items" className="space-y-6">
           <SuppliersItemsTab suppliers={suppliers} />
-        </TabsContent>
-
-        <TabsContent value="moq-analysis" className="space-y-6">
-          <MoqAnalysisTab />
         </TabsContent>
       </Tabs>
     </div>
