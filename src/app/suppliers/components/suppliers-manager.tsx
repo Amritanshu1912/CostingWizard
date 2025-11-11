@@ -1,48 +1,16 @@
 "use client";
 
-import { useState } from "react";
-import { useLocalStorage } from "@/hooks/use-local-storage";
-import { Button } from "@/components/ui/button";
+import React from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Users, Plus } from "lucide-react";
-import { SUPPLIERS } from "@/lib/constants";
-import { SUPPLIER_MATERIALS } from "../../materials/components/materials-constants";
-import type { Supplier } from "@/lib/types";
-import { SuppliersOverviewTab } from "./suppliers-overview-tab";
-import { SuppliersItemsTab } from "./suppliers-items-tab";
+import { SuppliersOverviewTab } from "./suppliers-overview-tab/suppliers-overview-tab";
+import { SuppliersItemsTab } from "./suppliers-items-tab/suppliers-items-tab";
 import { MoqAnalysisTab } from "./suppliers-moq-analysis-tab";
+import { useSuppliers, useItemsBySupplier } from "@/hooks/use-suppliers";
 
 export function SuppliersManager() {
-  const [suppliers, setSuppliers] = useLocalStorage<Supplier[]>(
-    "suppliers",
-    SUPPLIERS
-  );
-
-  const handleAddSupplier = (newSupplier: Supplier) => {
-    setSuppliers((prev) => [...prev, newSupplier]);
-  };
-
-  const handleEditSupplier = (supplier: Supplier) => {
-    setSuppliers((prev) =>
-      prev.map((s) => (s.id === supplier.id ? supplier : s))
-    );
-  };
-
-  const handleDeleteSupplier = (id: string) => {
-    setSuppliers((prev) =>
-      prev.map((s) => (s.id === id ? { ...s, isActive: false } : s))
-    );
-  };
-
-  // Compute a map of supplierId → number of available materials
-  const materialsBySupplier = (SUPPLIER_MATERIALS || []).reduce<
-    Record<string, number>
-  >((acc, material) => {
-    if (material.availability !== "out-of-stock") {
-      acc[material.supplierId] = (acc[material.supplierId] || 0) + 1;
-    }
-    return acc;
-  }, {});
+  // Use separate hooks for data and state management
+  const suppliers = useSuppliers();
+  const itemsBySupplier = useItemsBySupplier();
 
   return (
     <div className="space-y-6 animate-wave-in">
@@ -68,11 +36,7 @@ export function SuppliersManager() {
         <TabsContent value="overview" className="space-y-6">
           <SuppliersOverviewTab
             suppliers={suppliers}
-            materialsBySupplier={materialsBySupplier}
-            supplierMaterials={SUPPLIER_MATERIALS}
-            onAddSupplier={handleAddSupplier}
-            onEditSupplier={handleEditSupplier}
-            onDeleteSupplier={handleDeleteSupplier}
+            itemsBySupplier={itemsBySupplier}
           />
         </TabsContent>
 

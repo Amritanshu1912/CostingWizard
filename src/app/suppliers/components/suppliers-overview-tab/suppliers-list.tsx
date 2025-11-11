@@ -14,7 +14,7 @@ interface SuppliersListProps {
   onSelectSupplier: (id: string) => void;
   searchTerm: string;
   onSearchChange: (term: string) => void;
-  materialsBySupplier?: Record<string, number>;
+  itemsBySupplier?: Record<string, number>;
 }
 
 export function SuppliersList({
@@ -23,7 +23,7 @@ export function SuppliersList({
   onSelectSupplier,
   searchTerm,
   onSearchChange,
-  materialsBySupplier = {},
+  itemsBySupplier = {},
 }: SuppliersListProps) {
   return (
     <Card className="border-2 h-[calc(100vh-12rem)]">
@@ -49,7 +49,7 @@ export function SuppliersList({
               </div>
             ) : (
               suppliers.map((supplier) => {
-                const materialsCount = materialsBySupplier[supplier.id] || 0;
+                const itemsCount = itemsBySupplier[supplier.id] || 0;
                 const isSelected = selectedSupplierId === supplier.id;
 
                 return (
@@ -60,7 +60,7 @@ export function SuppliersList({
                       "w-full text-left p-4 rounded-lg border-2 transition-all hover:border-primary/50",
                       isSelected
                         ? "border-primary bg-primary/5"
-                        : "border-border hover:bg-accent"
+                        : "border-border hover:bg-accent/20"
                     )}
                   >
                     <div className="flex items-start justify-between gap-2">
@@ -79,9 +79,9 @@ export function SuppliersList({
                             {supplier.rating}
                           </span>
                         </div>
-                        {materialsCount > 0 && (
+                        {itemsCount > 0 && (
                           <Badge variant="secondary" className="text-xs">
-                            {materialsCount} items
+                            {itemsCount} items
                           </Badge>
                         )}
                       </div>
