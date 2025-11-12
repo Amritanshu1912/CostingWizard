@@ -37,8 +37,10 @@ export function SuppliersTable({
       sortable: true,
       render: (value: any, row: Supplier) => (
         <div className="text-sm">
-          <div>{row.contactPerson}</div>
-          <div className="text-muted-foreground">{row.phone}</div>
+          <div>{row.contactPersons?.[0]?.name}</div>
+          <div className="text-muted-foreground">
+            {row.contactPersons?.[0]?.phone}
+          </div>
         </div>
       ),
     },
