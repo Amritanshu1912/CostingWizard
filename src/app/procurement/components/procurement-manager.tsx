@@ -1,169 +1,120 @@
 "use client";
 
-import { useState } from "react";
-import { useLocalStorage } from "@/hooks/use-local-storage";
-import { Button } from "@/components/ui/button";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { ShoppingCart, Search, TrendingUp, Package, Plus } from "lucide-react";
-import { SUPPLIERS, PURCHASE_ORDERS } from "@/lib/constants";
-import { SUPPLIER_MATERIALS } from "../../materials/components/materials-constants";
-import type { Supplier, PurchaseOrder } from "@/lib/types";
+import { useState, useMemo } from "react";
+import { db } from "@/lib/db";
+import { useDexieTable } from "@/hooks/use-dexie-table";
+import { Supplier, PurchaseOrder, SupplierMaterial } from "@/lib/types";
+import { ProcurementAnalytics } from "./procurement-analytics";
+import { OrdersTab } from "./procurement-orders-tab";
 import {
-  ORDER_STATUS_MAP,
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+} from "@/components/ui/card";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import {
   SUMMARY_METRICS,
-  SUPPLIER_COLUMNS,
-  PURCHASE_ORDER_COLUMNS,
   MONTHLY_SPEND_DATA,
   MATERIAL_COST_DATA,
   ORDER_STATUS_DATA,
   getSupplierPerformanceData,
 } from "./procurement-constants";
-import { OrderDialog } from "./procurement-orders-dialogs";
-import { OrdersTab } from "./procurement-orders-tab";
-import { ProcurementAnalytics } from "./procurement-analytics";
 
-export function ProcurementManager() {
-  const [suppliers, setSuppliers] = useLocalStorage<Supplier[]>(
-    "suppliers",
-    SUPPLIERS
+export default function ProcurementManager() {
+  const [activeTab, setActiveTab] = useState("orders");
+
+  const { data: suppliers } = useDexieTable<Supplier>(db.suppliers);
+  const { data: purchaseOrders } = useDexieTable<PurchaseOrder>(
+    db.purchaseOrders
   );
-  const [orders, setOrders] = useLocalStorage<PurchaseOrder[]>(
-    "orders",
-    PURCHASE_ORDERS
-  );
-  const [searchTerm, setSearchTerm] = useState("");
-  const [selectedMaterial, setSelectedMaterial] = useState("");
-  const [isAddSupplierOpen, setIsAddSupplierOpen] = useState(false);
-  const [isCreateOrderOpen, setIsCreateOrderOpen] = useState(false);
-  const [selectedSupplier, setSelectedSupplier] = useState<Supplier | null>(
-    null
-  );
-  const [editingOrder, setEditingOrder] = useState<PurchaseOrder | null>(null);
+  const { data: supplierMaterials } = useDexieTable<SupplierMaterial>(db.supplierMaterials);
 
-  const filteredSuppliers = (suppliers || []).filter((supplier) =>
-    supplier.name.toLowerCase().includes(searchTerm.toLowerCase())
-  );
 
-  const handleAddSupplier = (newSupplier: Supplier) => {
-    setSuppliers((prev) => [...prev, newSupplier]);
-    setIsAddSupplierOpen(false);
-  };
+  const {
+    metrics,
+    monthlySpendData,
+    supplierPerformanceData,
+    materialCostData,
+    orderStatusData,
+  } = useMemo(() => {
+    const s = suppliers || [];
+    const p = purchaseOrders || [];
+    const sm = supplierMaterials || [];
 
-  const handleSaveOrder = (order: PurchaseOrder) => {
-    if (editingOrder) {
-      setOrders((prev) =>
-        prev.map((o) => (o.id === editingOrder.id ? order : o))
-      );
-    } else {
-      setOrders((prev) => [...prev, order]);
-    }
-    setEditingOrder(null);
-    setIsCreateOrderOpen(false);
-  };
+    const totalSuppliers = s.length;
+    const activeOrders = p.filter(
+      (o) => o.status === "confirmed" || o.status === "submitted"
+    ).length;
+    const totalOrderValue = p.reduce((sum, o) => sum + o.totalCost, 0);
+    
+    const avgDeliveryTime = s.length > 0 ?
+      s.reduce((sum, supplier) => {
+        const materialsForSupplier = sm.filter(
+          (m: any) => m.supplierId === supplier.id
+        );
 
-  const totalSuppliers = suppliers.length;
-  const activeOrders = (orders || []).filter(
-    (o) => o.status === "confirmed" || o.status === "submitted"
-  ).length;
-  const totalOrderValue = (orders || []).reduce(
-    (sum, o) => sum + o.totalCost,
-    0
-  );
-  const avgDeliveryTime =
-    (suppliers || []).reduce((sum, supplier) => {
-      const materialsForSupplier = (SUPPLIER_MATERIALS || []).filter(
-        (m) => m.supplierId === supplier.id
-      );
+        if (materialsForSupplier.length === 0) return sum;
 
-      if (materialsForSupplier.length === 0) return sum; // skip if no materials
+        const avgLead = materialsForSupplier.reduce(
+          (leadSum: number, m: any) => leadSum + (m.leadTime || 0),
+          0
+        ) / materialsForSupplier.length;
 
-      const avgLead = materialsForSupplier.reduce(
-        (leadSum, m) => leadSum + (m.leadTime || 0),
-        0
-      );
-      materialsForSupplier.length;
+        return sum + avgLead;
+      }, 0) / s.length : 0;
 
-      return sum + avgLead;
-    }, 0) / (suppliers || []).length;
+    const metrics = SUMMARY_METRICS.map((metric) => {
+        let value = metric.value;
+        if (metric.title === "Total Suppliers") value = totalSuppliers.toString();
+        if (metric.title === "Active Orders") value = activeOrders.toString();
+        if (metric.title === "Total Spend (Q3)") value = `₹${totalOrderValue.toFixed(0)}`;
+        if (metric.title === "Avg Delivery Time") value = `${avgDeliveryTime.toFixed(0)} days`;
+        return { ...metric, value };
+    });
 
-  const metrics = SUMMARY_METRICS.map((metric, index) => {
-    const values = [
-      totalSuppliers,
-      activeOrders,
-      `₹${totalOrderValue.toFixed(0)}`,
-      `${avgDeliveryTime.toFixed(0)} days`,
-    ];
+    const supplierPerformanceData = getSupplierPerformanceData(s);
+
     return {
-      ...metric,
-      value: values[index],
+      metrics,
+      monthlySpendData: MONTHLY_SPEND_DATA,
+      supplierPerformanceData,
+      materialCostData: MATERIAL_COST_DATA,
+      orderStatusData: ORDER_STATUS_DATA,
     };
-  });
-
-  const monthlySpendData = MONTHLY_SPEND_DATA;
-  const supplierPerformanceData = getSupplierPerformanceData(suppliers);
-  const materialCostData = MATERIAL_COST_DATA;
-  const orderStatusData = ORDER_STATUS_DATA;
-
-  // Compute a map of supplierId → number of available materials
-  const materialsBySupplier = (SUPPLIER_MATERIALS || []).reduce<
-    Record<string, number>
-  >((acc, material) => {
-    if (material.availability !== "out-of-stock") {
-      acc[material.supplierId] = (acc[material.supplierId] || 0) + 1;
-    }
-    return acc;
-  }, {});
+  }, [suppliers, purchaseOrders, supplierMaterials]);
 
   return (
-    <div className="space-y-6 animate-wave-in">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold text-foreground">
-            Procurement Management
-          </h1>
-          <p className="text-muted-foreground mt-1">
-            Manage suppliers, compare prices, and handle purchase orders
-          </p>
-        </div>
-        <div className="flex gap-3">
-          <OrderDialog
-            isOpen={isCreateOrderOpen}
-            setIsOpen={setIsCreateOrderOpen}
-            initialOrder={editingOrder}
-            onSave={handleSaveOrder}
-          />
-          <Button
-            className="bg-accent hover:bg-accent/90"
-            onClick={() => {
-              setEditingOrder(null);
-              setIsCreateOrderOpen(true);
-            }}
-          >
-            <ShoppingCart className="h-4 w-4 mr-2" />
-            Create Order
-          </Button>
-        </div>
-      </div>
-
-      <Tabs defaultValue="orders" className="space-y-6">
-        <TabsList className="grid w-full grid-cols-2">
-          <TabsTrigger value="orders">Purchase Orders</TabsTrigger>
-          <TabsTrigger value="analytics">Analytics</TabsTrigger>
+    <div className="grid grid-cols-1 gap-4">
+      <ProcurementAnalytics
+        metrics={metrics || []}
+        monthlySpendData={monthlySpendData || []}
+        supplierPerformanceData={supplierPerformanceData || []}
+        materialCostData={materialCostData || []}
+        orderStatusData={orderStatusData || []}
+      />
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+        <TabsList>
+          <TabsTrigger value="orders">Orders</TabsTrigger>
+          <TabsTrigger value="suppliers">Suppliers</TabsTrigger>
         </TabsList>
-
-        <TabsContent value="orders" className="space-y-6">
-          <OrdersTab orders={orders} />
+        <TabsContent value="orders">
+          <OrdersTab orders={purchaseOrders || []} />
         </TabsContent>
-
-        <TabsContent value="analytics" className="space-y-6">
-          <ProcurementAnalytics
-            metrics={metrics}
-            monthlySpendData={monthlySpendData}
-            supplierPerformanceData={supplierPerformanceData}
-            materialCostData={materialCostData}
-            orderStatusData={orderStatusData}
-          />
+        <TabsContent value="suppliers">
+          <Card>
+            <CardHeader>
+              <CardTitle>Suppliers</CardTitle>
+              <CardDescription>
+                Manage your suppliers here.
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              {/* Placeholder for suppliers management UI */}
+              <p>Suppliers management coming soon.</p>
+            </CardContent>
+          </Card>
         </TabsContent>
       </Tabs>
     </div>

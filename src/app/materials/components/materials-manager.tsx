@@ -19,7 +19,7 @@ import { MaterialsPriceComparison } from "./materials-price-comparison";
 import { MaterialsAnalytics } from "./materials-analytics";
 import { EnhancedMaterialDialog } from "./supplier-materials-dialog";
 import { MaterialsDrawer } from "./materials-drawer";
-import { CategoryManager } from "@/components/category-manager";
+import { CategoryManager } from "@/app/materials/components/materials-category-manager";
 
 import type { Category, SupplierMaterial } from "@/lib/types";
 import type { MaterialFormData } from "./supplier-materials-dialog";

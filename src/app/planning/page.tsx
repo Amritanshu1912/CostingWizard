@@ -1,5 +1,4 @@
 import { Sidebar } from "@/components/sidebar";
-import { Header } from "@/components/header";
 import { ProductionPlanning } from "@/app/planning/components/planning-manager";
 
 export default function PlanningPage() {
@@ -7,7 +6,6 @@ export default function PlanningPage() {
     <div className="flex h-screen bg-background">
       <Sidebar />
       <div className="flex-1 flex flex-col overflow-hidden">
-        <Header />
         <main className="flex-1 overflow-y-auto p-6">
           <ProductionPlanning />
         </main>

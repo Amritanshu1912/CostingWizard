@@ -11,7 +11,6 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Sidebar } from "@/components/sidebar";
-import { Header } from "@/components/header";
 import { Package, TrendingUp, TrendingDown, BarChart3 } from "lucide-react";
 import { quickActions, quickStats, recentMaterials } from "@/lib/constants";
 
@@ -216,7 +215,6 @@ export default function HomePage() {
     <div className="flex h-screen bg-background">
       <Sidebar />
       <div className="flex-1 flex flex-col overflow-hidden">
-        <Header />
         <main className="flex-1 overflow-y-auto p-6">
           <DashboardOverview />
         </main>
