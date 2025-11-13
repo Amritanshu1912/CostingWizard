@@ -1,174 +1,228 @@
 "use client";
 
-import type React from "react";
-import { useState, useEffect } from "react";
+import React, { useState, useEffect } from "react";
+import {
+  Download,
+  Upload,
+  RefreshCw,
+  Trash2,
+  Clock,
+  CheckCircle,
+  AlertCircle,
+  Calendar,
+  Database,
+  Layers,
+} from "lucide-react";
+import { db } from "@/lib/db";
 import { Button } from "@/components/ui/button";
 import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog";
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+} from "@/components/ui/card";
 import { toast } from "sonner";
-import { Download, Upload, RefreshCw } from "lucide-react";
-import { db } from "@/lib/db";
-import type { SavedData } from "./data-management-types";
-import { getDataName, getDataType, formatBytes } from "./data-management-utils";
-import { StatsCards } from "./StatsCards";
-import { SavedDataTable } from "./SavedDataTable";
-import { AutosaveSettings } from "./AutosaveSettings";
-import { ExportDialog } from "./ExportDialog";
 
-export function DataPersistenceManager() {
-  const [savedData, setSavedData] = useState<SavedData[]>([]);
-  const [isExportDialogOpen, setIsExportDialogOpen] = useState(false);
-  const [isImportDialogOpen, setIsImportDialogOpen] = useState(false);
-  const [autosaveEnabled, setAutosaveEnabled] = useState(true);
+const TABLE_CATEGORIES = {
+  "Core Data": ["categories", "materials", "suppliers", "supplierMaterials"],
+  "Products & Recipes": [
+    "recipes",
+    "recipeVariants",
+    "recipeIngredients",
+    "products",
+  ],
+  Production: ["productionPlans", "purchaseOrders"],
+  "Packaging & Labels": [
+    "packaging",
+    "supplierPackaging",
+    "labels",
+    "supplierLabels",
+  ],
+  Inventory: ["inventoryItems", "inventoryTransactions", "transportationCosts"],
+};
+
+const formatTableName = (name: string): string => {
+  return name
+    .replace(/([A-Z])/g, " $1")
+    .replace(/^./, (str) => str.toUpperCase());
+};
+
+const formatBytes = (bytes: number): string => {
+  if (bytes === 0) return "0 B";
+  const k = 1024;
+  const sizes = ["B", "KB", "MB"];
+  const i = Math.floor(Math.log(bytes) / Math.log(k));
+  return Math.round((bytes / Math.pow(k, i)) * 100) / 100 + " " + sizes[i];
+};
+
+interface TableStat {
+  count: number;
+  size: number;
+  error?: boolean;
+}
+
+interface ExportProgress {
+  current: number;
+  total: number;
+}
+
+export default function DataPersistenceManager() {
+  const [tableStats, setTableStats] = useState<Record<string, TableStat>>({});
+  const [selectedTables, setSelectedTables] = useState<Set<string>>(new Set());
+  const [isLoading, setIsLoading] = useState(true);
+  const [exportProgress, setExportProgress] = useState<ExportProgress | null>(
+    null
+  );
+  const [autoBackupEnabled, setAutoBackupEnabled] = useState(false);
+  const [backupInterval, setBackupInterval] = useState("daily");
+  const [lastBackup, setLastBackup] = useState<string | null>(null);
 
   useEffect(() => {
-    loadSavedData();
+    loadDatabaseStats();
+    loadBackupSettings();
   }, []);
 
-  const loadSavedData = async () => {
-    if (typeof window === "undefined") return;
+  const loadDatabaseStats = async () => {
+    setIsLoading(true);
+    const stats: Record<string, TableStat> = {};
 
-    try {
-      const data: SavedData[] = [];
+    const tableNames = Object.keys(db).filter(
+      (key) => (db as any)[key] && typeof (db as any)[key].count === "function"
+    );
 
-      // Get data from IndexedDB tables
-      const tables = [
-        { name: "categories", table: db.categories },
-        { name: "materials", table: db.materials },
-        { name: "suppliers", table: db.suppliers },
-        { name: "supplierMaterials", table: db.supplierMaterials },
-        { name: "products", table: db.products },
-        { name: "productionPlans", table: db.productionPlans },
-        { name: "purchaseOrders", table: db.purchaseOrders },
-        { name: "packaging", table: db.packaging },
-        { name: "supplierPackaging", table: db.supplierPackaging },
-        { name: "labels", table: db.labels },
-        { name: "supplierLabels", table: db.supplierLabels },
-        { name: "inventoryItems", table: db.inventoryItems },
-        { name: "inventoryTransactions", table: db.inventoryTransactions },
-        { name: "transportationCosts", table: db.transportationCosts },
-        { name: "recipeVariants", table: db.recipeVariants },
-      ];
-
-      for (const { name, table } of tables) {
-        try {
-          const items = await table.toArray();
-          if (items.length > 0) {
-            const serialized = JSON.stringify(items);
-            const size = new Blob([serialized]).size;
-            const latestTimestamp = items.reduce(
-              (max, item) =>
-                Math.max(
-                  max,
-                  new Date(item.updatedAt || item.createdAt).getTime()
-                ),
-              0
-            );
-
-            data.push({
-              key: name,
-              name: getDataName(name),
-              timestamp: latestTimestamp,
-              size: formatBytes(size),
-              type: getDataType(name),
-              data: items,
-            });
-          }
-        } catch (error) {
-          console.error(`Error loading table ${name}:`, error);
-        }
+    for (const tableName of tableNames) {
+      try {
+        const count = await (db as any)[tableName].count();
+        const items = await (db as any)[tableName].limit(100).toArray();
+        const estimatedSize =
+          new Blob([JSON.stringify(items)]).size *
+          (count / Math.min(count, 100));
+        stats[tableName] = { count, size: estimatedSize };
+      } catch (error) {
+        console.error(`Error loading ${tableName}:`, error);
+        stats[tableName] = { count: 0, size: 0, error: true };
       }
-
-      // Sort by timestamp (newest first)
-      data.sort((a, b) => b.timestamp - a.timestamp);
-      setSavedData(data);
-    } catch (error) {
-      console.error("Error loading data from IndexedDB:", error);
-      toast.error("Failed to load data");
     }
+
+    setTableStats(stats);
+    setIsLoading(false);
   };
 
-  const handleExportData = (item: SavedData) => {
-    try {
-      const exportData = {
-        table: item.key,
-        name: item.name,
-        type: item.type,
-        timestamp: item.timestamp,
-        data: item.data,
-      };
-
-      const blob = new Blob([JSON.stringify(exportData, null, 2)], {
-        type: "application/json",
-      });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = `${item.key}-${
-        new Date(item.timestamp).toISOString().split("T")[0]
-      }.json`;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      URL.revokeObjectURL(url);
-
-      toast.success("Data exported successfully");
-    } catch (error) {
-      console.error("Export failed:", error);
-      toast.error("Failed to export data");
-    }
+  const loadBackupSettings = () => {
+    if (typeof window === "undefined") return;
+    const settings = JSON.parse(
+      localStorage.getItem("autoBackupSettings") || "{}"
+    );
+    setAutoBackupEnabled(settings.enabled || false);
+    setBackupInterval(settings.interval || "daily");
+    setLastBackup(settings.lastBackup || null);
   };
 
-  const handleExportAll = async () => {
-    try {
-      const allData = savedData.map((item) => ({
-        table: item.key,
-        name: item.name,
-        type: item.type,
-        timestamp: item.timestamp,
-        data: item.data,
-      }));
-
-      const exportData = {
-        exportDate: new Date().toISOString(),
-        version: "1.0",
-        database: "CostingWizardDB",
-        data: allData,
-      };
-
-      const blob = new Blob([JSON.stringify(exportData, null, 2)], {
-        type: "application/json",
-      });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = `costing-wizard-backup-${
-        new Date().toISOString().split("T")[0]
-      }.json`;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      URL.revokeObjectURL(url);
-
-      toast.success("All data exported successfully");
-      setIsExportDialogOpen(false);
-    } catch (error) {
-      console.error("Export all failed:", error);
-      toast.error("Failed to export all data");
-    }
+  const saveBackupSettings = (enabled: boolean, interval: string) => {
+    const settings = { enabled, interval, lastBackup };
+    localStorage.setItem("autoBackupSettings", JSON.stringify(settings));
+    setAutoBackupEnabled(enabled);
+    setBackupInterval(interval);
   };
 
-  const handleImportData = async (
-    event: React.ChangeEvent<HTMLInputElement>
-  ) => {
+  const toggleTableSelection = (tableName: string) => {
+    const newSelected = new Set(selectedTables);
+    if (newSelected.has(tableName)) {
+      newSelected.delete(tableName);
+    } else {
+      newSelected.add(tableName);
+    }
+    setSelectedTables(newSelected);
+  };
+
+  const selectAllInCategory = (category: string) => {
+    const newSelected = new Set(selectedTables);
+    TABLE_CATEGORIES[category as keyof typeof TABLE_CATEGORIES].forEach(
+      (table) => newSelected.add(table)
+    );
+    setSelectedTables(newSelected);
+  };
+
+  const selectAll = () => {
+    const allTables = new Set(Object.keys(tableStats));
+    setSelectedTables(allTables);
+  };
+
+  const clearSelection = () => {
+    setSelectedTables(new Set());
+  };
+
+  const handleExport = async () => {
+    if (selectedTables.size === 0) {
+      toast.error("Please select at least one table to export");
+      return;
+    }
+
+    setExportProgress({ current: 0, total: selectedTables.size });
+
+    const exportData = {
+      exportDate: new Date().toISOString(),
+      version: "2.0",
+      database: "CostingWizardDB",
+      tables: [] as any[],
+    };
+
+    let current = 0;
+    for (const tableName of selectedTables) {
+      try {
+        const data = await (db as any)[tableName].toArray();
+
+        exportData.tables.push({
+          name: tableName,
+          recordCount: data.length,
+          data: data,
+        });
+
+        current++;
+        setExportProgress({ current, total: selectedTables.size });
+      } catch (error) {
+        console.error(`Error exporting ${tableName}:`, error);
+        toast.error(`Failed to export ${tableName}`);
+      }
+    }
+
+    const blob = new Blob([JSON.stringify(exportData, null, 2)], {
+      type: "application/json",
+    });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `costing-wizard-backup-${
+      new Date().toISOString().split("T")[0]
+    }.json`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+
+    setExportProgress(null);
+    const now = new Date().toISOString();
+    setLastBackup(now);
+    localStorage.setItem(
+      "autoBackupSettings",
+      JSON.stringify({
+        enabled: autoBackupEnabled,
+        interval: backupInterval,
+        lastBackup: now,
+      })
+    );
+    toast.success("Export completed successfully!");
+  };
+
+  const handleImport = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file) return;
+
+    if (file.size > 50 * 1024 * 1024) {
+      toast.error("File too large. Maximum size is 50MB.");
+      return;
+    }
 
     const reader = new FileReader();
     reader.onload = async (e) => {
@@ -176,87 +230,58 @@ export function DataPersistenceManager() {
         const importData = JSON.parse(e.target?.result as string);
 
         if (
-          importData.database === "CostingWizardDB" &&
-          importData.data &&
-          Array.isArray(importData.data)
+          !importData.database ||
+          !importData.tables ||
+          !Array.isArray(importData.tables)
         ) {
-          // Bulk import from backup
-          for (const item of importData.data) {
-            const tableName = item.table;
-            const table = (db as any)[tableName];
-            if (table && item.data && Array.isArray(item.data)) {
-              await table.clear();
-              await table.bulkAdd(item.data);
-            }
-          }
-          toast.success(`Imported ${importData.data.length} tables`);
-        } else if (
-          importData.table &&
-          importData.data &&
-          Array.isArray(importData.data)
-        ) {
-          // Single table import
-          const table = (db as any)[importData.table];
-          if (table) {
-            await table.clear();
-            await table.bulkAdd(importData.data);
-            toast.success(
-              `Imported ${importData.data.length} items to ${importData.table}`
-            );
-          } else {
-            throw new Error(`Unknown table: ${importData.table}`);
-          }
-        } else {
-          throw new Error("Invalid file format");
+          throw new Error("Invalid backup file format");
         }
 
-        await loadSavedData();
-        setIsImportDialogOpen(false);
+        let imported = 0;
+        for (const tableData of importData.tables) {
+          if ((db as any)[tableData.name] && Array.isArray(tableData.data)) {
+            await (db as any)[tableData.name].clear();
+            await (db as any)[tableData.name].bulkAdd(tableData.data);
+            imported++;
+          }
+        }
+
+        toast.success(`Successfully imported ${imported} tables!`);
+        await loadDatabaseStats();
       } catch (error) {
         console.error("Import failed:", error);
-        toast.error("Failed to import data. Please check the file format.");
+        toast.error(
+          `Import failed: ${
+            error instanceof Error ? error.message : "Unknown error"
+          }`
+        );
       }
     };
     reader.readAsText(file);
+    event.target.value = "";
   };
 
-  const handleDeleteData = async (key: string) => {
+  const handleClearTable = async (tableName: string) => {
     try {
-      const table = (db as any)[key];
-      if (table) {
-        await table.clear();
-        await loadSavedData();
-        toast.success("Table cleared successfully");
-      } else {
-        throw new Error(`Unknown table: ${key}`);
-      }
+      await (db as any)[tableName].clear();
+      toast.success(
+        `Table "${formatTableName(tableName)}" cleared successfully!`
+      );
+      await loadDatabaseStats();
     } catch (error) {
-      console.error("Delete failed:", error);
-      toast.error("Failed to delete data");
+      console.error("Clear failed:", error);
+      toast.error("Failed to clear table");
     }
   };
 
-  const handleClearAllData = async () => {
-    try {
-      for (const item of savedData) {
-        const table = (db as any)[item.key];
-        if (table) {
-          await table.clear();
-        }
-      }
-      await loadSavedData();
-      toast.success("All data cleared successfully");
-    } catch (error) {
-      console.error("Clear all failed:", error);
-      toast.error("Failed to clear all data");
-    }
-  };
-
-  const toggleAutosave = () => {
-    setAutosaveEnabled(!autosaveEnabled);
-    localStorage.setItem("autosave-enabled", (!autosaveEnabled).toString());
-    toast.success(`Autosave ${!autosaveEnabled ? "enabled" : "disabled"}`);
-  };
+  const totalRecords = Object.values(tableStats).reduce(
+    (sum, stat) => sum + (stat.count || 0),
+    0
+  );
+  const totalSize = Object.values(tableStats).reduce(
+    (sum, stat) => sum + (stat.size || 0),
+    0
+  );
 
   return (
     <div className="space-y-6 animate-wave-in">
@@ -267,89 +292,351 @@ export function DataPersistenceManager() {
             Data Management
           </h1>
           <p className="text-muted-foreground mt-1">
-            Manage your saved data, enable autosave, and backup your work
+            Manage your database, export backups, and restore data
           </p>
         </div>
-        <div className="flex gap-3">
-          <Button
-            variant="outline"
-            onClick={toggleAutosave}
-            className={
-              autosaveEnabled
-                ? "bg-green-50 border-green-200 text-green-700"
-                : ""
-            }
-          >
-            <RefreshCw
-              className={`h-4 w-4 mr-2 ${
-                autosaveEnabled ? "text-green-600" : ""
-              }`}
-            />
-            Autosave {autosaveEnabled ? "On" : "Off"}
-          </Button>
-
-          <Dialog
-            open={isImportDialogOpen}
-            onOpenChange={setIsImportDialogOpen}
-          >
-            <DialogTrigger asChild>
-              <Button
-                variant="outline"
-                className="bg-secondary hover:bg-secondary/90"
-              >
-                <Upload className="h-4 w-4 mr-2" />
-                Import
-              </Button>
-            </DialogTrigger>
-            <DialogContent>
-              <DialogHeader>
-                <DialogTitle>Import Data</DialogTitle>
-                <DialogDescription>
-                  Import previously exported data files to restore your work
-                </DialogDescription>
-              </DialogHeader>
-              <div className="space-y-4">
-                <div className="border-2 border-dashed border-border rounded-lg p-6 text-center">
-                  <Upload className="h-8 w-8 text-muted-foreground mx-auto mb-2" />
-                  <p className="text-sm text-muted-foreground mb-2">
-                    Select a JSON file to import
-                  </p>
-                  <input
-                    type="file"
-                    accept=".json"
-                    onChange={handleImportData}
-                    className="block w-full text-sm text-muted-foreground file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-medium file:bg-primary file:text-primary-foreground hover:file:bg-primary/90"
-                  />
-                </div>
-              </div>
-            </DialogContent>
-          </Dialog>
-
-          <ExportDialog
-            open={isExportDialogOpen}
-            onOpenChange={setIsExportDialogOpen}
-            savedData={savedData}
-            onExportAll={handleExportAll}
-          />
-        </div>
+        <Button
+          onClick={loadDatabaseStats}
+          variant="outline"
+          className="flex items-center gap-2"
+        >
+          <RefreshCw className="w-4 h-4" />
+          Refresh
+        </Button>
       </div>
 
-      {/* Stats Cards */}
-      <StatsCards savedData={savedData} autosaveEnabled={autosaveEnabled} />
+      {/* Stats Overview */}
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <Card className="card-enhanced">
+          <CardContent className="pt-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-muted-foreground">Total Records</p>
+                <p className="text-2xl font-bold text-foreground mt-1">
+                  {totalRecords.toLocaleString()}
+                </p>
+              </div>
+              <Database className="w-8 h-8 text-blue-500" />
+            </div>
+          </CardContent>
+        </Card>
 
-      {/* Saved Data Table */}
-      <SavedDataTable
-        savedData={savedData}
-        onExportData={handleExportData}
-        onDeleteData={handleDeleteData}
-        onClearAllData={handleClearAllData}
-      />
+        <Card className="card-enhanced">
+          <CardContent className="pt-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-muted-foreground">Storage Used</p>
+                <p className="text-2xl font-bold text-foreground mt-1">
+                  {formatBytes(totalSize)}
+                </p>
+              </div>
+              <Layers className="w-8 h-8 text-emerald-500" />
+            </div>
+          </CardContent>
+        </Card>
 
-      {/* Autosave Settings */}
-      <AutosaveSettings
-        autosaveEnabled={autosaveEnabled}
-        onToggleAutosave={toggleAutosave}
-      />
+        <Card className="card-enhanced">
+          <CardContent className="pt-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-muted-foreground">Tables</p>
+                <p className="text-2xl font-bold text-foreground mt-1">
+                  {Object.keys(tableStats).length}
+                </p>
+              </div>
+              <Layers className="w-8 h-8 text-purple-500" />
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="card-enhanced">
+          <CardContent className="pt-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-muted-foreground">Last Backup</p>
+                <p className="text-sm font-semibold text-foreground mt-1">
+                  {lastBackup
+                    ? new Date(lastBackup).toLocaleDateString()
+                    : "Never"}
+                </p>
+              </div>
+              <Clock className="w-8 h-8 text-amber-500" />
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Main Content */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {/* Database Tables */}
+        <Card className="card-enhanced lg:col-span-2">
+          <CardHeader>
+            <div className="flex items-center justify-between">
+              <CardTitle>Database Tables</CardTitle>
+              <div className="flex items-center gap-2">
+                <Button variant="ghost" size="sm" onClick={selectAll}>
+                  Select All
+                </Button>
+                <span className="text-muted-foreground">|</span>
+                <Button variant="ghost" size="sm" onClick={clearSelection}>
+                  Clear
+                </Button>
+              </div>
+            </div>
+            {selectedTables.size > 0 && (
+              <CardDescription>
+                {selectedTables.size} table
+                {selectedTables.size !== 1 ? "s" : ""} selected
+              </CardDescription>
+            )}
+          </CardHeader>
+
+          <CardContent className="max-h-[600px] overflow-y-auto space-y-6">
+            {isLoading ? (
+              <div className="text-center py-12">
+                <RefreshCw className="w-8 h-8 text-muted-foreground animate-spin mx-auto mb-3" />
+                <p className="text-muted-foreground">
+                  Loading database information...
+                </p>
+              </div>
+            ) : (
+              Object.entries(TABLE_CATEGORIES).map(([category, tables]) => (
+                <div key={category}>
+                  <div className="flex items-center justify-between mb-3">
+                    <h3 className="text-sm font-semibold text-foreground uppercase tracking-wide">
+                      {category}
+                    </h3>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => selectAllInCategory(category)}
+                      className="text-xs h-7"
+                    >
+                      Select All
+                    </Button>
+                  </div>
+                  <div className="space-y-2">
+                    {tables.map((tableName) => {
+                      const stat = tableStats[tableName] || {
+                        count: 0,
+                        size: 0,
+                      };
+                      const isSelected = selectedTables.has(tableName);
+
+                      return (
+                        <div
+                          key={tableName}
+                          className={`flex items-center justify-between p-4 rounded-lg border-2 transition-all cursor-pointer ${
+                            isSelected
+                              ? "border-primary bg-primary/5"
+                              : "border-border hover:border-primary/50 bg-card"
+                          }`}
+                          onClick={() => toggleTableSelection(tableName)}
+                        >
+                          <div className="flex items-center gap-3 flex-1">
+                            <input
+                              type="checkbox"
+                              checked={isSelected}
+                              onChange={() => {}}
+                              className="w-4 h-4 rounded border-input"
+                            />
+                            <div>
+                              <p className="font-medium text-foreground">
+                                {formatTableName(tableName)}
+                              </p>
+                              <p className="text-sm text-muted-foreground">
+                                {stat.count.toLocaleString()} records •{" "}
+                                {formatBytes(stat.size)}
+                              </p>
+                            </div>
+                          </div>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              if (
+                                confirm(
+                                  `Clear all data from "${formatTableName(
+                                    tableName
+                                  )}"?`
+                                )
+                              ) {
+                                handleClearTable(tableName);
+                              }
+                            }}
+                            className="text-destructive hover:text-destructive hover:bg-destructive/10"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </Button>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              ))
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Actions Panel */}
+        <div className="space-y-6">
+          {/* Export Section */}
+          <Card className="card-enhanced">
+            <CardHeader>
+              <div className="flex items-center gap-3">
+                <div className="p-2 bg-blue-100 dark:bg-blue-900/30 rounded-lg">
+                  <Download className="w-5 h-5 text-blue-600 dark:text-blue-400" />
+                </div>
+                <div>
+                  <CardTitle className="text-base">Export Data</CardTitle>
+                  <CardDescription>Download backup file</CardDescription>
+                </div>
+              </div>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {exportProgress && (
+                <div>
+                  <div className="flex justify-between text-sm mb-2">
+                    <span className="text-muted-foreground">Exporting...</span>
+                    <span className="text-foreground font-medium">
+                      {exportProgress.current} / {exportProgress.total}
+                    </span>
+                  </div>
+                  <div className="w-full bg-secondary rounded-full h-2">
+                    <div
+                      className="bg-primary h-2 rounded-full transition-all"
+                      style={{
+                        width: `${
+                          (exportProgress.current / exportProgress.total) * 100
+                        }%`,
+                      }}
+                    />
+                  </div>
+                </div>
+              )}
+
+              <Button
+                onClick={handleExport}
+                disabled={selectedTables.size === 0 || exportProgress !== null}
+                className="w-full"
+              >
+                <Download className="w-4 h-4 mr-2" />
+                Export Selected Tables
+              </Button>
+
+              <p className="text-xs text-muted-foreground text-center">
+                {selectedTables.size === 0
+                  ? "Select tables to export"
+                  : `Ready to export ${selectedTables.size} table${
+                      selectedTables.size !== 1 ? "s" : ""
+                    }`}
+              </p>
+            </CardContent>
+          </Card>
+
+          {/* Import Section */}
+          <Card className="card-enhanced">
+            <CardHeader>
+              <div className="flex items-center gap-3">
+                <div className="p-2 bg-emerald-100 dark:bg-emerald-900/30 rounded-lg">
+                  <Upload className="w-5 h-5 text-emerald-600 dark:text-emerald-400" />
+                </div>
+                <div>
+                  <CardTitle className="text-base">Import Data</CardTitle>
+                  <CardDescription>Restore from backup</CardDescription>
+                </div>
+              </div>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <label className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg transition-colors font-medium cursor-pointer">
+                <Upload className="w-4 h-4" />
+                Choose Backup File
+                <input
+                  type="file"
+                  accept=".json"
+                  onChange={handleImport}
+                  className="hidden"
+                />
+              </label>
+
+              <div className="p-3 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-900/50 rounded-lg">
+                <div className="flex gap-2">
+                  <AlertCircle className="w-4 h-4 text-amber-600 dark:text-amber-400 flex-shrink-0 mt-0.5" />
+                  <p className="text-xs text-amber-800 dark:text-amber-200">
+                    Importing will replace existing data in matching tables
+                  </p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Auto Backup Section */}
+          <Card className="card-enhanced">
+            <CardHeader>
+              <div className="flex items-center gap-3">
+                <div className="p-2 bg-purple-100 dark:bg-purple-900/30 rounded-lg">
+                  <Calendar className="w-5 h-5 text-purple-600 dark:text-purple-400" />
+                </div>
+                <div>
+                  <CardTitle className="text-base">Automatic Backups</CardTitle>
+                  <CardDescription>Schedule exports</CardDescription>
+                </div>
+              </div>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="flex items-center justify-between p-3 bg-muted rounded-lg">
+                <span className="text-sm font-medium text-foreground">
+                  Enable Auto-Backup
+                </span>
+                <button
+                  onClick={() =>
+                    saveBackupSettings(!autoBackupEnabled, backupInterval)
+                  }
+                  className={`relative w-11 h-6 rounded-full transition-colors ${
+                    autoBackupEnabled ? "bg-primary" : "bg-input"
+                  }`}
+                >
+                  <span
+                    className={`absolute top-1 left-1 w-4 h-4 bg-background rounded-full transition-transform ${
+                      autoBackupEnabled ? "translate-x-5" : ""
+                    }`}
+                  />
+                </button>
+              </div>
+
+              {autoBackupEnabled && (
+                <div>
+                  <label className="text-sm font-medium text-foreground mb-2 block">
+                    Backup Frequency
+                  </label>
+                  <select
+                    value={backupInterval}
+                    onChange={(e) =>
+                      saveBackupSettings(autoBackupEnabled, e.target.value)
+                    }
+                    className="w-full px-3 py-2 border border-input rounded-lg bg-background focus:outline-none focus:ring-2 focus:ring-ring"
+                  >
+                    <option value="hourly">Every Hour</option>
+                    <option value="daily">Daily</option>
+                    <option value="weekly">Weekly</option>
+                    <option value="monthly">Monthly</option>
+                  </select>
+                </div>
+              )}
+
+              <div className="p-3 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-900/50 rounded-lg">
+                <div className="flex gap-2">
+                  <CheckCircle className="w-4 h-4 text-blue-600 dark:text-blue-400 flex-shrink-0 mt-0.5" />
+                  <p className="text-xs text-blue-800 dark:text-blue-200">
+                    Backups are saved locally to your Downloads folder
+                  </p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
     </div>
   );
 }
