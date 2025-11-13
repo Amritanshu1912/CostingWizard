@@ -154,23 +154,17 @@ const materials = useLiveQuery(() =>
 
 This project serves as a practical guide to several advanced frontend topics:
 
-> **IndexedDB Mastery**
-> Designed a fully relational data model with foreign keys, joins, and live queries — all within the browser using Dexie.js.
+- **IndexedDB Mastery** - Designed a fully relational data model with foreign keys, joins, and live queries — all within the browser using Dexie.js.
 
-> **Reactive State Management**
-> Built a self-updating UI using useLiveQuery, eliminating the need for heavy external state libraries.
+- **Reactive State Management** - Built a self-updating UI using useLiveQuery, eliminating the need for heavy external state libraries.
 
-> **Client-Side Architecture**
-> Engineered a scalable offline-first system capable of storing 1GB+ of structured data directly in the browser.
+- **Client-Side Architecture** - Engineered a scalable offline-first system capable of storing 1GB+ of structured data directly in the browser.
 
-> **Modern React Patterns**
-> Implemented hooks, contexts, and modular components for clean, maintainable code.
+- **Modern React Patterns** - Implemented hooks, contexts, and modular components for clean, maintainable code.
 
-> **UI/UX for Data-Intensive Apps**
-> Focused on responsive layouts, accessibility, and smooth performance even with large datasets.
+- **UI/UX for Data-Intensive Apps** - Focused on responsive layouts, accessibility, and smooth performance even with large datasets.
 
-> **Deployment**
-> Deployed production builds to Vercel with automatic optimization and preview deployments.
+- **Deployment** - Deployed production builds to Vercel with automatic optimization and preview deployments.
 
 ---
 
