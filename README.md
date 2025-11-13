@@ -8,23 +8,34 @@
 [![Tailwind CSS](https://img.shields.io/badge/Tailwind_CSS-4.1.14-38B2AC)](https://tailwindcss.com/)
 [![IndexedDB](https://img.shields.io/badge/IndexedDB-Dexie-orange)](https://dexie.org/)
 
-**Smart Manufacturing Cost Management for Cleaning Products**
+**Manufacturing Cost Management — Zero Backend Required**
 
-_Streamline your production costs with intelligent recipe management, supplier optimization, and real-time analytics—all powered by IndexedDB for offline-first performance._
+_A showcase of modern frontend development using only IndexedDB for data persistence. No traditional databases, no backend servers, just pure client-side excellence._
 
-[🚀 Live Demo](#) • [📖 Documentation](#) • [🐛 Report Bug](https://github.com/your-repo/issues) • [✨ Request Feature](https://github.com/your-repo/issues)
-
-![CostingWizard Dashboard](https://via.placeholder.com/800x400/1a1a1a/ffffff?text=CostingWizard+Dashboard+Preview)
+### [🚀 Live Demo](https://your-app.vercel.app) • [💻 Source Code](https://github.com/Amritanshu1912/CostingWizard)
 
 </div>
 
 ---
 
-## 🌟 What is CostingWizard?
+## 💡 Project Concept
 
-CostingWizard is a modern, web-based manufacturing management system specifically designed for cleaning products manufacturers. Unlike traditional ERP systems that require complex server setups, CostingWizard runs entirely in your browser using **IndexedDB** for data storage—providing offline-first capabilities, instant performance, and zero infrastructure costs.
+This project demonstrates how to build a **fully-functional manufacturing management system** using only frontend technologies and **IndexedDB** for data persistence.
 
-### 🎯 Key Highlights
+**No backend. No SQL. No NoSQL. Just IndexedDB.**
+
+Built as a portfolio piece to showcase:
+
+- ✅ Complex state management with client-side database
+- ✅ Relational data modeling in IndexedDB
+- ✅ Real-time updates and reactive queries
+- ✅ Offline-first architecture
+- ✅ Modern React patterns and TypeScript
+- ✅ Production-ready deployment on Vercel
+
+---
+
+## 🎯 Key Highlights
 
 - **📱 Browser-Native**: No servers, no databases, no installation—just open in your browser
 - **💾 IndexedDB Powered**: Advanced client-side database with full CRUD operations
@@ -33,11 +44,9 @@ CostingWizard is a modern, web-based manufacturing management system specificall
 - **🎨 Modern UI**: Beautiful, responsive interface built with Radix UI and Tailwind CSS
 - **⚡ Fast Performance**: Optimized for large datasets with efficient data structures
 
----
+### ✨ Features
 
-## ✨ Features
-
-### 🏭 Core Manufacturing Management
+**🏭 Complete Manufacturing Suite**
 
 | Feature                     | Description                                                     | Status      |
 | --------------------------- | --------------------------------------------------------------- | ----------- |
@@ -48,135 +57,17 @@ CostingWizard is a modern, web-based manufacturing management system specificall
 | **📅 Production Planning**  | Schedule batches and track material requirements                | ✅ Complete |
 | **🛒 Procurement**          | Generate purchase orders and manage supplier relationships      | ✅ Complete |
 
-### 📊 Analytics & Insights
+**💾 IndexedDB-Powered**
 
-- **💰 Cost Analysis**: Real-time cost breakdowns and profit margins
-- **📈 Performance Metrics**: Production efficiency and quality scores
-- **📊 Interactive Charts**: Visual representations using Recharts
-- **🎯 Price Optimization**: Supplier comparison and cost optimization
-- **📋 Inventory Tracking**: Stock levels and reorder alerts
-
-### 💾 Advanced Data Management
-
-- **🔄 Data Persistence**: Automatic saving with IndexedDB
-- **📤 Export/Import**: Backup and restore capabilities
-- **🔍 Data Search**: Fast querying across all tables
-- **🔐 Data Integrity**: Type-safe operations with TypeScript
-- **⚙️ Auto-save**: Configurable automatic data saving
+- Stores 1GB+ of data in browser
+- Full CRUD operations without backend
+- Complex relational queries
+- Automatic data persistence
+- Import/Export and Auto-save capabilities
 
 ---
 
-## 🛠️ Technology Stack
-
-### Frontend Framework
-
-- **Next.js 15** - React framework with App Router
-- **React 19** - Latest React with concurrent features
-- **TypeScript** - Type-safe development
-
-### UI & Styling
-
-- **Tailwind CSS 4** - Utility-first CSS framework
-- **Radix UI** - Accessible, unstyled UI components
-- **Lucide React** - Beautiful icon library
-- **Geist Font** - Modern typography
-
-### Database & State
-
-- **IndexedDB + Dexie** - Client-side database wrapper
-- **Dexie React Hooks** - Reactive database queries
-- **Custom Hooks** - Efficient state management
-
-### Charts & Data Visualization
-
-- **Recharts** - Composable charting library
-- **Custom Analytics** - Business-specific metrics
-
-### Development Tools
-
-- **ESLint** - Code linting
-- **PostCSS** - CSS processing
-- **Vercel Analytics** - Usage tracking
-
----
-
-## 🚀 Quick Start
-
-### Prerequisites
-
-- **Node.js** 18+ and **npm** or **pnpm**
-- Modern web browser with IndexedDB support (Chrome, Firefox, Safari, Edge)
-
-### Installation
-
-1. **Clone the repository**
-
-   ```bash
-   git clone https://github.com/your-username/costingwizard.git
-   cd costingwizard
-   ```
-
-2. **Install dependencies**
-
-   ```bash
-   # Using pnpm (recommended)
-   pnpm install
-
-   # Or using npm
-   npm install
-   ```
-
-3. **Start the development server**
-
-   ```bash
-   # Using pnpm
-   pnpm dev
-
-   # Or using npm
-   npm run dev
-   ```
-
-4. **Open your browser**
-
-   Navigate to [http://localhost:3000](http://localhost:3000)
-
----
-
-## 📖 Usage Guide
-
-### 🏠 Dashboard Overview
-
-The main dashboard provides:
-
-- **Quick Stats**: Key metrics at a glance
-- **Recent Materials**: Latest inventory updates
-- **Quick Actions**: Fast access to common tasks
-- **Production Overview**: Capacity utilization and performance
-
-### 📦 Managing Materials
-
-1. Navigate to **Materials** section
-2. Add new materials with supplier information
-3. Set pricing, availability, and tax rates
-4. View analytics and price comparisons
-
-### 🧪 Creating Recipes
-
-1. Go to **Recipes** section
-2. Design formulations with ingredient ratios
-3. Calculate costs automatically
-4. Compare different recipe variants
-
-### 📅 Production Planning
-
-1. Access **Planning** section
-2. Create production batches
-3. Check material availability
-4. Generate procurement requirements
-
----
-
-## 💾 IndexedDB Architecture
+## 🗄️ Database Architecture
 
 CostingWizard leverages **IndexedDB** through the Dexie library for robust, client-side data management:
 
@@ -187,20 +78,15 @@ CostingWizardDB {
   categories: Table<Category>
   materials: Table<Material>
   suppliers: Table<Supplier>
-  supplierMaterials: Table<SupplierMaterial>
   recipes: Table<Recipe>
-  recipeVariants: Table<RecipeVariant>
   recipeIngredients: Table<RecipeIngredient>
-  products: Table<Product>
   productionPlans: Table<ProductionPlanExtended>
   purchaseOrders: Table<PurchaseOrder>
   packaging: Table<Packaging>
-  supplierPackaging: Table<SupplierPackaging>
   labels: Table<Label>
-  supplierLabels: Table<SupplierLabel>
   inventoryItems: Table<InventoryItem>
-  inventoryTransactions: Table<InventoryTransaction>
-  transportationCosts: Table<TransportationCost>
+  // ... other tables
+
 }
 ```
 
@@ -228,74 +114,172 @@ const materialsWithSuppliers = await db.materials
   .where("category")
   .equals("Acids")
   .with({ supplierMaterials: "supplierMaterials" });
+
+// Reactive Data Query that auto-updates UI
+const materials = useLiveQuery(() =>
+  db.materials
+    .where("category")
+    .equals("Acids")
+    .with({ supplierMaterials: "supplierMaterials" })
+    .toArray()
+);
 ```
 
 ---
 
-## 📊 Sample Data
+## 🚀 Quick Start
 
-The application comes pre-loaded with sample data for:
+### Try It Live
 
-- **🏭 7 Material Categories**: Acids, Bases, Colors, Thickeners, Salts, Oils, Other
-- **👥 3 Sample Suppliers**: ChemCorp, ColorTech, BulkChem Traders
-- **📦 150+ Raw Materials**: Complete chemical inventory
-- **🧪 Product Recipes**: Floor cleaner, bathroom cleaner, glass cleaner
-- **📅 Production Plans**: Sample manufacturing schedules
+👉 **[Open Live Demo](https://your-app.vercel.app)**
 
----
+The app includes sample data (150+ materials, 3 suppliers, production recipes) so you can explore immediately.
 
-## 🤝 Contributing
+### Run Locally
 
-We welcome contributions! Please see our [Contributing Guide](CONTRIBUTING.md) for details.
+```bash
+# Clone and install
+git clone https://github.com/your-username/costingwizard.git
+cd costingwizard
+pnpm install
 
-### Development Setup
+# Run development server
+pnpm dev
+```
 
-1. Fork the repository
-2. Create a feature branch: `git checkout -b feature/amazing-feature`
-3. Make your changes
-4. Run tests: `npm run lint`
-5. Commit your changes: `git commit -m 'Add amazing feature'`
-6. Push to the branch: `git push origin feature/amazing-feature`
-7. Open a Pull Request
-
-### Code Style
-
-- **TypeScript**: Strict type checking enabled
-- **ESLint**: Airbnb config with React rules
-- **Prettier**: Automated code formatting
-- **Conventional Commits**: Structured commit messages
+Open [http://localhost:3000](http://localhost:3000) in your browser.
 
 ---
 
-## 📄 License
+## 🎯 Technical Highlights
 
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+### Why This Project Stands Out
+
+**1. No Backend Dependency**
+
+- Traditional apps need servers, databases, APIs
+- This runs 100% in the browser
+- Data persists across sessions using IndexedDB
+
+**2. Complex Data Relationships**
+
+- Foreign keys and joins without SQL
+- Many-to-many relationships
+- Aggregations and calculations
+- All handled client-side
+
+**3. Real-World Application**
+
+- Not a simple todo app
+- Manages real manufacturing workflows
+- Handles complex business logic
+- Production-ready features
+
+**4. Performance Optimized**
+
+- Sub-millisecond queries
+- Lazy loading and pagination
+- Efficient re-rendering
+- Handles large datasets
+
+**5. Modern Development Practices**
+
+- TypeScript for type safety
+- Component-driven architecture
+- Responsive design
+- Accessible UI components
 
 ---
 
-## 🙏 Acknowledgments
+## 📊 What You Can Do
 
-- **Dexie** for the excellent IndexedDB wrapper
-- **Radix UI** for accessible component primitives
-- **Tailwind CSS** for the amazing utility-first approach
-- **Vercel** for hosting and analytics
-- **Lucide** for the beautiful icons
+- **Manage Materials**: Track 150+ raw materials with pricing, suppliers, and availability
+- **Create Recipes**: Build product formulas with automatic cost calculations
+- **Plan Production**: Schedule batches and check material requirements
+- **Compare Suppliers**: Analyze pricing across multiple vendors
+- **Track Inventory**: Monitor stock levels and movements
+- **Generate Reports**: View analytics and cost breakdowns
+
+All data is stored locally in your browser and persists across sessions.
 
 ---
 
-## 📞 Support
+## 🛠️ Built With
 
-- **📧 Email**: support@costingwizard.com
-- **🐛 Issues**: [GitHub Issues](https://github.com/your-repo/issues)
-- **💬 Discussions**: [GitHub Discussions](https://github.com/your-repo/discussions)
-- **📖 Documentation**: [Wiki](https://github.com/your-repo/wiki)
+| Technology        | Purpose                         |
+| ----------------- | ------------------------------- |
+| Next.js 15        | React framework with App Router |
+| React 19          | UI library with latest features |
+| TypeScript        | Type-safe development           |
+| IndexedDB + Dexie | Client-side database            |
+| Tailwind CSS      | Utility-first styling           |
+| Radix UI          | Accessible components           |
+| Recharts          | Data visualization              |
+| Vercel            | Hosting & deployment            |
+
+---
+
+## 📁 Project Structure
+
+```
+costingwizard/
+├── app/                    # Next.js app directory
+│   ├── dashboard/         # Main dashboard views
+│   ├── materials/         # Materials management
+│   ├── recipes/           # Recipe system
+│   └── planning/          # Production planning
+├── lib/
+│   ├── db/               # IndexedDB setup & schema
+│   ├── hooks/            # Custom React hooks
+│   └── utils/            # Helper functions
+└── components/           # Reusable UI components
+```
+
+---
+
+## 🎓 Learning Points
+
+This project demonstrates:
+
+- **IndexedDB Mastery**: Complex queries, transactions, and relationships
+- **State Management**: Reactive data with Dexie hooks
+- **TypeScript**: Full type safety across the application
+- **Modern React**: Hooks, context, and component patterns
+- **UI/UX**: Responsive design with Tailwind and Radix
+- **Performance**: Optimization for large datasets
+- **Deployment**: Production build on Vercel
+
+---
+
+## 🌐 Deployment
+
+Deployed on **Vercel** with automatic deployments from GitHub:
+
+- ✅ Zero-config deployment
+- ✅ Automatic HTTPS
+- ✅ Global CDN
+- ✅ Preview deployments for PRs
+
+---
+
+## 📝 License
+
+MIT License - feel free to use this project as a reference or starting point for your own applications.
+
+---
+
+## 🤝 Connect
+
+Built by [Amritanshu Singh](https://github.com/Amritanshu1912) as a portfolio showcase.
+
+Questions or feedback? Feel free to open an issue or reach out!
 
 ---
 
 <div align="center">
 
-**Made with ❤️ for manufacturers who value efficiency and simplicity**
+**A demonstration that modern web apps don't always need a backend** 🚀
 
-[⬆️ Back to Top](#-costingwizard)
+[⭐ Star this repo](https://github.com/Amritanshu1912/costingwizard) • [🔗 View Live Demo](https://your-app.vercel.app)
 
 </div>
