@@ -150,7 +150,7 @@ const materials = useLiveQuery(() =>
 
 ---
 
-## 🎓 Key Learnings & Concepts Demonstrated
+## 🎓 Key Learnings & Concepts
 
 This project serves as a practical guide to several advanced frontend topics:
 
