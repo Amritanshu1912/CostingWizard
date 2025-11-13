@@ -1,262 +1,154 @@
 "use client";
+// data-persistence-manager.tsx (Main Component)
 
-import type React from "react";
-import { useState, useEffect } from "react";
+import React, { useState, useEffect } from "react";
+import { RefreshCw, Database, Layers, Clock } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog";
+import { Card, CardContent } from "@/components/ui/card";
 import { toast } from "sonner";
-import { Download, Upload, RefreshCw } from "lucide-react";
-import { db } from "@/lib/db";
-import type { SavedData } from "./data-management-types";
-import { getDataName, getDataType, formatBytes } from "./data-management-utils";
-import { StatsCards } from "./StatsCards";
-import { SavedDataTable } from "./SavedDataTable";
-import { AutosaveSettings } from "./AutosaveSettings";
-import { ExportDialog } from "./ExportDialog";
+import { DatabaseTableSelector } from "./database-table-selector";
+import { DataManagementActions } from "./data-management-actions";
+import {
+  loadDatabaseStats,
+  exportTables,
+  importBackup,
+  clearTable,
+} from "./database-operations";
+import { formatBytes, TABLE_CATEGORIES } from "./data-management-types";
+import type {
+  TableStat,
+  ExportProgress,
+  BackupSettings,
+} from "./data-management-types";
 
-export function DataPersistenceManager() {
-  const [savedData, setSavedData] = useState<SavedData[]>([]);
-  const [isExportDialogOpen, setIsExportDialogOpen] = useState(false);
-  const [isImportDialogOpen, setIsImportDialogOpen] = useState(false);
-  const [autosaveEnabled, setAutosaveEnabled] = useState(true);
+export default function DataManagementPages() {
+  const [tableStats, setTableStats] = useState<Record<string, TableStat>>({});
+  const [selectedTables, setSelectedTables] = useState<Set<string>>(new Set());
+  const [isLoading, setIsLoading] = useState(true);
+  const [exportProgress, setExportProgress] = useState<ExportProgress | null>(
+    null
+  );
+  const [backupSettings, setBackupSettings] = useState<BackupSettings>({
+    enabled: false,
+    interval: "daily",
+    lastBackup: null,
+  });
 
   useEffect(() => {
-    loadSavedData();
+    loadStats();
+    loadBackupSettingsFromStorage();
   }, []);
 
-  const loadSavedData = async () => {
-    if (typeof window === "undefined") return;
-
+  const loadStats = async () => {
+    setIsLoading(true);
     try {
-      const data: SavedData[] = [];
-
-      // Get data from IndexedDB tables
-      const tables = [
-        { name: "categories", table: db.categories },
-        { name: "materials", table: db.materials },
-        { name: "suppliers", table: db.suppliers },
-        { name: "supplierMaterials", table: db.supplierMaterials },
-        { name: "products", table: db.products },
-        { name: "productionPlans", table: db.productionPlans },
-        { name: "purchaseOrders", table: db.purchaseOrders },
-        { name: "packaging", table: db.packaging },
-        { name: "supplierPackaging", table: db.supplierPackaging },
-        { name: "labels", table: db.labels },
-        { name: "supplierLabels", table: db.supplierLabels },
-        { name: "inventoryItems", table: db.inventoryItems },
-        { name: "inventoryTransactions", table: db.inventoryTransactions },
-        { name: "transportationCosts", table: db.transportationCosts },
-        { name: "recipeVariants", table: db.recipeVariants },
-      ];
-
-      for (const { name, table } of tables) {
-        try {
-          const items = await table.toArray();
-          if (items.length > 0) {
-            const serialized = JSON.stringify(items);
-            const size = new Blob([serialized]).size;
-            const latestTimestamp = items.reduce(
-              (max, item) =>
-                Math.max(
-                  max,
-                  new Date(item.updatedAt || item.createdAt).getTime()
-                ),
-              0
-            );
-
-            data.push({
-              key: name,
-              name: getDataName(name),
-              timestamp: latestTimestamp,
-              size: formatBytes(size),
-              type: getDataType(name),
-              data: items,
-            });
-          }
-        } catch (error) {
-          console.error(`Error loading table ${name}:`, error);
-        }
-      }
-
-      // Sort by timestamp (newest first)
-      data.sort((a, b) => b.timestamp - a.timestamp);
-      setSavedData(data);
+      const stats = await loadDatabaseStats();
+      setTableStats(stats);
     } catch (error) {
-      console.error("Error loading data from IndexedDB:", error);
-      toast.error("Failed to load data");
+      console.error("Failed to load database stats:", error);
+      toast.error("Failed to load database information");
+    } finally {
+      setIsLoading(false);
     }
   };
 
-  const handleExportData = (item: SavedData) => {
+  const loadBackupSettingsFromStorage = () => {
+    if (typeof window === "undefined") return;
+    const settings = JSON.parse(
+      localStorage.getItem("autoBackupSettings") || "{}"
+    );
+    setBackupSettings({
+      enabled: settings.enabled || false,
+      interval: settings.interval || "daily",
+      lastBackup: settings.lastBackup || null,
+    });
+  };
+
+  const saveBackupSettingsToStorage = (settings: BackupSettings) => {
+    localStorage.setItem("autoBackupSettings", JSON.stringify(settings));
+    setBackupSettings(settings);
+  };
+
+  const handleExport = async () => {
     try {
-      const exportData = {
-        table: item.key,
-        name: item.name,
-        type: item.type,
-        timestamp: item.timestamp,
-        data: item.data,
-      };
-
-      const blob = new Blob([JSON.stringify(exportData, null, 2)], {
-        type: "application/json",
+      await exportTables(selectedTables, (current, total) => {
+        setExportProgress({ current, total });
       });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = `${item.key}-${
-        new Date(item.timestamp).toISOString().split("T")[0]
-      }.json`;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      URL.revokeObjectURL(url);
 
-      toast.success("Data exported successfully");
+      const now = new Date().toISOString();
+      const newSettings = { ...backupSettings, lastBackup: now };
+      saveBackupSettingsToStorage(newSettings);
+
+      toast.success("Export completed successfully!");
     } catch (error) {
       console.error("Export failed:", error);
-      toast.error("Failed to export data");
+      toast.error(error instanceof Error ? error.message : "Export failed");
+    } finally {
+      setExportProgress(null);
     }
   };
 
-  const handleExportAll = async () => {
-    try {
-      const allData = savedData.map((item) => ({
-        table: item.key,
-        name: item.name,
-        type: item.type,
-        timestamp: item.timestamp,
-        data: item.data,
-      }));
-
-      const exportData = {
-        exportDate: new Date().toISOString(),
-        version: "1.0",
-        database: "CostingWizardDB",
-        data: allData,
-      };
-
-      const blob = new Blob([JSON.stringify(exportData, null, 2)], {
-        type: "application/json",
-      });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = `costing-wizard-backup-${
-        new Date().toISOString().split("T")[0]
-      }.json`;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      URL.revokeObjectURL(url);
-
-      toast.success("All data exported successfully");
-      setIsExportDialogOpen(false);
-    } catch (error) {
-      console.error("Export all failed:", error);
-      toast.error("Failed to export all data");
-    }
-  };
-
-  const handleImportData = async (
-    event: React.ChangeEvent<HTMLInputElement>
-  ) => {
+  const handleImport = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file) return;
 
-    const reader = new FileReader();
-    reader.onload = async (e) => {
-      try {
-        const importData = JSON.parse(e.target?.result as string);
-
-        if (
-          importData.database === "CostingWizardDB" &&
-          importData.data &&
-          Array.isArray(importData.data)
-        ) {
-          // Bulk import from backup
-          for (const item of importData.data) {
-            const tableName = item.table;
-            const table = (db as any)[tableName];
-            if (table && item.data && Array.isArray(item.data)) {
-              await table.clear();
-              await table.bulkAdd(item.data);
-            }
-          }
-          toast.success(`Imported ${importData.data.length} tables`);
-        } else if (
-          importData.table &&
-          importData.data &&
-          Array.isArray(importData.data)
-        ) {
-          // Single table import
-          const table = (db as any)[importData.table];
-          if (table) {
-            await table.clear();
-            await table.bulkAdd(importData.data);
-            toast.success(
-              `Imported ${importData.data.length} items to ${importData.table}`
-            );
-          } else {
-            throw new Error(`Unknown table: ${importData.table}`);
-          }
-        } else {
-          throw new Error("Invalid file format");
-        }
-
-        await loadSavedData();
-        setIsImportDialogOpen(false);
-      } catch (error) {
-        console.error("Import failed:", error);
-        toast.error("Failed to import data. Please check the file format.");
-      }
-    };
-    reader.readAsText(file);
+    try {
+      const imported = await importBackup(file);
+      toast.success(`Successfully imported ${imported} tables!`);
+      await loadStats();
+    } catch (error) {
+      console.error("Import failed:", error);
+      toast.error(error instanceof Error ? error.message : "Import failed");
+    }
+    event.target.value = "";
   };
 
-  const handleDeleteData = async (key: string) => {
+  const handleClearTable = async (tableName: string) => {
     try {
-      const table = (db as any)[key];
-      if (table) {
-        await table.clear();
-        await loadSavedData();
-        toast.success("Table cleared successfully");
-      } else {
-        throw new Error(`Unknown table: ${key}`);
-      }
+      await clearTable(tableName);
+      toast.success(`Table cleared successfully!`);
+      await loadStats();
     } catch (error) {
-      console.error("Delete failed:", error);
-      toast.error("Failed to delete data");
+      console.error("Clear failed:", error);
+      toast.error("Failed to clear table");
     }
   };
 
-  const handleClearAllData = async () => {
-    try {
-      for (const item of savedData) {
-        const table = (db as any)[item.key];
-        if (table) {
-          await table.clear();
-        }
-      }
-      await loadSavedData();
-      toast.success("All data cleared successfully");
-    } catch (error) {
-      console.error("Clear all failed:", error);
-      toast.error("Failed to clear all data");
+  const toggleTableSelection = (tableName: string) => {
+    const newSelected = new Set(selectedTables);
+    if (newSelected.has(tableName)) {
+      newSelected.delete(tableName);
+    } else {
+      newSelected.add(tableName);
     }
+    setSelectedTables(newSelected);
   };
 
-  const toggleAutosave = () => {
-    setAutosaveEnabled(!autosaveEnabled);
-    localStorage.setItem("autosave-enabled", (!autosaveEnabled).toString());
-    toast.success(`Autosave ${!autosaveEnabled ? "enabled" : "disabled"}`);
+  const selectAllInCategory = (category: string) => {
+    const newSelected = new Set(selectedTables);
+    TABLE_CATEGORIES[category as keyof typeof TABLE_CATEGORIES].forEach(
+      (table) => newSelected.add(table)
+    );
+    setSelectedTables(newSelected);
   };
+
+  const selectAll = () => {
+    const allTables = new Set(Object.keys(tableStats));
+    setSelectedTables(allTables);
+  };
+
+  const clearSelection = () => {
+    setSelectedTables(new Set());
+  };
+
+  const totalRecords = Object.values(tableStats).reduce(
+    (sum, stat) => sum + (stat.count || 0),
+    0
+  );
+  const totalSize = Object.values(tableStats).reduce(
+    (sum, stat) => sum + (stat.size || 0),
+    0
+  );
 
   return (
     <div className="space-y-6 animate-wave-in">
@@ -267,89 +159,110 @@ export function DataPersistenceManager() {
             Data Management
           </h1>
           <p className="text-muted-foreground mt-1">
-            Manage your saved data, enable autosave, and backup your work
+            Manage your database, export backups, and restore data
           </p>
         </div>
-        <div className="flex gap-3">
-          <Button
-            variant="outline"
-            onClick={toggleAutosave}
-            className={
-              autosaveEnabled
-                ? "bg-green-50 border-green-200 text-green-700"
-                : ""
-            }
-          >
-            <RefreshCw
-              className={`h-4 w-4 mr-2 ${
-                autosaveEnabled ? "text-green-600" : ""
-              }`}
-            />
-            Autosave {autosaveEnabled ? "On" : "Off"}
-          </Button>
-
-          <Dialog
-            open={isImportDialogOpen}
-            onOpenChange={setIsImportDialogOpen}
-          >
-            <DialogTrigger asChild>
-              <Button
-                variant="outline"
-                className="bg-secondary hover:bg-secondary/90"
-              >
-                <Upload className="h-4 w-4 mr-2" />
-                Import
-              </Button>
-            </DialogTrigger>
-            <DialogContent>
-              <DialogHeader>
-                <DialogTitle>Import Data</DialogTitle>
-                <DialogDescription>
-                  Import previously exported data files to restore your work
-                </DialogDescription>
-              </DialogHeader>
-              <div className="space-y-4">
-                <div className="border-2 border-dashed border-border rounded-lg p-6 text-center">
-                  <Upload className="h-8 w-8 text-muted-foreground mx-auto mb-2" />
-                  <p className="text-sm text-muted-foreground mb-2">
-                    Select a JSON file to import
-                  </p>
-                  <input
-                    type="file"
-                    accept=".json"
-                    onChange={handleImportData}
-                    className="block w-full text-sm text-muted-foreground file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-medium file:bg-primary file:text-primary-foreground hover:file:bg-primary/90"
-                  />
-                </div>
-              </div>
-            </DialogContent>
-          </Dialog>
-
-          <ExportDialog
-            open={isExportDialogOpen}
-            onOpenChange={setIsExportDialogOpen}
-            savedData={savedData}
-            onExportAll={handleExportAll}
-          />
-        </div>
+        <Button
+          onClick={loadStats}
+          variant="outline"
+          className="flex items-center gap-2"
+        >
+          <RefreshCw className="w-4 h-4" />
+          Refresh
+        </Button>
       </div>
 
-      {/* Stats Cards */}
-      <StatsCards savedData={savedData} autosaveEnabled={autosaveEnabled} />
+      {/* Stats Overview */}
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <Card className="card-enhanced">
+          <CardContent className="pt-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-muted-foreground">Total Records</p>
+                <p className="text-2xl font-bold text-foreground mt-1">
+                  {totalRecords.toLocaleString()}
+                </p>
+              </div>
+              <Database className="w-8 h-8 text-blue-500" />
+            </div>
+          </CardContent>
+        </Card>
 
-      {/* Saved Data Table */}
-      <SavedDataTable
-        savedData={savedData}
-        onExportData={handleExportData}
-        onDeleteData={handleDeleteData}
-        onClearAllData={handleClearAllData}
-      />
+        <Card className="card-enhanced">
+          <CardContent className="pt-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-muted-foreground">Storage Used</p>
+                <p className="text-2xl font-bold text-foreground mt-1">
+                  {formatBytes(totalSize)}
+                </p>
+              </div>
+              <Layers className="w-8 h-8 text-emerald-500" />
+            </div>
+          </CardContent>
+        </Card>
 
-      {/* Autosave Settings */}
-      <AutosaveSettings
-        autosaveEnabled={autosaveEnabled}
-        onToggleAutosave={toggleAutosave}
-      />
+        <Card className="card-enhanced">
+          <CardContent className="pt-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-muted-foreground">Tables</p>
+                <p className="text-2xl font-bold text-foreground mt-1">
+                  {Object.keys(tableStats).length}
+                </p>
+              </div>
+              <Layers className="w-8 h-8 text-purple-500" />
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="card-enhanced">
+          <CardContent className="pt-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-muted-foreground">Last Backup</p>
+                <p className="text-sm font-semibold text-foreground mt-1">
+                  {backupSettings.lastBackup
+                    ? new Date(backupSettings.lastBackup).toLocaleDateString()
+                    : "Never"}
+                </p>
+              </div>
+              <Clock className="w-8 h-8 text-amber-500" />
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Main Content */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <DatabaseTableSelector
+          tableStats={tableStats}
+          selectedTables={selectedTables}
+          isLoading={isLoading}
+          onToggleTable={toggleTableSelection}
+          onSelectAll={selectAll}
+          onClearSelection={clearSelection}
+          onSelectCategory={selectAllInCategory}
+          onClearTable={handleClearTable}
+        />
+
+        <DataManagementActions
+          selectedTablesCount={selectedTables.size}
+          exportProgress={exportProgress}
+          backupSettings={backupSettings}
+          onExport={handleExport}
+          onImport={handleImport}
+          onToggleAutoBackup={() =>
+            saveBackupSettingsToStorage({
+              ...backupSettings,
+              enabled: !backupSettings.enabled,
+            })
+          }
+          onChangeBackupInterval={(interval) =>
+            saveBackupSettingsToStorage({ ...backupSettings, interval })
+          }
+        />
+      </div>
     </div>
   );
 }

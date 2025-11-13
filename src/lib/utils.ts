@@ -1,8 +1,8 @@
-import { clsx, type ClassValue } from 'clsx'
-import { twMerge } from 'tailwind-merge'
+import { clsx, type ClassValue } from "clsx";
+import { twMerge } from "tailwind-merge";
 
 export function cn(...inputs: ClassValue[]) {
-  return twMerge(clsx(inputs))
+  return twMerge(clsx(inputs));
 }
 
 /**
@@ -10,8 +10,8 @@ export function cn(...inputs: ClassValue[]) {
  */
 export function formatDate(date: string | Date): string {
   const d = new Date(date);
-  const day = String(d.getDate()).padStart(2, '0');
-  const month = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, "0");
+  const month = String(d.getMonth() + 1).padStart(2, "0");
   const year = d.getFullYear();
   return `${day}-${month}-${year}`;
 }
@@ -26,7 +26,10 @@ export function normalizeName(name: string): string {
 /**
  * Checks if two names are exact duplicates after normalization
  */
-export function isExactDuplicate(existingName: string, newName: string): boolean {
+export function isExactDuplicate(
+  existingName: string,
+  newName: string
+): boolean {
   return normalizeName(existingName) === normalizeName(newName);
 }
 
@@ -35,7 +38,9 @@ export function isExactDuplicate(existingName: string, newName: string): boolean
  * Used to detect similar names (e.g., typos)
  */
 export function levenshteinDistance(a: string, b: string): number {
-  const matrix = Array(b.length + 1).fill(null).map(() => Array(a.length + 1).fill(null));
+  const matrix = Array(b.length + 1)
+    .fill(null)
+    .map(() => Array(a.length + 1).fill(null));
 
   for (let i = 0; i <= a.length; i++) matrix[0][i] = i;
   for (let j = 0; j <= b.length; j++) matrix[j][0] = j;
@@ -44,8 +49,8 @@ export function levenshteinDistance(a: string, b: string): number {
     for (let i = 1; i <= a.length; i++) {
       const indicator = a[i - 1] === b[j - 1] ? 0 : 1;
       matrix[j][i] = Math.min(
-        matrix[j][i - 1] + 1,     // deletion
-        matrix[j - 1][i] + 1,     // insertion
+        matrix[j][i - 1] + 1, // deletion
+        matrix[j - 1][i] + 1, // insertion
         matrix[j - 1][i - 1] + indicator // substitution
       );
     }
@@ -69,8 +74,8 @@ export function isFuzzyMatch(existingName: string, newName: string): boolean {
 
   // Separator variation check (space vs dash/underscore)
   const separatorsRegex = /[-_\s]+/g;
-  const normalizedAWithoutSeparators = normalizedA.replace(separatorsRegex, '');
-  const normalizedBWithoutSeparators = normalizedB.replace(separatorsRegex, '');
+  const normalizedAWithoutSeparators = normalizedA.replace(separatorsRegex, "");
+  const normalizedBWithoutSeparators = normalizedB.replace(separatorsRegex, "");
 
   return normalizedAWithoutSeparators === normalizedBWithoutSeparators;
 }
@@ -96,7 +101,7 @@ export function debounce<T extends (...args: any[]) => any>(
 export function checkForSimilarItems(
   searchTerm: string,
   items: Array<{ name: string }>,
-  itemType: 'material' | 'packaging' | 'label' = 'material'
+  itemType: "material" | "packaging" | "label" = "material"
 ): string | null {
   if (!searchTerm || searchTerm.length < 2) {
     return null;
@@ -124,8 +129,8 @@ export function checkForSimilarItems(
 
     // Separator variation check (space vs dash/underscore)
     const separatorsRegex = /[-_\s]+/g;
-    const normalizedWithoutSeparators = normalized.replace(separatorsRegex, '');
-    const itemWithoutSeparators = itemName.replace(separatorsRegex, '');
+    const normalizedWithoutSeparators = normalized.replace(separatorsRegex, "");
+    const itemWithoutSeparators = itemName.replace(separatorsRegex, "");
 
     return normalizedWithoutSeparators === itemWithoutSeparators;
   });
@@ -146,5 +151,26 @@ export function checkForSimilarMaterials(
   searchTerm: string,
   materials: Array<{ name: string }>
 ): string | null {
-  return checkForSimilarItems(searchTerm, materials, 'material');
+  return checkForSimilarItems(searchTerm, materials, "material");
+}
+
+/**
+ * Gets initials from a name string
+ */
+export function getInitials(name: string): string {
+  return name
+    .split(" ")
+    .map((n) => n[0])
+    .join("")
+    .toUpperCase()
+    .slice(0, 2);
+}
+
+/**
+ * Gets rating color class based on rating value
+ */
+export function getRatingColor(rating: number): string {
+  if (rating >= 4.5) return "text-green-600";
+  if (rating >= 3.5) return "text-yellow-600";
+  return "text-red-600";
 }

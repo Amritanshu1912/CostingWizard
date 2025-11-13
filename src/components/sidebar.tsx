@@ -26,6 +26,11 @@ const navigation = [
     icon: BarChart3,
   },
   {
+    name: "Suppliers",
+    href: "/suppliers",
+    icon: Users,
+  },
+  {
     name: "Materials",
     href: "/materials",
     icon: Package,
@@ -54,11 +59,6 @@ const navigation = [
     name: "Procurement",
     href: "/procurement",
     icon: ShoppingCart,
-  },
-  {
-    name: "Suppliers",
-    href: "/suppliers",
-    icon: Users,
   },
   {
     name: "Data Management",
