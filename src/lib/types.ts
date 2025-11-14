@@ -353,214 +353,277 @@ export interface RecipeDisplay extends Recipe {
   isAboveTarget?: boolean;
 }
 
-//Computed recipe cost analysis (NOT stored in DB)
-
-// Represents cost contribution of an ingredient within a recipe.
-// Derived from RecipeIngredientDisplay.
-export interface IngredientCostBreakdown {
-  ingredientId: string;
-  displayName: string; // "Sodium Chloride (Supplier X)"
-  materialName?: string;
-  supplierName?: string;
-
-  quantity: number;
-  unit: CapacityUnit;
-  pricePerKg: number;
-  costForQuantity: number; // total cost (excluding tax)
-  taxedCostForQuantity: number; // total cost (including tax)
-  percentageOfTotal: number; // contribution % of total cost
-  isPriceLocked: boolean;
-}
-
-// Represents a comparison between current supplier vs potential alternative.
-// Optional, useful for cost-optimization or recommendation modules.
-export interface PotentialSaving {
-  ingredientId: string;
-  ingredientName: string;
-  currentSupplier: string;
-  alternativeSupplier: string;
-
-  currentCostPerKg: number;
-  alternativeCostPerKg: number;
-
-  currentCostTotal: number;
-  alternativeCostTotal: number;
-
-  absoluteSavings: number; // ₹ difference
-  savingsPercentage: number; // (alt - current) / current * 100
-  recommendationReason?: string; // "bulk discount", "same quality lower price", etc.
-}
-
-export interface RecipeCostAnalysis {
-  recipeId: string;
-  recipeName: string;
-  totalCost: number;
-  taxedTotalCost: number;
-  costPerKg: number;
-  taxedCostPerKg: number;
-  totalWeight: number;
-
-  ingredientBreakdown: IngredientCostBreakdown[];
-  potentialSavings?: PotentialSaving[];
-
-  targetCostPerKg?: number;
-  varianceFromTarget?: number;
-  variancePercentage?: number;
-  isAboveTarget?: boolean;
-
-  // 💡 Add optimization suggestions
-  optimizationSuggestions?: RecipeOptimizationSuggestion[];
-}
-// Suggestion for recipe optimization
-
-export interface RecipeOptimizationSuggestion {
-  // Core classification
-  type: "reduce_quantity" | "substitute_ingredient" | "remove_ingredient";
-
-  // Target ingredient
-  ingredientId: string;
-  ingredientName: string;
-
-  // Quantity modification (for "reduce_quantity")
-  currentQuantity?: number;
-  suggestedQuantity?: number;
-  unit?: CapacityUnit;
-
-  // Substitution (for "substitute_ingredient")
-  alternativeSupplierMaterialId?: string;
-  alternativeSupplierMaterialName?: string;
-  alternativeSupplierName?: string;
-
-  // Expected impact (quantified)
-  costSaving: number; // absolute saving (e.g., ₹)
-  costSavingPercentage: number; // relative saving
-  qualityImpact?: "none" | "low" | "medium" | "high";
-
-  // Explanation & confidence
-  reasoning: string;
-  confidence: number; // 0–100 (could later be mapped to a color scale)
-}
-
 // ============================================================================
 // PRODUCT SYSTEM (Final SKU)
 // ============================================================================
 
-export type ProductComponentType = "recipe" | "packaging" | "label";
-
-/**
- * A component that makes up a product (recipe, packaging, or label)
- */
-export interface ProductComponent extends BaseEntity {
-  type: ProductComponentType;
-
-  // For recipe components
-  recipeId?: string;
-  packagingId?: string;
-  labelId?: string;
-
-  // For packaging/label components (these are also supplier materials)
-  quantity?: number;
-  unit?: string;
-
-  // Optional: Lock pricing
-  lockedPricing?: {
-    unitPrice: number;
-    tax: number;
-    lockedAt: Date;
-    reason?: string;
-    notes?: string;
-  };
-
-  notes?: string;
-}
-
-/**
- * Product - The final SKU that includes recipe + packaging + labels
- */
+// Product - The master product definition/family
 export interface Product extends BaseEntity {
-  name: string; // e.g., "Floor Cleaner - 5L Bottle"
-  sku?: string; // Stock Keeping Unit
+  name: string; // e.g., "Harpic Toilet Cleaner"
   description?: string;
   category?: string;
+  brandName?: string;
 
-  // Product composition
-  components: ProductComponent[]; // Recipe + Packaging + Labels
+  // Base recipe reference
+  recipeId: string;
+  recipeVariantId?: string; // Optional specific variant
 
-  // Unit definition (what customers buy)
-  unitSize: number; // e.g., 5 (for 5L bottle)
-  unitType: CapacityUnit; // e.g., "L"
-  unitsPerCase?: number; // For bulk sales
-
-  // Pricing
-  sellingPricePerUnit: number; // Price for one unit (e.g., one 5L bottle)
-  sellingPricePerCase?: number; // If selling by case
-  costPerKg: number; // Total cost per kg of product
-  sellingPricePerKg: number; // Selling price per kg
-
-  // Business metrics (aspirational targets)
-  targetProfitMargin?: number; // Desired margin %
-  minimumProfitMargin?: number; // Don't sell below this
-
-  // Sales & Distribution
-  distributionChannels?: string[]; // e.g., ["retail", "wholesale", "online"]
-  shelfLife?: number; // Days
-
-  // Status
+  // Product metadata
   status: "draft" | "active" | "discontinued";
-  isLocked?: boolean; // Lock all component prices
-
-  // Marketing
   barcode?: string;
   imageUrl?: string;
   tags?: string[];
+  shelfLife?: number; // Days
 
   notes?: string;
 }
 
 /**
- * Computed product cost analysis (NOT stored in DB)
+ * ProductVariant - Size/packaging variations of a product
+ * Each variant represents a different SKU (e.g., "Harpic 1kg", "Harpic 500gm")
+ * STORED IN INDEXEDDB
  */
-export interface ProductCostAnalysis {
-  productId: string;
-  productName: string;
+export interface ProductVariant extends BaseEntity {
+  productId: string; // References Product.id
 
-  // Component costs
-  recipeCost: number;
-  packagingCost: number;
-  labelCost: number;
-  totalCost: number;
+  // Variant identity
+  name: string; // e.g., "1kg Bottle", "500gm Pouch"
+  sku: string; // Unique SKU for this variant
+
+  // Size specification
+  fillQuantity: number; // e.g., 1000 for 1kg
+  fillUnit: CapacityUnit; // e.g., "gm"
+
+  // Packaging & Labels (references to supplier selections)
+  packagingSelectionId: string; // References SupplierPackaging.id
+  frontLabelSelectionId?: string; // References SupplierLabel.id
+  backLabelSelectionId?: string; // References SupplierLabel.id
+
+  // Quantities needed for this variant
+  labelsPerUnit: number; // Usually 1 front + 1 back = 2
+
+  // Pricing (what you sell at)
+  sellingPricePerUnit: number;
+  targetProfitMargin?: number; // Desired margin %
+  minimumProfitMargin?: number; // Don't sell below this
+
+  // Distribution
+  distributionChannels?: string[]; // ["retail", "wholesale", "online"]
+  unitsPerCase?: number; // For bulk sales
+  sellingPricePerCase?: number;
+
+  // Status
+  isActive: boolean;
+
+  // Optional: Lock component prices at a point in time
+  priceSnapshot?: ProductVariantPriceSnapshot;
+
+  notes?: string;
+}
+
+/**
+ * ProductVariantPriceSnapshot - Optional price locking
+ * Captures costs at a specific point in time for quotations/analysis
+ */
+export interface ProductVariantPriceSnapshot {
+  snapshotAt: Date;
+  reason?: "quotation" | "cost_analysis" | "production_batch" | "other";
+
+  // Recipe cost at snapshot time
+  recipeCostPerKg: number;
+  recipeTaxPerKg: number;
+
+  // Packaging cost at snapshot time
+  packagingUnitPrice: number;
+  packagingTax: number;
+
+  // Label costs at snapshot time
+  frontLabelUnitPrice?: number;
+  frontLabelTax?: number;
+  backLabelUnitPrice?: number;
+  backLabelTax?: number;
+
+  notes?: string;
+}
+
+// ============================================================================
+// PRODUCT COMPUTED TYPES (Calculated on-the-fly, NOT stored)
+// ============================================================================
+
+/**
+ * ProductVariantWithDetails - Product variant with joined data
+ * Computed by joining with Product, Recipe, Packaging, Labels
+ */
+export interface ProductVariantWithDetails extends ProductVariant {
+  // Joined product info
+  product?: Product;
+  productName: string;
+  productCategory?: string;
+
+  // Joined recipe info
+  recipe?: Recipe;
+  recipeName: string;
+  recipeVariant?: RecipeVariant;
+
+  // Joined packaging info
+  packaging?: SupplierPackagingWithDetails;
+  packagingName: string;
+  packagingCapacity: number;
+  packagingUnit: CapacityUnit;
+
+  // Joined label info
+  frontLabel?: SupplierLabelWithDetails;
+  frontLabelName?: string;
+  backLabel?: SupplierLabelWithDetails;
+  backLabelName?: string;
+
+  // Display helpers
+  displayName: string; // "Harpic 1kg Bottle"
+  displaySku: string;
+}
+
+/**
+ * ProductVariantCostAnalysis - Complete cost breakdown
+ * Computed from current prices of recipe, packaging, labels
+ */
+export interface ProductVariantCostAnalysis {
+  variantId: string;
+  variantName: string;
+  sku: string;
+
+  // Fill specifications
+  fillQuantity: number;
+  fillUnit: CapacityUnit;
+  fillQuantityInKg: number; // Normalized to kg for calculations
+
+  // Recipe costs (from RecipeCostAnalysis)
+  recipeCostPerKg: number;
+  recipeTaxPerKg: number;
+  recipeCostForFill: number; // recipeCostPerKg * fillQuantityInKg
+  recipeTaxForFill: number;
+  recipeTotalForFill: number; // with tax
+
+  // Packaging costs
+  packagingUnitPrice: number;
+  packagingTax: number;
+  packagingTaxAmount: number;
+  packagingTotal: number; // with tax
+
+  // Label costs
+  frontLabelUnitPrice: number;
+  frontLabelTax: number;
+  frontLabelTaxAmount: number;
+  frontLabelTotal: number; // with tax
+
+  backLabelUnitPrice?: number;
+  backLabelTax?: number;
+  backLabelTaxAmount?: number;
+  backLabelTotal?: number; // with tax
+
+  totalLabelsCost: number; // Sum of all labels with tax
+
+  // Total costs
+  totalCostWithoutTax: number;
+  totalTaxAmount: number;
   totalCostWithTax: number;
 
-  // Per-unit calculations
-  costPerUnit: number;
-  costPerUnitWithTax: number;
-
-  // If selling by case
-  costPerCase?: number;
-  costPerCaseWithTax?: number;
+  // Per-kg calculations
+  costPerKgWithoutTax: number; // totalCostWithoutTax / fillQuantityInKg
+  costPerKgWithTax: number; // totalCostWithTax / fillQuantityInKg
 
   // Profitability
   sellingPricePerUnit: number;
-  grossProfit: number;
-  grossProfitMargin: number; // Actual margin %
+  grossProfit: number; // sellingPrice - totalCostWithTax
+  grossProfitMargin: number; // (grossProfit / sellingPrice) * 100
 
-  // Comparison with targets
-  targetMargin?: number;
-  marginVsTarget?: number; // Difference from target
+  // Target comparison
+  targetProfitMargin?: number;
+  marginVsTarget?: number; // Actual margin - target margin
   meetsMinimumMargin: boolean;
 
-  // Breakdown
-  costBreakdown: Array<{
-    componentType: ProductComponentType;
+  // Cost breakdown by component (for charts/tables)
+  costBreakdown: {
+    component: "recipe" | "packaging" | "front_label" | "back_label";
     name: string;
-    cost: number;
-    percentageOfTotal: number;
-  }>;
+    cost: number; // with tax
+    percentage: number; // of total cost
+  }[];
 
-  // Alerts
-  hasAvailabilityIssues: boolean;
-  hasPriceChanges: boolean;
+  // Price comparison with snapshot (if locked)
+  priceSnapshot?: ProductVariantPriceSnapshot;
+  priceChangedSinceSnapshot: boolean;
+  costDifferenceFromSnapshot?: number; // Current cost - snapshot cost
+  costDifferencePercentage?: number;
+
+  // Warnings/Alerts
   warnings: string[];
+  hasAvailabilityIssues: boolean;
+}
+
+/**
+ * ProductFamilyAnalysis - Analysis across all variants of a product
+ * Useful for comparing different sizes
+ */
+export interface ProductFamilyAnalysis {
+  productId: string;
+  productName: string;
+
+  variants: ProductVariantCostAnalysis[];
+  variantCount: number;
+  activeVariantCount: number;
+
+  // Aggregate metrics
+  averageMargin: number;
+  bestMarginVariant?: {
+    variantId: string;
+    variantName: string;
+    margin: number;
+  };
+  worstMarginVariant?: {
+    variantId: string;
+    variantName: string;
+    margin: number;
+  };
+
+  // Size comparison
+  mostEconomicalSize?: {
+    variantId: string;
+    variantName: string;
+    costPerKg: number;
+  };
+
+  // Revenue potential (if you track sales data later)
+  totalPotentialRevenue?: number;
+}
+
+/**
+ * Component cost summary for a product variant
+ * Used in UI tables/cards
+ */
+export interface ComponentCostSummary {
+  componentType: "recipe" | "packaging" | "label";
+  itemName: string;
+  quantity: number;
+  unit?: string;
+  unitPrice: number;
+  tax: number;
+  totalCost: number;
+  totalCostWithTax: number;
+}
+
+/**
+ * Quick variant comparison view
+ * For showing multiple variants side-by-side
+ */
+export interface VariantComparison {
+  variantId: string;
+  sku: string;
+  size: string; // e.g., "1kg", "500gm"
+  sellingPrice: number;
+  cost: number;
+  margin: number;
+  costPerKg: number;
+  isActive: boolean;
 }
 
 // ============================================================================
