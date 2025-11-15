@@ -12,7 +12,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Check, X, Trash2 } from "lucide-react";
+import { Check, X } from "lucide-react";
 import { useEnrichedRecipes, useRecipeVariants } from "@/hooks/use-recipes";
 import type { Product } from "@/lib/types";
 
@@ -20,14 +20,12 @@ interface ProductFormProps {
   initialProduct?: Product;
   onSave: (product: Omit<Product, "id" | "createdAt" | "updatedAt">) => void;
   onCancel: () => void;
-  onDelete?: () => void;
 }
 
 export function ProductForm({
   initialProduct,
   onSave,
   onCancel,
-  onDelete,
 }: ProductFormProps) {
   const recipes = useEnrichedRecipes();
 
@@ -222,16 +220,6 @@ export function ProductForm({
           <X className="h-3 w-3 mr-1" />
           Cancel
         </Button>
-        {initialProduct && onDelete && (
-          <Button
-            onClick={onDelete}
-            variant="destructive"
-            size="sm"
-            className="h-8 px-2"
-          >
-            <Trash2 className="h-3 w-3" />
-          </Button>
-        )}
       </div>
     </div>
   );

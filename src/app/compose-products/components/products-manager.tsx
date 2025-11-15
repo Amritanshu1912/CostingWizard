@@ -4,8 +4,6 @@ import { useState, useEffect } from "react";
 import { useLiveQuery } from "dexie-react-hooks";
 import { db } from "@/lib/db";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Button } from "@/components/ui/button";
-import { Plus } from "lucide-react";
 import { ProductsListView } from "./products-list-view";
 import { ProductVariantsPanel } from "./product-variants-panel";
 import { seedProductsData } from "@/lib/seedProductsData";
@@ -13,6 +11,7 @@ import type { Product } from "@/lib/types";
 
 export function ProductsManager() {
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
+  const [isCreatingNew, setIsCreatingNew] = useState(false); // NEW: Track create intent
 
   const products = useLiveQuery(() => db.products.toArray());
 
@@ -20,25 +19,14 @@ export function ProductsManager() {
   //   seedProductsData();
   // }, []);
 
-  // Auto-select first product on load
+  // Auto-select first product ONLY on initial load
   useEffect(() => {
-    if (products && products.length > 0 && !selectedProduct) {
+    if (products && products.length > 0 && !selectedProduct && !isCreatingNew) {
       setSelectedProduct(products[0]);
     }
-  }, [products, selectedProduct]);
+  }, [products]); // Remove selectedProduct from deps!
 
-  const handleProductCreated = (product: Product) => {
-    setSelectedProduct(product);
-  };
-
-  const handleProductDeleted = () => {
-    if (products && products.length > 0) {
-      setSelectedProduct(products[0]);
-    } else {
-      setSelectedProduct(null);
-    }
-  };
-
+  // Sync selectedProduct with database changes
   useEffect(() => {
     if (selectedProduct && products) {
       const updatedProduct = products.find((p) => p.id === selectedProduct.id);
@@ -47,6 +35,25 @@ export function ProductsManager() {
       }
     }
   }, [products]);
+
+  const handleProductCreated = (product: Product) => {
+    setSelectedProduct(product);
+    setIsCreatingNew(false); // Reset create flag
+  };
+
+  const handleProductDeleted = () => {
+    if (products && products.length > 0) {
+      setSelectedProduct(products[0]);
+    } else {
+      setSelectedProduct(null);
+    }
+    setIsCreatingNew(false);
+  };
+
+  const handleCreateProduct = () => {
+    setIsCreatingNew(true); // Set flag FIRST
+    setSelectedProduct(null); // Then clear selection
+  };
 
   return (
     <div className="space-y-6 animate-fade-in">
@@ -72,7 +79,11 @@ export function ProductsManager() {
               <ProductsListView
                 products={products || []}
                 selectedProductId={selectedProduct?.id}
-                onSelectProduct={setSelectedProduct}
+                onSelectProduct={(product) => {
+                  setSelectedProduct(product);
+                  setIsCreatingNew(false); // Clear create flag when selecting
+                }}
+                onCreateProduct={handleCreateProduct}
               />
             </div>
 
@@ -80,9 +91,11 @@ export function ProductsManager() {
             <div className="lg:col-span-8 xl:col-span-9">
               <ProductVariantsPanel
                 product={selectedProduct}
+                isCreating={isCreatingNew} // ← NEW PROP
                 onProductCreated={handleProductCreated}
                 onProductUpdated={() => {
                   // LiveQuery will auto-refresh
+                  setIsCreatingNew(false); // Reset flag on update
                 }}
                 onProductDeleted={handleProductDeleted}
               />

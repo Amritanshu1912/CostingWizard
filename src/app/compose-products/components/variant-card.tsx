@@ -131,14 +131,21 @@ export function VariantCard({
               <Trash2 className="h-4 w-4" />
             </Button>
             <Button
-              variant="ghost"
+              variant={isExpanded ? "secondary" : "outline"}
               size="sm"
               onClick={() => setIsExpanded(!isExpanded)}
+              className="gap-1"
             >
               {isExpanded ? (
-                <ChevronUp className="h-4 w-4" />
+                <>
+                  <ChevronUp className="h-4 w-4" />
+                  <span className="text-xs">Hide</span>
+                </>
               ) : (
-                <ChevronDown className="h-4 w-4" />
+                <>
+                  <ChevronDown className="h-4 w-4" />
+                  <span className="text-xs">Details</span>
+                </>
               )}
             </Button>
           </div>

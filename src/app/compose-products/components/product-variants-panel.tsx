@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Package, Edit2, ArrowLeft } from "lucide-react";
+import { Plus, Package, Edit2, ArrowLeft, Trash2 } from "lucide-react";
 import { db } from "@/lib/db";
 import {
   getProductVariantsWithDetails,
@@ -28,6 +28,7 @@ type ViewState =
 
 interface ProductVariantsPanelProps {
   product: Product | null;
+  isCreating?: boolean; // ← NEW
   onProductCreated?: (product: Product) => void;
   onProductUpdated?: () => void;
   onProductDeleted?: () => void;
@@ -35,12 +36,17 @@ interface ProductVariantsPanelProps {
 
 export function ProductVariantsPanel({
   product,
+  isCreating = false,
   onProductCreated,
   onProductUpdated,
   onProductDeleted,
 }: ProductVariantsPanelProps) {
   const [viewState, setViewState] = useState<ViewState>({
-    type: product ? "VIEWING_VARIANTS" : "CREATING_PRODUCT",
+    type: isCreating
+      ? "CREATING_PRODUCT"
+      : product
+      ? "VIEWING_VARIANTS"
+      : "CREATING_PRODUCT",
   });
   const [variants, setVariants] = useState<ProductVariantWithDetails[]>([]);
   const [costAnalyses, setCostAnalyses] = useState<
@@ -59,6 +65,12 @@ export function ProductVariantsPanel({
       setViewState({ type: "VIEWING_VARIANTS" });
     }
   }, [product?.id]);
+
+  useEffect(() => {
+    if (isCreating && !product) {
+      setViewState({ type: "CREATING_PRODUCT" });
+    }
+  }, [isCreating, product]);
 
   const loadVariants = async () => {
     if (!product) return;
@@ -175,7 +187,6 @@ export function ProductVariantsPanel({
             initialProduct={product}
             onSave={handleUpdateProduct}
             onCancel={() => setViewState({ type: "VIEWING_VARIANTS" })}
-            onDelete={handleDeleteProduct}
           />
         </CardContent>
       </Card>
@@ -267,9 +278,17 @@ export function ProductVariantsPanel({
               >
                 <Edit2 className="h-3 w-3" />
               </Button>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={handleDeleteProduct}
+                className="h-7 w-7 p-0 text-red-600 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-950/20"
+              >
+                <Trash2 className="h-3 w-3" />
+              </Button>
             </div>
             <p className="text-sm text-muted-foreground">
-              {variants.length} variant {variants.length !== 1 ? "s" : ""}
+              {variants.length} variant{variants.length !== 1 ? "s" : ""}
             </p>
           </div>
           <Button

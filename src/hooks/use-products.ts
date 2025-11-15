@@ -80,7 +80,6 @@ export async function getProductVariantsWithDetails(
         ...variant,
         product,
         productName: product.name,
-        productCategory: product.category,
         recipe,
         recipeName: recipe?.name || "Unknown Recipe",
         packagingName: packagingDetails?.name || "Unknown Packaging",
