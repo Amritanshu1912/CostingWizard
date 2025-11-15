@@ -10,62 +10,57 @@ export const PRODUCTS: Product[] = [
     name: "Premium Floor Cleaner",
     description:
       "High-performance floor cleaning solution for industrial and commercial use",
-    category: "Floor Care",
     recipeId: "recipe-1", // Premium Floor Cleaner recipe
     status: "active",
-    brandName: "CleanPro",
     shelfLife: 730, // 2 years
     tags: ["floor", "cleaner", "professional", "industrial"],
     createdAt: new Date().toISOString(),
+    isRecipeVariant: false,
   },
   {
     id: "product-2",
     name: "Eco-Friendly Dish Soap",
     description:
       "Gentle yet effective dish cleaning formula with natural ingredients",
-    category: "Dish Care",
     recipeId: "recipe-2", // Eco-Friendly Dish Soap recipe
     status: "active",
-    brandName: "EcoClean",
     shelfLife: 365, // 1 year
     tags: ["dish", "soap", "eco-friendly", "natural"],
     createdAt: new Date().toISOString(),
+    isRecipeVariant: false,
   },
   {
     id: "product-3",
     name: "Ultra Bleach Formula",
     description: "Professional-grade bleaching solution for tough stains",
-    category: "Bleach",
     recipeId: "recipe-3", // Ultra Bleach Formula recipe
     status: "active",
-    brandName: "PowerClean",
     shelfLife: 180, // 6 months
     tags: ["bleach", "stain", "remover", "professional"],
     createdAt: new Date().toISOString(),
+    isRecipeVariant: false,
   },
   {
     id: "product-4",
     name: "Kitchen Degreaser Pro",
     description: "Heavy-duty degreasing formulation for kitchen surfaces",
-    category: "Kitchen Care",
     recipeId: "recipe-4", // Kitchen Degreaser Pro recipe
     status: "active",
-    brandName: "KitchenMaster",
     shelfLife: 365, // 1 year
     tags: ["kitchen", "degreaser", "heavy-duty", "surfaces"],
     createdAt: new Date().toISOString(),
+    isRecipeVariant: false,
   },
   {
     id: "product-5",
     name: "Glass Cleaner Streak-Free",
     description: "Professional glass and mirror cleaning solution",
-    category: "Glass Care",
     recipeId: "recipe-5", // Glass Cleaner Streak-Free recipe
     status: "active",
-    brandName: "CrystalClear",
     shelfLife: 365, // 1 year
     tags: ["glass", "cleaner", "streak-free", "mirrors"],
     createdAt: new Date().toISOString(),
+    isRecipeVariant: false,
   },
 ];
 

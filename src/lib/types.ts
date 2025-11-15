@@ -361,12 +361,10 @@ export interface RecipeDisplay extends Recipe {
 export interface Product extends BaseEntity {
   name: string; // e.g., "Harpic Toilet Cleaner"
   description?: string;
-  category?: string;
-  brandName?: string;
 
-  // Base recipe reference
-  recipeId: string;
-  recipeVariantId?: string; // Optional specific variant
+  // Recipe reference - can be original recipe OR a variant
+  recipeId: string; // This is EITHER a Recipe.id OR RecipeVariant.id
+  isRecipeVariant: boolean; // true if recipeId points to RecipeVariant
 
   // Product metadata
   status: "draft" | "active" | "discontinued";
