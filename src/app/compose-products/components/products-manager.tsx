@@ -1,48 +1,62 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { useLiveQuery } from "dexie-react-hooks";
-import { db } from "@/lib/db";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { ProductsListView } from "./products-list-view";
-import { ProductVariantsPanel } from "./product-variants-panel";
-import { seedProductsData } from "@/lib/seedProductsData";
+import { useProducts } from "@/hooks/use-products";
+import { ProductsList } from "./products-list";
+import { ProductsDetailPanel } from "./products-detail-panel";
 import type { Product } from "@/lib/types";
 
 export function ProductsManager() {
+  const products = useProducts();
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
-  const [isCreatingNew, setIsCreatingNew] = useState(false); // NEW: Track create intent
+  const [isCreatingNew, setIsCreatingNew] = useState(false);
 
-  const products = useLiveQuery(() => db.products.toArray());
-
-  // useEffect(() => {
-  //   seedProductsData();
-  // }, []);
-
-  // Auto-select first product ONLY on initial load
+  /**
+   * Auto-select first product on initial load only
+   */
   useEffect(() => {
-    if (products && products.length > 0 && !selectedProduct && !isCreatingNew) {
+    if (products.length > 0 && !selectedProduct && !isCreatingNew) {
       setSelectedProduct(products[0]);
     }
-  }, [products]); // Remove selectedProduct from deps!
+  }, [products]);
 
-  // Sync selectedProduct with database changes
+  /**
+   * Sync selected product with database changes
+   */
   useEffect(() => {
-    if (selectedProduct && products) {
+    if (selectedProduct && products.length > 0) {
       const updatedProduct = products.find((p) => p.id === selectedProduct.id);
       if (updatedProduct) {
         setSelectedProduct(updatedProduct);
+      } else {
+        // Product was deleted, select first available
+        setSelectedProduct(products[0] || null);
       }
     }
   }, [products]);
 
-  const handleProductCreated = (product: Product) => {
-    setSelectedProduct(product);
-    setIsCreatingNew(false); // Reset create flag
+  /**
+   * Handle product creation trigger
+   */
+  const handleCreateProduct = () => {
+    setIsCreatingNew(true);
+    setSelectedProduct(null);
   };
 
+  /**
+   * Handle product created
+   */
+  const handleProductCreated = (product: Product) => {
+    setSelectedProduct(product);
+    setIsCreatingNew(false);
+  };
+
+  /**
+   * Handle product deletion
+   */
   const handleProductDeleted = () => {
-    if (products && products.length > 0) {
+    if (products.length > 0) {
       setSelectedProduct(products[0]);
     } else {
       setSelectedProduct(null);
@@ -50,52 +64,54 @@ export function ProductsManager() {
     setIsCreatingNew(false);
   };
 
-  const handleCreateProduct = () => {
-    setIsCreatingNew(true); // Set flag FIRST
-    setSelectedProduct(null); // Then clear selection
+  /**
+   * Handle product selection
+   */
+  const handleSelectProduct = (product: Product) => {
+    setSelectedProduct(product);
+    setIsCreatingNew(false);
   };
 
   return (
     <div className="space-y-6 animate-fade-in">
+      {/* Page Header */}
       <div className="flex flex-col gap-2">
-        <h1 className="text-3xl font-bold text-foreground">Products</h1>
+        <h1 className="text-3xl font-bold tracking-tight">Products</h1>
         <p className="text-muted-foreground">
           Manage product families and their variants with pricing and cost
           analysis
         </p>
       </div>
 
+      {/* Main Content Tabs */}
       <Tabs defaultValue="products" className="space-y-6">
         <TabsList>
           <TabsTrigger value="products">Product Families</TabsTrigger>
-          <TabsTrigger value="all-variants">All Variants</TabsTrigger>
           <TabsTrigger value="analytics">Analytics</TabsTrigger>
         </TabsList>
 
+        {/* Products Tab */}
         <TabsContent value="products" className="space-y-6">
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-            {/* Left Sidebar */}
+            {/* Left Sidebar: Products List */}
             <div className="lg:col-span-4 xl:col-span-3">
-              <ProductsListView
-                products={products || []}
+              <ProductsList
+                products={products}
                 selectedProductId={selectedProduct?.id}
-                onSelectProduct={(product) => {
-                  setSelectedProduct(product);
-                  setIsCreatingNew(false); // Clear create flag when selecting
-                }}
+                onSelectProduct={handleSelectProduct}
                 onCreateProduct={handleCreateProduct}
               />
             </div>
 
-            {/* Right Panel */}
+            {/* Right Panel: Product Details & Variants */}
             <div className="lg:col-span-8 xl:col-span-9">
-              <ProductVariantsPanel
+              <ProductsDetailPanel
                 product={selectedProduct}
-                isCreating={isCreatingNew} // ← NEW PROP
+                isCreating={isCreatingNew}
                 onProductCreated={handleProductCreated}
                 onProductUpdated={() => {
                   // LiveQuery will auto-refresh
-                  setIsCreatingNew(false); // Reset flag on update
+                  setIsCreatingNew(false);
                 }}
                 onProductDeleted={handleProductDeleted}
               />
@@ -103,15 +119,16 @@ export function ProductsManager() {
           </div>
         </TabsContent>
 
-        <TabsContent value="all-variants" className="space-y-6">
-          <div className="text-center py-12 text-muted-foreground">
-            All Variants View - Coming Soon
-          </div>
-        </TabsContent>
-
+        {/* Analytics Tab */}
         <TabsContent value="analytics" className="space-y-6">
-          <div className="text-center py-12 text-muted-foreground">
-            Analytics - Coming Soon
+          <div className="text-center py-16 text-muted-foreground">
+            <div className="max-w-md mx-auto">
+              <h3 className="text-lg font-medium mb-2">Coming Soon</h3>
+              <p className="text-sm">
+                Analyze product performance, costs, margins, and profitability
+                trends
+              </p>
+            </div>
           </div>
         </TabsContent>
       </Tabs>

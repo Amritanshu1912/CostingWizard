@@ -1,8 +1,10 @@
 // ============================================================================
-// FILE: lib/db/product-operations.ts
-// Database operations for products and variants
+// FILE: hooks/use-products.ts
+// Centralized hooks and database operations for products management
 // ============================================================================
 
+import { useMemo } from "react";
+import { useLiveQuery } from "dexie-react-hooks";
 import { db } from "@/lib/db";
 import { normalizeToKg } from "./use-recipes";
 import type {
@@ -13,32 +15,113 @@ import type {
   CapacityUnit,
 } from "@/lib/types";
 
+// ============================================================================
+// DATA FETCHING HOOKS
+// ============================================================================
+
 /**
- * Get all products with variant counts
+ * Hook: Get all products from database
  */
-export async function getProductsWithCounts() {
-  const products = await db.products.toArray();
-
-  const productsWithCounts = await Promise.all(
-    products.map(async (product) => {
-      const variants = await db.productVariants
-        .where("productId")
-        .equals(product.id)
-        .toArray();
-
-      return {
-        ...product,
-        variantCount: variants.length,
-        activeVariantCount: variants.filter((v) => v.isActive).length,
-      };
-    })
-  );
-
-  return productsWithCounts;
+export function useProducts() {
+  return useLiveQuery(() => db.products.toArray(), []) || [];
 }
 
 /**
- * Get product variants with joined details
+ * Hook: Get all product variants
+ */
+export function useAllProductVariants() {
+  return useLiveQuery(() => db.productVariants.toArray(), []) || [];
+}
+
+/**
+ * Hook: Get variants for a specific product
+ */
+export function useProductVariants(productId: string | null) {
+  const result = useLiveQuery(
+    () =>
+      productId
+        ? db.productVariants.where("productId").equals(productId).toArray()
+        : Promise.resolve([] as ProductVariant[]),
+    [productId]
+  );
+  return result || [];
+}
+
+/**
+ * Hook: Get all supplier packaging options
+ */
+export function useSupplierPackaging() {
+  return useLiveQuery(() => db.supplierPackaging.toArray(), []) || [];
+}
+
+/**
+ * Hook: Get all supplier labels
+ */
+export function useSupplierLabels() {
+  return useLiveQuery(() => db.supplierLabels.toArray(), []) || [];
+}
+
+/**
+ * Get packaging details with supplier info (async function, not a hook)
+ */
+export async function getPackagingDetails() {
+  const supplierPackagings = await db.supplierPackaging.toArray();
+
+  return Promise.all(
+    supplierPackagings.map(async (sp) => {
+      const packaging = await db.packaging.get(sp.packagingId);
+      const supplier = await db.suppliers.get(sp.supplierId);
+      return {
+        ...sp,
+        packaging,
+        supplier,
+        displayName: `${packaging?.name} - ${packaging?.capacity}${packaging?.unit} (${supplier?.name})`,
+      };
+    })
+  );
+}
+
+/**
+ * Get label details with supplier info (async function, not a hook)
+ */
+export async function getLabelDetails() {
+  const supplierLabels = await db.supplierLabels.toArray();
+
+  return Promise.all(
+    supplierLabels.map(async (sl) => {
+      const label = sl.labelId ? await db.labels.get(sl.labelId) : null;
+      const supplier = await db.suppliers.get(sl.supplierId);
+      return {
+        ...sl,
+        label,
+        supplier,
+        displayName: `${label?.name || "Custom Label"} (${supplier?.name})`,
+      };
+    })
+  );
+}
+
+/**
+ * Hook: Get variant count map for products
+ */
+export function useVariantCountMap() {
+  const allVariants = useAllProductVariants();
+
+  return useMemo(() => {
+    const map = new Map<string, number>();
+    allVariants.forEach((variant) => {
+      map.set(variant.productId, (map.get(variant.productId) || 0) + 1);
+    });
+    return map;
+  }, [allVariants]);
+}
+
+// ============================================================================
+// DATABASE OPERATIONS
+// ============================================================================
+
+/**
+ * Get product variants with all joined details
  */
 export async function getProductVariantsWithDetails(
   productId: string
@@ -65,15 +148,15 @@ export async function getProductVariantsWithDetails(
       const frontLabel = variant.frontLabelSelectionId
         ? await db.supplierLabels.get(variant.frontLabelSelectionId)
         : null;
-      const frontLabelDetails = frontLabel
-        ? await db.labels.get(frontLabel.labelId!)
+      const frontLabelDetails = frontLabel?.labelId
+        ? await db.labels.get(frontLabel.labelId)
         : null;
 
       const backLabel = variant.backLabelSelectionId
         ? await db.supplierLabels.get(variant.backLabelSelectionId)
         : null;
-      const backLabelDetails = backLabel
-        ? await db.labels.get(backLabel.labelId!)
+      const backLabelDetails = backLabel?.labelId
+        ? await db.labels.get(backLabel.labelId)
         : null;
 
       return {
@@ -97,12 +180,66 @@ export async function getProductVariantsWithDetails(
 }
 
 /**
- * Calculate cost analysis for a variant
+ * Create a new product
+ */
+export async function createProduct(
+  productData: Omit<Product, "id" | "createdAt" | "updatedAt">
+): Promise<Product> {
+  const newProduct: Product = {
+    id: crypto.randomUUID(),
+    ...productData,
+    createdAt: new Date().toISOString(),
+  };
+
+  await db.products.add(newProduct);
+  return newProduct;
+}
+
+/**
+ * Update an existing product
+ */
+export async function updateProduct(
+  productId: string,
+  productData: Omit<Product, "id" | "createdAt" | "updatedAt">
+): Promise<void> {
+  await db.products.update(productId, productData);
+}
+
+/**
+ * Delete a product and all its variants
+ */
+export async function deleteProduct(productId: string): Promise<void> {
+  await db.productVariants.where("productId").equals(productId).delete();
+  await db.products.delete(productId);
+}
+
+/**
+ * Create or update a product variant
+ */
+export async function saveProductVariant(
+  variant: ProductVariant
+): Promise<void> {
+  await db.productVariants.put(variant);
+}
+
+/**
+ * Delete a product variant
+ */
+export async function deleteProductVariant(variantId: string): Promise<void> {
+  await db.productVariants.delete(variantId);
+}
+
+// ============================================================================
+// COST CALCULATIONS
+// ============================================================================
+
+/**
+ * Calculate comprehensive cost analysis for a variant
  */
 export async function calculateVariantCostAnalysis(
   variant: ProductVariant
 ): Promise<ProductVariantCostAnalysis> {
-  // Get recipe cost
+  // Get recipe cost per kg
   const recipeCost = await getRecipeCostPerKg(variant.productId);
 
   // Get packaging details
@@ -126,14 +263,6 @@ export async function calculateVariantCostAnalysis(
   const recipeCostForFill = recipeCost.costPerKg * fillInKg;
   const recipeTaxForFill = recipeCost.taxPerKg * fillInKg;
   const recipeTotalForFill = recipeCostForFill + recipeTaxForFill;
-
-  console.log("calculateVariantCostAnalysis DEBUG:", {
-    recipeCost,
-    fillInKg,
-    recipeCostForFill,
-    recipeTaxForFill,
-    recipeTotalForFill,
-  });
 
   // Calculate packaging costs
   const packagingUnitPrice = packaging?.unitPrice || 0;
@@ -171,17 +300,12 @@ export async function calculateVariantCostAnalysis(
   const costPerKgWithoutTax = totalCostWithoutTax / fillInKg;
   const costPerKgWithTax = totalCostWithTax / fillInKg;
 
-  // Profitability
+  // Profitability metrics
   const grossProfit = variant.sellingPricePerUnit - totalCostWithTax;
   const grossProfitMargin = (grossProfit / variant.sellingPricePerUnit) * 100;
 
-  // Cost breakdown
-  const costBreakdown: {
-    component: "recipe" | "packaging" | "front_label" | "back_label";
-    name: string;
-    cost: number;
-    percentage: number;
-  }[] = [
+  // Cost breakdown for visualization
+  const costBreakdown = [
     {
       component: "recipe" as const,
       name: "Recipe/Formula",
@@ -194,27 +318,26 @@ export async function calculateVariantCostAnalysis(
       cost: packagingTotal,
       percentage: (packagingTotal / totalCostWithTax) * 100,
     },
-  ];
-
-  if (frontLabelTotal > 0) {
-    costBreakdown.push({
+    frontLabelTotal > 0 && {
       component: "front_label" as const,
       name: "Front Label",
       cost: frontLabelTotal,
       percentage: (frontLabelTotal / totalCostWithTax) * 100,
-    });
-  }
-
-  if (backLabelTotal > 0) {
-    costBreakdown.push({
+    },
+    backLabelTotal > 0 && {
       component: "back_label" as const,
       name: "Back Label",
       cost: backLabelTotal,
       percentage: (backLabelTotal / totalCostWithTax) * 100,
-    });
-  }
+    },
+  ].filter(Boolean) as Array<{
+    component: "recipe" | "packaging" | "front_label" | "back_label";
+    name: string;
+    cost: number;
+    percentage: number;
+  }>;
 
-  // Warnings
+  // Generate warnings
   const warnings: string[] = [];
   if (!packaging) {
     warnings.push("Packaging not found - cost analysis may be incomplete");
@@ -282,143 +405,62 @@ export async function calculateVariantCostAnalysis(
 }
 
 /**
- * Helper: Get recipe cost per kg
+ * Helper: Calculate recipe cost per kg
  */
 async function getRecipeCostPerKg(productId: string) {
-  console.log("getRecipeCostPerKg START:", { productId });
-
-  // Get the product to find its recipe
   const product = await db.products.get(productId);
-  if (!product) {
-    throw new Error("Product not found");
-  }
-  console.log("getRecipeCostPerKg PRODUCT:", { product });
+  if (!product) throw new Error("Product not found");
 
-  // Get the recipe
   const recipe = await db.recipes.get(product.recipeId);
-  if (!recipe) {
-    throw new Error("Recipe not found");
-  }
-  console.log("getRecipeCostPerKg RECIPE:", { recipe });
+  if (!recipe) throw new Error("Recipe not found");
 
-  // Get recipe ingredients
   const ingredients = await db.recipeIngredients
     .where("recipeId")
     .equals(recipe.id)
     .toArray();
-  console.log("getRecipeCostPerKg INGREDIENTS:", { ingredients });
 
   if (ingredients.length === 0) {
-    console.log("getRecipeCostPerKg NO INGREDIENTS");
-    return {
-      costPerKg: 0,
-      taxPerKg: 0,
-    };
+    return { costPerKg: 0, taxPerKg: 0 };
   }
 
-  // Calculate total cost and weight
   let totalCost = 0;
   let totalTaxedCost = 0;
   let totalWeightKg = 0;
 
-  console.log("getRecipeCostPerKg LOOP START");
   for (const ingredient of ingredients) {
-    console.log("getRecipeCostPerKg INGREDIENT:", { ingredient });
-
-    // Get supplier material for pricing
     const supplierMaterial = await db.supplierMaterials.get(
       ingredient.supplierMaterialId
     );
-    console.log("getRecipeCostPerKg SUPPLIER MATERIAL:", { supplierMaterial });
-    if (!supplierMaterial) {
-      console.log("getRecipeCostPerKg SKIP: no supplier material");
-      continue;
-    }
+    if (!supplierMaterial) continue;
 
-    // Convert ingredient quantity to kg
     const quantityKg = normalizeToKg(ingredient.quantity, ingredient.unit);
-    console.log("getRecipeCostPerKg QUANTITY KG:", {
-      quantity: ingredient.quantity,
-      unit: ingredient.unit,
-      quantityKg,
-    });
-
-    // Calculate costs
     const pricePerKg =
-      ingredient.lockedPricing?.unitPrice || supplierMaterial?.unitPrice || 0;
+      ingredient.lockedPricing?.unitPrice || supplierMaterial.unitPrice || 0;
     const effectiveTax =
-      ingredient.lockedPricing?.tax || supplierMaterial?.tax || 0;
+      ingredient.lockedPricing?.tax || supplierMaterial.tax || 0;
 
     const costForQuantity = pricePerKg * quantityKg;
     const taxAmount = costForQuantity * (effectiveTax / 100);
-    const costWithTax = costForQuantity + taxAmount;
-
-    console.log("getRecipeCostPerKg COSTS:", {
-      pricePerKg: pricePerKg,
-      effectiveTax: effectiveTax,
-      costForQuantity,
-      taxAmount,
-      costWithTax,
-    });
 
     totalCost += costForQuantity;
-    totalTaxedCost += costWithTax;
+    totalTaxedCost += costForQuantity + taxAmount;
     totalWeightKg += quantityKg;
-
-    console.log("getRecipeCostPerKg TOTALS SO FAR:", {
-      totalCost,
-      totalTaxedCost,
-      totalWeightKg,
-    });
   }
-  console.log("getRecipeCostPerKg LOOP END:", {
-    totalCost,
-    totalTaxedCost,
-    totalWeightKg,
-  });
 
   if (totalWeightKg === 0) {
-    console.log("getRecipeCostPerKg ZERO WEIGHT");
-    return {
-      costPerKg: 0,
-      taxPerKg: 0,
-    };
+    return { costPerKg: 0, taxPerKg: 0 };
   }
 
-  // Calculate per kg costs
-  const costPerKg = totalCost / totalWeightKg;
-  const taxPerKg = (totalTaxedCost - totalCost) / totalWeightKg;
-
-  console.log("getRecipeCostPerKg FINAL:", {
-    totalCost,
-    totalTaxedCost,
-    totalWeightKg,
-    costPerKg,
-    taxPerKg,
-  });
-
   return {
-    costPerKg,
-    taxPerKg,
+    costPerKg: totalCost / totalWeightKg,
+    taxPerKg: (totalTaxedCost - totalCost) / totalWeightKg,
   };
 }
 
 /**
- * Helper: Convert any unit to kg
+ * Helper: Generate unique SKU
  */
-function convertToKg(quantity: number, unit: CapacityUnit): number {
-  switch (unit) {
-    case "kg":
-      return quantity;
-    case "gm":
-      return quantity / 1000;
-    case "L":
-      return quantity; // Assuming 1L ≈ 1kg for cleaning products
-    case "ml":
-      return quantity / 1000;
-    case "pcs":
-      return quantity; // Not applicable but handle gracefully
-    default:
-      return quantity;
-  }
+export function generateSKU(): string {
+  const timestamp = Date.now().toString().slice(-6);
+  return `VAR-${timestamp}`;
 }
