@@ -1,6 +1,27 @@
 // hooks/use-duplicate-check.ts
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { findSimilarItems } from "@/lib/text-utils";
+
+/**
+ * useDebounce
+ * Delays updating the value until a certain amount of time has passed
+ * after the last change.
+ */
+export function useDebounce<T>(value: T, delay = 300): T {
+  const [debouncedValue, setDebouncedValue] = useState<T>(value);
+
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      setDebouncedValue(value);
+    }, delay);
+
+    return () => {
+      clearTimeout(handler);
+    };
+  }, [value, delay]);
+
+  return debouncedValue;
+}
 
 /**
  * Debounced callback function

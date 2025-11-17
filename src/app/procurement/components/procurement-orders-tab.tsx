@@ -15,9 +15,10 @@ import { OrdersTable } from "./procurement-tables";
 
 interface OrdersTabProps {
   orders: PurchaseOrder[];
+  onEditOrder?: (order: PurchaseOrder) => void;
 }
 
-export function OrdersTab({ orders }: OrdersTabProps) {
+export function OrdersTab({ orders, onEditOrder }: OrdersTabProps) {
   return (
     <div className="space-y-6">
       {/* Recent Orders */}
@@ -81,7 +82,7 @@ export function OrdersTab({ orders }: OrdersTabProps) {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <OrdersTable orders={orders} />
+          <OrdersTable orders={orders} onEditOrder={onEditOrder} />
         </CardContent>
       </Card>
     </div>

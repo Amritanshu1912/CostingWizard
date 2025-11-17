@@ -156,9 +156,10 @@ export function SuppliersTable({
 
 interface OrdersTableProps {
   orders: PurchaseOrder[];
+  onEditOrder?: (order: PurchaseOrder) => void;
 }
 
-export function OrdersTable({ orders }: OrdersTableProps) {
+export function OrdersTable({ orders, onEditOrder }: OrdersTableProps) {
   const columns = [
     {
       key: "id",
@@ -208,6 +209,26 @@ export function OrdersTable({ orders }: OrdersTableProps) {
         );
       },
     },
+    ...(onEditOrder
+      ? [
+          {
+            key: "actions",
+            label: "Actions",
+            sortable: false,
+            render: (value: any, row: PurchaseOrder) => (
+              <div className="flex space-x-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => onEditOrder(row)}
+                >
+                  <Edit className="h-3 w-3" />
+                </Button>
+              </div>
+            ),
+          },
+        ]
+      : []),
   ];
 
   return (

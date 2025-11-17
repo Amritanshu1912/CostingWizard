@@ -51,6 +51,11 @@ const navigation = [
     icon: Flask,
   },
   {
+    name: "Compose Products",
+    href: "/compose-products",
+    icon: Package,
+  },
+  {
     name: "Planning",
     href: "/planning",
     icon: Calendar,

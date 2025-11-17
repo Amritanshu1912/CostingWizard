@@ -22,7 +22,23 @@ import { SortableTable } from "@/components/ui/sortable-table";
 import { Plus, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { ProductionItem } from "@/lib/types";
-import { PRODUCTS } from "@/lib/constants";
+import { PRODUCTS } from "@/app/compose-products/components/products-constants";
+
+// Pricing lookup for planning (mock data - would be replaced with actual pricing logic)
+const getProductPricing = (productId: string) => {
+  const pricingMap: Record<
+    string,
+    { costPerKg: number; sellingPricePerKg: number }
+  > = {
+    "product-1": { costPerKg: 85, sellingPricePerKg: 150 }, // Premium Floor Cleaner
+    "product-2": { costPerKg: 120, sellingPricePerKg: 200 }, // Eco-Friendly Dish Soap
+    "product-3": { costPerKg: 45, sellingPricePerKg: 110 }, // Ultra Bleach Formula
+    "product-4": { costPerKg: 75, sellingPricePerKg: 130 }, // Kitchen Degreaser Pro
+    "product-5": { costPerKg: 95, sellingPricePerKg: 160 }, // Glass Cleaner Streak-Free
+  };
+
+  return pricingMap[productId] || { costPerKg: 100, sellingPricePerKg: 180 };
+};
 
 interface ProductionPlanningCreateDialogProps {
   isOpen: boolean;
@@ -95,12 +111,14 @@ export function ProductionPlanningCreateDialog({
     const product = PRODUCTS.find((p) => p.id === newProduct.productId);
     if (!product) return;
 
+    const pricing = getProductPricing(newProduct.productId);
+
     const productionItem: ProductionItem = {
       productId: newProduct.productId,
       productName: product.name,
       quantityKg: newProduct.quantityKg,
-      costPerKg: product.costPerKg,
-      totalCost: newProduct.quantityKg * product.costPerKg,
+      costPerKg: pricing.costPerKg,
+      totalCost: newProduct.quantityKg * pricing.costPerKg,
       materialsRequired: [], // Would be calculated based on product recipe
     };
 
@@ -120,10 +138,8 @@ export function ProductionPlanningCreateDialog({
   const calculatePlanTotals = (products: ProductionItem[]) => {
     const totalCost = products.reduce((sum, p) => sum + p.totalCost, 0);
     const totalRevenue = products.reduce((sum, p) => {
-      const product = PRODUCTS.find((ap) => ap.id === p.productId);
-      return (
-        sum + (product ? p.quantityKg * (product.sellingPricePerKg || 0) : 0)
-      );
+      const pricing = getProductPricing(p.productId);
+      return sum + p.quantityKg * pricing.sellingPricePerKg;
     }, 0);
     return { totalCost, totalRevenue, totalProfit: totalRevenue - totalCost };
   };
@@ -261,11 +277,14 @@ export function ProductionPlanningCreateDialog({
                       <SelectValue placeholder="Select product" />
                     </SelectTrigger>
                     <SelectContent>
-                      {PRODUCTS.map((product) => (
-                        <SelectItem key={product.id} value={product.id}>
-                          {product.name} - ₹{product.costPerKg}/kg
-                        </SelectItem>
-                      ))}
+                      {PRODUCTS.map((product) => {
+                        const pricing = getProductPricing(product.id);
+                        return (
+                          <SelectItem key={product.id} value={product.id}>
+                            {product.name} - ₹{pricing.costPerKg}/kg
+                          </SelectItem>
+                        );
+                      })}
                     </SelectContent>
                   </Select>
                 </div>
