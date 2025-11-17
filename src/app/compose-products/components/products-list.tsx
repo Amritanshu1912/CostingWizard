@@ -1,14 +1,27 @@
 "use client";
 
-import { useMemo } from "react";
+import { useState, useMemo } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Package2, Plus } from "lucide-react";
+
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+
+import { Package2, Plus, Search } from "lucide-react";
+import { useDebounce } from "@/hooks/use-duplicate-check";
 import { useEnrichedRecipes } from "@/hooks/use-recipes";
 import { useVariantCountMap } from "@/hooks/use-products";
 import type { Product } from "@/lib/types";
+import { cn } from "@/lib/utils";
 
+// Props fully typed
 interface ProductsListProps {
   products: Product[];
   selectedProductId?: string;
@@ -22,6 +35,40 @@ export function ProductsList({
   onSelectProduct,
   onCreateProduct,
 }: ProductsListProps) {
+  // --- UI State ---
+  const [search, setSearch] = useState("");
+  const [statusFilter, setStatusFilter] = useState<"all" | Product["status"]>(
+    "all"
+  );
+  const [sort, setSort] = useState<"name" | "recent">("name");
+
+  const debouncedSearch = useDebounce(search, 200);
+
+  // --- Filtering + Sorting ---
+  const filtered = useMemo(() => {
+    let list = [...products];
+
+    if (debouncedSearch.trim()) {
+      const q = debouncedSearch.toLowerCase();
+      list = list.filter((p) => p.name.toLowerCase().includes(q));
+    }
+
+    if (statusFilter !== "all") {
+      list = list.filter((p) => p.status === statusFilter);
+    }
+
+    if (sort === "name") {
+      list.sort((a, b) => a.name.localeCompare(b.name));
+    } else if (sort === "recent") {
+      list.sort(
+        (a, b) =>
+          new Date(b.updatedAt!).getTime() - new Date(a.updatedAt!).getTime()
+      );
+    }
+
+    return list;
+  }, [products, debouncedSearch, statusFilter, sort]);
+
   const variantCountMap = useVariantCountMap();
   const enrichedRecipes = useEnrichedRecipes();
 
@@ -36,19 +83,52 @@ export function ProductsList({
 
   return (
     <Card className="h-full shadow-sm">
+      {/* Header */}
       <CardHeader>
-        <div className="flex items-center justify-between">
+        <div className="flex items-center justify-between mb-3">
           <CardTitle className="text-lg font-semibold">Products</CardTitle>
+
           <Button onClick={onCreateProduct} size="sm" className="h-9">
             <Plus className="h-4 w-4 mr-2" />
-            New
+            New Product
           </Button>
+        </div>
+
+        {/* Controls */}
+        <div className="flex gap-2 flex-wrap">
+          {/* Search */}
+          <div className="relative flex-1 min-w-[140px]">
+            <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+            <Input
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="Search products..."
+              className="pl-8"
+            />
+          </div>
+
+          {/* Status Filter */}
+          <Select
+            value={statusFilter}
+            onValueChange={(v) => setStatusFilter(v as any)}
+          >
+            <SelectTrigger className="w-[130px]">
+              <SelectValue placeholder="Status" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All</SelectItem>
+              <SelectItem value="active">Active</SelectItem>
+              <SelectItem value="draft">Draft</SelectItem>
+              <SelectItem value="discontinued">Discontinued</SelectItem>
+            </SelectContent>
+          </Select>
         </div>
       </CardHeader>
 
+      {/* List */}
       <CardContent className="p-0">
-        <div className="space-y-1 p-2 max-h-[calc(100vh-300px)] overflow-y-auto">
-          {products.map((product) => {
+        <div className="space-y-2 px-4 max-h-[calc(100vh-300px)] overflow-y-auto">
+          {filtered.map((product) => {
             const variantCount = variantCountMap.get(product.id) || 0;
             const recipeName =
               recipeNameMap.get(product.recipeId) || "Unknown Recipe";
@@ -57,47 +137,64 @@ export function ProductsList({
             return (
               <div
                 key={product.id}
-                className={`
-                  p-3 rounded-lg cursor-pointer transition-all
-                  ${
-                    isSelected
-                      ? "bg-primary/10 border-2 border-primary shadow-sm"
-                      : "border border-transparent hover:bg-muted/50 hover:border-border"
-                  }
-                `}
+                className={cn(
+                  "rounded-lg cursor-pointer group relative transition-all border",
+                  "hover:bg-muted/50 p-3",
+                  isSelected
+                    ? "bg-primary/10 border-primary shadow-sm"
+                    : "border-border"
+                )}
                 onClick={() => onSelectProduct(product)}
               >
-                {/* Product Name & Status */}
-                <div className="flex items-center justify-between gap-2 mb-2">
-                  <div className="flex items-center gap-2 flex-1 min-w-0">
-                    <div className="h-8 w-8 rounded bg-primary/15 flex items-center justify-center flex-shrink-0">
-                      <Package2 className="h-4 w-4 text-primary" />
+                <div className="flex items-center justify-between gap-2">
+                  {/* Icon + Name */}
+                  <div className="flex items-center gap-2 min-w-0">
+                    <div
+                      className={cn(
+                        "flex items-center justify-center rounded bg-primary/15 text-primary",
+                        "h-8 w-8"
+                      )}
+                    >
+                      <Package2 className={cn("h-4 w-4")} />
                     </div>
-                    <h4 className="font-medium text-sm truncate">
-                      {product.name}
-                    </h4>
+
+                    <div className="flex flex-col min-w-0">
+                      <span className={cn("font-medium truncate", "text-sm")}>
+                        {product.name}
+                      </span>
+                      <div className="flex flex-row space-x-1 text-xs text-muted-foreground min-w-0">
+                        <span className="whitespace-nowrap">
+                          {variantCount} variant{variantCount !== 1 ? "s" : ""}
+                        </span>
+                        <span>•</span>
+                        <span className="truncate">Recipe: {recipeName}</span>
+                      </div>
+                    </div>
                   </div>
+
+                  {/* Status */}
                   <Badge
                     variant={
-                      product.status === "active" ? "default" : "secondary"
+                      product.status === "active"
+                        ? "default"
+                        : product.status === "draft"
+                        ? "secondary"
+                        : "destructive"
                     }
-                    className="text-xs flex-shrink-0"
+                    className={cn("text-xs capitalize")}
                   >
                     {product.status}
                   </Badge>
                 </div>
-
-                {/* Variant Count & Recipe Name */}
-                <div className="text-xs text-muted-foreground ml-10 flex items-center gap-2">
-                  <span className="font-medium text-foreground">
-                    {variantCount} variant{variantCount !== 1 ? "s" : ""}
-                  </span>
-                  <span>•</span>
-                  <span className="truncate">{recipeName}</span>
-                </div>
               </div>
             );
           })}
+
+          {filtered.length === 0 && (
+            <div className="text-center py-12 text-muted-foreground">
+              No products found.
+            </div>
+          )}
 
           {/* Empty State */}
           {products.length === 0 && (
