@@ -251,7 +251,11 @@ export function ProductsDetailPanel({
                 <CardTitle className="text-xl">{product.name}</CardTitle>
                 <Badge
                   variant={
-                    product.status === "active" ? "default" : "secondary"
+                    product.status === "active"
+                      ? "default"
+                      : product.status === "draft"
+                      ? "secondary"
+                      : "destructive"
                   }
                 >
                   {product.status}
@@ -337,9 +341,15 @@ export function ProductsDetailPanel({
                   <Trash2 className="h-3.5 w-3.5" />
                 </Button>
               </div>
-              <p className="text-sm text-muted-foreground">
-                {variants.length} variant{variants.length !== 1 ? "s" : ""}
-              </p>
+              <div className="flex text-sm text-muted-foreground gap-2">
+                <span>
+                  Recipe: {variants[0]?.recipeName || "Unknown Recipe"}
+                </span>
+                <span>•</span>
+                <span>
+                  {variants.length} variant{variants.length !== 1 ? "s" : ""}
+                </span>
+              </div>
             </div>
 
             {/* Add Variant Button */}

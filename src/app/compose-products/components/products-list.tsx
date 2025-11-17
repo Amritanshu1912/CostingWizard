@@ -5,7 +5,6 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-
 import {
   Select,
   SelectContent,
@@ -13,15 +12,12 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-
 import { Package2, Plus, Search } from "lucide-react";
 import { useDebounce } from "@/hooks/use-duplicate-check";
-import { useEnrichedRecipes } from "@/hooks/use-recipes";
 import { useVariantCountMap } from "@/hooks/use-products";
 import type { Product } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
-// Props fully typed
 interface ProductsListProps {
   products: Product[];
   selectedProductId?: string;
@@ -70,16 +66,6 @@ export function ProductsList({
   }, [products, debouncedSearch, statusFilter, sort]);
 
   const variantCountMap = useVariantCountMap();
-  const enrichedRecipes = useEnrichedRecipes();
-
-  // Create recipe name lookup map
-  const recipeNameMap = useMemo(() => {
-    const map = new Map<string, string>();
-    enrichedRecipes.forEach((recipe) => {
-      map.set(recipe.id, recipe.name);
-    });
-    return map;
-  }, [enrichedRecipes]);
 
   return (
     <Card className="h-full shadow-sm">
@@ -130,8 +116,6 @@ export function ProductsList({
         <div className="space-y-2 px-4 max-h-[calc(100vh-300px)] overflow-y-auto">
           {filtered.map((product) => {
             const variantCount = variantCountMap.get(product.id) || 0;
-            const recipeName =
-              recipeNameMap.get(product.recipeId) || "Unknown Recipe";
             const isSelected = selectedProductId === product.id;
 
             return (
@@ -150,24 +134,21 @@ export function ProductsList({
                   {/* Icon + Name */}
                   <div className="flex items-center gap-2 min-w-0">
                     <div
-                      className={cn(
-                        "flex items-center justify-center rounded bg-primary/15 text-primary",
-                        "h-8 w-8"
-                      )}
+                      className={
+                        "flex items-center justify-center rounded bg-primary/15 text-primary h-8 w-8"
+                      }
                     >
-                      <Package2 className={cn("h-4 w-4")} />
+                      <Package2 className={"h-4 w-4"} />
                     </div>
 
                     <div className="flex flex-col min-w-0">
-                      <span className={cn("font-medium truncate", "text-sm")}>
+                      <span className={"font-medium truncate text-sm"}>
                         {product.name}
                       </span>
                       <div className="flex flex-row space-x-1 text-xs text-muted-foreground min-w-0">
                         <span className="whitespace-nowrap">
                           {variantCount} variant{variantCount !== 1 ? "s" : ""}
                         </span>
-                        <span>•</span>
-                        <span className="truncate">Recipe: {recipeName}</span>
                       </div>
                     </div>
                   </div>
@@ -181,7 +162,7 @@ export function ProductsList({
                         ? "secondary"
                         : "destructive"
                     }
-                    className={cn("text-xs capitalize")}
+                    className={"text-xs capitalize"}
                   >
                     {product.status}
                   </Badge>
