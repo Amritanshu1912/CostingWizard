@@ -23,7 +23,7 @@ import { CategoryManager } from "@/app/materials/components/materials-category-m
 
 import type { Category, SupplierMaterial } from "@/lib/types";
 import type { MaterialFormData } from "./supplier-materials-dialog";
-import { SUPPLIERS } from "@/lib/constants";
+import { SUPPLIERS } from "@/app/suppliers/components/suppliers-constants";
 import { useDexieTable } from "@/hooks/use-dexie-table";
 import { useSupplierMaterialsWithDetails } from "@/hooks/use-supplier-materials-with-details";
 import {

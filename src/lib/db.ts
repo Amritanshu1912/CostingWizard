@@ -20,12 +20,8 @@ import type {
   TransportationCost,
   ProductionPlanExtended,
 } from "./types";
-import {
-  CATEGORIES,
-  SUPPLIERS,
-  PRODUCTION_PLANS,
-  PURCHASE_ORDERS,
-} from "./constants";
+import { CATEGORIES, PURCHASE_ORDERS } from "./constants";
+import { SUPPLIERS } from "@/app/suppliers/components/suppliers-constants";
 import {
   MATERIALS,
   SUPPLIER_MATERIALS,
@@ -47,6 +43,7 @@ import {
   PRODUCT_VARIANTS,
   PRODUCTS,
 } from "@/app/compose-products/components/products-constants";
+import { PRODUCTION_PLANS } from "@/app/planning/components/planning-constants";
 
 export class CostingWizardDB extends Dexie {
   categories!: Table<Category>;

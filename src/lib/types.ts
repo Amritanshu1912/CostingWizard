@@ -669,6 +669,7 @@ export interface MaterialRequirement {
   materialId: string;
   materialName: string;
   requiredQty: number;
+  unit: CapacityUnit;
   availableQty: number;
   shortage: number;
   costPerKg: number;

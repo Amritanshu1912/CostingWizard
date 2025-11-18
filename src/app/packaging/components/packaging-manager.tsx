@@ -9,7 +9,7 @@ import { nanoid } from "nanoid";
 import { MetricCard } from "@/components/ui/metric-card";
 import type { SupplierPackaging } from "@/lib/types";
 import type { PackagingFormData } from "./supplier-packaging-dialog";
-import { SUPPLIERS } from "@/lib/constants";
+import { SUPPLIERS } from "@/app/suppliers/components/suppliers-constants";
 import { useDexieTable } from "@/hooks/use-dexie-table";
 import { db } from "@/lib/db";
 import { SupplierPackagingTable } from "./supplier-packaging-table";

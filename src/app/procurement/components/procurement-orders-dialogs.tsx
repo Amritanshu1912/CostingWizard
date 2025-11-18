@@ -18,22 +18,15 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
 import { Plus, XCircle } from "lucide-react";
 import { ORDER_STATUS_MAP } from "./procurement-constants"; // Assuming constants are in the same folder
-import type {
-  PurchaseOrder,
-  Supplier,
-  Material,
-  PurchaseOrderItem,
-} from "@/lib/types";
-import { SUPPLIERS } from "@/lib/constants";
+import type { PurchaseOrder, Supplier, PurchaseOrderItem } from "@/lib/types";
+import { SUPPLIERS } from "@/app/suppliers/components/suppliers-constants";
 import {
   MATERIALS,
   SUPPLIER_MATERIALS,
 } from "../../materials/components/materials-constants";
-import { Switch } from "@/components/ui/switch";
 
 // ============================================================================
 // CREATE / EDIT ORDER DIALOG
