@@ -211,3 +211,49 @@ export function useFilteredPlans(searchTerm: string): ProductionPlan[] {
     );
   }, [plans, searchTerm]);
 }
+
+/**
+ * Returns material cost breakdown for chart visualization
+ * Shows top materials by cost across all production plans
+ */
+export function useMaterialCostBreakdown(): any[] {
+  const plans = useProductionPlans();
+
+  return useMemo(() => {
+    const materialCosts: Record<
+      string,
+      { cost: number; materialName: string; unit: string }
+    > = {};
+
+    // Aggregate costs across all plans and products
+    plans.forEach((plan) => {
+      plan.products.forEach((product) => {
+        product.materialsRequired.forEach((material) => {
+          const key = material.materialId;
+          if (!materialCosts[key]) {
+            materialCosts[key] = {
+              cost: 0,
+              materialName: material.materialName,
+              unit: material.unit,
+            };
+          }
+          materialCosts[key].cost += material.totalCost;
+        });
+      });
+    });
+
+    // Convert to array and sort by cost descending
+    const breakdown = Object.values(materialCosts)
+      .sort((a, b) => b.cost - a.cost)
+      .slice(0, 10) // Top 10 materials
+      .map((item, index, arr) => ({
+        material: item.materialName,
+        cost: Math.round(item.cost),
+        percentage: Math.round(
+          (item.cost / arr.reduce((sum, m) => sum + m.cost, 0)) * 100
+        ),
+      }));
+
+    return breakdown;
+  }, [plans]);
+}

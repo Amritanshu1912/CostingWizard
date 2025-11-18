@@ -32,13 +32,8 @@ import {
 } from "lucide-react";
 import { ProductionPlan } from "@/lib/types";
 import { MetricCard } from "@/components/ui/metric-card";
-import {
-  planningProductionTimeline,
-  planningAIInsights,
-  planningProductionEfficiencyCards,
-  planningBenchmarkData,
-} from "./planning-constants";
-import { priceHistoryData } from "@/lib/constants";
+import { usePlanningStats } from "@/hooks/use-planning";
+import { planningAIInsights } from "./planning-constants";
 import { CHART_COLORS } from "@/lib/color-utils";
 
 interface PlanningAnalyticsProps {
@@ -46,46 +41,41 @@ interface PlanningAnalyticsProps {
 }
 
 export function PlanningAnalytics({ plans }: PlanningAnalyticsProps) {
+  // Use the planning stats hook
+  const stats = usePlanningStats();
+
   // Calculate KPIs
-  const totalPlans = plans.length;
-  const activePlans = plans.filter((p) => p.status === "in-progress").length;
-  const totalRevenue = plans.reduce((sum, p) => sum + p.totalRevenue, 0);
-  const totalCost = plans.reduce((sum, p) => sum + p.totalCost, 0);
-  const totalProfit = plans.reduce((sum, p) => sum + p.totalProfit, 0);
-  const avgProfitMargin =
-    totalRevenue > 0 ? (totalProfit / totalRevenue) * 100 : 0;
-  const capacityUtilization = 92; // hardcoded for now
 
   const planningKPIs = [
     {
-      title: "Production Efficiency",
-      value: "87%",
-      icon: Factory,
-      trend: { value: "+2.1%", isPositive: true, label: "vs last month" },
-    },
-    {
-      title: "Resource Utilization",
-      value: "84%",
-      icon: Target,
-      trend: { value: "+3.2%", isPositive: true, label: "vs last month" },
-    },
-    {
       title: "Total Plans Revenue",
-      value: `₹${(totalRevenue / 100000).toFixed(1)}M`,
+      value: `₹${(stats.totalRevenue / 100000).toFixed(1)}M`,
       icon: TrendingUp,
       trend: { value: "+15.3%", isPositive: true, label: "vs last month" },
     },
     {
+      title: "Total Profit",
+      value: `₹${(stats.totalProfit / 100000).toFixed(1)}M`,
+      icon: DollarSign,
+      trend: { value: "+12.5%", isPositive: true, label: "vs last month" },
+    },
+    {
       title: "Average Profit Margin",
-      value: `${avgProfitMargin.toFixed(1)}%`,
+      value: `${stats.avgProfitMargin.toFixed(1)}%`,
       icon: TrendingUp,
       trend: { value: "+1.2%", isPositive: true, label: "vs last month" },
     },
     {
-      title: "Capacity Utilization",
-      value: `${capacityUtilization}%`,
+      title: "Total Plans",
+      value: `${stats.totalPlans}`,
       icon: Factory,
-      trend: { value: "+5.1%", isPositive: true, label: "vs last month" },
+      trend: { value: "+5.2%", isPositive: true, label: "vs last month" },
+    },
+    {
+      title: "Active Plans",
+      value: `${stats.activePlans}`,
+      icon: Target,
+      trend: { value: "+2.1%", isPositive: true, label: "vs last month" },
     },
   ];
 
@@ -131,62 +121,6 @@ export function PlanningAnalytics({ plans }: PlanningAnalyticsProps) {
           />
         ))}
       </div>
-
-      {/* Production Timeline */}
-      <Card className="card-enhanced">
-        <CardHeader>
-          <CardTitle className="text-foreground">Production Timeline</CardTitle>
-          <CardDescription>
-            Monthly production output and capacity utilization
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <ResponsiveContainer width="100%" height={400}>
-            <BarChart
-              data={planningProductionTimeline}
-              margin={{ top: 20, right: 30, left: 20, bottom: 5 }}
-            >
-              <CartesianGrid
-                strokeDasharray="3 3"
-                stroke="hsl(var(--border))"
-              />
-              <XAxis dataKey="month" stroke="hsl(var(--muted-foreground))" />
-              <YAxis stroke="hsl(var(--muted-foreground))" />
-              <Tooltip
-                contentStyle={{
-                  backgroundColor: "rgba(0,0,0 0.3)",
-                  backdropFilter: "blur(4px)",
-                  border: "1px solid hsl(var(--border))",
-                  borderRadius: "8px",
-                }}
-                itemStyle={{
-                  color: "hsl(var(--foreground))",
-                  fontWeight: 400,
-                }}
-                formatter={(value) =>
-                  typeof value === "number" ? value.toFixed(2) : value
-                }
-              />
-              <Legend />
-              <Bar
-                dataKey="planned"
-                fill={CHART_COLORS.light.chart1}
-                name="Planned"
-              />
-              <Bar
-                dataKey="actual"
-                fill={CHART_COLORS.light.chart2}
-                name="Actual"
-              />
-              <Bar
-                dataKey="capacity"
-                fill={CHART_COLORS.light.chart3}
-                name="Capacity"
-              />
-            </BarChart>
-          </ResponsiveContainer>
-        </CardContent>
-      </Card>
 
       {/* Cost Breakdown and Plan Performance - Side by Side */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">

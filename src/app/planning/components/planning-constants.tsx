@@ -1,3 +1,4 @@
+import { ProductionPlan } from "@/lib/types";
 import {
   TrendingUp,
   Factory,
@@ -9,6 +10,197 @@ import {
   AlertCircle,
   Calendar,
 } from "lucide-react";
+
+export const PRODUCTION_PLANS: ProductionPlan[] = [
+  {
+    id: "1",
+    planName: "Q1 Production Batch",
+    description: "First quarter production planning",
+    startDate: "2024-01-15",
+    endDate: "2024-03-31",
+    products: [
+      {
+        productId: "1",
+        productName: "Premium Floor Cleaner",
+        quantityKg: 500,
+        costPerKg: 27.22,
+        totalCost: 13610,
+        materialsRequired: [
+          {
+            materialId: "6",
+            materialName: "NaCl",
+            requiredQty: 175,
+            availableQty: 200,
+            shortage: 0,
+            costPerKg: 6,
+            totalCost: 1050,
+            unit: "kg",
+          },
+          {
+            materialId: "8",
+            materialName: "Soda Ash",
+            requiredQty: 110,
+            availableQty: 80,
+            shortage: 30,
+            costPerKg: 40.95,
+            totalCost: 4504.5,
+            unit: "kg",
+          },
+          {
+            materialId: "7",
+            materialName: "Dolamite",
+            requiredQty: 125,
+            availableQty: 150,
+            shortage: 0,
+            costPerKg: 5.25,
+            totalCost: 656.25,
+            unit: "kg",
+          },
+          {
+            materialId: "2",
+            materialName: "Acid Slurry 90%",
+            requiredQty: 40,
+            availableQty: 50,
+            shortage: 0,
+            costPerKg: 122.85,
+            totalCost: 4914,
+            unit: "kg",
+          },
+          {
+            materialId: "4",
+            materialName: "Caustic Soda",
+            requiredQty: 9,
+            availableQty: 25,
+            shortage: 0,
+            costPerKg: 59.85,
+            totalCost: 538.65,
+            unit: "kg",
+          },
+          {
+            materialId: "9",
+            materialName: "AOS Powder 96%",
+            requiredQty: 12.5,
+            availableQty: 20,
+            shortage: 0,
+            costPerKg: 155.4,
+            totalCost: 1942.5,
+            unit: "kg",
+          },
+        ],
+      },
+      {
+        productId: "2",
+        productName: "Bathroom Cleaner Pro",
+        quantityKg: 300,
+        costPerKg: 34.06,
+        totalCost: 10218,
+        materialsRequired: [
+          {
+            materialId: "5",
+            materialName: "Citric Acid",
+            requiredQty: 45,
+            availableQty: 60,
+            shortage: 0,
+            costPerKg: 97.65,
+            totalCost: 4394.25,
+            unit: "kg",
+          },
+          {
+            materialId: "4",
+            materialName: "Caustic Soda",
+            requiredQty: 15,
+            availableQty: 25,
+            shortage: 0,
+            costPerKg: 59.85,
+            totalCost: 897.75,
+            unit: "kg",
+          },
+          {
+            materialId: "2",
+            materialName: "Acid Slurry 90%",
+            requiredQty: 36,
+            availableQty: 50,
+            shortage: 0,
+            costPerKg: 122.85,
+            totalCost: 4422.6,
+            unit: "kg",
+          },
+          {
+            materialId: "1",
+            materialName: "Acid Blue Color",
+            requiredQty: 0.3,
+            availableQty: 5,
+            shortage: 0,
+            costPerKg: 1680,
+            totalCost: 504,
+            unit: "kg",
+          },
+        ],
+      },
+    ],
+    totalCost: 23828,
+    totalRevenue: 38500,
+    totalProfit: 14672,
+    status: "in-progress",
+    progress: 65,
+    createdAt: "2024-01-10",
+  },
+  {
+    id: "2",
+    planName: "Special Order Batch",
+    description: "Custom order for large client",
+    startDate: "2024-02-01",
+    endDate: "2024-02-15",
+    products: [
+      {
+        productId: "3",
+        productName: "Glass Cleaner",
+        quantityKg: 200,
+        costPerKg: 22.15,
+        totalCost: 4430,
+        materialsRequired: [
+          {
+            materialId: "2",
+            materialName: "Acid Slurry 90%",
+            requiredQty: 20,
+            availableQty: 50,
+            shortage: 0,
+            costPerKg: 122.85,
+            totalCost: 2457,
+            unit: "kg",
+          },
+          {
+            materialId: "6",
+            materialName: "NaCl",
+            requiredQty: 10,
+            availableQty: 200,
+            shortage: 0,
+            costPerKg: 6,
+            totalCost: 60,
+            unit: "kg",
+          },
+          {
+            materialId: "1",
+            materialName: "Acid Blue Color",
+            requiredQty: 0.4,
+            availableQty: 5,
+            shortage: 0,
+            costPerKg: 1680,
+            totalCost: 672,
+            unit: "kg",
+          },
+        ],
+      },
+    ],
+    totalCost: 4430,
+    totalRevenue: 7600,
+    totalProfit: 3170,
+    status: "scheduled",
+    progress: 0,
+    createdAt: "2024-01-25",
+  },
+];
+
 // Status mappings for production plans
 export const STATUS_CONFIG = {
   completed: {
@@ -79,126 +271,6 @@ export const MATERIAL_INVENTORY = [
   },
 ];
 
-// Material cost breakdown data for chart
-export const MATERIAL_COST_BREAKDOWN = [
-  { material: "Citric Acid", cost: 4394, percentage: 35 },
-  { material: "AOS Powder", cost: 4560, percentage: 36 },
-  { material: "CBS-X", cost: 2200, percentage: 18 },
-  { material: "Soda Ash", cost: 1229, percentage: 10 },
-  { material: "Others", cost: 567, percentage: 1 },
-];
-
-// Procurement recommendations
-export const PROCUREMENT_RECOMMENDATIONS = [
-  {
-    type: "urgent" as const,
-    title: "Urgent Procurement",
-    description:
-      "Order Soda Ash (30 kg) and AOS Powder (30 kg) immediately to avoid production delays",
-    cost: 5790,
-    leadTime: "5-7 days",
-    icon: AlertCircle,
-    bgColor: "accent",
-  },
-  {
-    type: "bulk" as const,
-    title: "Bulk Order Opportunity",
-    description:
-      "Combine orders for Q2 to get 12% volume discount on Citric Acid and Caustic Soda",
-    savings: 3240,
-    icon: Factory,
-    bgColor: "primary",
-  },
-  {
-    type: "optimization" as const,
-    title: "Inventory Optimization",
-    description:
-      "Current NaCl stock will last 3 months. Consider reducing next order by 25%",
-    savings: 450,
-    icon: Clock,
-    bgColor: "secondary",
-  },
-  {
-    type: "quality" as const,
-    title: "Quality Assurance",
-    description:
-      "Schedule quality testing for incoming Ammonia batch before production start",
-    window: "2 days before production",
-    icon: CheckCircle,
-    bgColor: "muted",
-  },
-];
-
-export const planningProductionEfficiencyCards = [
-  {
-    title: "Production Efficiency",
-    value: "87%",
-    change: "+2.1%",
-    changeText: "vs last month",
-    icon: Factory,
-  },
-  {
-    title: "On-Time Delivery",
-    value: "92%",
-    change: "+1.5%",
-    changeText: "vs last month",
-    icon: Clock,
-  },
-  {
-    title: "Resource Utilization",
-    value: "84%",
-    change: "+3.2%",
-    changeText: "vs last month",
-    icon: Target,
-  },
-  {
-    title: "Cost Variance",
-    value: "-5.2%",
-    change: "Improved",
-    changeText: "vs budget",
-    icon: DollarSign,
-  },
-];
-
-export const planningProductionTimeline = [
-  {
-    month: "Jan",
-    planned: 1200,
-    actual: 1150,
-    capacity: 1400,
-  },
-  {
-    month: "Feb",
-    planned: 1300,
-    actual: 1280,
-    capacity: 1400,
-  },
-  {
-    month: "Mar",
-    planned: 1100,
-    actual: 1080,
-    capacity: 1400,
-  },
-  {
-    month: "Apr",
-    planned: 1400,
-    actual: 1420,
-    capacity: 1400,
-  },
-  {
-    month: "May",
-    planned: 1350,
-    actual: 1380,
-    capacity: 1400,
-  },
-  {
-    month: "Jun",
-    planned: 1250,
-    actual: 1220,
-    capacity: 1400,
-  },
-];
-
 export const planningAIInsights = [
   {
     type: "optimization",
@@ -232,11 +304,4 @@ export const planningAIInsights = [
     impact: "Medium",
     confidence: 78,
   },
-];
-
-export const planningBenchmarkData = [
-  { metric: "Efficiency", yours: 87, industry: 82 },
-  { metric: "Quality", yours: 96, industry: 89 },
-  { metric: "Delivery", yours: 92, industry: 87 },
-  { metric: "Cost", yours: 88, industry: 84 },
 ];

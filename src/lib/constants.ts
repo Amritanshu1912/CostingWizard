@@ -189,19 +189,6 @@ export const PURCHASE_ORDERS: PurchaseOrder[] = [
 ];
 
 // ============================================================================
-// ANALYTICS & DASHBOARD DATA
-// ============================================================================
-
-export const priceHistoryData = [
-  { month: "Jan", avgPrice: 245.5, materials: 142 },
-  { month: "Feb", avgPrice: 251.2, materials: 145 },
-  { month: "Mar", avgPrice: 248.8, materials: 148 },
-  { month: "Apr", avgPrice: 255.3, materials: 152 },
-  { month: "May", avgPrice: 262.1, materials: 156 },
-  { month: "Jun", avgPrice: 258.9, materials: 159 },
-];
-
-// ============================================================================
 // UI CONFIGURATION
 // ============================================================================
 
