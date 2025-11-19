@@ -27,21 +27,25 @@ import {
 } from "recharts";
 import { ProductionPlan } from "@/lib/types";
 import {
-  MATERIAL_INVENTORY,
-  MATERIAL_COST_BREAKDOWN,
-  PROCUREMENT_RECOMMENDATIONS,
-} from "./planning-constants";
+  useMaterialRequirements,
+  useCriticalShortages,
+  useMaterialCostBreakdown,
+  useCalculateTotalMaterialCost,
+} from "@/hooks/use-planning";
+import { MATERIAL_INVENTORY } from "./planning-constants";
 
-interface ProductionPlanningMaterialsTabProps {
+interface PlanningMaterialsTabProps {
   plans: ProductionPlan[];
 }
 
-export function ProductionPlanningMaterialsTab({
-  plans,
-}: ProductionPlanningMaterialsTabProps) {
-  const totalMaterialsNeeded = 12;
-  const shortages = 3;
-  const totalMaterialCost = 28450;
+export function PlanningMaterialsTab({ plans }: PlanningMaterialsTabProps) {
+  // Use the planning hooks
+  const materialRequirements = useMaterialRequirements();
+  const criticalShortages = useCriticalShortages();
+  const materialCostBreakdown = useMaterialCostBreakdown();
+  const totalMaterialsNeeded = Object.keys(materialRequirements).length;
+  const shortages = criticalShortages.length;
+  const totalMaterialCost = useCalculateTotalMaterialCost(plans);
 
   return (
     <div className="space-y-6">
@@ -202,11 +206,7 @@ export function ProductionPlanningMaterialsTab({
         </CardHeader>
         <CardContent>
           <SortableTable
-            data={plans
-              .flatMap((plan) =>
-                plan.products.flatMap((product) => product.materialsRequired)
-              )
-              .filter((material) => material.shortage > 0)}
+            data={criticalShortages}
             columns={[
               {
                 key: "materialName",
@@ -217,42 +217,40 @@ export function ProductionPlanningMaterialsTab({
                 ),
               },
               {
-                key: "requiredQty",
+                key: "totalRequired",
                 label: "Required",
                 sortable: true,
-                render: (value: number) => <span>{value} kg</span>,
+                render: (value: number, row: any) => (
+                  <span>
+                    {value} {row.unit}
+                  </span>
+                ),
               },
               {
-                key: "availableQty",
+                key: "totalAvailable",
                 label: "Available",
                 sortable: true,
-                render: (value: number) => <span>{value} kg</span>,
+                render: (value: number, row: any) => (
+                  <span>
+                    {value} {row.unit}
+                  </span>
+                ),
               },
               {
-                key: "shortage",
+                key: "totalShortage",
                 label: "Shortage",
                 sortable: true,
-                render: (value: number) => (
+                render: (value: number, row: any) => (
                   <span className="text-destructive font-medium">
-                    {value} kg
+                    {value} {row.unit}
                   </span>
                 ),
               },
               {
-                key: "costPerKg",
-                label: "Cost per kg",
+                key: "affectedPlans",
+                label: "Affected Plans",
                 sortable: true,
-                render: (value: number) => <span>₹{value.toFixed(2)}</span>,
-              },
-              {
-                key: "procurementCost",
-                label: "Procurement Cost",
-                sortable: true,
-                render: (value: any, row: any) => (
-                  <span className="font-medium">
-                    ₹{(row.shortage * row.costPerKg).toFixed(2)}
-                  </span>
-                ),
+                render: (value: number) => <span>{value} plans</span>,
               },
               {
                 key: "priority",
@@ -344,62 +342,6 @@ export function ProductionPlanningMaterialsTab({
         </CardContent>
       </Card>
 
-      {/* Procurement Recommendations */}
-      <Card className="card-enhanced">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <TrendingUp className="h-5 w-5 text-accent" />
-            Procurement Recommendations
-          </CardTitle>
-          <CardDescription>
-            AI-powered suggestions for optimal material procurement
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {PROCUREMENT_RECOMMENDATIONS.map((rec, index) => {
-              const IconComponent = rec.icon;
-              return (
-                <div
-                  key={index}
-                  className={`p-4 rounded-lg bg-${rec.bgColor}/10 border border-${rec.bgColor}/20`}
-                >
-                  <div className="flex items-start gap-3">
-                    <div
-                      className={`w-8 h-8 rounded-full bg-${rec.bgColor}/20 flex items-center justify-center flex-shrink-0`}
-                    >
-                      <IconComponent
-                        className={`h-4 w-4 text-${rec.bgColor}`}
-                      />
-                    </div>
-                    <div>
-                      <h4 className="font-medium text-foreground mb-1">
-                        {rec.title}
-                      </h4>
-                      <p className="text-sm text-muted-foreground mb-2">
-                        {rec.description}
-                      </p>
-                      <div
-                        className={`text-xs text-${rec.bgColor} font-medium`}
-                      >
-                        {rec.type === "urgent" &&
-                          `Estimated cost: ₹${rec.cost} • Lead time: ${rec.leadTime}`}
-                        {rec.type === "bulk" &&
-                          `Potential savings: ₹${rec.savings}`}
-                        {rec.type === "optimization" &&
-                          `Storage cost savings: ₹${rec.savings}/month`}
-                        {rec.type === "quality" &&
-                          `Testing window: ${rec.window}`}
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        </CardContent>
-      </Card>
-
       {/* Material Cost Analysis Chart */}
       <Card className="card-enhanced">
         <CardHeader>
@@ -413,7 +355,7 @@ export function ProductionPlanningMaterialsTab({
         </CardHeader>
         <CardContent>
           <ResponsiveContainer width="100%" height={300}>
-            <BarChart data={MATERIAL_COST_BREAKDOWN}>
+            <BarChart data={materialCostBreakdown}>
               <CartesianGrid
                 strokeDasharray="3 3"
                 stroke="hsl(var(--border))"

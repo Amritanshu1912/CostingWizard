@@ -257,3 +257,23 @@ export function useMaterialCostBreakdown(): any[] {
     return breakdown;
   }, [plans]);
 }
+
+/**
+ * Calculate total material cost across all plans.
+ */
+export function useCalculateTotalMaterialCost(plans: ProductionPlan[]): number {
+  return plans.reduce((sum, plan) => {
+    const planCost = plan.products.reduce((planSum, product) => {
+      const productCost = product.materialsRequired.reduce(
+        (materialSum, material) => {
+          return materialSum + (material.totalCost ?? 0);
+        },
+        0
+      );
+
+      return planSum + productCost;
+    }, 0);
+
+    return sum + planCost;
+  }, 0);
+}

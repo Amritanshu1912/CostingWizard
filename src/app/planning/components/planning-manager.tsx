@@ -5,30 +5,30 @@ import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Plus } from "lucide-react";
 import { ProductionPlan } from "@/lib/types";
-import { PRODUCTION_PLANS } from "@/lib/constants";
+import { useProductionPlans, useFilteredPlans } from "@/hooks/use-planning";
+import { db, dbUtils } from "@/lib/db";
 
-import { ProductionPlanningPlansTab } from "./planning-plans-tab";
-import { ProductionPlanningMaterialsTab } from "./planning-materials-tab";
+import { PlanningOverviewTab } from "./planning-overview-tab";
+import { PlanningMaterialsTab } from "./planning-old-materials-tab";
 import { ProductionPlanningCreateDialog } from "./planning-create-dialog";
 import { PlanningAnalytics } from "./planning-analytics";
 
 export function ProductionPlanning() {
-  const [plans, setPlans] = useState<ProductionPlan[]>(PRODUCTION_PLANS);
   const [searchTerm, setSearchTerm] = useState("");
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [editingPlan, setEditingPlan] = useState<ProductionPlan | null>(null);
 
-  const filteredPlans = plans.filter((plan) =>
-    plan.planName.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  // Use the hook for data from DB
+  const allPlans = useProductionPlans();
+  const filteredPlans = useFilteredPlans(searchTerm);
 
-  const handleCreatePlan = (plan: ProductionPlan) => {
-    setPlans([...plans, plan]);
+  const handleCreatePlan = async (plan: ProductionPlan) => {
+    await dbUtils.add(db.productionPlans, plan);
     setIsCreateDialogOpen(false);
   };
 
-  const handleUpdatePlan = (updatedPlan: ProductionPlan) => {
-    setPlans(plans.map((p) => (p.id === updatedPlan.id ? updatedPlan : p)));
+  const handleUpdatePlan = async (updatedPlan: ProductionPlan) => {
+    await dbUtils.update(db.productionPlans, updatedPlan);
     setEditingPlan(null);
     setIsCreateDialogOpen(false);
   };
@@ -38,8 +38,8 @@ export function ProductionPlanning() {
     setIsCreateDialogOpen(true);
   };
 
-  const handleDeletePlan = (id: string) => {
-    setPlans(plans.filter((p) => p.id !== id));
+  const handleDeletePlan = async (id: string) => {
+    await dbUtils.delete(db.productionPlans, id);
   };
 
   return (
@@ -65,27 +65,27 @@ export function ProductionPlanning() {
         </div>
       </div>
 
-      <Tabs defaultValue="plans" className="space-y-6">
+      <Tabs defaultValue="overview" className="space-y-6">
         <TabsList className="grid w-full grid-cols-3">
-          <TabsTrigger value="plans">Production Plans</TabsTrigger>
-          <TabsTrigger value="materials">Material Requirements</TabsTrigger>
+          <TabsTrigger value="overview">Planning Overview</TabsTrigger>
+          <TabsTrigger value="old-materials-req">Old Materials</TabsTrigger>
           <TabsTrigger value="analytics">Analytics</TabsTrigger>
         </TabsList>
 
-        <TabsContent value="plans" className="space-y-6">
-          <ProductionPlanningPlansTab
+        <TabsContent value="overview" className="space-y-6">
+          <PlanningOverviewTab
             plans={filteredPlans}
             onDeletePlan={handleDeletePlan}
             onEditPlan={handleEditClick}
           />
         </TabsContent>
 
-        <TabsContent value="materials" className="space-y-6">
-          <ProductionPlanningMaterialsTab plans={plans} />
+        <TabsContent value="old-materials" className="space-y-6">
+          <PlanningMaterialsTab plans={allPlans} />
         </TabsContent>
 
         <TabsContent value="analytics" className="space-y-6">
-          <PlanningAnalytics plans={plans} />
+          <PlanningAnalytics plans={allPlans} />
         </TabsContent>
       </Tabs>
 
