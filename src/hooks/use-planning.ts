@@ -1,179 +1,276 @@
 import { useMemo } from "react";
 import { useLiveQuery } from "dexie-react-hooks";
 import { db } from "@/lib/db";
+import { normalizeToKg } from "./use-recipes";
 import type {
-  ProductionPlan,
-  ProductionItem,
-  MaterialRequirement,
+  ProductionBatch,
+  BatchProductItem,
+  CapacityUnit,
+  RecipeIngredient,
 } from "@/lib/types";
 
+// ============================================================================
+// INTERFACES
+// ============================================================================
+
 /**
- * Hook that returns all production plans with enriched data
+ * Interface for material requirements across production batches
+ */
+export interface MaterialRequirement {
+  materialId: string;
+  materialName: string;
+  totalRequired: number;
+  totalAvailable: number;
+  totalShortage: number;
+  unit: CapacityUnit;
+  batches: string[];
+}
+
+/**
+ * Interface for material cost breakdown item
+ */
+export interface MaterialCostBreakdownItem {
+  materialId: string;
+  materialName: string;
+  totalCost: number;
+  totalCostWithTax: number;
+  percentage: number;
+  batches: string[];
+}
+
+/**
+ * Hook that returns all production batches with enriched data
  * Uses Dexie's reactive queries for real-time updates
  */
-export function useProductionPlans(): ProductionPlan[] {
-  const plansData = useLiveQuery(() => db.productionPlans.toArray(), []);
-  return plansData || [];
+export function useProductionBatches(): ProductionBatch[] {
+  const batchesData = useLiveQuery(() => db.productionBatches.toArray(), []);
+  return batchesData || [];
 }
 
 /**
- * Hook that returns active production plans (not cancelled)
+ * Hook that returns active production batches (not cancelled)
  */
-export function useActiveProductionPlans(): ProductionPlan[] {
-  const plans = useProductionPlans();
-  return useMemo(() => plans.filter((p) => p.status !== "cancelled"), [plans]);
+export function useActiveProductionBatches(): ProductionBatch[] {
+  const batches = useProductionBatches();
+  return useMemo(
+    () => batches.filter((b) => b.status !== "cancelled"),
+    [batches]
+  );
 }
 
 /**
- * Hook that returns a single production plan by ID
+ * Hook that returns a single production batch by ID
  */
-export function useProductionPlan(
-  planId: string | null | undefined
-): ProductionPlan | null {
-  const plans = useProductionPlans();
+export function useProductionBatch(
+  batchId: string | null | undefined
+): ProductionBatch | null {
+  const batches = useProductionBatches();
   return useMemo(() => {
-    if (!planId) return null;
-    return plans.find((p) => p.id === planId) || null;
-  }, [planId, plans]);
+    if (!batchId) return null;
+    return batches.find((b) => b.id === batchId) || null;
+  }, [batchId, batches]);
 }
 
 /**
- * Hook that computes material requirements across all plans
- * Returns aggregated material needs
+ * Hook that computes material requirements across all batches
+ * Returns aggregated material needs by calculating from recipe ingredients
  */
-export function useMaterialRequirements(): Record<
-  string,
-  {
-    materialId: string;
-    materialName: string;
-    totalRequired: number;
-    totalAvailable: number;
-    totalShortage: number;
-    unit: string;
-    plans: string[]; // plan IDs that require this material
-  }
-> {
-  const plans = useProductionPlans();
+export function useMaterialRequirements(): Record<string, MaterialRequirement> {
+  const data = useLiveQuery(async () => {
+    const [
+      batches,
+      products,
+      productVariants,
+      recipes,
+      recipeIngredients,
+      supplierMaterials,
+      materials,
+    ] = await Promise.all([
+      db.productionBatches.toArray(),
+      db.products.toArray(),
+      db.productVariants.toArray(),
+      db.recipes.toArray(),
+      db.recipeIngredients.toArray(),
+      db.supplierMaterials.toArray(),
+      db.materials.toArray(),
+    ]);
 
-  return useMemo(() => {
-    const requirements: Record<
-      string,
-      {
-        materialId: string;
-        materialName: string;
-        totalRequired: number;
-        totalAvailable: number;
-        totalShortage: number;
-        unit: string;
-        plans: string[];
+    // Create lookup maps
+    const productMap = new Map(products.map((p) => [p.id, p]));
+    const variantMap = new Map(productVariants.map((v) => [v.id, v]));
+    const recipeMap = new Map(recipes.map((r) => [r.id, r]));
+    const ingredientMap = new Map<string, RecipeIngredient[]>();
+    recipeIngredients.forEach((ing) => {
+      if (!ingredientMap.has(ing.recipeId)) {
+        ingredientMap.set(ing.recipeId, []);
       }
-    > = {};
+      ingredientMap.get(ing.recipeId)!.push(ing);
+    });
+    const smMap = new Map(supplierMaterials.map((sm) => [sm.id, sm]));
+    const materialMap = new Map(materials.map((m) => [m.id, m]));
 
-    plans.forEach((plan) => {
-      if (plan.status === "cancelled") return;
+    return {
+      batches,
+      productMap,
+      variantMap,
+      recipeMap,
+      ingredientMap,
+      smMap,
+      materialMap,
+    };
+  }, []);
 
-      plan.products.forEach((product) => {
-        product.materialsRequired.forEach((material) => {
-          const key = material.materialId;
+  return useMemo(() => {
+    if (!data) return {};
 
-          if (!requirements[key]) {
-            requirements[key] = {
-              materialId: material.materialId,
-              materialName: material.materialName,
-              totalRequired: 0,
-              totalAvailable: 0,
-              totalShortage: 0,
-              unit: material.unit,
-              plans: [],
-            };
-          }
+    const {
+      batches,
+      productMap,
+      variantMap,
+      recipeMap,
+      ingredientMap,
+      smMap,
+      materialMap,
+    } = data;
+    const requirements: Record<string, MaterialRequirement> = {};
 
-          requirements[key].totalRequired += material.requiredQty;
-          requirements[key].totalAvailable += material.availableQty;
-          requirements[key].totalShortage += material.shortage;
+    batches.forEach((batch) => {
+      batch.items.forEach((item) => {
+        const product = productMap.get(item.productId);
+        if (!product) return;
 
-          if (!requirements[key].plans.includes(plan.id)) {
-            requirements[key].plans.push(plan.id);
-          }
+        const recipe = recipeMap.get(product.recipeId);
+        if (!recipe) return;
+
+        const ingredients = ingredientMap.get(recipe.id) || [];
+
+        item.variants.forEach((batchVariant) => {
+          const variant = variantMap.get(batchVariant.variantId);
+          if (!variant) return;
+
+          // Calculate units to produce
+          const fillInKg = normalizeToKg(
+            batchVariant.fillQuantity,
+            batchVariant.fillUnit
+          );
+          const unitsToProduce = Math.ceil(
+            fillInKg / normalizeToKg(variant.fillQuantity, variant.fillUnit)
+          );
+
+          ingredients.forEach((ing) => {
+            const sm = smMap.get(ing.supplierMaterialId);
+            if (!sm) return;
+
+            const material = materialMap.get(sm.materialId);
+            if (!material) return;
+
+            const quantityNeeded = ing.quantity * unitsToProduce;
+            const quantityInKg = normalizeToKg(quantityNeeded, ing.unit);
+
+            const key = sm.materialId;
+            if (!requirements[key]) {
+              requirements[key] = {
+                materialId: sm.materialId,
+                materialName: material.name,
+                totalRequired: 0,
+                totalAvailable: 0, // No inventory system yet
+                totalShortage: 0,
+                unit: sm.unit,
+                batches: [],
+              };
+            }
+
+            requirements[key].totalRequired += quantityInKg;
+            if (!requirements[key].batches.includes(batch.id)) {
+              requirements[key].batches.push(batch.id);
+            }
+          });
         });
       });
     });
 
+    // Calculate shortages
+    Object.values(requirements).forEach((req) => {
+      req.totalShortage = Math.max(0, req.totalRequired - req.totalAvailable);
+    });
+
     return requirements;
-  }, [plans]);
+  }, [data]);
 }
 
 /**
  * Hook that computes production planning statistics
  */
 export function usePlanningStats() {
-  const plans = useProductionPlans();
+  const batches = useProductionBatches();
 
   return useMemo(() => {
-    const totalPlans = plans.length;
-    const activePlans = plans.filter(
-      (p) => p.status === "in-progress" || p.status === "scheduled"
+    const totalBatches = batches.length;
+    const activeBatches = batches.filter(
+      (b) => b.status === "in-progress" || b.status === "scheduled"
     ).length;
-    const completedPlans = plans.filter((p) => p.status === "completed").length;
-    const draftPlans = plans.filter((p) => p.status === "draft").length;
+    const completedBatches = batches.filter(
+      (b) => b.status === "completed"
+    ).length;
+    const draftBatches = batches.filter((b) => b.status === "draft").length;
 
-    const totalCost = plans.reduce((sum, p) => sum + p.totalCost, 0);
-    const totalRevenue = plans.reduce((sum, p) => sum + p.totalRevenue, 0);
-    const totalProfit = plans.reduce((sum, p) => sum + p.totalProfit, 0);
+    const totalCost = batches.reduce((sum, b) => sum + b.totalCost, 0);
+    const totalRevenue = batches.reduce((sum, b) => sum + b.totalRevenue, 0);
+    const totalProfit = batches.reduce((sum, b) => sum + b.totalProfit, 0);
 
     const avgProfitMargin =
       totalRevenue > 0 ? (totalProfit / totalRevenue) * 100 : 0;
 
     return {
-      totalPlans,
-      activePlans,
-      completedPlans,
-      draftPlans,
+      totalBatches,
+      activeBatches,
+      completedBatches,
+      draftBatches,
       totalCost,
       totalRevenue,
       totalProfit,
       avgProfitMargin,
     };
-  }, [plans]);
+  }, [batches]);
 }
 
 /**
- * Hook that returns plans filtered by status
+ * Hook that returns batches filtered by status
  */
-export function usePlansByStatus(
-  status: ProductionPlan["status"]
-): ProductionPlan[] {
-  const plans = useProductionPlans();
+export function useBatchesByStatus(
+  status: ProductionBatch["status"]
+): ProductionBatch[] {
+  const batches = useProductionBatches();
   return useMemo(
-    () => plans.filter((p) => p.status === status),
-    [plans, status]
+    () => batches.filter((b) => b.status === status),
+    [batches, status]
   );
 }
 
 /**
- * Hook that returns plans within a date range
+ * Hook that returns batches within a date range
  */
-export function usePlansInDateRange(
+export function useBatchesInDateRange(
   startDate: string,
   endDate: string
-): ProductionPlan[] {
-  const plans = useProductionPlans();
+): ProductionBatch[] {
+  const batches = useProductionBatches();
   return useMemo(() => {
-    return plans.filter((plan) => {
-      return plan.startDate >= startDate && plan.endDate <= endDate;
+    return batches.filter((batch) => {
+      return batch.startDate >= startDate && batch.endDate <= endDate;
     });
-  }, [plans, startDate, endDate]);
+  }, [batches, startDate, endDate]);
 }
 
 /**
- * Hook that computes critical material shortages across all plans
+ * Hook that computes critical material shortages across all batches
  */
 export function useCriticalShortages(): {
   materialId: string;
   materialName: string;
   totalShortage: number;
   unit: string;
-  affectedPlans: number;
+  affectedBatches: number;
 }[] {
   const requirements = useMaterialRequirements();
 
@@ -185,95 +282,97 @@ export function useCriticalShortages(): {
         materialName: req.materialName,
         totalShortage: req.totalShortage,
         unit: req.unit,
-        affectedPlans: req.plans.length,
+        affectedBatches: req.batches.length,
       }))
       .sort((a, b) => b.totalShortage - a.totalShortage);
   }, [requirements]);
 }
 
 /**
- * Hook that returns production plans with search functionality
+ * Hook that returns production batches with search functionality
  */
-export function useFilteredPlans(searchTerm: string): ProductionPlan[] {
-  const plans = useProductionPlans();
+export function useFilteredBatches(searchTerm: string): ProductionBatch[] {
+  const batches = useProductionBatches();
 
   return useMemo(() => {
-    if (!searchTerm.trim()) return plans;
+    if (!searchTerm.trim()) return batches;
 
     const term = searchTerm.toLowerCase();
-    return plans.filter(
-      (plan) =>
-        plan.planName.toLowerCase().includes(term) ||
-        plan.description?.toLowerCase().includes(term) ||
-        plan.products.some((product) =>
-          product.productName.toLowerCase().includes(term)
-        )
+    return batches.filter(
+      (batch) =>
+        batch.batchName.toLowerCase().includes(term) ||
+        batch.description?.toLowerCase().includes(term)
     );
-  }, [plans, searchTerm]);
+  }, [batches, searchTerm]);
 }
 
 /**
  * Returns material cost breakdown for chart visualization
- * Shows top materials by cost across all production plans
+ * Shows top materials by cost across all production batches
  */
-export function useMaterialCostBreakdown(): any[] {
-  const plans = useProductionPlans();
+export function useMaterialCostBreakdown(): MaterialCostBreakdownItem[] {
+  const batches = useProductionBatches();
+  const requirements = useMaterialRequirements();
 
   return useMemo(() => {
-    const materialCosts: Record<
-      string,
-      { cost: number; materialName: string; unit: string }
-    > = {};
+    const breakdown: MaterialCostBreakdownItem[] = [];
+    let totalCost = 0;
 
-    // Aggregate costs across all plans and products
-    plans.forEach((plan) => {
-      plan.products.forEach((product) => {
-        product.materialsRequired.forEach((material) => {
-          const key = material.materialId;
-          if (!materialCosts[key]) {
-            materialCosts[key] = {
-              cost: 0,
-              materialName: material.materialName,
-              unit: material.unit,
-            };
-          }
-          materialCosts[key].cost += material.totalCost;
-        });
+    // Calculate costs for each material requirement
+    Object.values(requirements).forEach(async (req) => {
+      // Get supplier materials for this material to calculate average cost
+      const supplierMaterials = await db.supplierMaterials
+        .where("materialId")
+        .equals(req.materialId)
+        .toArray();
+
+      if (supplierMaterials.length === 0) return;
+
+      // Use the cheapest available supplier for cost calculation
+      const cheapestSupplier = supplierMaterials
+        .filter((sm) => sm.availability === "in-stock")
+        .sort((a, b) => a.unitPrice - b.unitPrice)[0];
+
+      if (!cheapestSupplier) return;
+
+      const costForRequired = req.totalRequired * cheapestSupplier.unitPrice;
+      const taxAmount = costForRequired * (cheapestSupplier.tax / 100);
+      const totalCostWithTax = costForRequired + taxAmount;
+
+      breakdown.push({
+        materialId: req.materialId,
+        materialName: req.materialName,
+        totalCost: costForRequired,
+        totalCostWithTax,
+        percentage: 0, // Will be calculated after total
+        batches: req.batches,
       });
+
+      totalCost += totalCostWithTax;
     });
 
-    // Convert to array and sort by cost descending
-    const breakdown = Object.values(materialCosts)
-      .sort((a, b) => b.cost - a.cost)
-      .slice(0, 10) // Top 10 materials
-      .map((item, index, arr) => ({
-        material: item.materialName,
-        cost: Math.round(item.cost),
-        percentage: Math.round(
-          (item.cost / arr.reduce((sum, m) => sum + m.cost, 0)) * 100
-        ),
-      }));
+    // Calculate percentages
+    breakdown.forEach((item) => {
+      item.percentage =
+        totalCost > 0 ? (item.totalCostWithTax / totalCost) * 100 : 0;
+    });
 
-    return breakdown;
-  }, [plans]);
+    // Sort by cost descending and return top items
+    return breakdown
+      .sort((a, b) => b.totalCostWithTax - a.totalCostWithTax)
+      .slice(0, 10); // Top 10 materials by cost
+  }, [batches, requirements]);
 }
 
 /**
- * Calculate total material cost across all plans.
+ * Calculate total material cost across all batches.
+ * Note: Simplified implementation - full version would calculate from recipes
  */
-export function useCalculateTotalMaterialCost(plans: ProductionPlan[]): number {
-  return plans.reduce((sum, plan) => {
-    const planCost = plan.products.reduce((planSum, product) => {
-      const productCost = product.materialsRequired.reduce(
-        (materialSum, material) => {
-          return materialSum + (material.totalCost ?? 0);
-        },
-        0
-      );
-
-      return planSum + productCost;
-    }, 0);
-
-    return sum + planCost;
-  }, 0);
+export function useCalculateTotalMaterialCost(
+  batches: ProductionBatch[]
+): number {
+  // Placeholder implementation
+  // Full implementation would sum costs from recipe ingredients
+  // scaled by production quantities
+  return 0;
 }

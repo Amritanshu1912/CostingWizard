@@ -2,7 +2,7 @@ import type {
   Category,
   Supplier,
   Product,
-  ProductionPlan,
+  ProductionBatch,
   PurchaseOrder,
   Recipe,
 } from "@/lib/types";
