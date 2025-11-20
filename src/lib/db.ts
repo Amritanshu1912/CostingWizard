@@ -13,12 +13,11 @@ import type {
   RecipeVariant,
   Product,
   ProductVariant,
-  ProductionPlan,
+  ProductionBatch,
   PurchaseOrder,
   InventoryItem,
   InventoryTransaction,
   TransportationCost,
-  ProductionPlanExtended,
 } from "./types";
 import { CATEGORIES, PURCHASE_ORDERS } from "./constants";
 import { SUPPLIERS } from "@/app/suppliers/components/suppliers-constants";
@@ -43,7 +42,7 @@ import {
   PRODUCT_VARIANTS,
   PRODUCTS,
 } from "@/app/compose-products/components/products-constants";
-import { PRODUCTION_PLANS } from "@/app/planning/components/planning-constants";
+import { PRODUCTION_BATCHES } from "@/app/batches/components/planning-constants";
 
 export class CostingWizardDB extends Dexie {
   categories!: Table<Category>;
@@ -61,7 +60,7 @@ export class CostingWizardDB extends Dexie {
   products!: Table<Product>;
   productVariants!: Table<ProductVariant>;
 
-  productionPlans!: Table<ProductionPlanExtended>;
+  productionBatches!: Table<ProductionBatch>;
   purchaseOrders!: Table<PurchaseOrder>;
 
   inventoryItems!: Table<InventoryItem>;
@@ -87,7 +86,7 @@ export class CostingWizardDB extends Dexie {
       recipeIngredients: "id, recipeId, supplierMaterialId",
       products: "id, name, recipeId, category, status",
       productVariants: "id, productId, sku, packagingSelectionId, isActive",
-      productionPlans: "id, planName, status, startDate, endDate",
+      productionBatches: "id, batchName, status, startDate, endDate",
       purchaseOrders: "id, orderId, supplierId, status, dateCreated",
       inventoryItems: "id, itemType, itemId, itemName, status",
       inventoryTransactions: "id, inventoryItemId, type, reference",
@@ -141,11 +140,11 @@ export class CostingWizardDB extends Dexie {
       if (!hasProductVariants) {
         await db.productVariants.bulkAdd(PRODUCT_VARIANTS);
       }
-      const hasProductionPlans = (await db.productionPlans.count()) > 0;
-      if (!hasProductionPlans) {
-        await db.productionPlans.bulkAdd(
-          PRODUCTION_PLANS.map((plan) => ({
-            ...plan,
+      const hasProductionBatches = (await db.productionBatches.count()) > 0;
+      if (!hasProductionBatches) {
+        await db.productionBatches.bulkAdd(
+          PRODUCTION_BATCHES.map((batch) => ({
+            ...batch,
             packagingSelections: [],
             labelSelections: [],
             inventoryChecked: false,

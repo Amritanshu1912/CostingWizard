@@ -625,8 +625,147 @@ export interface VariantComparison {
 }
 
 // ============================================================================
-// OPTIMIZATION & ANALYSIS
+// PRODUCTION BATCHES
 // ============================================================================
+
+// REPLACE ProductionBatch and related types with:
+
+export interface ProductionBatch extends BaseEntity {
+  batchName: string;
+  description?: string;
+  startDate: string;
+  endDate: string;
+  status: "draft" | "scheduled" | "in-progress" | "completed" | "cancelled";
+  progress: number; // 0-100
+
+  // Products with their variant quantities
+  items: BatchProductItem[];
+
+  // Computed metrics (calculated on save)
+  totalUnits: number;
+  totalFillQuantity: number; // Total kg/L across all variants
+  totalCost: number;
+  totalRevenue: number;
+  totalProfit: number;
+  profitMargin: number;
+}
+
+export interface BatchProductItem {
+  productId: string;
+  variants: BatchVariantItem[];
+}
+
+export interface BatchVariantItem {
+  variantId: string;
+  fillQuantity: number; // How much kg/L to produce
+  fillUnit: CapacityUnit;
+  // Computed at runtime:
+  // units = fillQuantity / variant.fillQuantity
+}
+
+// Computed analysis (NOT stored)
+export interface BatchRequirementsAnalysis {
+  batchId: string;
+
+  // Aggregated requirements
+  materials: RequirementItem[];
+  packaging: RequirementItem[];
+  labels: RequirementItem[];
+
+  // Totals
+  totalMaterialCost: number;
+  totalPackagingCost: number;
+  totalLabelCost: number;
+  totalCost: number;
+
+  // Procurement summary
+  totalItemsToOrder: number;
+  totalProcurementCost: number;
+  criticalShortages: RequirementItem[]; // Items with shortage > 0
+
+  // Grouped by supplier
+  bySupplier: SupplierRequirement[];
+}
+
+export interface RequirementItem {
+  itemType: "material" | "packaging" | "label";
+  itemId: string; // SupplierMaterial.id, SupplierPackaging.id, etc.
+  itemName: string;
+  supplierId: string;
+  supplierName: string;
+
+  required: number;
+  available: number; // From inventory (0 for now)
+  shortage: number; // required - available
+  unit: string;
+
+  unitPrice: number;
+  tax: number;
+  totalCost: number; // (required * unitPrice) * (1 + tax/100)
+}
+
+export interface SupplierRequirement {
+  supplierId: string;
+  supplierName: string;
+  materials: RequirementItem[];
+  packaging: RequirementItem[];
+  labels: RequirementItem[];
+  totalCost: number;
+}
+
+export interface BatchCostAnalysis {
+  batchId: string;
+
+  // Per-variant costs
+  variantCosts: {
+    variantId: string;
+    variantName: string;
+    productName: string;
+    fillQuantity: number;
+    fillUnit: string;
+    units: number;
+    costPerUnit: number;
+    revenuePerUnit: number;
+    totalCost: number;
+    totalRevenue: number;
+    profit: number;
+    margin: number;
+  }[];
+
+  // Cost breakdown by type
+  materialsCost: number;
+  packagingCost: number;
+  labelsCost: number;
+
+  // Percentages
+  materialsPercentage: number;
+  packagingPercentage: number;
+  labelsPercentage: number;
+
+  // Business metrics
+  totalCost: number;
+  totalRevenue: number;
+  totalProfit: number;
+  overallMargin: number;
+  breakEvenUnits: number;
+}
+
+/**
+ * BatchWithDetails - Batch with all joined data
+ */
+export interface BatchWithDetails extends ProductionBatch {
+  products: {
+    productId: string;
+    productName: string;
+    variants: {
+      variantId: string;
+      variantName: string;
+      fillQuantity: number;
+      fillUnit: CapacityUnit;
+      units: number; // Calculated
+    }[];
+  }[];
+}
 
 // ============================================================================
 // PROCUREMENT & ORDERS
@@ -659,43 +798,6 @@ export interface PurchaseOrder extends BaseEntity {
     | "cancelled";
   dateCreated: string;
   deliveryDate: string;
-}
-
-// ============================================================================
-// PRODUCTION PLANNING
-// ============================================================================
-
-export interface MaterialRequirement {
-  materialId: string;
-  materialName: string;
-  requiredQty: number;
-  unit: CapacityUnit;
-  availableQty: number;
-  shortage: number;
-  costPerKg: number;
-  totalCost: number;
-}
-
-export interface ProductionItem {
-  productId: string;
-  productName: string;
-  quantityKg: number;
-  costPerKg: number;
-  totalCost: number;
-  materialsRequired: MaterialRequirement[];
-}
-
-export interface ProductionPlan extends BaseEntity {
-  planName: string;
-  description?: string;
-  startDate: string;
-  endDate: string;
-  products: ProductionItem[];
-  totalCost: number;
-  totalRevenue: number;
-  totalProfit: number;
-  status: "draft" | "scheduled" | "in-progress" | "completed" | "cancelled";
-  progress: number; // 0-100
 }
 
 // ============================================================================
@@ -738,43 +840,4 @@ export interface TransportationCost extends BaseEntity {
   maxWeight?: number;
   leadTime: number; // additional days
   notes?: string;
-}
-
-// ============================================================================
-// EXTENDED ENTITIES
-// ============================================================================
-
-export interface SupplierMaterialExtended extends SupplierMaterial {
-  transportationCost?: number;
-}
-
-export interface ProductionPlanExtended extends ProductionPlan {
-  packagingSelections: {
-    productId: string;
-    packagingId: string;
-    quantity: number;
-  }[];
-  labelSelections: {
-    productId: string;
-    labelId: string;
-    quantity: number;
-  }[];
-  inventoryChecked: boolean;
-  procurementRequired: {
-    materials: MaterialRequirement[];
-    packaging: {
-      packagingId: string;
-      packagingName: string;
-      requiredQty: number;
-      availableQty: number;
-      shortage: number;
-    }[];
-    labels: {
-      labelId: string;
-      labelName: string;
-      requiredQty: number;
-      availableQty: number;
-      shortage: number;
-    }[];
-  };
 }
