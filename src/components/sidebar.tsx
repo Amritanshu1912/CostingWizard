@@ -17,6 +17,7 @@ import {
   Box,
   Tag,
   Users,
+  Layers,
 } from "lucide-react";
 
 const navigation = [
@@ -56,10 +57,15 @@ const navigation = [
     icon: Package,
   },
   {
-    name: "Planning",
-    href: "/planning",
-    icon: Calendar,
+    name: "Batches",
+    href: "/batches",
+    icon: Layers,
   },
+  // {
+  //   name: "Planning",
+  //   href: "/planning",
+  //   icon: Calendar,
+  // },
   {
     name: "Procurement",
     href: "/procurement",

@@ -1,9 +1,6 @@
-import { SUPPLIERS } from "@/lib/constants";
-import { CHART_COLORS } from "@/lib/color-utils";
 import { Supplier } from "@/lib/types";
 import {
   DollarSign,
-  Award,
   Clock,
   Truck,
   CheckCircle,
@@ -12,10 +9,7 @@ import {
   Clock4,
   Package,
   ShoppingCart,
-  TrendingUp,
-  Star,
 } from "lucide-react";
-import { useState } from "react";
 
 // ===========================================================================
 // DASHBOARD CONSTANTS

@@ -106,7 +106,7 @@ CostingWizardDB {
   suppliers: Table<Supplier>
   recipes: Table<Recipe>
   recipeIngredients: Table<RecipeIngredient>
-  productionPlans: Table<ProductionPlanExtended>
+  ProductionBatches: Table<ProductionBatch>
   purchaseOrders: Table<PurchaseOrder>
   packaging: Table<Packaging>
   labels: Table<Label>

@@ -10,7 +10,7 @@ import { MetricCard } from "@/components/ui/metric-card";
 
 import type { SupplierLabel } from "@/lib/types";
 import type { LabelFormData } from "./supplier-labels-dialog";
-import { SUPPLIERS } from "@/lib/constants";
+import { SUPPLIERS } from "@/app/suppliers/components/suppliers-constants";
 import { useDexieTable } from "@/hooks/use-dexie-table";
 import { db } from "@/lib/db";
 import { SupplierLabelsTable } from "./supplier-labels-table";

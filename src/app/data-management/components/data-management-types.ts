@@ -26,7 +26,7 @@ export const TABLE_CATEGORIES = {
     "recipeIngredients",
     "products",
   ],
-  Production: ["productionPlans", "purchaseOrders"],
+  Production: ["ProductionBatches", "purchaseOrders"],
   "Packaging & Labels": [
     "packaging",
     "supplierPackaging",

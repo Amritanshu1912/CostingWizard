@@ -19,7 +19,7 @@ import { normalizeText } from "@/lib/text-utils";
 import { assignCategoryColor } from "@/lib/color-utils";
 import { db } from "@/lib/db";
 import { useDexieTable } from "@/hooks/use-dexie-table";
-import { SUPPLIERS } from "@/lib/constants";
+import { SUPPLIERS } from "@/app/suppliers/components/suppliers-constants";
 import { SuppliersItemsTable } from "./suppliers-items-table";
 import { Badge } from "@/components/ui/badge";
 
