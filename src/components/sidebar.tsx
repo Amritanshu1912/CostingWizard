@@ -61,6 +61,11 @@ const navigation = [
     href: "/batches",
     icon: Layers,
   },
+  {
+    name: "Inventory",
+    href: "/inventory",
+    icon: Layers,
+  },
   // {
   //   name: "Planning",
   //   href: "/planning",
