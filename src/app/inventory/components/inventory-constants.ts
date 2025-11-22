@@ -4,7 +4,7 @@
 
 import { InventoryItem } from "@/lib/types";
 
-export const MOCK_INVENTORY_ITEMS: Omit<
+export const MOCK_INVENTORY_ITEMS_old: Omit<
   InventoryItem,
   "id" | "createdAt" | "updatedAt"
 >[] = [
@@ -130,7 +130,113 @@ export const MOCK_INVENTORY_ITEMS: Omit<
   },
 ];
 
-export const INVENTORY_ITEM_TYPES = [];
-export const INVENTORY_STATUSES = [];
-export const TRANSACTION_TYPES = [];
-export const REFERENCE_TYPES = [];
+export const MOCK_INVENTORY_ITEMS = [
+  {
+    id: "1",
+    itemType: "supplierMaterial" as const,
+    itemId: "6", // NaCl from supplier materials
+    itemName: "",
+    currentStock: 500,
+    unit: "kg",
+    minStockLevel: 100,
+    maxStockLevel: 1000,
+    lastUpdated: new Date().toISOString(),
+    status: "in-stock" as const,
+    createdAt: new Date().toISOString(),
+  },
+  {
+    id: "2",
+    itemType: "supplierMaterial" as const,
+    itemId: "3", // Citric Acid
+    itemName: "",
+    currentStock: 50,
+    unit: "kg",
+    minStockLevel: 75,
+    maxStockLevel: 500,
+    lastUpdated: new Date().toISOString(),
+    status: "low-stock" as const,
+    createdAt: new Date().toISOString(),
+  },
+  {
+    id: "3",
+    itemType: "supplierPackaging" as const,
+    itemId: "1", // 500ml PET Bottle
+    itemName: "",
+    currentStock: 2000,
+    unit: "pcs",
+    minStockLevel: 500,
+    maxStockLevel: 5000,
+    lastUpdated: new Date().toISOString(),
+    status: "in-stock" as const,
+    createdAt: new Date().toISOString(),
+  },
+  {
+    id: "4",
+    itemType: "supplierLabel" as const,
+    itemId: "1", // Standard Label
+    itemName: "",
+    currentStock: 0,
+    unit: "pcs",
+    minStockLevel: 1000,
+    maxStockLevel: 10000,
+    lastUpdated: new Date().toISOString(),
+    status: "out-of-stock" as const,
+    createdAt: new Date().toISOString(),
+  },
+];
+
+export const MOCK_TRANSACTIONS = [
+  {
+    id: "1-init",
+    inventoryItemId: "1",
+    type: "in" as const,
+    quantity: 500,
+    reason: "Initial Stock",
+    stockBefore: 0,
+    stockAfter: 500,
+    createdAt: new Date().toISOString(),
+  },
+  {
+    id: "2-init",
+    inventoryItemId: "2",
+    type: "in" as const,
+    quantity: 50,
+    reason: "Initial Stock",
+    stockBefore: 0,
+    stockAfter: 50,
+    createdAt: new Date().toISOString(),
+  },
+  {
+    id: "3-init",
+    inventoryItemId: "3",
+    type: "in" as const,
+    quantity: 2000,
+    reason: "Initial Stock",
+    stockBefore: 0,
+    stockAfter: 2000,
+    createdAt: new Date().toISOString(),
+  },
+];
+
+export const MOCK_ALERTS = [
+  {
+    id: "alert-1",
+    inventoryItemId: "2",
+    alertType: "low-stock" as const,
+    severity: "warning" as const,
+    message: "Citric Acid stock is below minimum level",
+    isRead: false,
+    isResolved: false,
+    createdAt: new Date().toISOString(),
+  },
+  {
+    id: "alert-2",
+    inventoryItemId: "4",
+    alertType: "out-of-stock" as const,
+    severity: "critical" as const,
+    message: "Labels are completely out of stock",
+    isRead: false,
+    isResolved: false,
+    createdAt: new Date().toISOString(),
+  },
+];

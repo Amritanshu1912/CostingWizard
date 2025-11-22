@@ -44,7 +44,11 @@ import {
   PRODUCTS,
 } from "@/app/compose-products/components/products-constants";
 import { PRODUCTION_BATCHES } from "@/app/batches/components/planning-constants";
-import { MOCK_INVENTORY_ITEMS } from "@/app/inventory/components/inventory-constants";
+import {
+  MOCK_ALERTS,
+  MOCK_INVENTORY_ITEMS,
+  MOCK_TRANSACTIONS,
+} from "@/app/inventory/components/inventory-constants";
 
 export class CostingWizardDB extends Dexie {
   categories!: Table<Category>;
@@ -186,143 +190,9 @@ export class CostingWizardDB extends Dexie {
       // Seed inventory items
       const hasInventoryItems = (await db.inventoryItems.count()) > 0;
       if (!hasInventoryItems) {
-        const inventoryItemsWithIds = MOCK_INVENTORY_ITEMS.map(
-          (item, index) => ({
-            ...item,
-            id: (index + 1).toString(),
-            createdAt: new Date().toISOString(),
-          })
-        );
-        await db.inventoryItems.bulkAdd(inventoryItemsWithIds);
-      }
-
-      // Seed inventory transactions
-      const hasInventoryTransactions =
-        (await db.inventoryTransactions.count()) > 0;
-      if (!hasInventoryTransactions) {
-        const transactions = [];
-        const now = new Date();
-
-        // Create transactions for each inventory item
-        for (let i = 0; i < MOCK_INVENTORY_ITEMS.length; i++) {
-          const itemId = (i + 1).toString();
-          const item = MOCK_INVENTORY_ITEMS[i];
-
-          // Initial stock transaction
-          transactions.push({
-            id: `${itemId}-initial`,
-            inventoryItemId: itemId,
-            type: "in" as const,
-            quantity: item.currentStock,
-            reason: "Initial Stock",
-            reference: "setup",
-            referenceType: "manual_adjustment" as const,
-            stockBefore: 0,
-            stockAfter: item.currentStock,
-            createdAt: new Date(
-              now.getTime() - 7 * 24 * 60 * 60 * 1000
-            ).toISOString(), // 7 days ago
-            performedBy: "System",
-          });
-
-          // Add some recent transactions for variety
-          if (item.currentStock > item.minStockLevel) {
-            transactions.push({
-              id: `${itemId}-recent-in`,
-              inventoryItemId: itemId,
-              type: "in" as const,
-              quantity: Math.floor(item.minStockLevel * 0.5),
-              reason: "Purchase Order Delivery",
-              reference: "PO-001",
-              referenceType: "purchase_order" as const,
-              stockBefore:
-                item.currentStock - Math.floor(item.minStockLevel * 0.5),
-              stockAfter: item.currentStock,
-              createdAt: new Date(
-                now.getTime() - 2 * 24 * 60 * 60 * 1000
-              ).toISOString(), // 2 days ago
-              performedBy: "Warehouse Manager",
-            });
-          }
-
-          if (item.status === "low-stock" || item.status === "out-of-stock") {
-            transactions.push({
-              id: `${itemId}-usage`,
-              inventoryItemId: itemId,
-              type: "out" as const,
-              quantity: Math.floor(item.minStockLevel * 0.3),
-              reason: "Production Batch",
-              reference: "BATCH-001",
-              referenceType: "production_batch" as const,
-              stockBefore:
-                item.currentStock + Math.floor(item.minStockLevel * 0.3),
-              stockAfter: item.currentStock,
-              createdAt: new Date(
-                now.getTime() - 1 * 24 * 60 * 60 * 1000
-              ).toISOString(), // 1 day ago
-              performedBy: "Production Line",
-            });
-          }
-        }
-
-        await db.inventoryTransactions.bulkAdd(transactions);
-      }
-
-      // Seed inventory alerts
-      const hasInventoryAlerts = (await db.inventoryAlerts.count()) > 0;
-      if (!hasInventoryAlerts) {
-        const alerts = [];
-        const now = new Date();
-
-        for (let i = 0; i < MOCK_INVENTORY_ITEMS.length; i++) {
-          const itemId = (i + 1).toString();
-          const item = MOCK_INVENTORY_ITEMS[i];
-
-          if (item.status === "low-stock") {
-            alerts.push({
-              id: `${itemId}-low-stock`,
-              inventoryItemId: itemId,
-              alertType: "low-stock" as const,
-              severity: "warning" as const,
-              message: `${item.itemName} stock is below minimum level (${item.currentStock} ${item.unit} remaining)`,
-              isRead: false,
-              isResolved: false,
-              createdAt: new Date(
-                now.getTime() - 1 * 24 * 60 * 60 * 1000
-              ).toISOString(),
-            });
-          } else if (item.status === "out-of-stock") {
-            alerts.push({
-              id: `${itemId}-out-of-stock`,
-              inventoryItemId: itemId,
-              alertType: "out-of-stock" as const,
-              severity: "critical" as const,
-              message: `${item.itemName} is completely out of stock`,
-              isRead: false,
-              isResolved: false,
-              createdAt: new Date(
-                now.getTime() - 1 * 24 * 60 * 60 * 1000
-              ).toISOString(),
-            });
-          } else if (item.status === "overstock") {
-            alerts.push({
-              id: `${itemId}-overstock`,
-              inventoryItemId: itemId,
-              alertType: "overstock" as const,
-              severity: "info" as const,
-              message: `${item.itemName} has excess stock (${item.currentStock} ${item.unit})`,
-              isRead: false,
-              isResolved: false,
-              createdAt: new Date(
-                now.getTime() - 3 * 24 * 60 * 60 * 1000
-              ).toISOString(),
-            });
-          }
-        }
-
-        if (alerts.length > 0) {
-          await db.inventoryAlerts.bulkAdd(alerts);
-        }
+        await db.inventoryItems.bulkAdd(MOCK_INVENTORY_ITEMS);
+        await db.inventoryTransactions.bulkAdd(MOCK_TRANSACTIONS);
+        await db.inventoryAlerts.bulkAdd(MOCK_ALERTS);
       }
     });
   }

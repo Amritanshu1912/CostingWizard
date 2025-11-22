@@ -228,33 +228,35 @@ export function InventoryAlertsList() {
   };
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <h2 className="text-2xl font-bold">Alerts</h2>
-        <div className="text-sm text-muted-foreground">
-          {alerts.length} active alerts
+    <Card className="p-6">
+      <div className="space-y-6">
+        <div className="flex items-center justify-between">
+          <h2 className="text-2xl font-bold">Alerts</h2>
+          <div className="text-sm text-muted-foreground">
+            {alerts.length} active alerts
+          </div>
         </div>
-      </div>
 
-      <ScrollArea className="h-[600px] pr-4">
-        <div className="space-y-8">
-          {renderAlertGroup(
-            "Critical",
-            criticalAlerts,
-            <AlertCircle className="h-5 w-5 text-destructive" />
-          )}
-          {renderAlertGroup(
-            "Warnings",
-            warningAlerts,
-            <AlertTriangle className="h-5 w-5 text-yellow-500" />
-          )}
-          {renderAlertGroup(
-            "Information",
-            infoAlerts,
-            <CheckCircle2 className="h-5 w-5 text-blue-500" />
-          )}
-        </div>
-      </ScrollArea>
-    </div>
+        <ScrollArea className="h-[600px] pr-4">
+          <div className="space-y-8">
+            {renderAlertGroup(
+              "Critical",
+              criticalAlerts,
+              <AlertCircle className="h-5 w-5 text-destructive" />
+            )}
+            {renderAlertGroup(
+              "Warnings",
+              warningAlerts,
+              <AlertTriangle className="h-5 w-5 text-yellow-500" />
+            )}
+            {renderAlertGroup(
+              "Information",
+              infoAlerts,
+              <CheckCircle2 className="h-5 w-5 text-blue-500" />
+            )}
+          </div>
+        </ScrollArea>
+      </div>
+    </Card>
   );
 }
