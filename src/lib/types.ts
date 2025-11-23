@@ -805,14 +805,13 @@ export interface PurchaseOrder extends BaseEntity {
 // ============================================================================
 
 export interface InventoryItem extends BaseEntity {
-  itemType: "material" | "packaging" | "label";
-  itemId: string; // references Material.id, Packaging.id, or Label.id
+  itemType: "supplierMaterial" | "supplierPackaging" | "supplierLabel";
+  itemId: string; // references SupplierMaterial.id, SupplierPackaging.id, or SupplierLabel.id
   itemName: string;
   currentStock: number;
   unit: string;
   minStockLevel: number;
   maxStockLevel?: number;
-  location?: string;
   lastUpdated: string;
   status: "in-stock" | "low-stock" | "out-of-stock" | "overstock";
   notes?: string;
@@ -820,12 +819,70 @@ export interface InventoryItem extends BaseEntity {
 
 export interface InventoryTransaction extends BaseEntity {
   inventoryItemId: string;
+
+  // Transaction details
   type: "in" | "out" | "adjustment";
-  quantity: number;
-  reason: string;
-  reference?: string; // e.g., order ID, production plan ID
-  performedBy?: string;
+  quantity: number; // Positive for in, negative for out
+  unit: string;
+
+  // Context
+  reason: string; // "Purchase Order", "Production Batch", "Manual Adjustment"
+  reference?: string; // Batch ID, PO ID, etc.
+
+  // Before/after for audit
+  stockBefore: number;
+  stockAfter: number;
+
   notes?: string;
+}
+
+export interface InventoryAlert extends BaseEntity {
+  inventoryItemId: string;
+  alertType: "low-stock" | "out-of-stock" | "overstock" | "expiring-soon";
+  severity: "info" | "warning" | "critical";
+  message: string;
+  isRead: number;
+  isResolved: number;
+}
+
+// Helper functions to work with number-based booleans
+export const boolToNum = (val: boolean): number => (val ? 1 : 0);
+export const numToBool = (val: number): boolean => val === 1;
+
+// Computed types (not stored)
+
+export interface InventoryItemWithDetails extends InventoryItem {
+  itemName: string;
+  supplierName: string;
+  supplierId: string;
+  unitPrice: number;
+  tax: number;
+  stockValue: number; // currentStock × unitPrice × (1 + tax/100)
+  stockPercentage: number; // currentStock / minStockLevel × 100
+}
+
+export interface InventoryStats {
+  totalItems: number;
+  lowStockCount: number;
+  outOfStockCount: number;
+  overstockCount: number;
+  totalStockValue: number;
+
+  byType: {
+    materials: { count: number; value: number };
+    packaging: { count: number; value: number };
+    labels: { count: number; value: number };
+  };
+
+  bySupplier: {
+    supplierId: string;
+    supplierName: string;
+    itemCount: number;
+    totalValue: number;
+  }[];
+
+  criticalAlerts: number;
+  warningAlerts: number;
 }
 
 // ============================================================================
