@@ -4,17 +4,13 @@
 import { useState } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { Package, Plus } from "lucide-react";
 import {
   useInventoryItemsWithDetails,
   useInventoryStats,
-  useInventoryAlerts,
 } from "@/hooks/use-inventory";
 import { InventoryOverview } from "./inventory-overview";
 import { InventoryStockList } from "./inventory-stock-list";
-import { InventoryTransactionsList } from "./inventory-transactions-list";
-import { InventoryAlertsList } from "./inventory-alerts-list";
 import { InventoryItemDialog } from "./inventory-item-dialog";
 import { BulkAdjustDialog } from "./inventory-bulk-adjust-dialog";
 
@@ -24,7 +20,7 @@ export function InventoryManager() {
 
   const items = useInventoryItemsWithDetails();
   const stats = useInventoryStats();
-  const alerts = useInventoryAlerts();
+  // alerts tab removed — keep hooks for future analytics if needed
 
   return (
     <div className="space-y-6 animate-fade-in">
@@ -49,18 +45,10 @@ export function InventoryManager() {
       </div>
 
       <Tabs defaultValue="overview" className="space-y-6">
-        <TabsList className="grid w-full grid-cols-4">
+        <TabsList className="grid w-full grid-cols-2">
           <TabsTrigger value="overview">Overview</TabsTrigger>
           <TabsTrigger value="stock">Stock List</TabsTrigger>
-          <TabsTrigger value="transactions">Transactions</TabsTrigger>
-          <TabsTrigger value="alerts">
-            Alerts
-            {alerts && alerts.length > 0 && (
-              <Badge variant="destructive" className="ml-2">
-                {alerts.length}
-              </Badge>
-            )}
-          </TabsTrigger>
+          
         </TabsList>
 
         <TabsContent value="overview" className="mt-0">
@@ -71,13 +59,7 @@ export function InventoryManager() {
           <InventoryStockList />
         </TabsContent>
 
-        <TabsContent value="transactions" className="mt-0">
-          <InventoryTransactionsList />
-        </TabsContent>
-
-        <TabsContent value="alerts" className="mt-0">
-          <InventoryAlertsList />
-        </TabsContent>
+        {/* Transactions and Alerts tabs removed. Analytics tab will be added later. */}
       </Tabs>
 
       {/* Dialogs */}
