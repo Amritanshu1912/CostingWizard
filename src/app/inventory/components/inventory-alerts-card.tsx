@@ -10,7 +10,7 @@ import {
 } from "@/hooks/use-inventory";
 import { format } from "date-fns";
 import { getSeverityIcon } from "@/app/inventory/utils/inventory-utils";
-import AlertsDialog from "./alerts-dialog";
+import AlertsDialog from "./inventory-alerts-dialog";
 import { Badge } from "@/components/ui/badge";
 
 interface AlertsCardProps {

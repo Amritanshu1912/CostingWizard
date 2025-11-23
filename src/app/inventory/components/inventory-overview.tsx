@@ -1,14 +1,7 @@
 "use client";
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import {
-  Package,
-  AlertTriangle,
-  DollarSign,
-  Beaker,
-  Box,
-  Tag,
-} from "lucide-react";
+import { Package, AlertTriangle, DollarSign } from "lucide-react";
 import { MetricCard } from "@/components/ui/metric-card";
 import type { InventoryStats, InventoryItemWithDetails } from "@/lib/types";
 import { formatCurrency } from "@/app/inventory/utils/inventory-utils";
@@ -26,8 +19,8 @@ import {
   Legend,
 } from "recharts";
 import { CHART_COLORS } from "@/lib/color-utils";
-import TransactionHistoryCard from "./transaction-history-card";
-import AlertsCard from "./alerts-card";
+import TransactionHistoryCard from "./inventory-txn-card";
+import AlertsCard from "./inventory-alerts-card";
 
 interface InventoryOverviewProps {
   stats: InventoryStats | undefined;

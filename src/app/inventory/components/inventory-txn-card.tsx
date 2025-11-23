@@ -4,17 +4,13 @@ import React from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogTrigger } from "@/components/ui/dialog";
-import TransactionsDialog from "./transactions-dialog";
-import { formatCurrency } from "@/app/inventory/utils/inventory-utils";
+import TransactionsDialog from "./inventory-txn-dialog";
 import { ClockIcon, CheckCircle, AlertTriangle } from "lucide-react";
-import { Badge } from "@/components/ui/badge";
 import {
   useInventoryTransactions,
   useInventoryItemsWithDetails,
 } from "@/hooks/use-inventory";
 import type { InventoryTransaction } from "@/lib/types";
-
-type TxStatus = "success" | "pending" | "failed";
 
 interface TransactionHistoryCardProps {
   previewCount?: number;

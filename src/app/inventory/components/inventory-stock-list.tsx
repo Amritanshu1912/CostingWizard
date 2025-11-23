@@ -17,7 +17,7 @@ import type { InventoryItemWithDetails } from "@/lib/types";
 import { format } from "date-fns";
 import { Card } from "@/components/ui/card";
 import { InventoryItemDialog } from "./inventory-item-dialog";
-import { ItemTransactionsDialog } from "./inventory-item-transactions-dialog";
+import { ItemTransactionsDialog } from "./inventory-item-txn-dialog";
 import { toast } from "sonner";
 import {
   formatCurrency,
