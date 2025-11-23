@@ -823,11 +823,11 @@ export interface InventoryTransaction extends BaseEntity {
   // Transaction details
   type: "in" | "out" | "adjustment";
   quantity: number; // Positive for in, negative for out
+  unit: string;
 
   // Context
   reason: string; // "Purchase Order", "Production Batch", "Manual Adjustment"
   reference?: string; // Batch ID, PO ID, etc.
-  performedBy?: string; // User who did it
 
   // Before/after for audit
   stockBefore: number;

@@ -1,4 +1,3 @@
-// src/app/inventory/components/inventory-overview.tsx
 "use client";
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -26,6 +25,8 @@ import {
   CartesianGrid,
 } from "recharts";
 import { CHART_COLORS } from "@/lib/color-utils";
+import TransactionHistoryCard from "./transaction-history-card";
+import AlertsCard from "./alerts-card";
 
 interface InventoryOverviewProps {
   stats: InventoryStats | undefined;
@@ -72,6 +73,9 @@ export function InventoryOverview({ stats, items }: InventoryOverviewProps) {
       value: item.stockValue,
     }));
 
+  // Mock transactions for preview (first N items as sample transactions)
+  // Transactions preview now uses hook inside the card — no mock data here.
+
   return (
     <Card className="p-6">
       <div className="space-y-6 animate-wave-in">
@@ -109,172 +113,212 @@ export function InventoryOverview({ stats, items }: InventoryOverviewProps) {
           />
         </div>
 
-        {/* Charts Row */}
-        <div className="grid grid-cols-2 gap-4">
-          {/* Stock Value by Type - Pie Chart */}
-          <Card className="card-enhanced">
-            <CardHeader>
-              <CardTitle className="text-base">Stock Value by Type</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <ResponsiveContainer width="100%" height={250}>
-                <PieChart>
-                  <Pie
-                    data={pieData}
-                    cx="50%"
-                    cy="50%"
-                    labelLine={false}
-                    label={(props) => {
-                      const { name, percent } = props as any;
-                      return `${name}: ${(percent * 100).toFixed(1)}%`;
-                    }}
-                    outerRadius={80}
-                    fill="#8884d8"
-                    dataKey="value"
-                  >
-                    {pieData.map((entry, index) => (
-                      <Cell
-                        key={`cell-${index}`}
-                        fill={COLORS[index % COLORS.length]}
+        {/* Main content: left (4/5) with nested rows and right (1/5) stacked */}
+        <div className="grid grid-cols-4 gap-4">
+          <div className="col-span-3 grid grid-rows-2 gap-4">
+            {/* Top: two charts side-by-side */}
+            <div className="grid grid-cols-2 gap-4">
+              <Card className="card-enhanced">
+                <CardHeader>
+                  <CardTitle className="text-base">
+                    Stock Value by Type
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <ResponsiveContainer width="100%" height={250}>
+                    <PieChart>
+                      <Pie
+                        data={pieData}
+                        cx="50%"
+                        cy="50%"
+                        labelLine={false}
+                        label={(props) => {
+                          const { name, percent } = props as any;
+                          return `${name}: ${(percent * 100).toFixed(1)}%`;
+                        }}
+                        outerRadius={80}
+                        fill="#8884d8"
+                        dataKey="value"
+                      >
+                        {pieData.map((entry, index) => (
+                          <Cell
+                            key={`cell-${index}`}
+                            fill={COLORS[index % COLORS.length]}
+                          />
+                        ))}
+                      </Pie>
+                      <Tooltip
+                        formatter={(value: number) => formatCurrency(value)}
                       />
-                    ))}
-                  </Pie>
-                  <Tooltip
-                    formatter={(value: number) => formatCurrency(value)}
-                  />
-                </PieChart>
-              </ResponsiveContainer>
-            </CardContent>
-          </Card>
+                    </PieChart>
+                  </ResponsiveContainer>
+                </CardContent>
+              </Card>
 
-          {/* Top 10 Items by Value - Vertical Bar Chart */}
-          <Card className="card-enhanced">
-            <CardHeader>
-              <CardTitle className="text-base">Top 10 Items by Value</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <ResponsiveContainer width="100%" height={250}>
-                <BarChart data={topItems}>
-                  <CartesianGrid
-                    strokeDasharray="3 3"
-                    stroke="hsl(var(--border))"
-                    opacity={0.3}
-                  />
-                  <XAxis
-                    dataKey="name"
-                    type="category"
-                    width={120}
-                    fontSize={11}
-                    stroke="hsl(var(--muted-foreground))"
-                  />
-                  <YAxis
-                    type="number"
-                    stroke="hsl(var(--muted-foreground))"
-                    fontSize={11}
-                    tickFormatter={(value) => `₹${(value / 1000).toFixed(0)}k`}
-                  />
-                  <Tooltip
-                    formatter={(value: number) => formatCurrency(value)}
-                    contentStyle={{
-                      backgroundColor: "hsl(var(--popover))",
-                      border: "1px solid hsl(var(--border))",
-                      borderRadius: "8px",
-                    }}
-                  />
-                  <Bar
-                    dataKey="value"
-                    fill={CHART_COLORS.light.chart1}
-                    radius={[0, 4, 4, 0]}
-                  />
-                </BarChart>
-              </ResponsiveContainer>
-            </CardContent>
-          </Card>
-        </div>
+              <Card className="card-enhanced">
+                <CardHeader>
+                  <CardTitle className="text-base">
+                    Top 10 Items by Value
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <ResponsiveContainer width="100%" height={250}>
+                    <BarChart data={topItems}>
+                      <CartesianGrid
+                        strokeDasharray="3 3"
+                        stroke="hsl(var(--border))"
+                        opacity={0.3}
+                      />
+                      <XAxis
+                        dataKey="name"
+                        type="category"
+                        width={120}
+                        fontSize={11}
+                        stroke="hsl(var(--muted-foreground))"
+                      />
+                      <YAxis
+                        type="number"
+                        stroke="hsl(var(--muted-foreground))"
+                        fontSize={11}
+                        tickFormatter={(value) =>
+                          `₹${(value / 1000).toFixed(0)}k`
+                        }
+                      />
+                      <Tooltip
+                        formatter={(value: number) => formatCurrency(value)}
+                        contentStyle={{
+                          backgroundColor: "hsl(var(--popover))",
+                          border: "1px solid hsl(var(--border))",
+                          borderRadius: "8px",
+                        }}
+                      />
+                      <Bar
+                        dataKey="value"
+                        fill={CHART_COLORS.light.chart1}
+                        radius={[0, 4, 4, 0]}
+                      />
+                    </BarChart>
+                  </ResponsiveContainer>
+                </CardContent>
+              </Card>
+            </div>
 
-        {/* By Supplier Summary and Stock Distribution Summary Container */}
-        <div className="flex gap-6">
-          {/* By Supplier Summary */}
-          <Card className="card-enhanced flex-1">
-            <CardHeader>
-              <CardTitle className="text-base">Stock by Supplier</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-3">
-                {stats.bySupplier
-                  .sort((a, b) => b.totalValue - a.totalValue)
-                  .slice(0, 8)
-                  .map((supplier) => (
-                    <div
-                      key={supplier.supplierId}
-                      className="flex items-center justify-between p-3 rounded-lg bg-muted/30 border border-border/30"
-                    >
-                      <div className="flex-1">
-                        <div className="font-medium text-sm">
-                          {supplier.supplierName}
+            {/* Bottom: two cards side-by-side (each half of left area) */}
+            <div className="grid grid-cols-2 gap-4">
+              {/* Stock by Supplier */}
+              <Card className="card-enhanced">
+                <CardHeader>
+                  <CardTitle className="text-base">Stock by Supplier</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-3">
+                    {stats.bySupplier
+                      .sort((a, b) => b.totalValue - a.totalValue)
+                      .slice(0, 8)
+                      .map((supplier) => (
+                        <div
+                          key={supplier.supplierId}
+                          className="flex items-center justify-between p-3 rounded-lg bg-muted/30 border border-border/30"
+                        >
+                          <div className="flex-1">
+                            <div className="font-medium text-sm">
+                              {supplier.supplierName}
+                            </div>
+                            <div className="text-xs text-muted-foreground">
+                              {supplier.itemCount} items
+                            </div>
+                          </div>
+                          <div className="text-right">
+                            <div className="font-semibold text-sm">
+                              {formatCurrency(supplier.totalValue)}
+                            </div>
+                          </div>
                         </div>
-                        <div className="text-xs text-muted-foreground">
-                          {supplier.itemCount} items
-                        </div>
+                      ))}
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Stock Distribution Summary - improved layout with progress bars */}
+              <Card className="card-enhanced">
+                <CardHeader>
+                  <CardTitle className="text-base">
+                    Stock Distribution
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  {(() => {
+                    const materialVal = stats.byType.materials.value;
+                    const packagingVal = stats.byType.packaging.value;
+                    const labelsVal = stats.byType.labels.value;
+                    const total = materialVal + packagingVal + labelsVal || 1;
+
+                    const rows = [
+                      {
+                        key: "Materials",
+                        value: materialVal,
+                        color: CHART_COLORS.light.chart1,
+                        count: stats.byType.materials.count,
+                      },
+                      {
+                        key: "Packaging",
+                        value: packagingVal,
+                        color: CHART_COLORS.light.chart5,
+                        count: stats.byType.packaging.count,
+                      },
+                      {
+                        key: "Labels",
+                        value: labelsVal,
+                        color: CHART_COLORS.light.chart4,
+                        count: stats.byType.labels.count,
+                      },
+                    ];
+
+                    return (
+                      <div className="space-y-3">
+                        {rows.map((r) => {
+                          const pct = Math.round((r.value / total) * 100);
+                          return (
+                            <div key={r.key}>
+                              <div className="flex items-center justify-between mb-1">
+                                <div className="flex items-center gap-2">
+                                  <div
+                                    style={{ backgroundColor: r.color }}
+                                    className="h-3 w-3 rounded-full"
+                                  />
+                                  <div className="text-sm font-medium">
+                                    {r.key}
+                                  </div>
+                                </div>
+                                <div className="text-sm text-muted-foreground">
+                                  {r.count} • {formatCurrency(r.value)}
+                                </div>
+                              </div>
+                              <div className="w-full bg-muted/20 h-2 rounded">
+                                <div
+                                  style={{
+                                    width: `${pct}%`,
+                                    backgroundColor: r.color,
+                                  }}
+                                  className="h-2 rounded"
+                                />
+                              </div>
+                            </div>
+                          );
+                        })}
                       </div>
-                      <div className="text-right">
-                        <div className="font-semibold text-sm">
-                          {formatCurrency(supplier.totalValue)}
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-              </div>
-            </CardContent>
-          </Card>
-          {/* Stock Distribution Summary - grid in card */}
-          <Card className="card-enhanced flex-1">
-            <CardHeader>
-              <CardTitle className="text-base">
-                Stock Distribution Summary
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="grid grid-cols-3 gap-4">
-                <div>
-                  <div className="flex items-center gap-2 pb-2">
-                    <Beaker className="h-5 w-5 text-blue-500" />
-                    <div className="text-sm font-medium">Materials</div>
-                  </div>
-                  <div className="text-2xl font-bold">
-                    {stats.byType.materials.count}
-                  </div>
-                  <p className="text-xs text-muted-foreground mt-1">
-                    {formatCurrency(stats.byType.materials.value)}
-                  </p>
-                </div>
-                <div>
-                  <div className="flex items-center gap-2 pb-2">
-                    <Box className="h-5 w-5 text-green-500" />
-                    <div className="text-sm font-medium">Packaging</div>
-                  </div>
-                  <div className="text-2xl font-bold">
-                    {stats.byType.packaging.count}
-                  </div>
-                  <p className="text-xs text-muted-foreground mt-1">
-                    {formatCurrency(stats.byType.packaging.value)}
-                  </p>
-                </div>
-                <div>
-                  <div className="flex items-center gap-2 pb-2">
-                    <Tag className="h-5 w-5 text-yellow-500" />
-                    <div className="text-sm font-medium">Labels</div>
-                  </div>
-                  <div className="text-2xl font-bold">
-                    {stats.byType.labels.count}
-                  </div>
-                  <p className="text-xs text-muted-foreground mt-1">
-                    {formatCurrency(stats.byType.labels.value)}
-                  </p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+                    );
+                  })()}
+                </CardContent>
+              </Card>
+            </div>
+          </div>
+
+          {/* Right column (1/5) spanning both rows: transactions + alerts */}
+          <div className="col-span-1 row-span-2 flex flex-col gap-4">
+            <TransactionHistoryCard previewCount={10} />
+            <AlertsCard previewCount={10} />
+          </div>
         </div>
       </div>
     </Card>

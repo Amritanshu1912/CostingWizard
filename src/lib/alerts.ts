@@ -108,7 +108,7 @@ export async function sweepAndGenerateAlerts(db: any) {
 
   const makeUntracked = (
     id: string,
-    itemType: string,
+    itemType: InventoryItem["itemType"],
     itemId: string,
     itemName: string,
     supplierName: string,
@@ -116,7 +116,7 @@ export async function sweepAndGenerateAlerts(db: any) {
     unit: string,
     unitPrice: number,
     tax: number
-  ) => ({
+  ): Partial<InventoryItemWithDetails> => ({
     id: `untracked-${id}`,
     itemType,
     itemId,

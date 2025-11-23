@@ -2,7 +2,7 @@
 // MOCK DATA FOR INVENTORY ITEMS
 // ============================================================================
 
-import { InventoryItem } from "@/lib/types";
+import { InventoryItem, InventoryTransaction } from "@/lib/types";
 
 export const MOCK_INVENTORY_ITEMS_old: Omit<
   InventoryItem,
@@ -185,7 +185,7 @@ export const MOCK_INVENTORY_ITEMS = [
   },
 ];
 
-export const MOCK_TRANSACTIONS = [
+export const MOCK_TRANSACTIONS: InventoryTransaction[] = [
   {
     id: "1-init",
     inventoryItemId: "1",
@@ -195,6 +195,7 @@ export const MOCK_TRANSACTIONS = [
     stockBefore: 0,
     stockAfter: 500,
     createdAt: new Date().toISOString(),
+    unit: "kg",
   },
   {
     id: "2-init",
@@ -205,6 +206,7 @@ export const MOCK_TRANSACTIONS = [
     stockBefore: 0,
     stockAfter: 50,
     createdAt: new Date().toISOString(),
+    unit: "kg",
   },
   {
     id: "3-init",
@@ -215,5 +217,6 @@ export const MOCK_TRANSACTIONS = [
     stockBefore: 0,
     stockAfter: 2000,
     createdAt: new Date().toISOString(),
+    unit: "pcs",
   },
 ];

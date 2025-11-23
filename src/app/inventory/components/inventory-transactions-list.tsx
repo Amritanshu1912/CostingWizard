@@ -1,4 +1,3 @@
-// src/app/inventory/components/inventory-transactions-list.tsx
 "use client";
 
 import { Badge } from "@/components/ui/badge";
@@ -14,10 +13,15 @@ import {
   useInventoryTransactions,
   useGroupedTransactions,
 } from "@/hooks/use-inventory";
+import { useInventoryItemsWithDetails } from "@/hooks/use-inventory";
 
 export function InventoryTransactionsList() {
   const transactions = useInventoryTransactions();
   const groupedTransactions = useGroupedTransactions();
+  const items = useInventoryItemsWithDetails();
+
+  const getItemName = (id: string) =>
+    items?.find((i) => i.id === id)?.itemName || id;
 
   if (!transactions) {
     return <div>Loading...</div>;
@@ -79,7 +83,7 @@ export function InventoryTransactionsList() {
                             <div className="flex items-start justify-between gap-2 mb-2">
                               <div className="flex-1">
                                 <div className="font-semibold mb-1">
-                                  {txn.inventoryItemId}
+                                  {getItemName(txn.inventoryItemId)}
                                 </div>
                                 <div className="flex items-center gap-2 flex-wrap">
                                   {getTransactionTypeBadge(txn.type)}
