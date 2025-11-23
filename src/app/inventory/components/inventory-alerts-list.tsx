@@ -97,23 +97,29 @@ export function InventoryAlertsList() {
             return (
               <Card
                 key={alert.id}
-                className={`card-enhanced ${
+                className={`card-enhanced py-2 ${
                   alert.isRead === 0 ? "border-l-4 border-l-primary" : ""
                 }`}
               >
-                <CardContent className="p-4">
+                <CardContent className="px-4 py-2">
                   <div className="flex items-start gap-4">
                     <div className="flex-shrink-0 mt-1">
                       {getSeverityIcon(alert.severity)}
                     </div>
 
                     <div className="flex-1 min-w-0">
-                      <div className="flex items-start justify-between gap-2 mb-2">
+                      <div className="flex items-start justify-between gap-2">
                         <div className="flex-1">
                           <div className="font-semibold mb-1">
                             {alert.message}
                           </div>
                           <div className="flex items-center gap-2 flex-wrap">
+                            <span className="text-xs text-muted-foreground">
+                              {format(
+                                new Date(alert.createdAt),
+                                "MMM dd, h:mm a"
+                              )}
+                            </span>
                             {getSeverityBadge(alert.severity)}
                             <Badge variant="outline" className="text-xs">
                               {alert.alertType}
@@ -126,8 +132,27 @@ export function InventoryAlertsList() {
                           </div>
                         </div>
 
-                        <div className="text-xs text-muted-foreground text-right">
-                          {format(new Date(alert.createdAt), "MMM dd, h:mm a")}
+                        <div className="text-xs text-muted-foreground text-right gap-2">
+                          {alert.isRead === 0 && (
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => handleMarkAsRead(alert.id)}
+                              className="h-8 gap-1 mr-2"
+                            >
+                              <Check className="h-3 w-3" />
+                              Mark as Read
+                            </Button>
+                          )}
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => handleResolve(alert.id)}
+                            className="h-8 gap-1"
+                          >
+                            <X className="h-3 w-3" />
+                            Resolve
+                          </Button>
                         </div>
                       </div>
 
@@ -157,28 +182,7 @@ export function InventoryAlertsList() {
                         </div>
                       )}
 
-                      <div className="flex items-center gap-2 mt-3">
-                        {alert.isRead === 0 && (
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => handleMarkAsRead(alert.id)}
-                            className="h-8 gap-1"
-                          >
-                            <Check className="h-3 w-3" />
-                            Mark as Read
-                          </Button>
-                        )}
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => handleResolve(alert.id)}
-                          className="h-8 gap-1"
-                        >
-                          <X className="h-3 w-3" />
-                          Resolve
-                        </Button>
-                      </div>
+                      <div className="flex items-center gap-2 mt-3"></div>
                     </div>
                   </div>
                 </CardContent>

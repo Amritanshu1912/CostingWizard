@@ -38,7 +38,7 @@ export function TransactionHistoryCard({
           <div className="flex items-center gap-2">
             <Dialog>
               <DialogTrigger asChild>
-                <Button variant="link" size="sm">
+                <Button variant="link" size="sm" className="cursor-pointer">
                   See all
                 </Button>
               </DialogTrigger>
@@ -48,7 +48,7 @@ export function TransactionHistoryCard({
         </div>
       </CardHeader>
 
-      <CardContent className="p-2">
+      <CardContent className="p-2 overflow-y-auto max-h-80">
         <div className="space-y-2">
           {preview.length === 0 && (
             <div className="text-sm text-muted-foreground">
@@ -97,7 +97,21 @@ export function TransactionHistoryCard({
                 </div>
 
                 <div className="text-right flex items-end gap-1 text-sm font-semibold">
-                  <div className="">{qty > 0 ? `+${qty}` : qty}</div>
+                  {(() => {
+                    const isIn = tx.type === "in";
+                    const isOut = tx.type === "out";
+                    const qtyClass = isIn
+                      ? "text-green-600"
+                      : isOut
+                      ? "text-destructive"
+                      : "text-amber-600";
+                    const label = isIn
+                      ? `+${qty}`
+                      : isOut
+                      ? `-${qty}`
+                      : `${qty}`;
+                    return <div className={qtyClass}>{label}</div>;
+                  })()}
                   <span>{tx.unit}</span>
                 </div>
               </div>

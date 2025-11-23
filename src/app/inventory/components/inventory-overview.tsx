@@ -23,6 +23,7 @@ import {
   XAxis,
   YAxis,
   CartesianGrid,
+  Legend,
 } from "recharts";
 import { CHART_COLORS } from "@/lib/color-utils";
 import TransactionHistoryCard from "./transaction-history-card";
@@ -62,6 +63,15 @@ export function InventoryOverview({ stats, items }: InventoryOverviewProps) {
     CHART_COLORS.light.chart5,
     CHART_COLORS.light.chart4,
   ];
+
+  // Standard tooltip style for charts (consistent across app)
+  const CHART_TOOLTIP_STYLE = {
+    backgroundColor: "hsl(var(--popover))",
+    border: "1px solid hsl(var(--border))",
+    borderRadius: 8,
+    color: "hsl(var(--foreground))",
+    padding: "8px",
+  } as const;
 
   // Top 10 items by value - Vertical Bar Chart
   const topItems = [...items]
@@ -127,16 +137,13 @@ export function InventoryOverview({ stats, items }: InventoryOverviewProps) {
                 <CardContent>
                   <ResponsiveContainer width="100%" height={250}>
                     <PieChart>
+                      {/* Legend moved to the right; disable floating labels */}
                       <Pie
                         data={pieData}
-                        cx="50%"
+                        cx="40%"
                         cy="50%"
-                        labelLine={false}
-                        label={(props) => {
-                          const { name, percent } = props as any;
-                          return `${name}: ${(percent * 100).toFixed(1)}%`;
-                        }}
-                        outerRadius={80}
+                        label={false}
+                        outerRadius={70}
                         fill="#8884d8"
                         dataKey="value"
                       >
@@ -149,6 +156,23 @@ export function InventoryOverview({ stats, items }: InventoryOverviewProps) {
                       </Pie>
                       <Tooltip
                         formatter={(value: number) => formatCurrency(value)}
+                        contentStyle={CHART_TOOLTIP_STYLE}
+                        itemStyle={{ color: "hsl(var(--foreground))" }}
+                        labelStyle={{ color: "hsl(var(--muted-foreground))" }}
+                      />
+                      <Legend
+                        layout="vertical"
+                        align="right"
+                        verticalAlign="middle"
+                        formatter={(value, entry) => {
+                          const item: any = pieData.find(
+                            (d) => d.name === value
+                          );
+                          return `${value} (${
+                            item ? formatCurrency(item.value) : ""
+                          })`;
+                        }}
+                        wrapperStyle={{ right: 0 }}
                       />
                     </PieChart>
                   </ResponsiveContainer>
@@ -186,11 +210,9 @@ export function InventoryOverview({ stats, items }: InventoryOverviewProps) {
                       />
                       <Tooltip
                         formatter={(value: number) => formatCurrency(value)}
-                        contentStyle={{
-                          backgroundColor: "hsl(var(--popover))",
-                          border: "1px solid hsl(var(--border))",
-                          borderRadius: "8px",
-                        }}
+                        contentStyle={CHART_TOOLTIP_STYLE}
+                        itemStyle={{ color: "hsl(var(--foreground))" }}
+                        labelStyle={{ color: "hsl(var(--muted-foreground))" }}
                       />
                       <Bar
                         dataKey="value"

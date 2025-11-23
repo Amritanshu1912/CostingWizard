@@ -57,7 +57,7 @@ export function AlertsCard({ previewCount = 10 }: AlertsCardProps) {
           </div>
           <Dialog>
             <DialogTrigger asChild>
-              <Button variant="link" size="sm">
+              <Button variant="link" size="sm" className="cursor-pointer">
                 See all
               </Button>
             </DialogTrigger>
