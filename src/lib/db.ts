@@ -45,10 +45,10 @@ import {
 } from "@/app/compose-products/components/products-constants";
 import { PRODUCTION_BATCHES } from "@/app/batches/components/planning-constants";
 import {
-  MOCK_ALERTS,
   MOCK_INVENTORY_ITEMS,
   MOCK_TRANSACTIONS,
 } from "@/app/inventory/components/inventory-constants";
+import { sweepAndGenerateAlerts } from "./alerts";
 
 export class CostingWizardDB extends Dexie {
   categories!: Table<Category>;
@@ -77,30 +77,48 @@ export class CostingWizardDB extends Dexie {
   constructor() {
     super("CostingWizardDB");
 
-    this.version(1).stores({
-      categories: "id, name",
-      materials: "id, name, category",
-      suppliers: "id, name, isActive",
-      supplierMaterials: "id, supplierId, materialId, availability",
-      packaging: "id, name, type, supplierId, availability",
-      supplierPackaging:
-        "id, supplierId, packagingId, packagingName, availability",
-      labels: "id, name, type, supplierId, availability",
-      supplierLabels: "id, supplierId, labelId, labelName, availability",
-      recipes: "id, name, status, createdAt", // NEW
-      recipeVariants:
-        "id, originalRecipeId, name, isActive, &ingredientsSnapshot",
-      recipeIngredients: "id, recipeId, supplierMaterialId",
-      products: "id, name, recipeId, category, status",
-      productVariants: "id, productId, sku, packagingSelectionId, isActive",
-      productionBatches: "id, batchName, status, startDate, endDate",
-      purchaseOrders: "id, orderId, supplierId, status, dateCreated",
-      inventoryItems: "id, itemType, itemId, status, currentStock, lastUpdated",
-      inventoryTransactions: "id, inventoryItemId, type, createdAt, reference",
-      inventoryAlerts:
-        "id, inventoryItemId, alertType, severity, isRead, isResolved",
-      transportationCosts: "id, supplierId, region",
-    });
+    this.version(1)
+      .stores({
+        categories: "id, name",
+        materials: "id, name, category",
+        suppliers: "id, name, isActive",
+        supplierMaterials: "id, supplierId, materialId, availability",
+        packaging: "id, name, type, supplierId, availability",
+        supplierPackaging:
+          "id, supplierId, packagingId, packagingName, availability",
+        labels: "id, name, type, supplierId, availability",
+        supplierLabels: "id, supplierId, labelId, labelName, availability",
+        recipes: "id, name, status, createdAt", // NEW
+        recipeVariants:
+          "id, originalRecipeId, name, isActive, &ingredientsSnapshot",
+        recipeIngredients: "id, recipeId, supplierMaterialId",
+        products: "id, name, recipeId, category, status",
+        productVariants: "id, productId, sku, packagingSelectionId, isActive",
+        productionBatches: "id, batchName, status, startDate, endDate",
+        purchaseOrders: "id, orderId, supplierId, status, dateCreated",
+        inventoryItems:
+          "id, itemType, itemId, status, currentStock, lastUpdated",
+        inventoryTransactions:
+          "id, inventoryItemId, type, createdAt, reference",
+        inventoryAlerts:
+          "id, inventoryItemId, alertType, severity, isRead, isResolved",
+        transportationCosts: "id, supplierId, region",
+      })
+      .upgrade((trans) => {
+        // Migration: Convert boolean to number for existing alerts
+        return trans
+          .table<InventoryAlert>("inventoryAlerts")
+          .toCollection()
+          .modify((alert) => {
+            // Convert boolean to number (true -> 1, false -> 0)
+            if (typeof alert.isRead === "boolean") {
+              alert.isRead = alert.isRead ? 1 : 0;
+            }
+            if (typeof alert.isResolved === "boolean") {
+              alert.isResolved = alert.isResolved ? 1 : 0;
+            }
+          });
+      });
 
     // Migration: Populate initial data if tables are empty
     this.on("ready", async () => {
@@ -125,6 +143,26 @@ export class CostingWizardDB extends Dexie {
       const hasSupplierMaterials = (await db.supplierMaterials.count()) > 0;
       if (!hasSupplierMaterials) {
         await db.supplierMaterials.bulkAdd(SUPPLIER_MATERIALS);
+      }
+
+      const hasPackaging = (await db.packaging.count()) > 0;
+      if (!hasPackaging) {
+        await db.packaging.bulkAdd(PACKAGING);
+      }
+
+      const hasSupplierPackaging = (await db.supplierPackaging.count()) > 0;
+      if (!hasSupplierPackaging) {
+        await db.supplierPackaging.bulkAdd(SUPPLIER_PACKAGING);
+      }
+
+      const hasLabels = (await db.labels.count()) > 0;
+      if (!hasLabels) {
+        await db.labels.bulkAdd(LABELS);
+      }
+
+      const hasSupplierLabels = (await db.supplierLabels.count()) > 0;
+      if (!hasSupplierLabels) {
+        await db.supplierLabels.bulkAdd(SUPPLIER_LABELS);
       }
 
       const hasRecipes = (await db.recipes.count()) > 0;
@@ -162,37 +200,19 @@ export class CostingWizardDB extends Dexie {
         );
       }
 
-      const hasPurchaseOrders = (await db.purchaseOrders.count()) > 0;
-      if (!hasPurchaseOrders) {
-        await db.purchaseOrders.bulkAdd(PURCHASE_ORDERS);
-      }
-
-      const hasPackaging = (await db.packaging.count()) > 0;
-      if (!hasPackaging) {
-        await db.packaging.bulkAdd(PACKAGING);
-      }
-
-      const hasSupplierPackaging = (await db.supplierPackaging.count()) > 0;
-      if (!hasSupplierPackaging) {
-        await db.supplierPackaging.bulkAdd(SUPPLIER_PACKAGING);
-      }
-
-      const hasLabels = (await db.labels.count()) > 0;
-      if (!hasLabels) {
-        await db.labels.bulkAdd(LABELS);
-      }
-
-      const hasSupplierLabels = (await db.supplierLabels.count()) > 0;
-      if (!hasSupplierLabels) {
-        await db.supplierLabels.bulkAdd(SUPPLIER_LABELS);
-      }
-
       // Seed inventory items
       const hasInventoryItems = (await db.inventoryItems.count()) > 0;
       if (!hasInventoryItems) {
         await db.inventoryItems.bulkAdd(MOCK_INVENTORY_ITEMS);
         await db.inventoryTransactions.bulkAdd(MOCK_TRANSACTIONS);
-        await db.inventoryAlerts.bulkAdd(MOCK_ALERTS);
+      }
+      // After seeding (or when DB ready) run a sweep to create alerts for
+      // untracked items (those created by `useAllItemsWithInventoryStatus`).
+      try {
+        await sweepAndGenerateAlerts(db);
+      } catch (err) {
+        // non-fatal - log for debugging
+        // console.error("sweepAndGenerateAlerts failed:", err);
       }
     });
   }

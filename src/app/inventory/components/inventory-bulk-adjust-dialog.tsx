@@ -1,4 +1,4 @@
-// src/app/inventory/components/bulk-adjust-dialog.tsx
+// src/app/inventory/components/inventory-bulk-adjust-dialog.tsx
 "use client";
 
 import { useState, useMemo } from "react";
@@ -25,8 +25,9 @@ import {
   useInventoryItemsWithDetails,
   useAdjustStock,
 } from "@/hooks/use-inventory";
-import { Search, Package, Beaker, Box, Tag } from "lucide-react";
+import { Search } from "lucide-react";
 import { toast } from "sonner";
+import { getTypeIcon } from "@/app/inventory/utils/inventory-utils";
 
 interface BulkAdjustDialogProps {
   open: boolean;
@@ -157,19 +158,6 @@ export function BulkAdjustDialog({
       );
       setSearchQuery("");
       setReference("");
-    }
-  };
-
-  const getTypeIcon = (type: string) => {
-    switch (type) {
-      case "supplierMaterial":
-        return <Beaker className="h-4 w-4 text-blue-500" />;
-      case "supplierPackaging":
-        return <Box className="h-4 w-4 text-green-500" />;
-      case "supplierLabel":
-        return <Tag className="h-4 w-4 text-yellow-500" />;
-      default:
-        return <Package className="h-4 w-4" />;
     }
   };
 

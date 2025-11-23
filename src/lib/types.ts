@@ -841,9 +841,13 @@ export interface InventoryAlert extends BaseEntity {
   alertType: "low-stock" | "out-of-stock" | "overstock" | "expiring-soon";
   severity: "info" | "warning" | "critical";
   message: string;
-  isRead: boolean;
-  isResolved: boolean;
+  isRead: number;
+  isResolved: number;
 }
+
+// Helper functions to work with number-based booleans
+export const boolToNum = (val: boolean): number => (val ? 1 : 0);
+export const numToBool = (val: number): boolean => val === 1;
 
 // Computed types (not stored)
 

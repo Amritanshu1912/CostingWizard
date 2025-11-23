@@ -22,8 +22,6 @@ export function InventoryManager() {
   const [showAddDialog, setShowAddDialog] = useState(false);
   const [showBulkDialog, setShowBulkDialog] = useState(false);
 
-  // Filters
-
   const items = useInventoryItemsWithDetails();
   const stats = useInventoryStats();
   const alerts = useInventoryAlerts();
@@ -41,14 +39,12 @@ export function InventoryManager() {
           </p>
         </div>
         <div className="flex gap-2 w-full sm:w-auto">
-          <div className="flex gap-2">
-            <Button onClick={() => setShowAddDialog(true)}>
-              <Plus /> Add Stock
-            </Button>
-            <Button onClick={() => setShowBulkDialog(true)}>
-              <Package /> Bulk Adjust
-            </Button>
-          </div>
+          <Button onClick={() => setShowAddDialog(true)}>
+            <Plus /> Add Stock
+          </Button>
+          <Button onClick={() => setShowBulkDialog(true)}>
+            <Package /> Bulk Adjust
+          </Button>
         </div>
       </div>
 
@@ -72,7 +68,7 @@ export function InventoryManager() {
         </TabsContent>
 
         <TabsContent value="stock" className="mt-0">
-          <InventoryStockList items={items} />
+          <InventoryStockList />
         </TabsContent>
 
         <TabsContent value="transactions" className="mt-0">
@@ -88,7 +84,6 @@ export function InventoryManager() {
       <InventoryItemDialog
         open={showAddDialog}
         onOpenChange={setShowAddDialog}
-        // No item prop = ADD mode
       />
       <BulkAdjustDialog
         open={showBulkDialog}

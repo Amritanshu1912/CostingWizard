@@ -217,26 +217,3 @@ export const MOCK_TRANSACTIONS = [
     createdAt: new Date().toISOString(),
   },
 ];
-
-export const MOCK_ALERTS = [
-  {
-    id: "alert-1",
-    inventoryItemId: "2",
-    alertType: "low-stock" as const,
-    severity: "warning" as const,
-    message: "Citric Acid stock is below minimum level",
-    isRead: false,
-    isResolved: false,
-    createdAt: new Date().toISOString(),
-  },
-  {
-    id: "alert-2",
-    inventoryItemId: "4",
-    alertType: "out-of-stock" as const,
-    severity: "critical" as const,
-    message: "Labels are completely out of stock",
-    isRead: false,
-    isResolved: false,
-    createdAt: new Date().toISOString(),
-  },
-];

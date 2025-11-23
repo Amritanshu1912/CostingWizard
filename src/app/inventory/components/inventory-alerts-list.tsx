@@ -17,10 +17,13 @@ import {
   CheckCircle2,
   X,
   Check,
-  Bell,
 } from "lucide-react";
 import { format } from "date-fns";
 import { toast } from "sonner";
+import {
+  getSeverityIcon,
+  getSeverityBadge,
+} from "@/app/inventory/utils/inventory-utils";
 
 export function InventoryAlertsList() {
   const alerts = useInventoryAlerts();
@@ -34,46 +37,6 @@ export function InventoryAlertsList() {
 
   const getItemDetails = (inventoryItemId: string) => {
     return items.find((i) => i.id === inventoryItemId);
-  };
-
-  const getSeverityIcon = (severity: string) => {
-    switch (severity) {
-      case "critical":
-        return <AlertCircle className="h-5 w-5 text-destructive" />;
-      case "warning":
-        return <AlertTriangle className="h-5 w-5 text-yellow-500" />;
-      case "info":
-        return <CheckCircle2 className="h-5 w-5 text-blue-500" />;
-      default:
-        return <Bell className="h-5 w-5 text-muted-foreground" />;
-    }
-  };
-
-  const getSeverityBadge = (severity: string) => {
-    switch (severity) {
-      case "critical":
-        return <Badge variant="destructive">Critical</Badge>;
-      case "warning":
-        return (
-          <Badge
-            variant="secondary"
-            className="bg-yellow-100 text-yellow-800 border-yellow-300"
-          >
-            Warning
-          </Badge>
-        );
-      case "info":
-        return (
-          <Badge
-            variant="secondary"
-            className="bg-blue-100 text-blue-800 border-blue-300"
-          >
-            Info
-          </Badge>
-        );
-      default:
-        return <Badge variant="outline">{severity}</Badge>;
-    }
   };
 
   const handleResolve = async (alertId: string) => {
@@ -135,7 +98,7 @@ export function InventoryAlertsList() {
               <Card
                 key={alert.id}
                 className={`card-enhanced ${
-                  !alert.isRead ? "border-l-4 border-l-primary" : ""
+                  alert.isRead === 0 ? "border-l-4 border-l-primary" : ""
                 }`}
               >
                 <CardContent className="p-4">
@@ -155,7 +118,7 @@ export function InventoryAlertsList() {
                             <Badge variant="outline" className="text-xs">
                               {alert.alertType}
                             </Badge>
-                            {!alert.isRead && (
+                            {alert.isRead === 0 && (
                               <Badge variant="default" className="text-xs">
                                 New
                               </Badge>
@@ -195,7 +158,7 @@ export function InventoryAlertsList() {
                       )}
 
                       <div className="flex items-center gap-2 mt-3">
-                        {!alert.isRead && (
+                        {alert.isRead === 0 && (
                           <Button
                             variant="ghost"
                             size="sm"

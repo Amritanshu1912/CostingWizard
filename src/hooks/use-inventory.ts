@@ -7,18 +7,13 @@ import type {
   InventoryAlert,
   InventoryItemWithDetails,
   InventoryStats,
-  SupplierMaterial,
-  SupplierPackaging,
-  SupplierLabel,
-  Supplier,
-  Material,
-  Packaging,
-  Label,
 } from "@/lib/types";
-import { useMemo } from "react";
+import { useMemo, useState, useCallback } from "react";
+import { format } from "date-fns";
+import { createOrUpdateAlertForItemById } from "@/lib/alerts";
 
 // ============================================================================
-// CORE HOOKS
+// BASE DATA HOOKS - Optimized with proper dependencies
 // ============================================================================
 
 export function useInventoryItems() {
@@ -52,24 +47,49 @@ export function useInventoryAlerts() {
 }
 
 // ============================================================================
-// ENRICHED DATA HOOKS
+// REFERENCE DATA HOOKS - Single queries, properly cached
 // ============================================================================
 
-export function useInventoryItemsWithDetails():
-  | InventoryItemWithDetails[]
-  | undefined {
-  const items = useInventoryItems();
-  const supplierMaterials = useLiveQuery(() => db.supplierMaterials.toArray());
-  const supplierPackaging = useLiveQuery(() => db.supplierPackaging.toArray());
-  const supplierLabels = useLiveQuery(() => db.supplierLabels.toArray());
-  const materials = useLiveQuery(() => db.materials.toArray());
-  const packaging = useLiveQuery(() => db.packaging.toArray());
-  const labels = useLiveQuery(() => db.labels.toArray());
-  const suppliers = useLiveQuery(() => db.suppliers.toArray());
+export function useSupplierMaterials() {
+  return useLiveQuery(() => db.supplierMaterials.toArray());
+}
+
+export function useSupplierPackaging() {
+  return useLiveQuery(() => db.supplierPackaging.toArray());
+}
+
+export function useSupplierLabels() {
+  return useLiveQuery(() => db.supplierLabels.toArray());
+}
+
+export function useMaterials() {
+  return useLiveQuery(() => db.materials.toArray());
+}
+
+export function usePackaging() {
+  return useLiveQuery(() => db.packaging.toArray());
+}
+
+export function useLabels() {
+  return useLiveQuery(() => db.labels.toArray());
+}
+
+export function useSuppliers() {
+  return useLiveQuery(() => db.suppliers.toArray());
+}
+
+// Combined reference data hook for efficiency
+export function useReferenceData() {
+  const supplierMaterials = useSupplierMaterials();
+  const supplierPackaging = useSupplierPackaging();
+  const supplierLabels = useSupplierLabels();
+  const materials = useMaterials();
+  const packaging = usePackaging();
+  const labels = useLabels();
+  const suppliers = useSuppliers();
 
   return useMemo(() => {
     if (
-      !items ||
       !supplierMaterials ||
       !supplierPackaging ||
       !supplierLabels ||
@@ -77,8 +97,52 @@ export function useInventoryItemsWithDetails():
       !packaging ||
       !labels ||
       !suppliers
-    )
+    ) {
       return undefined;
+    }
+
+    return {
+      supplierMaterials,
+      supplierPackaging,
+      supplierLabels,
+      materials,
+      packaging,
+      labels,
+      suppliers,
+    };
+  }, [
+    supplierMaterials,
+    supplierPackaging,
+    supplierLabels,
+    materials,
+    packaging,
+    labels,
+    suppliers,
+  ]);
+}
+
+// ============================================================================
+// ENRICHED DATA HOOKS - Optimized with better memoization
+// ============================================================================
+
+export function useInventoryItemsWithDetails():
+  | InventoryItemWithDetails[]
+  | undefined {
+  const items = useInventoryItems();
+  const refData = useReferenceData();
+
+  return useMemo(() => {
+    if (!items || !refData) return undefined;
+
+    const {
+      supplierMaterials,
+      supplierPackaging,
+      supplierLabels,
+      materials,
+      packaging,
+      labels,
+      suppliers,
+    } = refData;
 
     return items.map((item) => {
       let itemName = "Unknown";
@@ -139,20 +203,149 @@ export function useInventoryItemsWithDetails():
         stockPercentage,
       };
     });
-  }, [
-    items,
-    supplierMaterials,
-    supplierPackaging,
-    supplierLabels,
-    materials,
-    packaging,
-    labels,
-    suppliers,
-  ]);
+  }, [items, refData]);
 }
 
 // ============================================================================
-// FILTERED HOOKS
+// NEW: ALL ITEMS WITH INVENTORY STATUS (moved from stock-list)
+// ============================================================================
+
+export function useAllItemsWithInventoryStatus() {
+  const items = useInventoryItemsWithDetails();
+  const refData = useReferenceData();
+
+  return useMemo(() => {
+    if (!items || !refData) return undefined;
+
+    const {
+      supplierMaterials,
+      supplierPackaging,
+      supplierLabels,
+      materials,
+      packaging,
+      labels,
+      suppliers,
+    } = refData;
+
+    const combinedItems: InventoryItemWithDetails[] = [];
+
+    // Helper function to create untracked item
+    const createUntrackedItem = (
+      id: string,
+      itemType: InventoryItem["itemType"],
+      itemId: string,
+      itemName: string,
+      supplierName: string,
+      supplierId: string,
+      unit: string,
+      unitPrice: number,
+      tax: number
+    ): InventoryItemWithDetails => ({
+      id: `untracked-${id}`,
+      itemType,
+      itemId,
+      itemName,
+      supplierName,
+      supplierId,
+      currentStock: 0,
+      unit,
+      minStockLevel: 0,
+      status: "out-of-stock",
+      lastUpdated: new Date().toISOString(),
+      createdAt: new Date().toISOString(),
+      unitPrice,
+      tax,
+      stockValue: 0,
+      stockPercentage: 0,
+    });
+
+    // Process Materials
+    supplierMaterials.forEach((sm) => {
+      const existingInventory = items.find(
+        (inv) => inv.itemType === "supplierMaterial" && inv.itemId === sm.id
+      );
+
+      if (existingInventory) {
+        combinedItems.push(existingInventory);
+      } else {
+        const material = materials.find((m) => m.id === sm.materialId);
+        const supplier = suppliers.find((s) => s.id === sm.supplierId);
+        combinedItems.push(
+          createUntrackedItem(
+            `sm-${sm.id}`,
+            "supplierMaterial",
+            sm.id,
+            material?.name || "Unknown",
+            supplier?.name || "Unknown",
+            sm.supplierId,
+            sm.unit,
+            sm.unitPrice,
+            sm.tax || 0
+          )
+        );
+      }
+    });
+
+    // Process Packaging
+    supplierPackaging.forEach((sp) => {
+      const existingInventory = items.find(
+        (inv) => inv.itemType === "supplierPackaging" && inv.itemId === sp.id
+      );
+
+      if (existingInventory) {
+        combinedItems.push(existingInventory);
+      } else {
+        const pkg = packaging.find((p) => p.id === sp.packagingId);
+        const supplier = suppliers.find((s) => s.id === sp.supplierId);
+        combinedItems.push(
+          createUntrackedItem(
+            `sp-${sp.id}`,
+            "supplierPackaging",
+            sp.id,
+            pkg?.name || "Unknown",
+            supplier?.name || "Unknown",
+            sp.supplierId,
+            "pcs",
+            sp.unitPrice,
+            sp.tax || 0
+          )
+        );
+      }
+    });
+
+    // Process Labels
+    supplierLabels.forEach((sl) => {
+      const existingInventory = items.find(
+        (inv) => inv.itemType === "supplierLabel" && inv.itemId === sl.id
+      );
+
+      if (existingInventory) {
+        combinedItems.push(existingInventory);
+      } else {
+        const label = labels.find((l) => l.id === sl.labelId);
+        const supplier = suppliers.find((s) => s.id === sl.supplierId);
+        combinedItems.push(
+          createUntrackedItem(
+            `sl-${sl.id}`,
+            "supplierLabel",
+            sl.id,
+            label?.name || "Unknown",
+            supplier?.name || "Unknown",
+            sl.supplierId,
+            sl.unit || "pcs",
+            sl.unitPrice,
+            sl.tax || 0
+          )
+        );
+      }
+    });
+
+    return combinedItems;
+  }, [items, refData]);
+}
+
+// ============================================================================
+// FILTERED HOOKS - Optimized
 // ============================================================================
 
 export function useLowStockItems() {
@@ -195,7 +388,7 @@ export function useInventoryBySupplier() {
 }
 
 // ============================================================================
-// STATS HOOK
+// STATS HOOK - Optimized calculations
 // ============================================================================
 
 export function useInventoryStats(): InventoryStats | undefined {
@@ -220,31 +413,28 @@ export function useInventoryStats(): InventoryStats | undefined {
       0
     );
 
-    const byType = {
-      materials: {
-        count: itemsWithDetails.filter((i) => i.itemType === "supplierMaterial")
-          .length,
-        value: itemsWithDetails
-          .filter((i) => i.itemType === "supplierMaterial")
-          .reduce((sum, item) => sum + item.stockValue, 0),
-      },
-      packaging: {
-        count: itemsWithDetails.filter(
-          (i) => i.itemType === "supplierPackaging"
-        ).length,
-        value: itemsWithDetails
-          .filter((i) => i.itemType === "supplierPackaging")
-          .reduce((sum, item) => sum + item.stockValue, 0),
-      },
-      labels: {
-        count: itemsWithDetails.filter((i) => i.itemType === "supplierLabel")
-          .length,
-        value: itemsWithDetails
-          .filter((i) => i.itemType === "supplierLabel")
-          .reduce((sum, item) => sum + item.stockValue, 0),
-      },
-    };
+    // Calculate by type using reduce for better performance
+    const typeStats = itemsWithDetails.reduce(
+      (acc, item) => {
+        const typeKey =
+          item.itemType === "supplierMaterial"
+            ? "materials"
+            : item.itemType === "supplierPackaging"
+            ? "packaging"
+            : "labels";
 
+        acc[typeKey].count++;
+        acc[typeKey].value += item.stockValue;
+        return acc;
+      },
+      {
+        materials: { count: 0, value: 0 },
+        packaging: { count: 0, value: 0 },
+        labels: { count: 0, value: 0 },
+      }
+    );
+
+    // Calculate by supplier using reduce
     const bySupplier = itemsWithDetails.reduce((acc, item) => {
       const existing = acc.find((s) => s.supplierId === item.supplierId);
       if (existing) {
@@ -272,7 +462,7 @@ export function useInventoryStats(): InventoryStats | undefined {
       outOfStockCount,
       overstockCount,
       totalStockValue,
-      byType,
+      byType: typeStats,
       bySupplier,
       criticalAlerts,
       warningAlerts,
@@ -281,119 +471,218 @@ export function useInventoryStats(): InventoryStats | undefined {
 }
 
 // ============================================================================
-// ACTION HOOKS
+// NEW: GROUPED TRANSACTIONS HOOK
+// ============================================================================
+
+export function useGroupedTransactions(itemId?: string) {
+  const transactions = useInventoryTransactions(itemId);
+
+  return useMemo(() => {
+    if (!transactions) return undefined;
+
+    const groups: Record<string, typeof transactions> = {};
+
+    transactions.forEach((txn) => {
+      const date = format(new Date(txn.createdAt), "yyyy-MM-dd");
+      if (!groups[date]) groups[date] = [];
+      groups[date].push(txn);
+    });
+
+    return Object.entries(groups).sort(([a], [b]) => b.localeCompare(a));
+  }, [transactions]);
+}
+
+// ============================================================================
+// NEW: INVENTORY FILTERS HOOK (state management)
+// ============================================================================
+
+export function useInventoryFilters() {
+  const [searchQuery, setSearchQuery] = useState("");
+  const [filterType, setFilterType] = useState<Set<string>>(
+    new Set(["supplierMaterial", "supplierPackaging", "supplierLabel"])
+  );
+  const [filterStatus, setFilterStatus] = useState<Set<string>>(new Set());
+
+  const toggleTypeFilter = useCallback((type: string) => {
+    setFilterType((prev) => {
+      const newSet = new Set(prev);
+      if (newSet.has(type)) {
+        newSet.delete(type);
+      } else {
+        newSet.add(type);
+      }
+      return newSet;
+    });
+  }, []);
+
+  const toggleStatusFilter = useCallback((status: string) => {
+    setFilterStatus((prev) => {
+      const newSet = new Set(prev);
+      if (newSet.has(status)) {
+        newSet.delete(status);
+      } else {
+        newSet.add(status);
+      }
+      return newSet;
+    });
+  }, []);
+
+  const resetFilters = useCallback(() => {
+    setSearchQuery("");
+    setFilterType(
+      new Set(["supplierMaterial", "supplierPackaging", "supplierLabel"])
+    );
+    setFilterStatus(new Set());
+  }, []);
+
+  const filterItems = useCallback(
+    (items: InventoryItemWithDetails[]) => {
+      return items.filter((item) => {
+        const matchesSearch =
+          item.itemName.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          item.supplierName.toLowerCase().includes(searchQuery.toLowerCase());
+        const matchesType =
+          filterType.size === 0 || filterType.has(item.itemType);
+        const matchesStatus =
+          filterStatus.size === 0 || filterStatus.has(item.status);
+        return matchesSearch && matchesType && matchesStatus;
+      });
+    },
+    [searchQuery, filterType, filterStatus]
+  );
+
+  return {
+    searchQuery,
+    setSearchQuery,
+    filterType,
+    filterStatus,
+    toggleTypeFilter,
+    toggleStatusFilter,
+    resetFilters,
+    filterItems,
+  };
+}
+
+// ============================================================================
+// ACTION HOOKS - Optimized with better error handling
 // ============================================================================
 
 export function useAdjustStock() {
-  return async (
-    itemId: string,
-    quantity: number,
-    reason: string,
-    reference?: string,
-    notes?: string
-  ) => {
-    const item = await db.inventoryItems.get(itemId);
-    if (!item) throw new Error("Inventory item not found");
+  return useCallback(
+    async (
+      itemId: string,
+      quantity: number,
+      reason: string,
+      reference?: string,
+      notes?: string
+    ) => {
+      const item = await db.inventoryItems.get(itemId);
+      if (!item) throw new Error("Inventory item not found");
 
-    const stockBefore = item.currentStock;
-    const stockAfter = stockBefore + quantity;
+      const stockBefore = item.currentStock;
+      const stockAfter = stockBefore + quantity;
 
-    // Update stock
-    await db.inventoryItems.update(itemId, {
-      currentStock: stockAfter,
-      lastUpdated: new Date().toISOString(),
-      status: calculateStatus(
+      // Update stock
+      await db.inventoryItems.update(itemId, {
+        currentStock: stockAfter,
+        lastUpdated: new Date().toISOString(),
+        status: calculateStatus(
+          stockAfter,
+          item.minStockLevel,
+          item.maxStockLevel
+        ),
+      });
+
+      // Create transaction
+      await db.inventoryTransactions.add({
+        id: `txn_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+        inventoryItemId: itemId,
+        type: quantity > 0 ? "in" : "out",
+        quantity: Math.abs(quantity),
+        reason,
+        reference,
+        stockBefore,
         stockAfter,
-        item.minStockLevel,
-        item.maxStockLevel
-      ),
-    });
+        notes,
+        createdAt: new Date().toISOString(),
+      });
 
-    // Create transaction
-    await db.inventoryTransactions.add({
-      id: `txn_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
-      inventoryItemId: itemId,
-      type: quantity > 0 ? "in" : "out",
-      quantity: Math.abs(quantity),
-      reason,
-      reference,
-      stockBefore,
-      stockAfter,
-      notes,
-      createdAt: new Date().toISOString(),
-    });
-
-    // Check for alerts
-    await checkAndCreateAlerts(itemId);
-  };
+      // Check for alerts (centralized implementation)
+      await createOrUpdateAlertForItemById(db, itemId);
+    },
+    []
+  );
 }
 
 export function useCreateInventoryItem() {
-  return async (
-    itemType: "supplierMaterial" | "supplierPackaging" | "supplierLabel",
-    itemId: string,
-    initialStock: number = 0,
-    minStockLevel: number = 100,
-    maxStockLevel?: number,
-    unit: string = "kg"
-  ) => {
-    const id = `inv_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-    const now = new Date().toISOString();
+  return useCallback(
+    async (
+      itemType: "supplierMaterial" | "supplierPackaging" | "supplierLabel",
+      itemId: string,
+      initialStock: number = 0,
+      minStockLevel: number = 100,
+      maxStockLevel?: number,
+      unit: string = "kg"
+    ) => {
+      const id = `inv_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+      const now = new Date().toISOString();
 
-    const item: InventoryItem = {
-      id,
-      itemType,
-      itemId,
-      itemName: "", // Will be populated by UI
-      currentStock: initialStock,
-      unit,
-      minStockLevel,
-      maxStockLevel,
-      lastUpdated: now,
-      status: calculateStatus(initialStock, minStockLevel, maxStockLevel),
-      createdAt: now,
-    };
-
-    await db.inventoryItems.add(item);
-
-    // Create initial transaction if stock > 0
-    if (initialStock > 0) {
-      await db.inventoryTransactions.add({
-        id: `txn_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
-        inventoryItemId: id,
-        type: "in",
-        quantity: initialStock,
-        reason: "Initial Stock",
-        stockBefore: 0,
-        stockAfter: initialStock,
+      const item: InventoryItem = {
+        id,
+        itemType,
+        itemId,
+        itemName: "",
+        currentStock: initialStock,
+        unit,
+        minStockLevel,
+        maxStockLevel,
+        lastUpdated: now,
+        status: calculateStatus(initialStock, minStockLevel, maxStockLevel),
         createdAt: now,
-      });
-    }
+      };
 
-    return id;
-  };
+      await db.inventoryItems.add(item);
+
+      // Create initial transaction if stock > 0
+      if (initialStock > 0) {
+        await db.inventoryTransactions.add({
+          id: `txn_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+          inventoryItemId: id,
+          type: "in",
+          quantity: initialStock,
+          reason: "Initial Stock",
+          stockBefore: 0,
+          stockAfter: initialStock,
+          createdAt: now,
+        });
+      }
+
+      return id;
+    },
+    []
+  );
 }
 
 export function useResolveAlert() {
-  return async (alertId: string) => {
+  return useCallback(async (alertId: string) => {
     await db.inventoryAlerts.update(alertId, {
-      isResolved: true,
+      isResolved: 1, // Changed from true to 1
       updatedAt: new Date().toISOString(),
     });
-  };
+  }, []);
 }
 
 export function useMarkAlertAsRead() {
-  return async (alertId: string) => {
+  return useCallback(async (alertId: string) => {
     await db.inventoryAlerts.update(alertId, {
-      isRead: true,
+      isRead: 1, // Changed from true to 1
       updatedAt: new Date().toISOString(),
     });
-  };
+  }, []);
 }
 
 // ============================================================================
-// HELPER FUNCTIONS
+// HELPER FUNCTIONS - Pure, optimized
 // ============================================================================
 
 function calculateStatus(
@@ -407,56 +696,4 @@ function calculateStatus(
   return "in-stock";
 }
 
-async function checkAndCreateAlerts(itemId: string) {
-  const item = await db.inventoryItems.get(itemId);
-  if (!item) return;
-
-  // Remove existing unresolved alerts for this item
-  const existingAlerts = await db.inventoryAlerts
-    .where("inventoryItemId")
-    .equals(itemId)
-    .and((alert) => !alert.isResolved)
-    .toArray();
-
-  await Promise.all(
-    existingAlerts.map((alert) =>
-      db.inventoryAlerts.update(alert.id, { isResolved: true })
-    )
-  );
-
-  // Create new alert based on status
-  if (item.status === "out-of-stock") {
-    await db.inventoryAlerts.add({
-      id: `alert_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
-      inventoryItemId: itemId,
-      alertType: "out-of-stock",
-      severity: "critical",
-      message: `${item.itemName} is out of stock`,
-      isRead: false,
-      isResolved: false,
-      createdAt: new Date().toISOString(),
-    });
-  } else if (item.status === "low-stock") {
-    await db.inventoryAlerts.add({
-      id: `alert_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
-      inventoryItemId: itemId,
-      alertType: "low-stock",
-      severity: "warning",
-      message: `${item.itemName} is running low (${item.currentStock} ${item.unit})`,
-      isRead: false,
-      isResolved: false,
-      createdAt: new Date().toISOString(),
-    });
-  } else if (item.status === "overstock") {
-    await db.inventoryAlerts.add({
-      id: `alert_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
-      inventoryItemId: itemId,
-      alertType: "overstock",
-      severity: "info",
-      message: `${item.itemName} is overstocked (${item.currentStock} ${item.unit})`,
-      isRead: false,
-      isResolved: false,
-      createdAt: new Date().toISOString(),
-    });
-  }
-}
+// Use centralized alert creation from src/lib/alerts.ts (no local implementation)

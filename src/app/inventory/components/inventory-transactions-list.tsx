@@ -1,77 +1,27 @@
 // src/app/inventory/components/inventory-transactions-list.tsx
 "use client";
 
-import {
-  useInventoryTransactions,
-  useInventoryItemsWithDetails,
-} from "@/hooks/use-inventory";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { ArrowUp, ArrowDown, RefreshCw, Calendar } from "lucide-react";
+import { Calendar } from "lucide-react";
 import { format } from "date-fns";
+import {
+  getTransactionTypeIcon,
+  getTransactionTypeBadge,
+} from "@/app/inventory/utils/inventory-utils";
+import {
+  useInventoryTransactions,
+  useGroupedTransactions,
+} from "@/hooks/use-inventory";
 
 export function InventoryTransactionsList() {
   const transactions = useInventoryTransactions();
-  const items = useInventoryItemsWithDetails();
+  const groupedTransactions = useGroupedTransactions();
 
   if (!transactions) {
     return <div>Loading...</div>;
   }
-
-  const groupByDate = (txns: typeof transactions) => {
-    const groups: Record<string, typeof transactions> = {};
-
-    txns.forEach((txn) => {
-      const date = format(new Date(txn.createdAt), "yyyy-MM-dd");
-      if (!groups[date]) groups[date] = [];
-      groups[date].push(txn);
-    });
-
-    return Object.entries(groups).sort(([a], [b]) => b.localeCompare(a));
-  };
-
-  const groupedTransactions = groupByDate(transactions);
-
-  const getTypeIcon = (type: string) => {
-    switch (type) {
-      case "in":
-        return <ArrowUp className="h-4 w-4 text-green-500" />;
-      case "out":
-        return <ArrowDown className="h-4 w-4 text-red-500" />;
-      case "adjustment":
-        return <RefreshCw className="h-4 w-4 text-blue-500" />;
-      default:
-        return null;
-    }
-  };
-
-  const getTypeBadge = (type: string) => {
-    switch (type) {
-      case "in":
-        return (
-          <Badge
-            variant="default"
-            className="bg-green-100 text-green-800 border-green-300"
-          >
-            Stock In
-          </Badge>
-        );
-      case "out":
-        return (
-          <Badge
-            variant="default"
-            className="bg-red-100 text-red-800 border-red-300"
-          >
-            Stock Out
-          </Badge>
-        );
-      case "adjustment":
-        return <Badge variant="secondary">Adjustment</Badge>;
-      default:
-        return <Badge variant="outline">{type}</Badge>;
-    }
-  };
 
   if (transactions.length === 0) {
     return (
@@ -83,6 +33,10 @@ export function InventoryTransactionsList() {
         </p>
       </div>
     );
+  }
+
+  if (!groupedTransactions) {
+    return <div>Loading...</div>;
   }
 
   return (
@@ -118,7 +72,7 @@ export function InventoryTransactionsList() {
                       <CardContent className="p-4">
                         <div className="flex items-start gap-4">
                           <div className="flex-shrink-0 mt-1">
-                            {getTypeIcon(txn.type)}
+                            {getTransactionTypeIcon(txn.type)}
                           </div>
 
                           <div className="flex-1 min-w-0">
@@ -128,7 +82,7 @@ export function InventoryTransactionsList() {
                                   {txn.inventoryItemId}
                                 </div>
                                 <div className="flex items-center gap-2 flex-wrap">
-                                  {getTypeBadge(txn.type)}
+                                  {getTransactionTypeBadge(txn.type)}
                                   <Badge variant="outline" className="text-xs">
                                     {txn.reason}
                                   </Badge>

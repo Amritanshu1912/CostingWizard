@@ -5,25 +5,27 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   Package,
   AlertTriangle,
-  TrendingUp,
   DollarSign,
   Beaker,
   Box,
   Tag,
 } from "lucide-react";
+import { MetricCard } from "@/components/ui/metric-card";
 import type { InventoryStats, InventoryItemWithDetails } from "@/lib/types";
+import { formatCurrency } from "@/app/inventory/utils/inventory-utils";
 import {
   PieChart,
   Pie,
   Cell,
   ResponsiveContainer,
-  Legend,
   Tooltip,
   BarChart,
   Bar,
   XAxis,
   YAxis,
+  CartesianGrid,
 } from "recharts";
+import { CHART_COLORS } from "@/lib/color-utils";
 
 interface InventoryOverviewProps {
   stats: InventoryStats | undefined;
@@ -34,14 +36,6 @@ export function InventoryOverview({ stats, items }: InventoryOverviewProps) {
   if (!stats || !items) {
     return <div>Loading...</div>;
   }
-
-  const formatCurrency = (value: number) => {
-    return new Intl.NumberFormat("en-IN", {
-      style: "currency",
-      currency: "INR",
-      maximumFractionDigits: 0,
-    }).format(value);
-  };
 
   // Pie chart data
   const pieData = [
@@ -62,14 +56,19 @@ export function InventoryOverview({ stats, items }: InventoryOverviewProps) {
     },
   ];
 
-  const COLORS = ["#60a5fa", "#34d399", "#fbbf24"];
+  const COLORS = [
+    CHART_COLORS.light.chart1,
+    CHART_COLORS.light.chart5,
+    CHART_COLORS.light.chart4,
+  ];
 
-  // Top 10 items by value
+  // Top 10 items by value - Vertical Bar Chart
   const topItems = [...items]
     .sort((a, b) => b.stockValue - a.stockValue)
     .slice(0, 10)
+    .reverse() // Reverse for better vertical display
     .map((item) => ({
-      name: item.itemName.slice(0, 20),
+      name: item.itemName.slice(0, 25),
       value: item.stockValue,
     }));
 
@@ -78,67 +77,36 @@ export function InventoryOverview({ stats, items }: InventoryOverviewProps) {
       <div className="space-y-6 animate-wave-in">
         {/* Metrics Cards */}
         <div className="grid grid-cols-4 gap-4">
-          <Card className="card-enhanced">
-            <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground">
-                Total Items
-              </CardTitle>
-              <Package className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-3xl font-bold">{stats.totalItems}</div>
-              <p className="text-xs text-muted-foreground mt-1">
-                Across all categories
-              </p>
-            </CardContent>
-          </Card>
+          <MetricCard
+            title="Total Items"
+            value={stats.totalItems}
+            icon={Package}
+            description="Across all categories"
+          />
 
-          <Card className="card-enhanced">
-            <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground">
-                Low Stock
-              </CardTitle>
-              <AlertTriangle className="h-4 w-4 text-yellow-500" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-3xl font-bold text-yellow-600">
-                {stats.lowStockCount}
-              </div>
-              <p className="text-xs text-muted-foreground mt-1">
-                Below minimum level
-              </p>
-            </CardContent>
-          </Card>
+          <MetricCard
+            title="Low Stock"
+            value={stats.lowStockCount}
+            icon={AlertTriangle}
+            iconClassName="text-yellow-600"
+            description="Below minimum level"
+          />
 
-          <Card className="card-enhanced">
-            <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground">
-                Out of Stock
-              </CardTitle>
-              <AlertTriangle className="h-4 w-4 text-destructive" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-3xl font-bold text-destructive">
-                {stats.outOfStockCount}
-              </div>
-              <p className="text-xs text-muted-foreground mt-1">
-                Requires immediate action
-              </p>
-            </CardContent>
-          </Card>
+          <MetricCard
+            title="Out of Stock"
+            value={stats.outOfStockCount}
+            icon={AlertTriangle}
+            iconClassName="text-destructive"
+            description="Requires immediate action"
+          />
 
-          <Card className="card-enhanced gradient-ocean text-primary-foreground">
-            <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-sm font-medium">Stock Value</CardTitle>
-              <DollarSign className="h-4 w-4" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-3xl font-bold">
-                {formatCurrency(stats.totalStockValue)}
-              </div>
-              <p className="text-xs opacity-90 mt-1">Total inventory worth</p>
-            </CardContent>
-          </Card>
+          <MetricCard
+            title="Stock Value"
+            value={formatCurrency(stats.totalStockValue)}
+            icon={DollarSign}
+            iconClassName="text-primary"
+            description="Total inventory worth"
+          />
         </div>
 
         {/* Charts Row */}
@@ -157,8 +125,7 @@ export function InventoryOverview({ stats, items }: InventoryOverviewProps) {
                     cy="50%"
                     labelLine={false}
                     label={(props) => {
-                      const { name } = props as any;
-                      const percent = (props as any).percent as number;
+                      const { name, percent } = props as any;
                       return `${name}: ${(percent * 100).toFixed(1)}%`;
                     }}
                     outerRadius={80}
@@ -180,27 +147,43 @@ export function InventoryOverview({ stats, items }: InventoryOverviewProps) {
             </CardContent>
           </Card>
 
-          {/* Top 10 Items by Value - Bar Chart */}
+          {/* Top 10 Items by Value - Vertical Bar Chart */}
           <Card className="card-enhanced">
             <CardHeader>
               <CardTitle className="text-base">Top 10 Items by Value</CardTitle>
             </CardHeader>
             <CardContent>
               <ResponsiveContainer width="100%" height={250}>
-                <BarChart data={topItems} layout="vertical">
-                  <XAxis type="number" hide />
-                  <YAxis
+                <BarChart data={topItems}>
+                  <CartesianGrid
+                    strokeDasharray="3 3"
+                    stroke="hsl(var(--border))"
+                    opacity={0.3}
+                  />
+                  <XAxis
                     dataKey="name"
                     type="category"
-                    width={100}
+                    width={120}
                     fontSize={11}
+                    stroke="hsl(var(--muted-foreground))"
+                  />
+                  <YAxis
+                    type="number"
+                    stroke="hsl(var(--muted-foreground))"
+                    fontSize={11}
+                    tickFormatter={(value) => `₹${(value / 1000).toFixed(0)}k`}
                   />
                   <Tooltip
                     formatter={(value: number) => formatCurrency(value)}
+                    contentStyle={{
+                      backgroundColor: "hsl(var(--popover))",
+                      border: "1px solid hsl(var(--border))",
+                      borderRadius: "8px",
+                    }}
                   />
                   <Bar
                     dataKey="value"
-                    fill="hsl(var(--color-primary))"
+                    fill={CHART_COLORS.light.chart1}
                     radius={[0, 4, 4, 0]}
                   />
                 </BarChart>
@@ -209,84 +192,87 @@ export function InventoryOverview({ stats, items }: InventoryOverviewProps) {
           </Card>
         </div>
 
-        {/* By Supplier Summary */}
-        <Card className="card-enhanced">
-          <CardHeader>
-            <CardTitle className="text-base">Stock by Supplier</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-3">
-              {stats.bySupplier
-                .sort((a, b) => b.totalValue - a.totalValue)
-                .slice(0, 8)
-                .map((supplier) => (
-                  <div
-                    key={supplier.supplierId}
-                    className="flex items-center justify-between p-3 rounded-lg bg-muted/30 border border-border/30"
-                  >
-                    <div className="flex-1">
-                      <div className="font-medium text-sm">
-                        {supplier.supplierName}
+        {/* By Supplier Summary and Stock Distribution Summary Container */}
+        <div className="flex gap-6">
+          {/* By Supplier Summary */}
+          <Card className="card-enhanced flex-1">
+            <CardHeader>
+              <CardTitle className="text-base">Stock by Supplier</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-3">
+                {stats.bySupplier
+                  .sort((a, b) => b.totalValue - a.totalValue)
+                  .slice(0, 8)
+                  .map((supplier) => (
+                    <div
+                      key={supplier.supplierId}
+                      className="flex items-center justify-between p-3 rounded-lg bg-muted/30 border border-border/30"
+                    >
+                      <div className="flex-1">
+                        <div className="font-medium text-sm">
+                          {supplier.supplierName}
+                        </div>
+                        <div className="text-xs text-muted-foreground">
+                          {supplier.itemCount} items
+                        </div>
                       </div>
-                      <div className="text-xs text-muted-foreground">
-                        {supplier.itemCount} items
+                      <div className="text-right">
+                        <div className="font-semibold text-sm">
+                          {formatCurrency(supplier.totalValue)}
+                        </div>
                       </div>
                     </div>
-                    <div className="text-right">
-                      <div className="font-semibold text-sm">
-                        {formatCurrency(supplier.totalValue)}
-                      </div>
-                    </div>
+                  ))}
+              </div>
+            </CardContent>
+          </Card>
+          {/* Stock Distribution Summary - grid in card */}
+          <Card className="card-enhanced flex-1">
+            <CardHeader>
+              <CardTitle className="text-base">
+                Stock Distribution Summary
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-3 gap-4">
+                <div>
+                  <div className="flex items-center gap-2 pb-2">
+                    <Beaker className="h-5 w-5 text-blue-500" />
+                    <div className="text-sm font-medium">Materials</div>
                   </div>
-                ))}
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Stock Distribution Summary */}
-        <div className="grid grid-cols-3 gap-4">
-          <Card className="card-enhanced">
-            <CardHeader className="flex flex-row items-center gap-2 pb-2">
-              <Beaker className="h-5 w-5 text-blue-500" />
-              <CardTitle className="text-sm font-medium">Materials</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">
-                {stats.byType.materials.count}
+                  <div className="text-2xl font-bold">
+                    {stats.byType.materials.count}
+                  </div>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    {formatCurrency(stats.byType.materials.value)}
+                  </p>
+                </div>
+                <div>
+                  <div className="flex items-center gap-2 pb-2">
+                    <Box className="h-5 w-5 text-green-500" />
+                    <div className="text-sm font-medium">Packaging</div>
+                  </div>
+                  <div className="text-2xl font-bold">
+                    {stats.byType.packaging.count}
+                  </div>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    {formatCurrency(stats.byType.packaging.value)}
+                  </p>
+                </div>
+                <div>
+                  <div className="flex items-center gap-2 pb-2">
+                    <Tag className="h-5 w-5 text-yellow-500" />
+                    <div className="text-sm font-medium">Labels</div>
+                  </div>
+                  <div className="text-2xl font-bold">
+                    {stats.byType.labels.count}
+                  </div>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    {formatCurrency(stats.byType.labels.value)}
+                  </p>
+                </div>
               </div>
-              <p className="text-xs text-muted-foreground mt-1">
-                {formatCurrency(stats.byType.materials.value)}
-              </p>
-            </CardContent>
-          </Card>
-
-          <Card className="card-enhanced">
-            <CardHeader className="flex flex-row items-center gap-2 pb-2">
-              <Box className="h-5 w-5 text-green-500" />
-              <CardTitle className="text-sm font-medium">Packaging</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">
-                {stats.byType.packaging.count}
-              </div>
-              <p className="text-xs text-muted-foreground mt-1">
-                {formatCurrency(stats.byType.packaging.value)}
-              </p>
-            </CardContent>
-          </Card>
-
-          <Card className="card-enhanced">
-            <CardHeader className="flex flex-row items-center gap-2 pb-2">
-              <Tag className="h-5 w-5 text-yellow-500" />
-              <CardTitle className="text-sm font-medium">Labels</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">
-                {stats.byType.labels.count}
-              </div>
-              <p className="text-xs text-muted-foreground mt-1">
-                {formatCurrency(stats.byType.labels.value)}
-              </p>
             </CardContent>
           </Card>
         </div>
