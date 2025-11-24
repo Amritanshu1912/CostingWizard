@@ -66,49 +66,54 @@ export function TransactionHistoryCard({
               ) : (
                 <ClockIcon className="h-4 w-4 text-amber-500" />
               );
+            const isIn = tx.type === "in";
+            const isOut = tx.type === "out";
+            const qtyClass = isIn
+              ? "text-green-600"
+              : isOut
+              ? "text-destructive"
+              : "text-amber-600";
+            const label = isIn ? `+${qty}` : isOut ? `-${qty}` : `${qty}`;
 
             return (
               <div
                 key={tx.id}
-                className="flex items-center justify-between gap-4 px-2 py-2 rounded-md hover:bg-accent/5 transition-colors"
+                className="flex items-start gap-1 px-2 py-2 rounded-md hover:bg-accent/5 transition-colors"
               >
-                <div className="flex items-center gap-3 min-w-0">
-                  <div className="flex items-center justify-center h-9 w-9 rounded-md bg-muted/10">
-                    {typeIcon}
-                  </div>
-                  <div className="min-w-0">
-                    <div className="text-sm font-medium truncate">
-                      {itemName}
-                      {supplierName && (
-                        <span className="text-xs text-muted-foreground ml-1">{`(${supplierName})`}</span>
-                      )}
-                    </div>
-                    <div className="text-xs text-muted-foreground">
-                      {tx.reason}
-                    </div>
-                    <div className="text-xs text-muted-foreground">
-                      {new Date(tx.createdAt).toLocaleString()}
-                    </div>
-                  </div>
+                <div className="flex-none flex items-center justify-center h-9 w-9 rounded-md bg-muted/10">
+                  {typeIcon}
                 </div>
 
-                <div className="text-right flex items-end gap-1 text-sm font-semibold">
-                  {(() => {
-                    const isIn = tx.type === "in";
-                    const isOut = tx.type === "out";
-                    const qtyClass = isIn
-                      ? "text-green-600"
-                      : isOut
-                      ? "text-destructive"
-                      : "text-amber-600";
-                    const label = isIn
-                      ? `+${qty}`
-                      : isOut
-                      ? `-${qty}`
-                      : `${qty}`;
-                    return <div className={qtyClass}>{label}</div>;
-                  })()}
-                  <span>{tx.unit}</span>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center justify-between gap-4">
+                    <div className="min-w-0 pr-2">
+                      <div className="text-sm font-medium truncate">
+                        <span className="align-middle">{itemName}</span>
+                        {supplierName && (
+                          <span className="text-xs text-muted-foreground ml-1">{`(${supplierName})`}</span>
+                        )}
+                      </div>
+                    </div>
+
+                    <div className="flex-shrink-0 text-right text-sm font-semibold flex items-center justify-end gap-1">
+                      <div className={qtyClass}>{label}</div>
+                      <span className="whitespace-nowrap">{tx.unit}</span>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center justify-between gap-4 mt-1 text-xs text-muted-foreground">
+                    <div className="min-w-0 truncate">{tx.reason}</div>
+                    <div className="flex-shrink-0 whitespace-nowrap">
+                      {new Intl.DateTimeFormat("en-GB", {
+                        day: "2-digit",
+                        month: "2-digit",
+                        year: "2-digit",
+                        hour: "2-digit",
+                        minute: "2-digit",
+                        hour12: false,
+                      }).format(new Date(tx.createdAt))}
+                    </div>
+                  </div>
                 </div>
               </div>
             );
