@@ -55,6 +55,7 @@ export function InventoryItemDialog({
   const [reason, setReason] = useState("Manual Adjustment");
   const [reference, setReference] = useState("");
   const [adjustmentNotes, setAdjustmentNotes] = useState("");
+  const [stockMode, setStockMode] = useState<"add" | "adjust">("adjust");
 
   const [loading, setLoading] = useState(false);
 
@@ -140,9 +141,17 @@ export function InventoryItemDialog({
     (item) => item.id === selectedItemId
   );
 
-  // Calculate stock change for EDIT mode
-  const stockChanged = isEditMode && currentStock !== item.currentStock;
-  const stockDifference = isEditMode ? currentStock - item.currentStock : 0;
+  // Calculate stock change for EDIT mode (mode-aware)
+  const stockChanged =
+    isEditMode &&
+    (stockMode === "add"
+      ? currentStock !== 0
+      : currentStock !== item.currentStock);
+  const stockDifference = isEditMode
+    ? stockMode === "add"
+      ? currentStock
+      : currentStock - item.currentStock
+    : 0;
 
   // Reset form when dialog opens/closes or mode changes
   useEffect(() => {
@@ -155,6 +164,7 @@ export function InventoryItemDialog({
       setReason("Manual Adjustment");
       setReference("");
       setAdjustmentNotes("");
+      setStockMode("adjust");
     } else if (open && !isEditMode) {
       // ADD MODE: Reset to defaults
       setItemType("supplierMaterial");
@@ -319,9 +329,21 @@ export function InventoryItemDialog({
           {/* === EDIT MODE: Item Info Display === */}
           {isEditMode && (
             <div className="p-4 rounded-lg bg-muted/30 border border-border/50">
-              <div className="font-semibold text-lg">{item.itemName}</div>
-              <div className="text-sm text-muted-foreground">
-                {item.supplierName}
+              <div className="flex items-start justify-between gap-4">
+                <div className="min-w-0">
+                  <div className="font-semibold text-lg truncate">
+                    {item.itemName}
+                  </div>
+                  <div className="text-sm text-muted-foreground truncate">
+                    {item.supplierName}
+                  </div>
+                </div>
+                <div className="text-right">
+                  <div className="text-sm text-muted-foreground">Current</div>
+                  <div className="font-semibold">
+                    {item.currentStock} {item.unit}
+                  </div>
+                </div>
               </div>
             </div>
           )}
@@ -339,11 +361,34 @@ export function InventoryItemDialog({
             </Label>
 
             {isEditMode && (
-              <div className="flex items-center justify-between text-sm pb-2">
-                <span className="text-muted-foreground">Current:</span>
-                <span className="font-semibold">
-                  {item.currentStock} {item.unit}
-                </span>
+              <div className="flex items-center gap-4 mb-3">
+                <Label className="text-sm">Mode:</Label>
+                <div className="flex gap-3">
+                  <label className="flex items-center gap-2 cursor-pointer">
+                    <input
+                      type="radio"
+                      checked={stockMode === "adjust"}
+                      onChange={() => {
+                        setStockMode("adjust");
+                        setCurrentStock(item.currentStock);
+                      }}
+                      className="w-4 h-4"
+                    />
+                    <span className="text-sm">Set New Total</span>
+                  </label>
+                  <label className="flex items-center gap-2 cursor-pointer">
+                    <input
+                      type="radio"
+                      checked={stockMode === "add"}
+                      onChange={() => {
+                        setStockMode("add");
+                        setCurrentStock(0);
+                      }}
+                      className="w-4 h-4"
+                    />
+                    <span className="text-sm">Add Quantity</span>
+                  </label>
+                </div>
               </div>
             )}
 
@@ -377,54 +422,66 @@ export function InventoryItemDialog({
                   <Plus className="h-4 w-4" />
                 </Button>
               </div>
+              <div className="flex flex-row gap-4">
+                {isEditMode && stockChanged && (
+                  <div
+                    className={`text-sm font-medium ${
+                      stockDifference > 0 ? "text-green-600" : "text-red-600"
+                    }`}
+                  >
+                    {stockDifference > 0 ? "+" : ""}
+                    {stockDifference} {item.unit} change
+                  </div>
+                )}
 
-              {isEditMode && stockChanged && (
-                <div
-                  className={`text-sm font-medium ${
-                    stockDifference > 0 ? "text-green-600" : "text-red-600"
-                  }`}
-                >
-                  {stockDifference > 0 ? "+" : ""}
-                  {stockDifference} {item.unit} change
-                </div>
-              )}
+                {isEditMode && stockMode === "add" && currentStock !== 0 && (
+                  <div className="text-sm text-muted-foreground">
+                    New total will be:{" "}
+                    <span className="font-semibold text-foreground">
+                      {item.currentStock + currentStock} {item.unit}
+                    </span>
+                  </div>
+                )}
+              </div>
             </div>
 
             {/* === EDIT MODE ONLY: Show reason fields if stock changed === */}
             {isEditMode && stockChanged && (
-              <div className="space-y-3 pt-3 border-t border-border/30">
-                <div className="space-y-2">
-                  <Label>Reason for Change</Label>
-                  <Select value={reason} onValueChange={setReason}>
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="Purchase Order">
-                        Purchase Order
-                      </SelectItem>
-                      <SelectItem value="Production Batch">
-                        Production Batch
-                      </SelectItem>
-                      <SelectItem value="Manual Adjustment">
-                        Manual Adjustment
-                      </SelectItem>
-                      <SelectItem value="Stocktake">Stocktake</SelectItem>
-                      <SelectItem value="Damage/Waste">Damage/Waste</SelectItem>
-                      <SelectItem value="Return">Return</SelectItem>
-                    </SelectContent>
-                  </Select>
+              <div className="space-y-3 pt-3 border-t border-border/50">
+                <div className="grid grid-cols-2 gap-4 sm:grid-cols-2">
+                  <div className="space-y-2">
+                    <Label>Reason for Change</Label>
+                    <Select value={reason} onValueChange={setReason}>
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="Purchase Order">
+                          Purchase Order
+                        </SelectItem>
+                        <SelectItem value="Production Batch">
+                          Production Batch
+                        </SelectItem>
+                        <SelectItem value="Manual Adjustment">
+                          Manual Adjustment
+                        </SelectItem>
+                        <SelectItem value="Stocktake">Stocktake</SelectItem>
+                        <SelectItem value="Damage/Waste">
+                          Damage/Waste
+                        </SelectItem>
+                        <SelectItem value="Return">Return</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Reference (Optional)</Label>
+                    <Input
+                      value={reference}
+                      onChange={(e) => setReference(e.target.value)}
+                      placeholder="e.g., PO-1234, BATCH-001"
+                    />
+                  </div>
                 </div>
-
-                <div className="space-y-2">
-                  <Label>Reference (Optional)</Label>
-                  <Input
-                    value={reference}
-                    onChange={(e) => setReference(e.target.value)}
-                    placeholder="e.g., PO-1234, BATCH-001"
-                  />
-                </div>
-
                 <div className="space-y-2">
                   <Label>Adjustment Notes (Optional)</Label>
                   <Textarea

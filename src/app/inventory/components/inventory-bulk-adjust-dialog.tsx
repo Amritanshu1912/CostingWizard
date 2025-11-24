@@ -1,7 +1,7 @@
 // src/app/inventory/components/inventory-bulk-adjust-dialog.tsx
 "use client";
 
-import { useState, useMemo } from "react";
+import React, { useEffect, useState } from "react";
 import {
   Dialog,
   DialogContent,
@@ -22,8 +22,9 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import {
-  useInventoryItemsWithDetails,
+  useAllItemsWithInventoryStatus,
   useAdjustStock,
+  useCreateInventoryItem,
 } from "@/hooks/use-inventory";
 import { Search } from "lucide-react";
 import { toast } from "sonner";
@@ -35,47 +36,75 @@ interface BulkAdjustDialogProps {
 }
 
 interface BulkItem {
-  id: string;
+  id: string; // may be an untracked id like 'untracked-...'
+  itemId?: string; // original supplier item id for untracked rows
   itemName: string;
   supplierName: string;
   currentStock: number;
   unit: string;
   itemType: string;
   selected: boolean;
-  quantity: number;
+  quantity: number; // user-entered value (delta or desired total depending on mode)
 }
 
 export function BulkAdjustDialog({
   open,
   onOpenChange,
 }: BulkAdjustDialogProps) {
-  const items = useInventoryItemsWithDetails();
+  const items = useAllItemsWithInventoryStatus();
   const adjustStock = useAdjustStock();
+  const createInventoryItem = useCreateInventoryItem();
 
   const [searchQuery, setSearchQuery] = useState("");
   const [reason, setReason] = useState("Purchase Order");
   const [reference, setReference] = useState("");
   const [loading, setLoading] = useState(false);
-
   const [bulkItems, setBulkItems] = useState<BulkItem[]>([]);
+  const [mode, setMode] = useState<"add" | "adjust">("add");
 
-  // Initialize bulk items when items load
-  useMemo(() => {
-    if (items && bulkItems.length === 0) {
+  // Initialize/reconcile bulkItems from combined items
+  useEffect(() => {
+    if (!items) return;
+
+    // If not yet initialized, create base list
+    if (bulkItems.length === 0) {
       setBulkItems(
-        items.map((item) => ({
-          id: item.id,
-          itemName: item.itemName,
-          supplierName: item.supplierName,
-          currentStock: item.currentStock,
-          unit: item.unit,
-          itemType: item.itemType,
+        items.map((it) => ({
+          id: it.id,
+          itemId: (it as any).itemId || undefined,
+          itemName: it.itemName,
+          supplierName: it.supplierName,
+          currentStock: it.currentStock,
+          unit: it.unit,
+          itemType: it.itemType,
           selected: false,
           quantity: 0,
         }))
       );
+      return;
     }
-  }, [items, bulkItems.length]);
+
+    // Add newly-appeared items while preserving user edits
+    const missing = items.filter(
+      (it) => !bulkItems.some((b) => b.id === it.id)
+    );
+    if (missing.length > 0) {
+      setBulkItems((prev) => [
+        ...prev,
+        ...missing.map((it) => ({
+          id: it.id,
+          itemId: (it as any).itemId || undefined,
+          itemName: it.itemName,
+          supplierName: it.supplierName,
+          currentStock: it.currentStock,
+          unit: it.unit,
+          itemType: it.itemType,
+          selected: false,
+          quantity: 0,
+        })),
+      ]);
+    }
+  }, [items]);
 
   const filteredItems = bulkItems.filter(
     (item) =>
@@ -88,34 +117,29 @@ export function BulkAdjustDialog({
     (item) => item.quantity !== 0
   ).length;
 
-  const toggleSelection = (id: string) => {
+  const toggleSelection = (id: string) =>
     setBulkItems((prev) =>
-      prev.map((item) =>
-        item.id === id ? { ...item, selected: !item.selected } : item
-      )
+      prev.map((i) => (i.id === id ? { ...i, selected: !i.selected } : i))
     );
-  };
 
-  const updateQuantity = (id: string, quantity: number) => {
+  const updateQuantity = (id: string, quantity: number) =>
     setBulkItems((prev) =>
-      prev.map((item) => (item.id === id ? { ...item, quantity } : item))
+      prev.map((i) => (i.id === id ? { ...i, quantity } : i))
     );
-  };
 
   const selectAll = () => {
-    const allSelected = filteredItems.every((item) => item.selected);
+    const allSelected = filteredItems.every((f) => f.selected);
     setBulkItems((prev) =>
-      prev.map((item) =>
-        filteredItems.some((fi) => fi.id === item.id)
-          ? { ...item, selected: !allSelected }
-          : item
+      prev.map((it) =>
+        filteredItems.some((f) => f.id === it.id)
+          ? { ...it, selected: !allSelected }
+          : it
       )
     );
   };
 
   const handleSubmit = async () => {
     const itemsToAdjust = selectedItems.filter((item) => item.quantity !== 0);
-
     if (itemsToAdjust.length === 0) {
       toast.error("No items with quantities to adjust");
       return;
@@ -127,32 +151,43 @@ export function BulkAdjustDialog({
 
     for (const item of itemsToAdjust) {
       try {
-        await adjustStock(
-          item.id,
-          item.quantity,
-          reason,
-          reference,
-          `Bulk adjustment: ${item.itemName}`
-        );
-        successCount++;
-      } catch (error) {
-        console.error(`Failed to adjust ${item.itemName}:`, error);
+        // Untracked supplier items may have ids like 'untracked-...'
+        if (item.id.startsWith("untracked-") && item.itemId) {
+          const initialStock = item.quantity;
+          await createInventoryItem(
+            item.itemType as any,
+            item.itemId,
+            initialStock,
+            100,
+            undefined,
+            item.unit
+          );
+          successCount++;
+        } else {
+          const delta =
+            mode === "add" ? item.quantity : item.quantity - item.currentStock;
+          await adjustStock(
+            item.id,
+            delta,
+            reason,
+            reference,
+            `Bulk adjustment: ${item.itemName}`
+          );
+          successCount++;
+        }
+      } catch (err) {
+        console.error(err);
         failCount++;
       }
     }
 
     setLoading(false);
-
-    if (successCount > 0) {
+    if (successCount > 0)
       toast.success(`Successfully adjusted ${successCount} items`);
-    }
-    if (failCount > 0) {
-      toast.error(`Failed to adjust ${failCount} items`);
-    }
+    if (failCount > 0) toast.error(`Failed to adjust ${failCount} items`);
 
     if (successCount === itemsToAdjust.length) {
       onOpenChange(false);
-      // Reset
       setBulkItems((prev) =>
         prev.map((item) => ({ ...item, selected: false, quantity: 0 }))
       );
@@ -180,8 +215,7 @@ export function BulkAdjustDialog({
             />
           </div>
 
-          {/* Common Fields */}
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-3 gap-4">
             <div className="space-y-2">
               <Label>Reason</Label>
               <Select value={reason} onValueChange={setReason}>
@@ -200,6 +234,7 @@ export function BulkAdjustDialog({
                 </SelectContent>
               </Select>
             </div>
+
             <div className="space-y-2">
               <Label>Reference (Optional)</Label>
               <Input
@@ -207,6 +242,58 @@ export function BulkAdjustDialog({
                 onChange={(e) => setReference(e.target.value)}
                 placeholder="e.g., PO-1234"
               />
+            </div>
+
+            <div className="space-y-2">
+              <Label>Mode</Label>
+              <div className="flex gap-2 items-center">
+                {/* <label className="flex items-center gap-2 cursor-pointer">
+                  <input
+                    type="radio"
+                    checked={stockMode === "adjust"}
+                    onChange={() => {
+                      setStockMode("adjust");
+                      setCurrentStock(item.currentStock);
+                    }}
+                    className="w-4 h-4"
+                  />
+                  <span className="text-sm">Set New Total</span>
+                </label>
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input
+                    type="radio"
+                    checked={stockMode === "add"}
+                    onChange={() => {
+                      setStockMode("add");
+                      setCurrentStock(0);
+                    }}
+                    className="w-4 h-4"
+                  />
+                  <span className="text-sm">Add Quantity</span>
+                </label> */}
+
+                <Button
+                  type="button"
+                  variant={mode === "add" ? "default" : "outline"}
+                  size="sm"
+                  onClick={() => setMode("add")}
+                >
+                  Add
+                </Button>
+                <Button
+                  type="button"
+                  variant={mode === "adjust" ? "default" : "outline"}
+                  size="sm"
+                  onClick={() => setMode("adjust")}
+                >
+                  Adjust
+                </Button>
+              </div>
+              <p className="text-xs text-muted-foreground">
+                {mode === "add"
+                  ? "Each quantity will be added to the current stock."
+                  : "Each quantity will be treated as the new total stock for that item."}
+              </p>
             </div>
           </div>
 
@@ -282,7 +369,10 @@ export function BulkAdjustDialog({
                           New total:{" "}
                         </span>
                         <span className="font-semibold">
-                          {item.currentStock + item.quantity} {item.unit}
+                          {mode === "add"
+                            ? item.currentStock + item.quantity
+                            : item.quantity}{" "}
+                          {item.unit}
                         </span>
                       </div>
                     )}
@@ -301,7 +391,11 @@ export function BulkAdjustDialog({
             onClick={handleSubmit}
             disabled={loading || totalAdjustments === 0}
           >
-            {loading ? "Processing..." : `Adjust ${totalAdjustments} Items`}
+            {loading
+              ? "Processing..."
+              : mode === "add"
+              ? `Add ${totalAdjustments} Items`
+              : `Set ${totalAdjustments} Items`}
           </Button>
         </DialogFooter>
       </DialogContent>

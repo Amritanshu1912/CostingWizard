@@ -66,8 +66,8 @@ export function ItemTransactionsDialog({
                             </div>
                             <div className="flex-1">
                               <div className="flex items-start justify-between gap-2 mb-2">
-                                <div className="flex-1">
-                                  <div className="flex items-center gap-2 flex-wrap">
+                                <div className="flex-1 gap-2">
+                                  <div className="flex items-center gap-2 flex-wrap mb-2">
                                     {getTransactionTypeBadge(txn.type)}
                                     <Badge
                                       variant="outline"
@@ -84,30 +84,38 @@ export function ItemTransactionsDialog({
                                       </Badge>
                                     )}
                                   </div>
+                                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                                    <span>{txn.stockBefore}</span>
+                                    <span>→</span>
+                                    <span className="font-semibold text-foreground">
+                                      {txn.stockAfter}
+                                    </span>
+                                  </div>
                                 </div>
                                 <div className="text-right">
                                   <div
-                                    className={`text-lg font-bold ${
+                                    className={`text-lg font-bold mb-1 ${
                                       txn.type === "in"
                                         ? "text-green-600"
                                         : "text-red-600"
                                     }`}
                                   >
                                     {txn.type === "in" ? "+" : "-"}
-                                    {txn.quantity}
+                                    {txn.quantity} {item.unit}
                                   </div>
                                   <div className="text-xs text-muted-foreground">
-                                    {format(new Date(txn.createdAt), "h:mm a")}
+                                    {new Intl.DateTimeFormat("en-GB", {
+                                      day: "2-digit",
+                                      month: "2-digit",
+                                      year: "2-digit",
+                                      hour: "2-digit",
+                                      minute: "2-digit",
+                                      hour12: false,
+                                    }).format(new Date(txn.createdAt))}
                                   </div>
                                 </div>
                               </div>
-                              <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                                <span>{txn.stockBefore}</span>
-                                <span>→</span>
-                                <span className="font-semibold text-foreground">
-                                  {txn.stockAfter}
-                                </span>
-                              </div>
+
                               {txn.notes && (
                                 <div className="mt-2 pt-2 border-t border-border/50">
                                   <p className="text-sm text-muted-foreground italic">
