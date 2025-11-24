@@ -8,16 +8,19 @@ import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import {
   BarChart3,
-  Package,
-  FlaskConical as Flask,
-  Calendar,
-  ShoppingCart,
-  Menu,
-  X,
   Box,
+  Container,
+  Database,
+  FlaskConical,
+  Menu,
+  Package,
+  ShoppingBag,
+  ShoppingCart,
   Tag,
   Users,
-  Layers,
+  Warehouse,
+  X,
+  Sparkles,
 } from "lucide-react";
 
 const navigation = [
@@ -30,6 +33,11 @@ const navigation = [
     name: "Suppliers",
     href: "/suppliers",
     icon: Users,
+  },
+  {
+    name: "Inventory",
+    href: "/inventory",
+    icon: Warehouse,
   },
   {
     name: "Materials",
@@ -49,23 +57,19 @@ const navigation = [
   {
     name: "Recipes",
     href: "/recipes",
-    icon: Flask,
+    icon: FlaskConical,
   },
   {
-    name: "Compose Products",
+    name: "Products",
     href: "/compose-products",
-    icon: Package,
+    icon: ShoppingBag,
   },
   {
     name: "Batches",
     href: "/batches",
-    icon: Layers,
+    icon: Container,
   },
-  {
-    name: "Inventory",
-    href: "/inventory",
-    icon: Layers,
-  },
+
   // {
   //   name: "Planning",
   //   href: "/planning",
@@ -79,7 +83,7 @@ const navigation = [
   {
     name: "Data Management",
     href: "/data-management",
-    icon: ShoppingCart,
+    icon: Database,
   },
 ];
 
@@ -99,7 +103,7 @@ export function Sidebar() {
         {!isCollapsed && (
           <div className="flex items-center space-x-2">
             <div className="w-8 h-8 gradient-primary rounded-lg flex items-center justify-center text-primary-foreground">
-              <Flask className="text-primary-foreground" />
+              <Sparkles className="text-primary" />
             </div>
             <span className="font-bold text-lg text-sidebar-foreground">
               CostWizard
@@ -110,7 +114,7 @@ export function Sidebar() {
           variant="ghost"
           size="sm"
           onClick={() => setIsCollapsed(!isCollapsed)}
-          className="h-8 w-8 p-0 text-sidebar-foreground hover:bg-sidebar-accent"
+          className="h-8 w-8 p-0 text-sidebar-foreground hover:bg-accent"
         >
           {isCollapsed ? <Menu /> : <X />}
         </Button>

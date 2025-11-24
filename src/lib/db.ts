@@ -42,7 +42,7 @@ import {
 import {
   PRODUCT_VARIANTS,
   PRODUCTS,
-} from "@/app/compose-products/components/products-constants";
+} from "@/app/products/components/products-constants";
 import { PRODUCTION_BATCHES } from "@/app/batches/components/planning-constants";
 import {
   MOCK_INVENTORY_ITEMS,
