@@ -246,48 +246,25 @@ export function BulkAdjustDialog({
 
             <div className="space-y-2">
               <Label>Mode</Label>
-              <div className="flex gap-2 items-center">
-                {/* <label className="flex items-center gap-2 cursor-pointer">
+              <div className="flex gap-3">
+                <label className="flex items-center gap-2 cursor-pointer">
                   <input
                     type="radio"
-                    checked={stockMode === "adjust"}
-                    onChange={() => {
-                      setStockMode("adjust");
-                      setCurrentStock(item.currentStock);
-                    }}
+                    checked={mode === "add"}
+                    onChange={() => setMode("add")}
                     className="w-4 h-4"
                   />
-                  <span className="text-sm">Set New Total</span>
+                  <span className="text-sm">Add Quantity</span>
                 </label>
                 <label className="flex items-center gap-2 cursor-pointer">
                   <input
                     type="radio"
-                    checked={stockMode === "add"}
-                    onChange={() => {
-                      setStockMode("add");
-                      setCurrentStock(0);
-                    }}
+                    checked={mode === "adjust"}
+                    onChange={() => setMode("adjust")}
                     className="w-4 h-4"
                   />
-                  <span className="text-sm">Add Quantity</span>
-                </label> */}
-
-                <Button
-                  type="button"
-                  variant={mode === "add" ? "default" : "outline"}
-                  size="sm"
-                  onClick={() => setMode("add")}
-                >
-                  Add
-                </Button>
-                <Button
-                  type="button"
-                  variant={mode === "adjust" ? "default" : "outline"}
-                  size="sm"
-                  onClick={() => setMode("adjust")}
-                >
-                  Adjust
-                </Button>
+                  <span className="text-sm">Set New Total</span>
+                </label>
               </div>
               <p className="text-xs text-muted-foreground">
                 {mode === "add"

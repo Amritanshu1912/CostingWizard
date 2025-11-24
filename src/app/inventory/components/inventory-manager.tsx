@@ -39,7 +39,7 @@ export function InventoryManager() {
             <Plus /> Add Stock
           </Button>
           <Button onClick={() => setShowBulkDialog(true)}>
-            <Package /> Bulk Adjust
+            <Package /> Bulk Add/Adjust
           </Button>
         </div>
       </div>
@@ -48,7 +48,6 @@ export function InventoryManager() {
         <TabsList className="grid w-full grid-cols-2">
           <TabsTrigger value="overview">Overview</TabsTrigger>
           <TabsTrigger value="stock">Stock List</TabsTrigger>
-          
         </TabsList>
 
         <TabsContent value="overview" className="mt-0">
