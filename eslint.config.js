@@ -1,0 +1,30 @@
+import next from "eslint-config-next";
+import tseslint from "@typescript-eslint/eslint-plugin";
+import tsparser from "@typescript-eslint/parser";
+
+const eslintConfig = [
+    {
+        ignores: ["node_modules", ".next"],
+    },
+
+    // Next.js config (must be first actual config)
+    ...next,
+
+    {
+        files: ["**/*.{ts,tsx}"],
+        languageOptions: {
+            parser: tsparser,
+            parserOptions: {
+                project: "./tsconfig.json",
+            },
+        },
+        plugins: {
+            "@typescript-eslint": tseslint,
+        },
+        rules: {
+            "@typescript-eslint/no-unused-vars": "warn",
+        },
+    },
+];
+
+export default eslintConfig;
