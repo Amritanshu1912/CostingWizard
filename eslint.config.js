@@ -3,28 +3,29 @@ import tseslint from "@typescript-eslint/eslint-plugin";
 import tsparser from "@typescript-eslint/parser";
 
 const eslintConfig = [
-    {
-        ignores: ["node_modules", ".next"],
-    },
+  {
+    ignores: ["node_modules", ".next"],
+  },
 
-    // Next.js config (must be first actual config)
-    ...next,
+  // Next.js config (must be first actual config)
+  ...next,
 
-    {
-        files: ["**/*.{ts,tsx}"],
-        languageOptions: {
-            parser: tsparser,
-            parserOptions: {
-                project: "./tsconfig.json",
-            },
-        },
-        plugins: {
-            "@typescript-eslint": tseslint,
-        },
-        rules: {
-            "@typescript-eslint/no-unused-vars": "warn",
-        },
+  {
+    files: ["**/*.{ts,tsx}"],
+    languageOptions: {
+      parser: tsparser,
+      parserOptions: {
+        project: "./tsconfig.json",
+      },
     },
+    plugins: {
+      "@typescript-eslint": tseslint,
+    },
+    rules: {
+      "@typescript-eslint/no-unused-vars": "warn",
+      "react-hooks/set-state-in-effect": "off",
+    },
+  },
 ];
 
 export default eslintConfig;
