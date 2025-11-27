@@ -1,14 +1,11 @@
-// recipes-detail-view.tsx - Fixed with preserved styling and proper calculations
-import React, { useState, useEffect, useMemo } from "react";
-import { Card, CardContent } from "@/components/ui/card";
+// src/app/recipes/components/recipe-views/recipes-detail-view.tsx
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
-import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Select,
   SelectContent,
@@ -24,38 +21,45 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Textarea } from "@/components/ui/textarea";
+import { useMaterialsWithSuppliers } from "@/hooks/use-recipes";
+import { useSupplierMaterialsWithDetails } from "@/hooks/use-supplier-materials-with-details";
 import {
-  Edit,
-  Trash2,
-  Eye,
-  Package,
-  FileText,
-  Target,
-  CheckCircle2,
-  AlertCircle,
-  Info,
-  Lock,
-  Unlock,
-  Plus,
-  X,
-  Save,
-  XCircle,
-  DollarSign,
-  Sparkles,
-} from "lucide-react";
+  convertToBaseUnit,
+  formatQuantity,
+  normalizeToKg,
+} from "@/hooks/use-unit-conversion";
 import type {
+  LockedPricing,
+  Recipe,
   RecipeDisplay,
+  RecipeIngredient,
   RecipeIngredientDisplay,
   RecipeVariant,
-  RecipeIngredient,
-  Recipe,
 } from "@/lib/types";
-import { getStatusColors } from "../recipe-colors";
 import { formatDate } from "@/lib/utils";
-import { recipeCalculator } from "@/hooks/use-recipes";
-import { useSupplierMaterialsWithDetails } from "@/hooks/use-supplier-materials-with-details";
-import { useMaterialsWithSuppliers } from "@/hooks/use-recipes";
+import {
+  AlertCircle,
+  CheckCircle2,
+  Edit,
+  Eye,
+  FileText,
+  Info,
+  Lock,
+  Package,
+  Plus,
+  Save,
+  Sparkles,
+  Target,
+  Trash2,
+  Unlock,
+  X,
+  XCircle,
+} from "lucide-react";
+import { useMemo, useState } from "react";
 import { toast } from "sonner";
+import { getStatusColors } from "../recipe-colors";
 import { RecipeCostDistributionChart } from "./recipe-cost-distribution-chart";
 import { RecipeWeightDistributionChart } from "./recipe-weight-distribution-chart";
 
@@ -86,6 +90,7 @@ interface EditableIngredient extends RecipeIngredient {
   _isNew?: boolean;
   // Temporary fields for two-dropdown selection
   selectedMaterialId?: string;
+  lockedPricing?: LockedPricing;
 }
 
 export function RecipeDetailView({
@@ -119,49 +124,65 @@ export function RecipeDetailView({
   const [activeTab, setActiveTab] = useState("details");
 
   // Sync edit state when entering edit mode
-  useEffect(() => {
-    if (isEditMode) {
-      if (recipe && !isCreatingNew) {
-        // EDITING EXISTING RECIPE: populate with existing data
-        setEditedName(recipe.name);
-        setEditedDescription(recipe.description || "");
-        setEditedTargetCost(recipe.targetCostPerKg);
-        setEditedVersion(recipe.version);
-        setEditedInstructions(recipe.instructions || "");
-        setEditedStatus(recipe.status);
-        setEditedNotes(recipe.notes || "");
-        setEditedIngredients(
-          ingredients.map((ing) => {
-            // Find the material for this supplier material
-            const sm = supplierMaterials.find(
-              (s) => s.id === ing.supplierMaterialId
-            );
-            return {
-              id: ing.id,
-              recipeId: ing.recipeId,
-              supplierMaterialId: ing.supplierMaterialId,
-              quantity: ing.quantity,
-              unit: ing.unit,
-              lockedPricing: ing.lockedPricing,
-              createdAt: ing.createdAt,
-              updatedAt: ing.updatedAt,
-              selectedMaterialId: sm?.materialId,
-            };
-          })
-        );
-      } else if (!recipe || isCreatingNew) {
-        // CREATING NEW RECIPE: initialize with empty/default values
-        setEditedName("");
-        setEditedDescription("");
-        setEditedTargetCost(undefined);
-        setEditedVersion(1);
-        setEditedInstructions("");
-        setEditedStatus("draft");
-        setEditedNotes("");
-        setEditedIngredients([]);
-      }
+  // Compute initial edit state during render
+  const initialEditState = useMemo(() => {
+    if (!isEditMode) return null;
+
+    if (recipe && !isCreatingNew) {
+      // EDITING EXISTING RECIPE: populate with existing data
+      return {
+        name: recipe.name,
+        description: recipe.description || "",
+        targetCost: recipe.targetCostPerKg,
+        version: recipe.version,
+        instructions: recipe.instructions || "",
+        status: recipe.status,
+        notes: recipe.notes || "",
+        ingredients: ingredients.map((ing) => {
+          const sm = supplierMaterials.find(
+            (s) => s.id === ing.supplierMaterialId
+          );
+          return {
+            id: ing.id,
+            recipeId: ing.recipeId,
+            supplierMaterialId: ing.supplierMaterialId,
+            quantity: ing.quantity,
+            unit: ing.unit,
+            createdAt: ing.createdAt,
+            updatedAt: ing.updatedAt,
+            selectedMaterialId: sm?.materialId,
+          };
+        }),
+      };
+    } else if (!recipe || isCreatingNew) {
+      // CREATING NEW RECIPE: initialize with empty/default values
+      return {
+        name: "",
+        description: "",
+        targetCost: undefined,
+        version: 1,
+        instructions: "",
+        status: "draft" as RecipeStatus,
+        notes: "",
+        ingredients: [],
+      };
     }
-  }, [isEditMode, recipe, ingredients, isCreatingNew]);
+    return null;
+  }, [isEditMode, recipe, ingredients, isCreatingNew, supplierMaterials]);
+
+  // Initialize edit state when computed values change
+  useState(() => {
+    if (initialEditState) {
+      setEditedName(initialEditState.name);
+      setEditedDescription(initialEditState.description);
+      setEditedTargetCost(initialEditState.targetCost);
+      setEditedVersion(initialEditState.version);
+      setEditedInstructions(initialEditState.instructions);
+      setEditedStatus(initialEditState.status);
+      setEditedNotes(initialEditState.notes);
+      setEditedIngredients(initialEditState.ingredients);
+    }
+  });
 
   // Calculate REAL-TIME metrics in edit mode (these are NOT saved, just displayed)
   const calculatedMetrics = useMemo(() => {
@@ -179,7 +200,7 @@ export function RecipeDetailView({
 
     // Calculate total weight from ingredients (sum of all quantities in standard units)
     const totalWeightGrams = editedIngredients.reduce((sum, ing) => {
-      return sum + recipeCalculator.convertToStandard(ing.quantity, ing.unit);
+      return sum + convertToBaseUnit(ing.quantity, ing.unit).quantity;
     }, 0);
 
     // Calculate costs from ingredients
@@ -187,10 +208,7 @@ export function RecipeDetailView({
       const sm = supplierMaterials.find((s) => s.id === ing.supplierMaterialId);
       if (!sm) return { costForQuantity: 0, taxedPriceForQuantity: 0 };
 
-      const quantityInKg = recipeCalculator.normalizeToKg(
-        ing.quantity,
-        ing.unit
-      );
+      const quantityInKg = normalizeToKg(ing.quantity, ing.unit);
       const pricePerKg = ing.lockedPricing?.unitPrice || sm.unitPrice;
       const effectiveTax = ing.lockedPricing?.tax || sm.tax || 0;
       const costForQuantity = pricePerKg * quantityInKg;
@@ -297,7 +315,8 @@ export function RecipeDetailView({
       editedIngredients.map((ing, i) => {
         if (i === index) {
           if (ing.lockedPricing) {
-            const { lockedPricing, ...rest } = ing;
+            // eslint-disable-next-line @typescript-eslint/no-unused-vars
+            const { lockedPricing: _, ...rest } = ing;
             return rest;
           } else {
             return {
@@ -368,8 +387,7 @@ export function RecipeDetailView({
         notes: editedNotes,
         version: editedVersion,
         ingredients: editedIngredients.map((ing) => {
-          const { _isNew, selectedMaterialId, ...rest } = ing;
-          return rest;
+          return { ...ing };
         }),
       });
     } catch (error) {
@@ -627,9 +645,9 @@ export function RecipeDetailView({
                   displayMetrics.varianceFromTarget > 0
                     ? "text-red-600"
                     : displayMetrics.varianceFromTarget &&
-                      displayMetrics.varianceFromTarget < 0
-                    ? "text-green-600"
-                    : "text-slate-900"
+                        displayMetrics.varianceFromTarget < 0
+                      ? "text-green-600"
+                      : "text-slate-900"
                 }`}
               >
                 Variance:{" "}
@@ -644,9 +662,9 @@ export function RecipeDetailView({
                     displayMetrics.variancePercentage > 0
                       ? "text-red-600"
                       : displayMetrics.variancePercentage &&
-                        displayMetrics.variancePercentage < 0
-                      ? "text-green-600"
-                      : "text-slate-500"
+                          displayMetrics.variancePercentage < 0
+                        ? "text-green-600"
+                        : "text-slate-500"
                   }`}
                 >
                   Percentage:{" "}
@@ -841,7 +859,7 @@ export function RecipeDetailView({
                           const sm = supplierMaterials.find(
                             (s) => s.id === ing.supplierMaterialId
                           );
-                          const quantityInKg = recipeCalculator.normalizeToKg(
+                          const quantityInKg = normalizeToKg(
                             ing.quantity,
                             ing.unit
                           );
@@ -981,15 +999,12 @@ export function RecipeDetailView({
                 </div>
               ) : (
                 <div className="space-y-3">
-                  {ingredients.map((ing, idx) => {
+                  {ingredients.map((ing) => {
                     const sm = supplierMaterials.find(
                       (s) => s.id === ing.supplierMaterialId
                     );
-                    const percentage =
-                      recipe!.totalCost && recipe!.totalCost > 0
-                        ? (ing.costForQuantity / recipe!.totalCost) * 100
-                        : 0;
-                    const displayQuantity = recipeCalculator.formatQuantity(
+
+                    const displayQuantity = formatQuantity(
                       ing.quantity,
                       ing.unit
                     );

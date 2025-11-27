@@ -1,5 +1,4 @@
-import React, { useMemo } from "react";
-import { PieChart, Pie, Cell, ResponsiveContainer } from "recharts";
+// src/app/recipes/components/recipe-views/recipe-cost-distribution-chart.tsx
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   ChartContainer,
@@ -7,8 +6,10 @@ import {
   ChartTooltipContent,
 } from "@/components/ui/chart";
 import { CHART_COLORS } from "@/lib/color-utils";
-import { DollarSign } from "lucide-react";
 import type { RecipeIngredientDisplay } from "@/lib/types";
+import { DollarSign } from "lucide-react";
+import { useMemo } from "react";
+import { Cell, Pie, PieChart } from "recharts";
 
 interface RecipeCostDistributionChartProps {
   ingredients: RecipeIngredientDisplay[];
@@ -42,7 +43,7 @@ export function RecipeCostDistributionChart({
 
   const chartConfig = useMemo(() => {
     const config: Record<string, { label: string; color: string }> = {};
-    chartData.forEach((item, index) => {
+    chartData.forEach((item) => {
       config[item.name] = {
         label: item.name,
         color: item.color,

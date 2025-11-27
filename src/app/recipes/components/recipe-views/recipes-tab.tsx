@@ -1,16 +1,4 @@
-// recipes-tab.tsx - Fixed with proper DB save logic
-import React, { useState, useCallback, useEffect } from "react";
-import { RecipeListView } from "./recipes-list-view";
-import { RecipeDetailView } from "./recipes-detail-view";
-import { RecipeErrorBoundary } from "./recipes-error-boundary";
-import {
-  useEnrichedRecipes,
-  useEnrichedRecipe,
-  useRecipeIngredients,
-  useRecipeVariants,
-} from "@/hooks/use-recipes";
-import { db } from "@/lib/db";
-import { toast } from "sonner";
+// src/app/recipes/components/recipe-views/recipes-tab.tsx
 import {
   AlertDialog,
   AlertDialogAction,
@@ -21,7 +9,19 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import {
+  useEnrichedRecipe,
+  useEnrichedRecipes,
+  useRecipeIngredients,
+  useRecipeVariants,
+} from "@/hooks/use-recipes";
+import { db } from "@/lib/db";
 import type { Recipe, RecipeIngredient } from "@/lib/types";
+import { useCallback, useEffect, useState } from "react";
+import { toast } from "sonner";
+import { RecipeDetailView } from "./recipes-detail-view";
+import { RecipeErrorBoundary } from "./recipes-error-boundary";
+import { RecipeListView } from "./recipes-list-view";
 
 type RecipeStatus = Recipe["status"];
 
@@ -99,17 +99,6 @@ export function RecipesTab() {
           const newRecipeId = Date.now().toString();
           const now = new Date().toISOString();
 
-          // Calculate totalWeight from ingredients
-          const totalWeight = recipeData.ingredients.reduce((sum, ing) => {
-            let quantityInGrams = ing.quantity;
-
-            if (ing.unit === "kg" || ing.unit === "L")
-              quantityInGrams = ing.quantity * 1000;
-            else if (ing.unit === "ml") quantityInGrams = ing.quantity;
-
-            return sum + quantityInGrams;
-          }, 0);
-
           await db.transaction(
             "rw",
             [db.recipes, db.recipeIngredients],
@@ -158,17 +147,6 @@ export function RecipesTab() {
         } else if (selectedRecipeId) {
           // UPDATE EXISTING RECIPE
           const now = new Date().toISOString();
-
-          // Calculate totalWeight from ingredients
-          const totalWeight = recipeData.ingredients.reduce((sum, ing) => {
-            let quantityInGrams = ing.quantity;
-
-            if (ing.unit === "kg" || ing.unit === "L")
-              quantityInGrams = ing.quantity * 1000;
-            else if (ing.unit === "ml") quantityInGrams = ing.quantity;
-
-            return sum + quantityInGrams;
-          }, 0);
 
           await db.transaction(
             "rw",
@@ -314,8 +292,8 @@ export function RecipesTab() {
           <AlertDialogHeader>
             <AlertDialogTitle>Delete Recipe?</AlertDialogTitle>
             <AlertDialogDescription>
-              Are you sure you want to delete "{recipeToDelete?.name}"? This
-              action cannot be undone and will also delete all associated
+              Are you sure you want to delete &quot;{recipeToDelete?.name}&quot;
+              ? This action cannot be undone and will also delete all associated
               ingredients and variants.
             </AlertDialogDescription>
           </AlertDialogHeader>

@@ -1,7 +1,6 @@
-// recipes-manager.tsx
+// src/app/recipes/components/recipes-manager.tsx
 "use client";
 
-import React from "react";
 import {
   Card,
   CardContent,
@@ -11,19 +10,19 @@ import {
 } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
-  FlaskConical,
-  TrendingUp,
   BarChart3,
   Beaker,
+  FlaskConical,
   GitBranch,
+  TrendingUp,
 } from "lucide-react";
 
-import { RecipesTab } from "./recipe-views/recipes-tab";
-import { RecipeAnalytics } from "./recipes-analytics";
-import RecipeLab from "./recipes-lab/recipe-lab";
-import { RecipeComparison } from "./recipes-comparison/recipe-comparison";
 import { MetricCard } from "@/components/ui/metric-card";
 import { useEnrichedRecipes, useRecipeStats } from "@/hooks/use-recipes";
+import { RecipesTab } from "./recipe-views/recipes-tab";
+import { RecipeAnalytics } from "./recipes-analytics";
+import { RecipeComparison } from "./recipes-comparison/recipe-comparison";
+import RecipeLab from "./recipes-lab/recipe-lab";
 
 export function RecipeManager() {
   // Use optimized hooks

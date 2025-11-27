@@ -1,12 +1,12 @@
-// components/recipes/recipes-comparison/recipe-comparison.tsx
+// src/app/recipes/components/recipes-comparison/comparison-table.tsx
 "use client";
 
-import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Card } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { TrendingUp, TrendingDown, Minus } from "lucide-react";
-import { cn } from "@/lib/utils";
 import { useIngredientComparison } from "@/hooks/use-comparison";
+import { cn } from "@/lib/utils";
+import { Minus, TrendingDown, TrendingUp } from "lucide-react";
 import type { ComparisonItem, ComparisonMetric } from "./comparison-types";
 
 // Formatters

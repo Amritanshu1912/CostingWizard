@@ -1,8 +1,8 @@
-// recipes-error-boundary.tsx
-import React from "react";
-import { AlertCircle, RefreshCw } from "lucide-react";
+// src/app/recipes/components/recipe-views/recipes-error-boundary.tsx
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
+import { AlertCircle, RefreshCw } from "lucide-react";
+import React from "react";
 
 interface Props {
   children: React.ReactNode;

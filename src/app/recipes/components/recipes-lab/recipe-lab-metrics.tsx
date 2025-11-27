@@ -1,21 +1,13 @@
-// components/recipes/recipe-lab/recipe-lab-metrics.tsx
-import React from "react";
-import { Card } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
+// src/app/recipes/components/recipes-lab/recipe-lab-metrics.tsx
 import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import {
-  Sparkles,
-  AlertCircle,
-  CheckCircle2,
-  TrendingUp,
-  TrendingDown,
-} from "lucide-react";
 import type {
-  ExperimentMetrics,
   ExperimentIngredient,
+  ExperimentMetrics,
 } from "@/hooks/use-recipe-experiment";
 import type { SupplierMaterialWithDetails } from "@/lib/types";
+import { AlertCircle, CheckCircle2, Sparkles } from "lucide-react";
 
 interface RecipeLabMetricsProps {
   metrics: ExperimentMetrics;

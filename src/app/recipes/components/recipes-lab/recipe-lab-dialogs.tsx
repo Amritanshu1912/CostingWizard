@@ -1,15 +1,4 @@
-// components/recipes/recipes-lab/recipe-lab-dialogs.tsx
-import React from "react";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+// src/app/recipes/components/recipes-lab/recipe-lab-dialogs.tsx
 import {
   AlertDialog,
   AlertDialogAction,
@@ -20,12 +9,22 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { TrendingDown, GitBranch, Edit3 } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Textarea } from "@/components/ui/textarea";
 import type { ExperimentIngredient } from "@/hooks/use-recipe-experiment";
 import type {
-  SupplierMaterialWithDetails,
   OptimizationGoalType,
+  SupplierMaterialWithDetails,
 } from "@/lib/types";
+import { Edit3, GitBranch, TrendingDown } from "lucide-react";
 
 interface RecipeLabDialogsProps {
   saveDialogOpen: boolean;
@@ -225,8 +224,8 @@ export function RecipeLabDialogs({
           <AlertDialogHeader>
             <AlertDialogTitle>Update Variant</AlertDialogTitle>
             <AlertDialogDescription>
-              Update the currently loaded variant "{loadedVariantName}" with
-              your changes
+              Update the currently loaded variant &quot;{loadedVariantName}
+              &quot; with your changes
             </AlertDialogDescription>
           </AlertDialogHeader>
 

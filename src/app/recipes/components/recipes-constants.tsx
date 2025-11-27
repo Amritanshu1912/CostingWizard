@@ -1,6 +1,4 @@
-// recipes-constants.tsx
-// Mock data aligned with new type system
-
+// src/app/recipes/components/recipes-constants.tsx
 import type { Recipe, RecipeIngredient, RecipeVariant } from "@/lib/types";
 
 // ============================================================================

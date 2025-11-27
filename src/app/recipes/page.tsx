@@ -1,5 +1,6 @@
-import { Sidebar } from "@/components/sidebar";
+// src/app/recipes/page.tsx
 import { RecipeManager } from "@/app/recipes/components/recipes-manager";
+import { Sidebar } from "@/components/sidebar";
 
 export default function RecipesPage() {
   return (

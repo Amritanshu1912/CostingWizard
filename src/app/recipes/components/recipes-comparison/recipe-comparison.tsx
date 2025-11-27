@@ -1,17 +1,17 @@
-// components/recipes/recipes-comparison/recipe-comparison.tsx
+// src/app/recipes/components/recipes-comparison/recipe-comparison.tsx
 "use client";
 
-import React, { useState } from "react";
-import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { GitCompare, Package, AlertCircle } from "lucide-react";
 import {
   useComparableItems,
-  useSelectedItems,
   useComparisonSummary,
+  useSelectedItems,
 } from "@/hooks/use-comparison";
-import { SummaryCards, SelectionTree } from "./comparison-components";
+import { AlertCircle, GitCompare, Package } from "lucide-react";
+import { useState } from "react";
+import { SelectionTree, SummaryCards } from "./comparison-components";
 import { ComparisonTable } from "./comparison-table";
 
 // Main Component

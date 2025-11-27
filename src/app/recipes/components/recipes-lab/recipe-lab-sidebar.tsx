@@ -1,8 +1,6 @@
-// components/recipes/recipe-lab/recipe-lab-sidebar.tsx
-import React from "react";
-import { Card } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
+// src/app/recipes/components/recipes-lab/recipe-lab-sidebar.tsx
 import { Badge } from "@/components/ui/badge";
+import { Card } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import {
@@ -12,8 +10,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { FlaskConical, RotateCcw } from "lucide-react";
 import type { RecipeDisplay, RecipeVariant } from "@/lib/types";
+import { FlaskConical } from "lucide-react";
 
 interface RecipeLabSidebarProps {
   recipes: RecipeDisplay[];
@@ -23,7 +21,6 @@ interface RecipeLabSidebarProps {
     costDifference: number;
     costDifferencePercentage: number;
   })[];
-  changeCount: number;
   loadedVariantName?: string | null;
   onSelectRecipe: (recipeId: string) => void;
   onLoadVariant: (variant: RecipeVariant) => void;
@@ -33,7 +30,6 @@ export function RecipeLabSidebar({
   recipes,
   selectedRecipeId,
   variants,
-  changeCount,
   loadedVariantName,
   onSelectRecipe,
   onLoadVariant,

@@ -1,12 +1,11 @@
+// src/app/recipes/components/recipes-comparison/comparison-components.tsx
 "use client";
 
-import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-
+import { Card } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
-import { GitCompare, Package, TrendingUp, TrendingDown } from "lucide-react";
 import { cn } from "@/lib/utils";
-
+import { GitCompare, Package, TrendingDown, TrendingUp } from "lucide-react";
 import type { ComparisonItem } from "./comparison-types";
 
 // Selection Tree Component

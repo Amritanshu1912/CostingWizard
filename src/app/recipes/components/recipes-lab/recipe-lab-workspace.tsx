@@ -1,18 +1,4 @@
-// components/recipes/recipes-lab/recipe-lab-workspace.tsx
-import React, { useState, useEffect } from "react";
-import { Card } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
-import { ScrollArea } from "@/components/ui/scroll-area";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+// src/app/recipes/components/recipes-lab/recipe-lab-workspace.tsx
 import {
   AlertDialog,
   AlertDialogAction,
@@ -24,19 +10,33 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
+import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Textarea } from "@/components/ui/textarea";
+import type { ExperimentIngredient } from "@/hooks/use-recipe-experiment";
+import type { RecipeVariant, SupplierMaterialWithDetails } from "@/lib/types";
+import {
+  Check,
+  ChevronDown,
+  ChevronUp,
   Edit3,
   RotateCcw,
   Save,
   Trash2,
-  Check,
   X,
-  ChevronUp,
-  ChevronDown,
 } from "lucide-react";
+import { useEffect, useState } from "react";
 import { RecipeLabIngredientCard } from "./recipe-lab-ingredient-card";
-import type { ExperimentIngredient } from "@/hooks/use-recipe-experiment";
-import type { SupplierMaterialWithDetails, RecipeVariant } from "@/lib/types";
 
 interface RecipeLabWorkspaceProps {
   selectedRecipeName: string;
@@ -52,7 +52,6 @@ interface RecipeLabWorkspaceProps {
   onTogglePriceLock: (index: number) => void;
   onRemoveIngredient: (index: number) => void;
   onResetIngredient: (index: number) => void;
-  onToggleAlternatives: (id: string) => void;
   /** Reset all ingredient changes made to the current recipe/variant back to their original state */
   onResetAll: () => void;
   onSaveAsVariant: () => void;
@@ -78,7 +77,6 @@ export function RecipeLabWorkspace({
   onTogglePriceLock,
   onRemoveIngredient,
   onResetIngredient,
-  onToggleAlternatives,
   onResetAll,
   onSaveAsVariant,
   onUpdateVariant,
@@ -183,8 +181,9 @@ export function RecipeLabWorkspace({
                       <AlertDialogHeader>
                         <AlertDialogTitle>Delete Variant</AlertDialogTitle>
                         <AlertDialogDescription>
-                          Are you sure you want to delete "{currentVariant.name}
-                          "? This action cannot be undone.
+                          Are you sure you want to delete &quot;
+                          {currentVariant.name}
+                          &quot;? This action cannot be undone.
                         </AlertDialogDescription>
                       </AlertDialogHeader>
                       <AlertDialogFooter>
@@ -426,7 +425,6 @@ export function RecipeLabWorkspace({
               onTogglePriceLock={onTogglePriceLock}
               onRemove={onRemoveIngredient}
               onReset={onResetIngredient}
-              onToggleAlternatives={onToggleAlternatives}
             />
           ))}
         </div>

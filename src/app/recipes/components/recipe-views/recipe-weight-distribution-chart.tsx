@@ -1,15 +1,16 @@
-import React, { useMemo } from "react";
-import { PieChart, Pie, Cell, ResponsiveContainer } from "recharts";
+// src/app/recipes/components/recipe-views/recipe-weight-distribution-chart.tsx
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   ChartContainer,
   ChartTooltip,
   ChartTooltipContent,
 } from "@/components/ui/chart";
+import { convertToBaseUnit, formatQuantity } from "@/hooks/use-unit-conversion";
 import { CHART_COLORS } from "@/lib/color-utils";
-import { Package } from "lucide-react";
 import type { RecipeIngredientDisplay } from "@/lib/types";
-import { recipeCalculator } from "@/hooks/use-recipes";
+import { Package } from "lucide-react";
+import { useMemo } from "react";
+import { Cell, Pie, PieChart } from "recharts";
 
 interface RecipeWeightDistributionChartProps {
   ingredients: RecipeIngredientDisplay[];
@@ -22,26 +23,22 @@ export function RecipeWeightDistributionChart({
     if (!ingredients.length) return [];
 
     const totalWeight = ingredients.reduce(
-      (sum, ing) =>
-        sum + recipeCalculator.convertToStandard(ing.quantity, ing.unit),
+      (sum, ing) => sum + convertToBaseUnit(ing.quantity, ing.unit).quantity,
       0
     );
 
     return ingredients
       .map((ing, index) => {
-        const weightInGrams = recipeCalculator.convertToStandard(
+        const weightInGrams = convertToBaseUnit(
           ing.quantity,
           ing.unit
-        );
+        ).quantity;
         return {
           name: ing.materialName || "Unknown",
           value: weightInGrams,
           percentage: totalWeight > 0 ? (weightInGrams / totalWeight) * 100 : 0,
           supplier: ing.supplierName || "Unknown",
-          displayQuantity: recipeCalculator.formatQuantity(
-            ing.quantity,
-            ing.unit
-          ),
+          displayQuantity: formatQuantity(ing.quantity, ing.unit),
           color:
             CHART_COLORS.light[
               `chart${(index % 5) + 1}` as keyof typeof CHART_COLORS.light

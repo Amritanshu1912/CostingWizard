@@ -1,8 +1,8 @@
-// components/recipes/recipes-comparison/comparison-types.ts
+// src/app/recipes/components/recipes-comparison/comparison-types.ts
 import type {
   RecipeDisplay,
-  RecipeVariant,
   RecipeIngredientDisplay,
+  RecipeVariant,
 } from "@/lib/types";
 
 /**

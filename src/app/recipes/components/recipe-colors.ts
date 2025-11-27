@@ -1,6 +1,4 @@
-// recipe-colors.ts - Professional color constants for recipe components
-
-// Status colors for recipes and variants
+// src/app/recipes/components/recipe-colors.ts
 export const RECIPE_STATUS_COLORS = {
   active: {
     bg: "bg-green-50",

@@ -1,21 +1,21 @@
-// recipes-list.tsx - Left panel component
-import React, { useMemo } from "react";
-import { Card, CardContent } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
+// src/app/recipes/components/recipe-views/recipes-list-view.tsx
 import { Badge } from "@/components/ui/badge";
-import { ScrollArea } from "@/components/ui/scroll-area";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import {
-  Search,
-  Plus,
-  Package,
-  FileText,
-  TrendingUp,
-  TrendingDown,
-} from "lucide-react";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import type { RecipeDisplay } from "@/lib/types";
-import { getStatusColors } from "../recipe-colors";
 import { formatDate } from "@/lib/utils";
+import {
+  FileText,
+  Package,
+  Plus,
+  Search,
+  TrendingDown,
+  TrendingUp,
+} from "lucide-react";
+import { useMemo } from "react";
+import { getStatusColors } from "../recipe-colors";
 
 interface RecipeListProps {
   recipes: RecipeDisplay[];

@@ -1,8 +1,7 @@
-// components/recipes/recipes-lab/recipe-lab-ingredient-card.tsx
-import React from "react";
-import { Card } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
+// src/app/recipes/components/recipes-lab/recipe-lab-ingredient-card.tsx
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import {
   Select,
@@ -11,13 +10,12 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Lock, Unlock, Trash2, RotateCcw } from "lucide-react";
+import { normalizeToKg } from "@/hooks/use-unit-conversion";
 import type {
   RecipeIngredient,
   SupplierMaterialWithDetails,
-  CapacityUnit,
 } from "@/lib/types";
-import { recipeCalculator } from "@/hooks/use-recipes";
+import { Lock, RotateCcw, Trash2, Unlock } from "lucide-react";
 
 interface ExperimentIngredient extends RecipeIngredient {
   _changed?: boolean;
@@ -37,7 +35,6 @@ interface RecipeLabIngredientCardProps {
   onTogglePriceLock: (index: number) => void;
   onRemove: (index: number) => void;
   onReset: (index: number) => void;
-  onToggleAlternatives: (ingredientId: string) => void;
 }
 
 export function RecipeLabIngredientCard({
@@ -45,15 +42,13 @@ export function RecipeLabIngredientCard({
   index,
   supplierMaterial: sm,
   alternatives,
-  isExpanded,
   onQuantityChange,
   onSupplierChange,
   onTogglePriceLock,
   onRemove,
   onReset,
-  onToggleAlternatives,
 }: RecipeLabIngredientCardProps) {
-  const quantityInKg = recipeCalculator.normalizeToKg(ing.quantity, ing.unit);
+  const quantityInKg = normalizeToKg(ing.quantity, ing.unit);
   const pricePerKg = ing.lockedPricing?.unitPrice || sm?.unitPrice || 0;
   const cost = pricePerKg * quantityInKg;
 

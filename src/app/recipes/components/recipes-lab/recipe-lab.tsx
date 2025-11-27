@@ -1,5 +1,14 @@
-// components/recipes/recipes-lab/recipe-lab.tsx
-import React, { useState, useEffect, useCallback } from "react";
+// src/app/recipes/components/recipes-lab/recipe-lab.tsx
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import {
   Select,
   SelectContent,
@@ -7,34 +16,23 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { FlaskConical } from "lucide-react";
+import { useRecipeExperiment } from "@/hooks/use-recipe-experiment";
 import {
-  AlertDialog,
-  AlertDialogTrigger,
-  AlertDialogContent,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogCancel,
-  AlertDialogAction,
-} from "@/components/ui/alert-dialog";
-import { toast } from "sonner";
-import { db } from "@/lib/db";
-import type { RecipeVariant } from "@/lib/types";
-import {
-  useEnrichedRecipes,
   useEnrichedRecipe,
+  useEnrichedRecipes,
   useRecipeVariants,
-  recipeCalculator,
 } from "@/hooks/use-recipes";
 import { useSupplierMaterialsWithDetails } from "@/hooks/use-supplier-materials-with-details";
-import { useRecipeExperiment } from "@/hooks/use-recipe-experiment";
+import { db } from "@/lib/db";
+import type { RecipeVariant } from "@/lib/types";
+import { OptimizationGoalType } from "@/lib/types";
+import { FlaskConical } from "lucide-react";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { toast } from "sonner";
+import { RecipeLabDialogs } from "./recipe-lab-dialogs";
+import { RecipeLabMetrics } from "./recipe-lab-metrics";
 import { RecipeLabSidebar } from "./recipe-lab-sidebar";
 import { RecipeLabWorkspace } from "./recipe-lab-workspace";
-import { RecipeLabMetrics } from "./recipe-lab-metrics";
-import { RecipeLabDialogs } from "./recipe-lab-dialogs";
-import { OptimizationGoalType } from "@/lib/types";
 
 export default function RecipeLab() {
   const enrichedRecipes = useEnrichedRecipes();
@@ -48,8 +46,27 @@ export default function RecipeLab() {
   const [optimizationGoal, setOptimizationGoal] =
     useState<OptimizationGoalType>("cost_reduction");
 
-  const selectedRecipe = useEnrichedRecipe(selectedRecipeId);
-  const variants = useRecipeVariants(selectedRecipeId);
+  // Compute initial recipe selection during render - MUST BE BEFORE usage
+  const initialRecipeId = useMemo(() => {
+    if (!selectedRecipeId && enrichedRecipes.length > 0) {
+      return enrichedRecipes[0].id;
+    }
+    return selectedRecipeId;
+  }, [enrichedRecipes, selectedRecipeId]);
+
+  // Use the computed value directly instead of state
+  const effectiveRecipeId = initialRecipeId || selectedRecipeId;
+
+  // Update the state only when necessary, but don't use it for rendering
+  useState(() => {
+    if (initialRecipeId && initialRecipeId !== selectedRecipeId) {
+      setSelectedRecipeId(initialRecipeId);
+    }
+  });
+
+  // NOW use the computed effectiveRecipeId
+  const selectedRecipe = useEnrichedRecipe(effectiveRecipeId);
+  const variants = useRecipeVariants(effectiveRecipeId);
 
   const {
     experimentIngredients,
@@ -57,7 +74,6 @@ export default function RecipeLab() {
     expandedAlternatives,
     targetCost,
     loadedVariantName,
-    setTargetCost,
     initializeExperiment,
     getAlternatives,
     handleQuantityChange,
@@ -66,16 +82,8 @@ export default function RecipeLab() {
     handleRemoveIngredient,
     handleResetIngredient,
     handleResetAll,
-    toggleAlternatives,
     loadVariant,
   } = useRecipeExperiment(selectedRecipe);
-
-  // Auto-select first recipe
-  useEffect(() => {
-    if (!selectedRecipeId && enrichedRecipes.length > 0) {
-      setSelectedRecipeId(enrichedRecipes[0].id);
-    }
-  }, [enrichedRecipes, selectedRecipeId]);
 
   // Initialize experiment when recipe changes
   useEffect(() => {
@@ -315,7 +323,7 @@ export default function RecipeLab() {
 
           {enrichedRecipes.length > 0 ? (
             <Select
-              value={selectedRecipeId}
+              value={effectiveRecipeId}
               onValueChange={setSelectedRecipeId}
             >
               <SelectTrigger className="w-full">
@@ -345,9 +353,8 @@ export default function RecipeLab() {
     <div className="flex gap-6 h-[calc(100vh-12rem)]">
       <RecipeLabSidebar
         recipes={enrichedRecipes}
-        selectedRecipeId={selectedRecipeId}
+        selectedRecipeId={effectiveRecipeId}
         variants={variants}
-        changeCount={metrics.changeCount}
         loadedVariantName={loadedVariantName}
         onSelectRecipe={setSelectedRecipeId}
         onLoadVariant={loadVariant}
@@ -367,7 +374,6 @@ export default function RecipeLab() {
         onTogglePriceLock={handleTogglePriceLock}
         onRemoveIngredient={handleRemoveIngredient}
         onResetIngredient={handleResetIngredient}
-        onToggleAlternatives={toggleAlternatives}
         onResetAll={handleResetAll}
         onSaveAsVariant={() => setSaveDialogOpen(true)}
         onUpdateVariant={() => setUpdateVariantDialogOpen(true)}

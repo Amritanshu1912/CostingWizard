@@ -1,10 +1,7 @@
-// RecipeAnalytics.tsx - Recipe Analytics & Insights
-
+// src/app/recipes/components/recipes-analytics.tsx
 "use client";
 
-"use client";
-
-import React, { useMemo } from "react";
+import { Badge } from "@/components/ui/badge";
 import {
   Card,
   CardContent,
@@ -12,45 +9,40 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Progress } from "@/components/ui/progress";
 import {
   MetricCard,
-  MetricCardWithProgress,
   MetricCardWithBadge,
+  MetricCardWithProgress,
 } from "@/components/ui/metric-card";
-import {
-  LineChart,
-  Line,
-  BarChart,
-  Bar,
-  PieChart,
-  Pie,
-  Cell,
-  CartesianGrid,
-  XAxis,
-  YAxis,
-  Tooltip,
-  Legend,
-  ResponsiveContainer,
-  PieLabelRenderProps,
-} from "recharts";
-import { Sparkles, LucideIcon } from "lucide-react";
-import { recipesAIInsights } from "./recipes-constants";
-import { CHART_COLORS } from "@/lib/color-utils";
+import { Progress } from "@/components/ui/progress";
 import { useEnrichedRecipes, useRecipeStats } from "@/hooks/use-recipes";
+import { CHART_COLORS } from "@/lib/color-utils";
+import type { Recipe } from "@/lib/types";
 import {
-  TrendingUp,
-  Target,
-  AlertTriangle,
+  AlertCircle,
+  Beaker,
   DollarSign,
   FlaskConical,
-  Beaker,
   GitBranch,
-  AlertCircle,
-  Package, // Added Package icon for weight distribution
+  LucideIcon,
+  Sparkles,
+  Target,
 } from "lucide-react";
-import type { Recipe } from "@/lib/types";
+import { useMemo } from "react";
+import {
+  CartesianGrid,
+  Cell,
+  Legend,
+  Line,
+  LineChart,
+  Pie,
+  PieChart,
+  ResponsiveContainer,
+  Tooltip,
+  XAxis,
+  YAxis,
+} from "recharts";
+import { recipesAIInsights } from "./recipes-constants";
 
 interface RecipeAnalyticsProps {
   recipes: Recipe[];
@@ -165,14 +157,14 @@ export function RecipeAnalytics({ recipes }: RecipeAnalyticsProps) {
             targetAchievement > 90
               ? "Excellent"
               : targetAchievement > 70
-              ? "Good"
-              : "Needs Improvement",
+                ? "Good"
+                : "Needs Improvement",
           color:
             targetAchievement > 90
               ? "success"
               : targetAchievement > 70
-              ? "default"
-              : "warning",
+                ? "default"
+                : "warning",
         },
       },
       {
