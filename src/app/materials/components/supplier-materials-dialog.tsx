@@ -1,16 +1,9 @@
+// src/app/materials/components/supplier-materials-dialog.tsx
 "use client";
 
-import { useState, useEffect, useMemo } from "react";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import {
   Command,
   CommandEmpty,
@@ -19,6 +12,15 @@ import {
   CommandItem,
   CommandList,
 } from "@/components/ui/command";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import {
   Popover,
   PopoverContent,
@@ -32,32 +34,29 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
-import { Badge } from "@/components/ui/badge";
-import { Alert, AlertDescription } from "@/components/ui/alert";
 import {
+  AlertTriangle,
   Check,
   ChevronsUpDown,
-  Plus,
-  Package,
-  Truck,
   Clock,
-  AlertTriangle,
   Loader2,
+  Package,
+  Plus,
+  Truck,
 } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
 
-import type {
-  SupplierMaterial,
-  Supplier,
-  Material,
-  Category,
-} from "@/lib/types";
-import { CAPACITY_UNITS, AVAILABILITY_MAP } from "@/lib/constants";
-import { cn } from "@/lib/utils";
 import { useDuplicateCheck } from "@/hooks/use-duplicate-check";
-import {
-  validateMaterialForm,
-  calculateUnitPrice,
-} from "./materials-constants";
+import { calculateUnitPrice } from "@/hooks/use-unit-conversion";
+import { AVAILABILITY_MAP, CAPACITY_UNITS } from "@/lib/constants";
+import type {
+  Category,
+  Material,
+  Supplier,
+  SupplierMaterial,
+} from "@/lib/types";
+import { cn } from "@/lib/utils";
+import { validateMaterialForm } from "./materials-constants";
 
 // Form-specific type
 export interface MaterialFormData extends Partial<SupplierMaterial> {
@@ -142,7 +141,13 @@ export function EnhancedMaterialDialog({
       setFilteredMaterials(materials);
       setIsNewMaterial(false);
     }
-  }, [materialSearch, materials, material.materialId, materialAutoFilled]);
+  }, [
+    materialSearch,
+    materials,
+    material.materialId,
+    materialAutoFilled,
+    checkMaterialDuplicate,
+  ]);
 
   // Filter categories based on search
   useEffect(() => {
@@ -161,7 +166,7 @@ export function EnhancedMaterialDialog({
       setFilteredCategories(categories);
       setIsNewCategory(false);
     }
-  }, [categorySearch, categories, categoryAutoFilled]);
+  }, [categorySearch, categories, categoryAutoFilled, checkCategoryDuplicate]);
 
   // Initialize searches when editing
   useEffect(() => {
@@ -448,7 +453,8 @@ export function EnhancedMaterialDialog({
                             <CommandItem onSelect={handleNewMaterial}>
                               <Plus className="mr-2 h-4 w-4 text-primary" />
                               <span>
-                                Create "<strong>{materialSearch}</strong>"
+                                Create &quot;<strong>{materialSearch}</strong>
+                                &quot;
                               </span>
                             </CommandItem>
                           </CommandGroup>
@@ -545,8 +551,8 @@ export function EnhancedMaterialDialog({
                             <CommandItem onSelect={handleNewCategory}>
                               <Plus className="mr-2 h-4 w-4 text-primary" />
                               <span>
-                                Create category "
-                                <strong>{categorySearch}</strong>"
+                                Create category &quot;
+                                <strong>{categorySearch}</strong>&quot;
                               </span>
                             </CommandItem>
                           </CommandGroup>
@@ -724,8 +730,8 @@ export function EnhancedMaterialDialog({
                               option === "in-stock"
                                 ? "bg-green-500"
                                 : option === "limited"
-                                ? "bg-yellow-500"
-                                : "bg-red-500"
+                                  ? "bg-yellow-500"
+                                  : "bg-red-500"
                             }`}
                           />
                           {option.replace("-", " ")}

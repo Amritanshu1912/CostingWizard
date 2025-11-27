@@ -1,40 +1,41 @@
+// src/app/materials/components/materials-manager.tsx
 "use client";
 
-import { useState, useCallback, useMemo } from "react";
 import { Button } from "@/components/ui/button";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Card,
+  CardContent,
+  CardDescription,
   CardHeader,
   CardTitle,
-  CardDescription,
-  CardContent,
 } from "@/components/ui/card";
-import { toast } from "sonner";
-import { BarChart3, Package, Plus, TrendingUp, List } from "lucide-react";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { BarChart3, List, Package, TrendingUp } from "lucide-react";
 import { nanoid } from "nanoid";
+import { useCallback, useMemo, useState } from "react";
+import { toast } from "sonner";
 
-import { MaterialsTable } from "./supplier-materials-table";
-import { MaterialsPriceComparison } from "./materials-price-comparison";
-import { MaterialsAnalytics } from "./materials-analytics";
-import { EnhancedMaterialDialog } from "./supplier-materials-dialog";
-import { MaterialsDrawer } from "./materials-drawer";
 import { CategoryManager } from "@/app/materials/components/materials-category-manager";
+import { MaterialsAnalytics } from "./materials-analytics";
+import { MaterialsDrawer } from "./materials-drawer";
+import { MaterialsPriceComparison } from "./materials-price-comparison";
+import { EnhancedMaterialDialog } from "./supplier-materials-dialog";
+import { MaterialsTable } from "./supplier-materials-table";
 
-import type { Category, SupplierMaterial } from "@/lib/types";
-import type { MaterialFormData } from "./supplier-materials-dialog";
 import { SUPPLIERS } from "@/app/suppliers/components/suppliers-constants";
+import { MetricCard } from "@/components/ui/metric-card";
 import { useDexieTable } from "@/hooks/use-dexie-table";
 import { useSupplierMaterialsWithDetails } from "@/hooks/use-supplier-materials-with-details";
+import { assignCategoryColor } from "@/lib/color-utils";
+import { db } from "@/lib/db";
+import { normalizeText } from "@/lib/text-utils";
+import type { Category, SupplierMaterial } from "@/lib/types";
 import {
   DEFAULT_MATERIAL_FORM,
   calculateMaterialStats,
-  calculateUnitPrice,
 } from "./materials-constants";
-import { db } from "@/lib/db";
-import { MetricCard } from "@/components/ui/metric-card";
-import { normalizeText } from "@/lib/text-utils";
-import { assignCategoryColor } from "@/lib/color-utils";
+import { calculateUnitPrice } from "@/hooks/use-unit-conversion";
+import type { MaterialFormData } from "./supplier-materials-dialog";
 
 export function MaterialsManager() {
   const [showAddDialog, setShowAddDialog] = useState(false);

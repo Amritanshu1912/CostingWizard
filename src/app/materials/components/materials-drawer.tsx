@@ -1,13 +1,7 @@
+// src/app/materials/components/materials-drawer.tsx
 "use client";
 
-import { useMemo, useState } from "react";
-import {
-  Sheet,
-  SheetContent,
-  SheetDescription,
-  SheetHeader,
-  SheetTitle,
-} from "@/components/ui/sheet";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -19,18 +13,23 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
-import { Loader2, Plus, Package, AlertCircle } from "lucide-react";
-import { toast } from "sonner";
-import { db } from "@/lib/db";
-import type { MaterialWithSuppliers, Category } from "@/lib/types";
-import { useLiveQuery } from "dexie-react-hooks";
-import { normalizeText } from "@/lib/text-utils";
-import { nanoid } from "nanoid";
-import { MaterialsTableDrawer } from "./materials-table";
-import { Alert, AlertDescription } from "@/components/ui/alert";
+import {
+  Sheet,
+  SheetContent,
+  SheetDescription,
+  SheetHeader,
+  SheetTitle,
+} from "@/components/ui/sheet";
 import { assignCategoryColor } from "@/lib/color-utils";
-import { Input } from "@/components/ui/input";
-import { SortableTable } from "@/components/ui/sortable-table";
+import { db } from "@/lib/db";
+import { normalizeText } from "@/lib/text-utils";
+import type { Category, MaterialWithSuppliers } from "@/lib/types";
+import { useLiveQuery } from "dexie-react-hooks";
+import { AlertCircle, Loader2, Package, Plus } from "lucide-react";
+import { nanoid } from "nanoid";
+import { useState } from "react";
+import { toast } from "sonner";
+import { MaterialsTableDrawer } from "./materials-table";
 
 interface MaterialsDrawerProps {
   open: boolean;
@@ -103,16 +102,6 @@ export function MaterialsDrawer({
 
   // Fetch categories for combobox
   const categories = useLiveQuery(() => db.categories.toArray(), []);
-
-  // Filter categories based on search
-  const filteredCategories =
-    categories?.filter((c) =>
-      c.name.toLowerCase().includes(categorySearch.toLowerCase())
-    ) || [];
-
-  const isNewCategory = !categories?.some(
-    (c) => normalizeText(c.name) === normalizeText(categorySearch)
-  );
 
   // Start editing
   const startEdit = (material: MaterialWithSuppliers) => {
@@ -278,7 +267,6 @@ export function MaterialsDrawer({
     }
   };
 
-  const totalMaterials = materialsWithSuppliers?.length || 0;
   const activeMaterials =
     materialsWithSuppliers?.filter((m) => m.id !== "new").length || 0;
 

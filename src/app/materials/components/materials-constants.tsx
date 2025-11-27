@@ -1,5 +1,9 @@
+// src/app/materials/components/materials-constants.tsx
+import {
+  calculatePriceWithTax,
+  calculateUnitPrice,
+} from "@/hooks/use-unit-conversion";
 import { Material, SupplierMaterial } from "@/lib/types";
-import { TrendingUp, Target, AlertTriangle, DollarSign } from "lucide-react";
 
 // Form Options
 export const MATERIAL_CATEGORIES = [
@@ -35,24 +39,6 @@ export const DEFAULT_MATERIAL_FORM = {
 // ============================================================================
 // UTILITY FUNCTIONS
 // ============================================================================
-
-/**
- * Calculate unit price from bulk price and quantity
- */
-export function calculateUnitPrice(
-  bulkPrice: number,
-  quantityForBulkPrice: number
-): number {
-  if (quantityForBulkPrice <= 0) return 0;
-  return bulkPrice / quantityForBulkPrice;
-}
-
-/**
- * Calculate price with tax included
- */
-export function calculatePriceWithTax(unitPrice: number, tax: number): number {
-  return unitPrice * (1 + tax / 100);
-}
 
 /**
  * Calculate material statistics from supplier materials array
@@ -169,13 +155,16 @@ export function transformSupplierMaterialData(supplierMaterial: any) {
  * Calculate price volatility for materials with multiple suppliers
  */
 export function calculatePriceVolatility(supplierMaterials: any[]): number {
-  const materialGroups = supplierMaterials.reduce((acc, sm) => {
-    const materialId = sm.materialId;
-    if (!materialId) return acc;
-    if (!acc[materialId]) acc[materialId] = [];
-    acc[materialId].push(sm.unitPrice);
-    return acc;
-  }, {} as Record<string, number[]>);
+  const materialGroups = supplierMaterials.reduce(
+    (acc, sm) => {
+      const materialId = sm.materialId;
+      if (!materialId) return acc;
+      if (!acc[materialId]) acc[materialId] = [];
+      acc[materialId].push(sm.unitPrice);
+      return acc;
+    },
+    {} as Record<string, number[]>
+  );
 
   const volatilities = (Object.values(materialGroups) as number[][])
     .filter((prices: number[]) => prices.length > 1)

@@ -1,15 +1,25 @@
+// src/app/materials/components/supplier-materials-table.tsx
 "use client";
 
-import { useState, useMemo } from "react";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import {
   Card,
   CardContent,
+  CardDescription,
   CardHeader,
   CardTitle,
-  CardDescription,
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
 import {
   Select,
   SelectContent,
@@ -17,24 +27,14 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
-import { Badge } from "@/components/ui/badge";
 import { SortableTable } from "@/components/ui/sortable-table";
-import { Search, Filter, Edit, Trash2, Plus } from "lucide-react";
 import type {
-  SupplierMaterial,
   Supplier,
+  SupplierMaterial,
   SupplierMaterialWithDetails,
 } from "@/lib/types";
+import { Edit, Filter, Plus, Search, Trash2 } from "lucide-react";
+import { useMemo, useState } from "react";
 import { MATERIAL_CATEGORIES } from "./materials-constants";
 
 interface MaterialsTableProps {
@@ -213,15 +213,15 @@ export function MaterialsTable({
               value === "in-stock"
                 ? "default"
                 : value === "limited"
-                ? "secondary"
-                : "destructive"
+                  ? "secondary"
+                  : "destructive"
             }
           >
             {value === "in-stock"
               ? "In Stock"
               : value === "limited"
-              ? "Limited"
-              : "Out of Stock"}
+                ? "Limited"
+                : "Out of Stock"}
           </Badge>
         ),
       },

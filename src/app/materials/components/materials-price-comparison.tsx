@@ -1,17 +1,18 @@
+// src/app/materials/components/materials-price-comparison.tsx
 "use client";
 
+import { Badge } from "@/components/ui/badge";
 import {
   Card,
   CardContent,
+  CardDescription,
   CardHeader,
   CardTitle,
-  CardDescription,
 } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import { SortableTable } from "@/components/ui/sortable-table";
-import { Star, TrendingDown, AlertCircle } from "lucide-react";
 import { useMaterialPriceComparison } from "@/hooks/use-supplier-materials-with-details";
 import type { SupplierMaterialWithDetails } from "@/lib/types";
+import { AlertCircle, Star, TrendingDown } from "lucide-react";
 
 export function MaterialsPriceComparison() {
   // Use the smart hook that groups by material automatically
@@ -84,8 +85,8 @@ export function MaterialsPriceComparison() {
             value === "in-stock"
               ? "default"
               : value === "limited"
-              ? "secondary"
-              : "destructive"
+                ? "secondary"
+                : "destructive"
           }
           className="text-xs"
         >

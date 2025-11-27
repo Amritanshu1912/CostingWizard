@@ -1,13 +1,8 @@
+// src/app/materials/components/materials-table.tsx
 "use client";
 
-import { useState, useMemo } from "react";
-import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { SortableTable } from "@/components/ui/sortable-table";
-import { Edit, Trash2, Loader2, Plus } from "lucide-react";
-import { format } from "date-fns";
-import type { MaterialWithSuppliers, Category } from "@/lib/types";
+import { Button } from "@/components/ui/button";
 import {
   Command,
   CommandEmpty,
@@ -16,13 +11,25 @@ import {
   CommandItem,
   CommandList,
 } from "@/components/ui/command";
+import { Input } from "@/components/ui/input";
 import {
   Popover,
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
-import { Check, ChevronsUpDown } from "lucide-react";
+import { SortableTable } from "@/components/ui/sortable-table";
+import type { Category, MaterialWithSuppliers } from "@/lib/types";
 import { cn } from "@/lib/utils";
+import { format } from "date-fns";
+import {
+  Check,
+  ChevronsUpDown,
+  Edit,
+  Loader2,
+  Plus,
+  Trash2,
+} from "lucide-react";
+import { useMemo } from "react";
 
 interface MaterialsTableDrawerProps {
   data: (MaterialWithSuppliers & { categoryColor: string })[];
@@ -165,7 +172,7 @@ export function MaterialsTableDrawer({
                         <CommandGroup>
                           <CommandItem onSelect={onNewCategory}>
                             <Plus className="mr-2 h-4 w-4" />
-                            Create "{categorySearch}"
+                            Create &quot;{categorySearch}&quot;
                           </CommandItem>
                         </CommandGroup>
                       )}

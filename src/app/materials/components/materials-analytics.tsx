@@ -1,6 +1,7 @@
+// src/app/materials/components/materials-analytics.tsx
 "use client";
 
-import { useMemo } from "react";
+import { Badge } from "@/components/ui/badge";
 import {
   Card,
   CardContent,
@@ -8,37 +9,34 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Progress } from "@/components/ui/progress";
 import {
   MetricCard,
-  MetricCardWithProgress,
   MetricCardWithBadge,
+  MetricCardWithProgress,
 } from "@/components/ui/metric-card";
+import { Progress } from "@/components/ui/progress";
+import { useEnrichedRecipes } from "@/hooks/use-recipes";
+import { useSupplierMaterialsWithDetails } from "@/hooks/use-supplier-materials-with-details";
+import { CHART_COLORS } from "@/lib/color-utils";
 import {
-  LineChart,
-  Line,
-  BarChart,
-  Bar,
-  CartesianGrid,
-  XAxis,
-  YAxis,
-  Tooltip,
-  Legend,
-  ResponsiveContainer,
-} from "recharts";
-import {
-  Sparkles,
-  TrendingUp,
-  Target,
   AlertTriangle,
   DollarSign,
+  Sparkles,
+  Target,
+  TrendingUp,
 } from "lucide-react";
+import { useMemo } from "react";
+import {
+  Bar,
+  BarChart,
+  CartesianGrid,
+  Legend,
+  ResponsiveContainer,
+  Tooltip,
+  XAxis,
+  YAxis,
+} from "recharts";
 import { AI_INSIGHTS } from "./materials-constants";
-import { useSupplierMaterialsWithDetails } from "@/hooks/use-supplier-materials-with-details";
-import { useEnrichedRecipes } from "@/hooks/use-recipes";
-import { CHART_COLORS } from "@/lib/color-utils";
-import { calculateMaterialStats } from "./materials-constants";
 
 export function MaterialsAnalytics() {
   const supplierMaterials = useSupplierMaterialsWithDetails();
@@ -48,16 +46,17 @@ export function MaterialsAnalytics() {
   const keyMetrics = useMemo(() => {
     if (!supplierMaterials.length) return [];
 
-    const stats = calculateMaterialStats(supplierMaterials);
-
     // Price Volatility: Calculate coefficient of variation across materials with multiple suppliers
-    const materialGroups = supplierMaterials.reduce((acc, sm) => {
-      const materialId = sm.materialId;
-      if (!materialId) return acc;
-      if (!acc[materialId]) acc[materialId] = [];
-      acc[materialId].push(sm.unitPrice);
-      return acc;
-    }, {} as Record<string, number[]>);
+    const materialGroups = supplierMaterials.reduce(
+      (acc, sm) => {
+        const materialId = sm.materialId;
+        if (!materialId) return acc;
+        if (!acc[materialId]) acc[materialId] = [];
+        acc[materialId].push(sm.unitPrice);
+        return acc;
+      },
+      {} as Record<string, number[]>
+    );
 
     const volatilities = Object.values(materialGroups)
       .filter((prices) => prices.length > 1)
@@ -97,8 +96,8 @@ export function MaterialsAnalytics() {
       costEfficiency > 75
         ? "success"
         : costEfficiency > 50
-        ? "warning"
-        : "error";
+          ? "warning"
+          : "error";
 
     return [
       {
@@ -128,8 +127,8 @@ export function MaterialsAnalytics() {
             costEfficiency > 75
               ? "Excellent"
               : costEfficiency > 50
-              ? "Good"
-              : "Needs improvement",
+                ? "Good"
+                : "Needs improvement",
           color,
         },
       },
@@ -169,17 +168,23 @@ export function MaterialsAnalytics() {
     if (!supplierMaterials.length) return [];
 
     // Group by material category
-    const categoryData = supplierMaterials.reduce((acc, sm) => {
-      const category = sm.material?.category || "Uncategorized";
-      if (!acc[category]) {
-        acc[category] = { total: 0, count: 0, min: Infinity, max: -Infinity };
-      }
-      acc[category].total += sm.unitPrice;
-      acc[category].count += 1;
-      acc[category].min = Math.min(acc[category].min, sm.unitPrice);
-      acc[category].max = Math.max(acc[category].max, sm.unitPrice);
-      return acc;
-    }, {} as Record<string, { total: number; count: number; min: number; max: number }>);
+    const categoryData = supplierMaterials.reduce(
+      (acc, sm) => {
+        const category = sm.material?.category || "Uncategorized";
+        if (!acc[category]) {
+          acc[category] = { total: 0, count: 0, min: Infinity, max: -Infinity };
+        }
+        acc[category].total += sm.unitPrice;
+        acc[category].count += 1;
+        acc[category].min = Math.min(acc[category].min, sm.unitPrice);
+        acc[category].max = Math.max(acc[category].max, sm.unitPrice);
+        return acc;
+      },
+      {} as Record<
+        string,
+        { total: number; count: number; min: number; max: number }
+      >
+    );
 
     return Object.entries(categoryData).map(([category, data]) => ({
       category,
@@ -228,7 +233,6 @@ export function MaterialsAnalytics() {
         material,
         usage: data.totalUsage,
         cost: data.totalCost,
-        efficiency: data.recipeCount > 0 ? 85 + Math.random() * 15 : 85, // Mock efficiency
         recipes: data.recipeCount,
       }))
       .sort((a, b) => b.usage - a.usage)

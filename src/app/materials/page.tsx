@@ -1,3 +1,4 @@
+// src/app/materials/page.tsx
 import { Sidebar } from "@/components/sidebar";
 import { MaterialsManager } from "./components/materials-manager";
 
