@@ -10,9 +10,9 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { useSupplierLabelsWithDetails } from "@/hooks/use-supplier-labels-with-details";
-import { useSupplierMaterialsWithDetails } from "@/hooks/use-supplier-materials-with-details";
-import { useSupplierPackagingWithDetails } from "@/hooks/use-supplier-packaging-with-details";
+import { useSupplierLabelsWithDetails } from "@/hooks/use-supplier-labels";
+import { useSupplierMaterialsWithDetails } from "@/hooks/use-supplier-materials";
+import { useSupplierPackagingWithDetails } from "@/hooks/use-supplier-packaging";
 import type { Supplier } from "@/lib/types";
 import { Package } from "lucide-react";
 import { useMemo, useState } from "react";

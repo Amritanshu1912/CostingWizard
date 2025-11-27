@@ -1,8 +1,9 @@
-import type React from "react";
-import type { Metadata } from "next";
-import { Inter, JetBrains_Mono } from "next/font/google";
+// src/app/layout.tsx
 import "./globals.css";
 import { Toaster } from "@/components/ui/sonner";
+import type { Metadata } from "next";
+import { Inter, JetBrains_Mono } from "next/font/google";
+import type React from "react";
 
 const inter = Inter({
   subsets: ["latin"],

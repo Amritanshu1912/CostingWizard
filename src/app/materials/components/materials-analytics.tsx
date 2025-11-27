@@ -16,7 +16,7 @@ import {
 } from "@/components/ui/metric-card";
 import { Progress } from "@/components/ui/progress";
 import { useEnrichedRecipes } from "@/hooks/use-recipes";
-import { useSupplierMaterialsWithDetails } from "@/hooks/use-supplier-materials-with-details";
+import { useSupplierMaterialsWithDetails } from "@/hooks/use-supplier-materials";
 import { CHART_COLORS } from "@/lib/color-utils";
 import {
   AlertTriangle,

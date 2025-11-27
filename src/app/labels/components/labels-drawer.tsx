@@ -20,7 +20,7 @@ import {
   SheetHeader,
   SheetTitle,
 } from "@/components/ui/sheet";
-import { useSupplierLabelsWithDetails } from "@/hooks/use-supplier-labels-with-details";
+import { useSupplierLabelsWithDetails } from "@/hooks/use-supplier-labels";
 import { db } from "@/lib/db";
 import { normalizeText } from "@/lib/text-utils";
 import type { LabelsWithSuppliers } from "@/lib/types";

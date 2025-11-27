@@ -25,7 +25,7 @@ import { MaterialsTable } from "./supplier-materials-table";
 import { SUPPLIERS } from "@/app/suppliers/components/suppliers-constants";
 import { MetricCard } from "@/components/ui/metric-card";
 import { useDexieTable } from "@/hooks/use-dexie-table";
-import { useSupplierMaterialsWithDetails } from "@/hooks/use-supplier-materials-with-details";
+import { useSupplierMaterialsWithDetails } from "@/hooks/use-supplier-materials";
 import { assignCategoryColor } from "@/lib/color-utils";
 import { db } from "@/lib/db";
 import { normalizeText } from "@/lib/text-utils";

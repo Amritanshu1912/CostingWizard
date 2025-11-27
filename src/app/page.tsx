@@ -1,5 +1,9 @@
+// src/app/page.tsx
 "use client";
 
+import { Sidebar } from "@/components/sidebar";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import {
   Card,
   CardContent,
@@ -7,12 +11,9 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
-import { Sidebar } from "@/components/sidebar";
-import { Package, TrendingUp, TrendingDown, BarChart3 } from "lucide-react";
 import { quickActions, quickStats, recentMaterials } from "@/lib/constants";
+import { BarChart3, Package, TrendingDown, TrendingUp } from "lucide-react";
 
 export function DashboardOverview() {
   return (

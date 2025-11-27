@@ -22,7 +22,7 @@ import {
   useEnrichedRecipes,
   useRecipeVariants,
 } from "@/hooks/use-recipes";
-import { useSupplierMaterialsWithDetails } from "@/hooks/use-supplier-materials-with-details";
+import { useSupplierMaterialsWithDetails } from "@/hooks/use-supplier-materials";
 import { db } from "@/lib/db";
 import type { RecipeVariant } from "@/lib/types";
 import { OptimizationGoalType } from "@/lib/types";

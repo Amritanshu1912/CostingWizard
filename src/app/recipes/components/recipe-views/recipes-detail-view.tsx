@@ -24,7 +24,7 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
 import { useMaterialsWithSuppliers } from "@/hooks/use-recipes";
-import { useSupplierMaterialsWithDetails } from "@/hooks/use-supplier-materials-with-details";
+import { useSupplierMaterialsWithDetails } from "@/hooks/use-supplier-materials";
 import {
   convertToBaseUnit,
   formatQuantity,

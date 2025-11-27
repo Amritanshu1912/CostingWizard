@@ -1,3 +1,4 @@
+/* src/app/globals.css */
 @import "tailwindcss";
 @import "tw-animate-css";
 
@@ -156,10 +157,21 @@
 
   body {
     @apply bg-background text-foreground;
-    font-feature-settings: "rlig" 1, "calt" 1;
+    font-feature-settings:
+      "rlig" 1,
+      "calt" 1;
     /* Added subtle beach-inspired background texture */
-    background-image: radial-gradient(circle at 25% 25%, oklch(0.99 0.01 200) 0%, transparent 50%),
-      radial-gradient(circle at 75% 75%, oklch(0.98 0.01 180) 0%, transparent 50%);
+    background-image:
+      radial-gradient(
+        circle at 25% 25%,
+        oklch(0.99 0.01 200) 0%,
+        transparent 50%
+      ),
+      radial-gradient(
+        circle at 75% 75%,
+        oklch(0.98 0.01 180) 0%,
+        transparent 50%
+      );
   }
 }
 
@@ -218,24 +230,36 @@
 .card-enhanced {
   @apply border border-border/40 hover:border-primary/40 transition-all duration-300 shadow-sm hover:shadow-lg;
   /* Added subtle wave-like shadow */
-  box-shadow: 0 1px 3px oklch(0.55 0.12 200 / 0.1), 0 1px 2px oklch(0.55 0.12 200 / 0.06);
+  box-shadow:
+    0 1px 3px oklch(0.55 0.12 200 / 0.1),
+    0 1px 2px oklch(0.55 0.12 200 / 0.06);
 }
 
 .card-enhanced:hover {
-  box-shadow: 0 4px 6px oklch(0.55 0.12 200 / 0.1), 0 2px 4px oklch(0.55 0.12 200 / 0.06);
+  box-shadow:
+    0 4px 6px oklch(0.55 0.12 200 / 0.1),
+    0 2px 4px oklch(0.55 0.12 200 / 0.06);
 }
 
 /* Form styling with beach theme */
 .form-section {
   @apply space-y-4 p-6 border border-border/50 rounded-xl bg-card shadow-sm;
   /* Added subtle ocean gradient background */
-  background: linear-gradient(135deg, hsl(var(--color-card)) 0%, oklch(0.99 0.005 190) 100%);
+  background: linear-gradient(
+    135deg,
+    hsl(var(--color-card)) 0%,
+    oklch(0.99 0.005 190) 100%
+  );
 }
 
 /* Table enhancements with wave-like borders */
 .table-enhanced {
   @apply border border-border/50 rounded-xl overflow-hidden shadow-sm;
-  background: linear-gradient(to bottom, hsl(var(--color-card)) 0%, oklch(0.99 0.003 195) 100%);
+  background: linear-gradient(
+    to bottom,
+    hsl(var(--color-card)) 0%,
+    oklch(0.99 0.003 195) 100%
+  );
 }
 
 /* Beach-themed button styles */
@@ -271,15 +295,27 @@
 
 /* Beach gradient utilities */
 .gradient-ocean {
-  background: linear-gradient(135deg, hsl(var(--color-primary)) 0%, hsl(var(--color-secondary)) 100%);
+  background: linear-gradient(
+    135deg,
+    hsl(var(--color-primary)) 0%,
+    hsl(var(--color-secondary)) 100%
+  );
 }
 
 .gradient-coral {
-  background: linear-gradient(135deg, hsl(var(--color-accent)) 0%, oklch(0.75 0.12 35) 100%);
+  background: linear-gradient(
+    135deg,
+    hsl(var(--color-accent)) 0%,
+    oklch(0.75 0.12 35) 100%
+  );
 }
 
 .gradient-beach {
-  background: linear-gradient(135deg, oklch(0.92 0.02 180) 0%, oklch(0.75 0.08 45) 100%);
+  background: linear-gradient(
+    135deg,
+    oklch(0.92 0.02 180) 0%,
+    oklch(0.75 0.08 45) 100%
+  );
 }
 
 /* Enhanced focus states with ocean theme */
@@ -311,7 +347,13 @@
 }
 
 .wave-border {
-  border-image: linear-gradient(90deg, hsl(var(--color-primary)), hsl(var(--color-secondary)), hsl(var(--color-accent))) 1;
+  border-image: linear-gradient(
+      90deg,
+      hsl(var(--color-primary)),
+      hsl(var(--color-secondary)),
+      hsl(var(--color-accent))
+    )
+    1;
 }
 
 .dialog-section {

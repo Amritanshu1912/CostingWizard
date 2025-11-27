@@ -10,7 +10,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { SortableTable } from "@/components/ui/sortable-table";
-import { useLabelPriceComparison } from "@/hooks/use-supplier-labels-with-details";
+import { useLabelPriceComparison } from "@/hooks/use-supplier-labels";
 import type { SupplierLabelWithDetails } from "@/lib/types";
 import { AlertCircle, Star, TrendingDown } from "lucide-react";
 

@@ -10,7 +10,7 @@ import { useCallback, useState } from "react";
 import { toast } from "sonner";
 import { SUPPLIERS } from "@/app/suppliers/components/suppliers-constants";
 import { useDexieTable } from "@/hooks/use-dexie-table";
-import { useSupplierLabelsWithDetails } from "@/hooks/use-supplier-labels-with-details";
+import { useSupplierLabelsWithDetails } from "@/hooks/use-supplier-labels";
 import { db } from "@/lib/db";
 import { normalizeText } from "@/lib/text-utils";
 import type { SupplierLabel } from "@/lib/types";

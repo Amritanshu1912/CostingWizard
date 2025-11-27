@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { MetricCard } from "@/components/ui/metric-card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useDexieTable } from "@/hooks/use-dexie-table";
-import { useSupplierPackagingWithDetails } from "@/hooks/use-supplier-packaging-with-details";
+import { useSupplierPackagingWithDetails } from "@/hooks/use-supplier-packaging";
 import { db } from "@/lib/db";
 import { normalizeText } from "@/lib/text-utils";
 import type { SupplierPackaging } from "@/lib/types";
