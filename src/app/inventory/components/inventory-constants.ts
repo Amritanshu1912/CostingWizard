@@ -1,11 +1,9 @@
 // src/app/inventory/components/inventory-constants.ts
 import { InventoryItem, InventoryTransaction } from "@/lib/types";
 
-export const MOCK_INVENTORY_ITEMS: Omit<
-  InventoryItem,
-  "id" | "createdAt" | "updatedAt"
->[] = [
+export const MOCK_INVENTORY_ITEMS: InventoryItem[] = [
   {
+    id: "1",
     itemType: "supplierMaterial" as const,
     itemId: "6", // NaCl from supplier materials
     itemName: "Sodium Chloride",
@@ -16,8 +14,10 @@ export const MOCK_INVENTORY_ITEMS: Omit<
     lastUpdated: new Date().toISOString(),
     status: "in-stock" as const,
     notes: "High purity salt for formulations",
+    createdAt: "",
   },
   {
+    id: "2",
     itemType: "supplierMaterial" as const,
     itemId: "3", // Citric Acid
     itemName: "Citric Acid",
@@ -28,8 +28,10 @@ export const MOCK_INVENTORY_ITEMS: Omit<
     lastUpdated: new Date().toISOString(),
     status: "low-stock" as const,
     notes: "Used in flavor enhancement",
+    createdAt: new Date().toISOString(),
   },
   {
+    id: "3",
     itemType: "supplierPackaging" as const,
     itemId: "1", // 500ml PET Bottle
     itemName: "500ml PET Bottle",
@@ -40,8 +42,10 @@ export const MOCK_INVENTORY_ITEMS: Omit<
     lastUpdated: new Date().toISOString(),
     status: "in-stock" as const,
     notes: "Clear plastic bottles for beverages",
+    createdAt: new Date().toISOString(),
   },
   {
+    id: "4",
     itemType: "supplierLabel" as const,
     itemId: "1", // Standard Label
     itemName: "Standard Sticker Label",
@@ -52,8 +56,10 @@ export const MOCK_INVENTORY_ITEMS: Omit<
     lastUpdated: new Date().toISOString(),
     status: "out-of-stock" as const,
     notes: "Color printed labels for branding",
+    createdAt: new Date().toISOString(),
   },
   {
+    id: "5",
     itemType: "supplierMaterial" as const,
     itemId: "1", // supplier material id 1 (Acid Slurry)
     itemName: "Acid Slurry 90%",
@@ -64,8 +70,10 @@ export const MOCK_INVENTORY_ITEMS: Omit<
     lastUpdated: new Date().toISOString(),
     status: "in-stock" as const,
     notes: "Ingredient and usage information",
+    createdAt: new Date().toISOString(),
   },
   {
+    id: "6",
     itemType: "supplierMaterial" as const,
     itemId: "4", // supplier material id 4 (Acid Blue Color)
     itemName: "Acid Blue Color",
@@ -76,8 +84,10 @@ export const MOCK_INVENTORY_ITEMS: Omit<
     lastUpdated: new Date().toISOString(),
     status: "in-stock" as const,
     notes: "Ingredient for few recipes",
+    createdAt: new Date().toISOString(),
   },
   {
+    id: "7",
     itemType: "supplierPackaging" as const,
     itemId: "4", // spray bottle
     itemName: "250ml Spray Bottle",
@@ -88,8 +98,10 @@ export const MOCK_INVENTORY_ITEMS: Omit<
     lastUpdated: new Date().toISOString(),
     status: "in-stock" as const,
     notes: "Generic notes for packaging",
+    createdAt: new Date().toISOString(),
   },
   {
+    id: "8",
     itemType: "supplierPackaging" as const,
     itemId: "7", // plastic pouch
     itemName: "500g Plastic Pouch",
@@ -100,8 +112,10 @@ export const MOCK_INVENTORY_ITEMS: Omit<
     lastUpdated: new Date().toISOString(),
     status: "in-stock" as const,
     notes: "Good packaging",
+    createdAt: new Date().toISOString(),
   },
   {
+    id: "9",
     itemType: "supplierLabel" as const,
     itemId: "3", // supplier label id 3
     itemName: "Custom Shape Tag",
@@ -112,8 +126,10 @@ export const MOCK_INVENTORY_ITEMS: Omit<
     lastUpdated: new Date().toISOString(),
     status: "in-stock" as const,
     notes: "Specialty Custom labels",
+    createdAt: new Date().toISOString(),
   },
   {
+    id: "10",
     itemType: "supplierLabel" as const,
     itemId: "5", // supplier label id 5
     itemName: "Small Sticker",
@@ -124,8 +140,10 @@ export const MOCK_INVENTORY_ITEMS: Omit<
     lastUpdated: new Date().toISOString(),
     status: "in-stock" as const,
     notes: "Specialty small labels",
+    createdAt: new Date().toISOString(),
   },
   {
+    id: "11",
     itemType: "supplierMaterial" as const,
     itemId: "7", // Soda Ash
     itemName: "Soda Ash",
@@ -136,8 +154,10 @@ export const MOCK_INVENTORY_ITEMS: Omit<
     lastUpdated: new Date().toISOString(),
     status: "out-of-stock" as const,
     notes: "Base material for formulations",
+    createdAt: new Date().toISOString(),
   },
   {
+    id: "12",
     itemType: "supplierMaterial" as const,
     itemId: "10", //AOS Powder
     itemName: "AOS Powder 96%",
@@ -148,6 +168,7 @@ export const MOCK_INVENTORY_ITEMS: Omit<
     lastUpdated: new Date().toISOString(),
     status: "overstock" as const,
     notes: "Surfactant for cleaning formulations",
+    createdAt: new Date().toISOString(),
   },
 ];
 
