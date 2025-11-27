@@ -1,11 +1,9 @@
+// src/components/sidebar.tsx
 "use client";
 
-import { useState } from "react";
-import Link from "next/link";
-import { usePathname } from "next/navigation";
-import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { cn } from "@/lib/utils";
 import {
   BarChart3,
   Box,
@@ -16,12 +14,15 @@ import {
   Package,
   ShoppingBag,
   ShoppingCart,
+  Sparkles,
   Tag,
   Users,
   Warehouse,
   X,
-  Sparkles,
 } from "lucide-react";
+import Link from "next/link";
+import { usePathname } from "next/navigation";
+import { useState } from "react";
 
 const navigation = [
   {
@@ -61,7 +62,7 @@ const navigation = [
   },
   {
     name: "Products",
-    href: "/compose-products",
+    href: "/products",
     icon: ShoppingBag,
   },
   {

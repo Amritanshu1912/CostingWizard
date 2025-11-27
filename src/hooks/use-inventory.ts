@@ -1,16 +1,14 @@
 // src/hooks/use-inventory.ts
-import { useLiveQuery } from "dexie-react-hooks";
+import { createOrUpdateAlertForItemById } from "@/lib/alerts";
 import { db } from "@/lib/db";
 import type {
   InventoryItem,
-  InventoryTransaction,
-  InventoryAlert,
   InventoryItemWithDetails,
   InventoryStats,
 } from "@/lib/types";
-import { useMemo, useState, useCallback } from "react";
 import { format } from "date-fns";
-import { createOrUpdateAlertForItemById } from "@/lib/alerts";
+import { useLiveQuery } from "dexie-react-hooks";
+import { useCallback, useMemo, useState } from "react";
 
 // ============================================================================
 // BASE DATA HOOKS - Optimized with proper dependencies
@@ -369,19 +367,30 @@ export function useInventoryBySupplier() {
   return useMemo(() => {
     if (!itemsWithDetails) return undefined;
 
-    const bySupplier = itemsWithDetails.reduce((acc, item) => {
-      if (!acc[item.supplierId]) {
-        acc[item.supplierId] = {
-          supplierId: item.supplierId,
-          supplierName: item.supplierName,
-          items: [],
-          totalValue: 0,
-        };
-      }
-      acc[item.supplierId].items.push(item);
-      acc[item.supplierId].totalValue += item.stockValue;
-      return acc;
-    }, {} as Record<string, { supplierId: string; supplierName: string; items: InventoryItemWithDetails[]; totalValue: number }>);
+    const bySupplier = itemsWithDetails.reduce(
+      (acc, item) => {
+        if (!acc[item.supplierId]) {
+          acc[item.supplierId] = {
+            supplierId: item.supplierId,
+            supplierName: item.supplierName,
+            items: [],
+            totalValue: 0,
+          };
+        }
+        acc[item.supplierId].items.push(item);
+        acc[item.supplierId].totalValue += item.stockValue;
+        return acc;
+      },
+      {} as Record<
+        string,
+        {
+          supplierId: string;
+          supplierName: string;
+          items: InventoryItemWithDetails[];
+          totalValue: number;
+        }
+      >
+    );
 
     return Object.values(bySupplier);
   }, [itemsWithDetails]);
@@ -420,8 +429,8 @@ export function useInventoryStats(): InventoryStats | undefined {
           item.itemType === "supplierMaterial"
             ? "materials"
             : item.itemType === "supplierPackaging"
-            ? "packaging"
-            : "labels";
+              ? "packaging"
+              : "labels";
 
         acc[typeKey].count++;
         acc[typeKey].value += item.stockValue;
@@ -435,21 +444,29 @@ export function useInventoryStats(): InventoryStats | undefined {
     );
 
     // Calculate by supplier using reduce
-    const bySupplier = itemsWithDetails.reduce((acc, item) => {
-      const existing = acc.find((s) => s.supplierId === item.supplierId);
-      if (existing) {
-        existing.itemCount++;
-        existing.totalValue += item.stockValue;
-      } else {
-        acc.push({
-          supplierId: item.supplierId,
-          supplierName: item.supplierName,
-          itemCount: 1,
-          totalValue: item.stockValue,
-        });
-      }
-      return acc;
-    }, [] as { supplierId: string; supplierName: string; itemCount: number; totalValue: number }[]);
+    const bySupplier = itemsWithDetails.reduce(
+      (acc, item) => {
+        const existing = acc.find((s) => s.supplierId === item.supplierId);
+        if (existing) {
+          existing.itemCount++;
+          existing.totalValue += item.stockValue;
+        } else {
+          acc.push({
+            supplierId: item.supplierId,
+            supplierName: item.supplierName,
+            itemCount: 1,
+            totalValue: item.stockValue,
+          });
+        }
+        return acc;
+      },
+      [] as {
+        supplierId: string;
+        supplierName: string;
+        itemCount: number;
+        totalValue: number;
+      }[]
+    );
 
     const criticalAlerts = alerts.filter(
       (a) => a.severity === "critical"

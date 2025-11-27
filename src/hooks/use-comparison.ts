@@ -1,26 +1,21 @@
 // hooks/use-comparison.ts
-import { useMemo } from "react";
 import {
-  useEnrichedRecipes,
-  useRecipeData,
-  normalizeToKg,
-} from "./use-recipes";
-import type {
-  Recipe,
-  RecipeIngredient,
-  RecipeVariant,
-  SupplierMaterial,
-  Material,
-  Supplier,
-  RecipeIngredientDisplay,
-  VariantIngredientSnapshot,
-} from "@/lib/types";
-import {
+  ComparisonIngredient,
   ComparisonItem,
   ComparisonSummary,
-  ComparisonIngredient,
 } from "@/app/recipes/components/recipes-comparison/comparison-types";
-import { recipeCalculator } from "@/hooks/use-recipes";
+import type {
+  Material,
+  RecipeIngredient,
+  RecipeIngredientDisplay,
+  RecipeVariant,
+  Supplier,
+  SupplierMaterial,
+  VariantIngredientSnapshot,
+} from "@/lib/types";
+import { useMemo } from "react";
+import { useEnrichedRecipes, useRecipeData } from "./use-recipes";
+import { formatQuantity, normalizeToKg } from "./use-unit-conversion";
 
 /**
  * Resolves a variant's ingredients from a snapshot or ingredient IDs.
@@ -81,10 +76,7 @@ const getVariantIngredients = (
 
     return {
       ...ingredient,
-      displayQuantity: recipeCalculator.formatQuantity(
-        ingOrSnap.quantity,
-        ingOrSnap.unit
-      ),
+      displayQuantity: formatQuantity(ingOrSnap.quantity, ingOrSnap.unit),
       materialName,
       supplierName,
       displayName: `${materialName} (${supplierName})`,

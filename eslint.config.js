@@ -4,11 +4,19 @@ import tsparser from "@typescript-eslint/parser";
 
 const eslintConfig = [
   {
-    ignores: ["node_modules", ".next"],
+    ignores: ["node_modules", ".next", "src/app/planningOld/**"],
   },
 
   // Next.js config (must be first actual config)
   ...next,
+
+  // Completely disable ESLint inside planningOld
+  {
+    files: ["src/app/planningOld/**/*"],
+    rules: {
+      all: "off",
+    },
+  },
 
   {
     files: ["**/*.{ts,tsx}"],
