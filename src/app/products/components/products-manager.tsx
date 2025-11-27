@@ -1,54 +1,70 @@
+// src/app/products/components/products-manager.tsx
 "use client";
 
-import { useState, useEffect } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useProducts } from "@/hooks/use-products";
-import { ProductsList } from "./products-list";
-import { ProductsDetailPanel } from "./products-detail-panel";
 import type { Product } from "@/lib/types";
+import { useMemo, useState } from "react";
+import { ProductsDetailPanel } from "./products-detail-panel";
+import { ProductsList } from "./products-list";
 
 export function ProductsManager() {
   const products = useProducts();
-  const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
+  const [selectedProductId, setSelectedProductId] = useState<
+    string | undefined
+  >(undefined);
   const [isCreatingNew, setIsCreatingNew] = useState(false);
 
-  /**
-   * Auto-select first product on initial load only
-   */
-  useEffect(() => {
-    if (products.length > 0 && !selectedProduct && !isCreatingNew) {
-      setSelectedProduct(products[0]);
-    }
-  }, [products]);
+  // Compute selected product from ID and products list
+  const selectedProduct = useMemo(() => {
+    if (!selectedProductId) return null;
+    return products.find((p) => p.id === selectedProductId) || null;
+  }, [selectedProductId, products]);
 
-  /**
-   * Sync selected product with database changes
-   */
-  useEffect(() => {
-    if (selectedProduct && products.length > 0) {
-      const updatedProduct = products.find((p) => p.id === selectedProduct.id);
-      if (updatedProduct) {
-        setSelectedProduct(updatedProduct);
+  // Auto-select first product on initial load only
+  const initialSelectedProductId = useMemo(() => {
+    if (products.length > 0 && !selectedProductId && !isCreatingNew) {
+      return products[0].id;
+    }
+    return selectedProductId;
+  }, [products, selectedProductId, isCreatingNew]);
+
+  // Sync selected product with database changes
+  const syncedSelectedProductId = useMemo(() => {
+    if (initialSelectedProductId && products.length > 0) {
+      const productExists = products.some(
+        (p) => p.id === initialSelectedProductId
+      );
+      if (productExists) {
+        return initialSelectedProductId;
       } else {
         // Product was deleted, select first available
-        setSelectedProduct(products[0] || null);
+        return products[0]?.id || undefined;
       }
     }
-  }, [products]);
+    return initialSelectedProductId;
+  }, [initialSelectedProductId, products]);
+
+  // Set the computed selected product ID
+  useState(() => {
+    if (syncedSelectedProductId !== selectedProductId) {
+      setSelectedProductId(syncedSelectedProductId);
+    }
+  });
 
   /**
    * Handle product creation trigger
    */
   const handleCreateProduct = () => {
     setIsCreatingNew(true);
-    setSelectedProduct(null);
+    setSelectedProductId(undefined);
   };
 
   /**
    * Handle product created
    */
   const handleProductCreated = (product: Product) => {
-    setSelectedProduct(product);
+    setSelectedProductId(product.id);
     setIsCreatingNew(false);
   };
 
@@ -57,9 +73,9 @@ export function ProductsManager() {
    */
   const handleProductDeleted = () => {
     if (products.length > 0) {
-      setSelectedProduct(products[0]);
+      setSelectedProductId(products[0].id);
     } else {
-      setSelectedProduct(null);
+      setSelectedProductId(undefined);
     }
     setIsCreatingNew(false);
   };
@@ -68,7 +84,7 @@ export function ProductsManager() {
    * Handle product selection
    */
   const handleSelectProduct = (product: Product) => {
-    setSelectedProduct(product);
+    setSelectedProductId(product.id);
     setIsCreatingNew(false);
   };
 
@@ -97,7 +113,7 @@ export function ProductsManager() {
             <div className="lg:col-span-4 xl:col-span-3">
               <ProductsList
                 products={products}
-                selectedProductId={selectedProduct?.id}
+                selectedProductId={selectedProductId}
                 onSelectProduct={handleSelectProduct}
                 onCreateProduct={handleCreateProduct}
               />

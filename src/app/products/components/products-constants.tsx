@@ -1,3 +1,4 @@
+// src/app/products/components/products-constants.tsx
 import type { Product, ProductVariant } from "@/lib/types";
 
 // ============================================================================
@@ -95,7 +96,7 @@ export const PRODUCT_VARIANTS: ProductVariant[] = [
     sku: "PFC-1L-002",
     fillQuantity: 1000,
     fillUnit: "ml",
-    packagingSelectionId: "10", // 750ml Glass Bottle (closest to 1L)
+    packagingSelectionId: "8", // 750ml Glass Bottle (closest to 1L)
     frontLabelSelectionId: "1",
     backLabelSelectionId: "2",
     labelsPerUnit: 2,
@@ -133,7 +134,7 @@ export const PRODUCT_VARIANTS: ProductVariant[] = [
     sku: "EFDS-1L-001",
     fillQuantity: 1000,
     fillUnit: "ml",
-    packagingSelectionId: "10", // 750ml Glass Bottle
+    packagingSelectionId: "8", // 750ml Glass Bottle
     frontLabelSelectionId: "8", // Recyclable Label
     backLabelSelectionId: "2",
     labelsPerUnit: 2,
@@ -171,7 +172,7 @@ export const PRODUCT_VARIANTS: ProductVariant[] = [
     sku: "UBF-2L-001",
     fillQuantity: 2000,
     fillUnit: "ml",
-    packagingSelectionId: "8", // 2L Metal Can
+    packagingSelectionId: "2", // 2L Glass Jar
     frontLabelSelectionId: "7", // Security Label
     backLabelSelectionId: "4", // Embossed Label
     labelsPerUnit: 2,
@@ -189,7 +190,7 @@ export const PRODUCT_VARIANTS: ProductVariant[] = [
     sku: "UBF-1L-002",
     fillQuantity: 1000,
     fillUnit: "ml",
-    packagingSelectionId: "10", // 750ml Glass Bottle
+    packagingSelectionId: "8", // 750ml Glass Bottle
     frontLabelSelectionId: "7",
     backLabelSelectionId: "4",
     labelsPerUnit: 2,

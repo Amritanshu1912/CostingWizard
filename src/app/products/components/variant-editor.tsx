@@ -1,11 +1,9 @@
+// src/app/products/components/variant-editor.tsx
 "use client";
 
-import { useState, useEffect } from "react";
-import { useLiveQuery } from "dexie-react-hooks";
+import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Button } from "@/components/ui/button";
-import { Textarea } from "@/components/ui/textarea";
 import {
   Select,
   SelectContent,
@@ -13,9 +11,12 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Check, X, Package, Tag } from "lucide-react";
+import { Textarea } from "@/components/ui/textarea";
 import { db } from "@/lib/db";
-import type { ProductVariant, CapacityUnit } from "@/lib/types";
+import type { CapacityUnit, ProductVariant } from "@/lib/types";
+import { useLiveQuery } from "dexie-react-hooks";
+import { Check, Package, Tag, X } from "lucide-react";
+import { useEffect, useState } from "react";
 
 interface VariantEditorProps {
   productId: string;

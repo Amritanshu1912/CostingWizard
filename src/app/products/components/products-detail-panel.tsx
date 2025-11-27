@@ -1,28 +1,29 @@
+// src/app/products/components/products-detail-panel.tsx
 "use client";
 
-import { useState, useEffect } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Package, Edit2, ArrowLeft, Trash2 } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
-  getProductVariantsWithDetails,
   calculateVariantCostAnalysis,
   createProduct,
-  updateProduct,
   deleteProduct,
-  saveProductVariant,
   deleteProductVariant,
+  getProductVariantsWithDetails,
+  saveProductVariant,
+  updateProduct,
 } from "@/hooks/use-products";
-import { ProductForm, VariantForm } from "./products-forms";
-import { VariantCard } from "./products-variant-card";
-import { DeleteProductDialog, DeleteVariantDialog } from "./products-dialogs";
 import type {
   Product,
   ProductVariant,
-  ProductVariantWithDetails,
   ProductVariantCostAnalysis,
+  ProductVariantWithDetails,
 } from "@/lib/types";
+import { ArrowLeft, Edit2, Package, Plus, Trash2 } from "lucide-react";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { DeleteProductDialog, DeleteVariantDialog } from "./products-dialogs";
+import { ProductForm, VariantForm } from "./products-forms";
+import { VariantCard } from "./products-variant-card";
 
 type ViewState =
   | { type: "VIEWING_VARIANTS" }
@@ -45,14 +46,15 @@ export function ProductsDetailPanel({
   onProductUpdated,
   onProductDeleted,
 }: ProductsDetailPanelProps) {
+  // Compute initial view state based on props
+  const initialViewState = useMemo((): ViewState => {
+    if (isCreating) return { type: "CREATING_PRODUCT" };
+    if (product) return { type: "VIEWING_VARIANTS" };
+    return { type: "CREATING_PRODUCT" };
+  }, [isCreating, product]);
+
   // View state management
-  const [viewState, setViewState] = useState<ViewState>({
-    type: isCreating
-      ? "CREATING_PRODUCT"
-      : product
-      ? "VIEWING_VARIANTS"
-      : "CREATING_PRODUCT",
-  });
+  const [viewState, setViewState] = useState<ViewState>(initialViewState);
 
   // Data state
   const [variants, setVariants] = useState<ProductVariantWithDetails[]>([]);
@@ -68,31 +70,15 @@ export function ProductsDetailPanel({
     variantName: string;
   }>({ open: false, variantId: "", variantName: "" });
 
-  // Load variants when viewing them
+  // Reset view state when initial props change significantly
   useEffect(() => {
-    if (product && viewState.type === "VIEWING_VARIANTS") {
-      loadVariants();
-    }
-  }, [product?.id, viewState]);
-
-  // Update view state when product changes
-  useEffect(() => {
-    if (product) {
-      setViewState({ type: "VIEWING_VARIANTS" });
-    }
-  }, [product?.id]);
-
-  // Handle external creation trigger
-  useEffect(() => {
-    if (isCreating && !product) {
-      setViewState({ type: "CREATING_PRODUCT" });
-    }
-  }, [isCreating, product]);
+    setViewState(initialViewState);
+  }, [initialViewState]);
 
   /**
    * Load product variants with cost analysis
    */
-  const loadVariants = async () => {
+  const loadVariants = useCallback(async () => {
     if (!product) return;
 
     const variantsData = await getProductVariantsWithDetails(product.id);
@@ -108,7 +94,16 @@ export function ProductsDetailPanel({
       }
     }
     setCostAnalyses(analyses);
-  };
+  }, [product]);
+
+  // Load variants when product changes and we're viewing variants
+  const shouldLoadVariants = product && viewState.type === "VIEWING_VARIANTS";
+
+  useEffect(() => {
+    if (shouldLoadVariants) {
+      loadVariants();
+    }
+  }, [shouldLoadVariants, loadVariants]);
 
   /**
    * Handle product creation
@@ -153,6 +148,8 @@ export function ProductsDetailPanel({
   const handleSaveVariant = async (variant: ProductVariant) => {
     await saveProductVariant(variant);
     setViewState({ type: "VIEWING_VARIANTS" });
+    // Reload variants to reflect changes
+    await loadVariants();
   };
 
   /**
@@ -190,7 +187,14 @@ export function ProductsDetailPanel({
         <CardContent>
           <ProductForm
             onSave={handleCreateProduct}
-            onCancel={() => setViewState({ type: "VIEWING_VARIANTS" })}
+            onCancel={() => {
+              if (product) {
+                setViewState({ type: "VIEWING_VARIANTS" });
+              } else {
+                // If no product exists, we can't go back to viewing variants
+                onProductDeleted?.();
+              }
+            }}
           />
         </CardContent>
       </Card>
@@ -254,8 +258,8 @@ export function ProductsDetailPanel({
                     product.status === "active"
                       ? "default"
                       : product.status === "draft"
-                      ? "secondary"
-                      : "destructive"
+                        ? "secondary"
+                        : "destructive"
                   }
                 >
                   {product.status}

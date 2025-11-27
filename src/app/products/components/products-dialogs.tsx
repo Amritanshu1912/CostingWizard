@@ -1,3 +1,4 @@
+// src/app/products/components/products-dialogs.tsx
 "use client";
 
 import {
@@ -34,8 +35,9 @@ export function DeleteProductDialog({
         <AlertDialogHeader>
           <AlertDialogTitle>Delete Product</AlertDialogTitle>
           <AlertDialogDescription>
-            Are you sure you want to delete <strong>"{productName}"</strong> and
-            all its variants? This action cannot be undone.
+            Are you sure you want to delete{" "}
+            <strong>&quot;{productName}&quot;</strong> and all its variants?
+            This action cannot be undone.
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>
@@ -76,7 +78,8 @@ export function DeleteVariantDialog({
           <AlertDialogTitle>Delete Variant</AlertDialogTitle>
           <AlertDialogDescription>
             Are you sure you want to delete the variant{" "}
-            <strong>"{variantName}"</strong>? This action cannot be undone.
+            <strong>&quot;{variantName}&quot;</strong>? This action cannot be
+            undone.
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>

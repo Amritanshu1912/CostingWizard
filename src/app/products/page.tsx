@@ -1,3 +1,4 @@
+// src/app/products/page.tsx
 import { Sidebar } from "@/components/sidebar";
 import { ProductsManager } from "./components/products-manager";
 

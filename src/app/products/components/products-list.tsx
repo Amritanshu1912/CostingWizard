@@ -1,10 +1,10 @@
+// src/app/products/components/products-list.tsx
 "use client";
 
-import { useState, useMemo } from "react";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import {
   Select,
   SelectContent,
@@ -12,11 +12,12 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Package2, Plus, Search } from "lucide-react";
 import { useDebounce } from "@/hooks/use-duplicate-check";
 import { useVariantCountMap } from "@/hooks/use-products";
 import type { Product } from "@/lib/types";
 import { cn } from "@/lib/utils";
+import { Package2, Plus, Search } from "lucide-react";
+import { useMemo, useState } from "react";
 
 interface ProductsListProps {
   products: Product[];
@@ -108,6 +109,19 @@ export function ProductsList({
               <SelectItem value="discontinued">Discontinued</SelectItem>
             </SelectContent>
           </Select>
+          <Select
+            value={sort}
+            onValueChange={(v) => setSort(v as "name" | "recent")}
+          >
+            <SelectTrigger className="w-[130px]">
+              <SelectValue placeholder="Sort" />
+            </SelectTrigger>
+
+            <SelectContent>
+              <SelectItem value="name">Name (A–Z)</SelectItem>
+              <SelectItem value="recent">Recently Updated</SelectItem>
+            </SelectContent>
+          </Select>
         </div>
       </CardHeader>
 
@@ -159,8 +173,8 @@ export function ProductsList({
                       product.status === "active"
                         ? "default"
                         : product.status === "draft"
-                        ? "secondary"
-                        : "destructive"
+                          ? "secondary"
+                          : "destructive"
                     }
                     className={"text-xs capitalize"}
                   >

@@ -1,10 +1,9 @@
+// src/app/products/components/products-forms.tsx
 "use client";
 
-import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
 import {
   Select,
   SelectContent,
@@ -12,15 +11,17 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Check, X, Package, Tag } from "lucide-react";
-import { useEnrichedRecipes, useRecipeVariants } from "@/hooks/use-recipes";
+import { Textarea } from "@/components/ui/textarea";
 import {
   generateSKU,
-  getPackagingDetails,
   getLabelDetails,
+  getPackagingDetails,
 } from "@/hooks/use-products";
+import { useEnrichedRecipes, useRecipeVariants } from "@/hooks/use-recipes";
+import type { CapacityUnit, Product, ProductVariant } from "@/lib/types";
+import { Check, Package, Tag, X } from "lucide-react";
+import { useEffect, useState } from "react";
 import { ValidationErrorDialog } from "./products-dialogs";
-import type { Product, ProductVariant, CapacityUnit } from "@/lib/types";
 
 // ============================================================================
 // PRODUCT FORM
@@ -56,18 +57,19 @@ export function ProductForm({
 
   const variants = useRecipeVariants(baseRecipeId || null);
 
-  // Initialize baseRecipeId for recipe variants
-  useEffect(() => {
+  // Compute baseRecipeId for recipe variants during render
+  const computedBaseRecipeId = (() => {
     if (initialProduct?.isRecipeVariant && variants.length > 0) {
       const variant = variants.find((v) => v.id === initialProduct.recipeId);
       if (variant) {
-        setBaseRecipeId(variant.originalRecipeId);
+        return variant.originalRecipeId;
       }
     }
-  }, [initialProduct, variants]);
+    return baseRecipeId; // fall back to current baseRecipeId
+  })();
 
   const handleRecipeChange = (recipeId: string) => {
-    setBaseRecipeId(recipeId);
+    setBaseRecipeId(recipeId); // Set the state here instead
     setFormData({
       ...formData,
       recipeId,
@@ -159,7 +161,10 @@ export function ProductForm({
         <div className="flex flex-row gap-6">
           <div className="space-y-2">
             <Label className="text-sm font-medium">Base Recipe *</Label>
-            <Select value={baseRecipeId} onValueChange={handleRecipeChange}>
+            <Select
+              value={computedBaseRecipeId}
+              onValueChange={handleRecipeChange}
+            >
               <SelectTrigger className="h-9 w-84">
                 <SelectValue placeholder="Select recipe" />
               </SelectTrigger>

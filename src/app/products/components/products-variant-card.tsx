@@ -1,26 +1,27 @@
+// src/app/products/components/products-variant-card.tsx
 "use client";
 
-import { useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
+import type {
+  ProductVariant,
+  ProductVariantCostAnalysis,
+  ProductVariantWithDetails,
+} from "@/lib/types";
 import {
-  Edit2,
-  Trash2,
-  Package,
-  Tag,
-  TrendingUp,
   AlertCircle,
   ChevronDown,
   ChevronUp,
+  Edit2,
+  Package,
+  Tag,
+  Trash2,
+  TrendingUp,
 } from "lucide-react";
+import { useState } from "react";
 import { VariantForm } from "./products-forms";
-import type {
-  ProductVariant,
-  ProductVariantWithDetails,
-  ProductVariantCostAnalysis,
-} from "@/lib/types";
 
 interface VariantCardProps {
   variant: ProductVariantWithDetails;
