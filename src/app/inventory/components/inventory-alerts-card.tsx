@@ -1,17 +1,17 @@
+// src/app/inventory/components/inventory-alerts-card.tsx
 "use client";
 
-import React from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { getSeverityIcon } from "@/app/inventory/utils/inventory-utils";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Dialog, DialogTrigger } from "@/components/ui/dialog";
 import {
   useInventoryAlerts,
   useInventoryItemsWithDetails,
 } from "@/hooks/use-inventory";
 import { format } from "date-fns";
-import { getSeverityIcon } from "@/app/inventory/utils/inventory-utils";
 import AlertsDialog from "./inventory-alerts-dialog";
-import { Badge } from "@/components/ui/badge";
 
 interface AlertsCardProps {
   previewCount?: number;

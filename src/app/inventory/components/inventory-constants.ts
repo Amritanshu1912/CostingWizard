@@ -1,291 +1,153 @@
-// ============================================================================
-// MOCK DATA FOR INVENTORY ITEMS
-// ============================================================================
-
+// src/app/inventory/components/inventory-constants.ts
 import { InventoryItem, InventoryTransaction } from "@/lib/types";
 
-export const MOCK_INVENTORY_ITEMS_old: Omit<
+export const MOCK_INVENTORY_ITEMS: Omit<
   InventoryItem,
   "id" | "createdAt" | "updatedAt"
 >[] = [
   {
-    itemType: "supplierMaterial",
-    itemId: "6", // References SUPPLIER_MATERIALS id "6" (NaCl)
+    itemType: "supplierMaterial" as const,
+    itemId: "6", // NaCl from supplier materials
     itemName: "Sodium Chloride",
     currentStock: 500,
     unit: "kg",
     minStockLevel: 100,
     maxStockLevel: 1000,
     lastUpdated: new Date().toISOString(),
-    status: "in-stock",
+    status: "in-stock" as const,
     notes: "High purity salt for formulations",
   },
   {
-    itemType: "supplierMaterial",
-    itemId: "3", // References SUPPLIER_MATERIALS id "3" (Citric Acid)
+    itemType: "supplierMaterial" as const,
+    itemId: "3", // Citric Acid
     itemName: "Citric Acid",
     currentStock: 50,
     unit: "kg",
     minStockLevel: 75,
     maxStockLevel: 500,
     lastUpdated: new Date().toISOString(),
-    status: "low-stock",
+    status: "low-stock" as const,
     notes: "Used in flavor enhancement",
   },
   {
-    itemType: "supplierPackaging",
-    itemId: "1", // References SUPPLIER_PACKAGING id "1" (500ml PET Bottle)
-    itemName: "PET Bottle 500ml",
+    itemType: "supplierPackaging" as const,
+    itemId: "1", // 500ml PET Bottle
+    itemName: "500ml PET Bottle",
     currentStock: 2000,
     unit: "pcs",
     minStockLevel: 500,
     maxStockLevel: 5000,
     lastUpdated: new Date().toISOString(),
-    status: "in-stock",
+    status: "in-stock" as const,
     notes: "Clear plastic bottles for beverages",
   },
   {
-    itemType: "supplierPackaging",
-    itemId: "2", // References SUPPLIER_PACKAGING id "2" (1L Glass Jar)
-    itemName: "Glass Jar 1L",
-    currentStock: 100,
-    unit: "pcs",
-    minStockLevel: 200,
-    maxStockLevel: 1000,
-    lastUpdated: new Date().toISOString(),
-    status: "low-stock",
-    notes: "Premium glass packaging",
-  },
-  {
-    itemType: "supplierLabel",
-    itemId: "1", // References SUPPLIER_LABELS id "1" (Standard Sticker Label)
-    itemName: "Front Label Sticker",
-    currentStock: 5000,
-    unit: "pieces",
-    minStockLevel: 1000,
-    maxStockLevel: 10000,
-    lastUpdated: new Date().toISOString(),
-    status: "in-stock",
-    notes: "Color printed labels for branding",
-  },
-  {
-    itemType: "supplierLabel",
-    itemId: "3", // References SUPPLIER_LABELS id "3" (Custom Shape Tag)
-    itemName: "Back Label Tag",
-    currentStock: 200,
-    unit: "pieces",
-    minStockLevel: 500,
-    maxStockLevel: 2000,
-    lastUpdated: new Date().toISOString(),
-    status: "low-stock",
-    notes: "Ingredient and usage information",
-  },
-  {
-    itemType: "supplierMaterial",
-    itemId: "7", // References SUPPLIER_MATERIALS id "7" (Soda Ash)
-    itemName: "Soda Ash",
-    currentStock: 0,
-    unit: "kg",
-    minStockLevel: 200,
-    maxStockLevel: 1500,
-    lastUpdated: new Date().toISOString(),
-    status: "out-of-stock",
-    notes: "Base material for formulations",
-  },
-  {
-    itemType: "supplierPackaging",
-    itemId: "6", // References SUPPLIER_PACKAGING id "6" (1kg Paper Box)
-    itemName: "Cardboard Box",
-    currentStock: 1500,
-    unit: "pcs",
-    minStockLevel: 300,
-    maxStockLevel: 2000,
-    lastUpdated: new Date().toISOString(),
-    status: "in-stock",
-    notes: "Secondary packaging",
-  },
-  {
-    itemType: "supplierLabel",
-    itemId: "2", // References SUPPLIER_LABELS id "2" (Premium Label Tag)
-    itemName: "Foil Label",
-    currentStock: 800,
-    unit: "sheets",
-    minStockLevel: 400,
-    maxStockLevel: 1500,
-    lastUpdated: new Date().toISOString(),
-    status: "in-stock",
-    notes: "Specialty metallic labels",
-  },
-  {
-    itemType: "supplierMaterial",
-    itemId: "10", // References SUPPLIER_MATERIALS id "10" (AOS Powder 96%)
-    itemName: "AOS Powder 96%",
-    currentStock: 1200,
-    unit: "kg",
-    minStockLevel: 100,
-    maxStockLevel: 2000,
-    lastUpdated: new Date().toISOString(),
-    status: "overstock",
-    notes: "Surfactant for cleaning formulations",
-  },
-];
-
-export const MOCK_INVENTORY_ITEMS = [
-  {
-    id: "1",
-    itemType: "supplierMaterial" as const,
-    itemId: "6", // NaCl from supplier materials
-    itemName: "",
-    currentStock: 500,
-    unit: "kg",
-    minStockLevel: 100,
-    maxStockLevel: 1000,
-    lastUpdated: new Date().toISOString(),
-    status: "in-stock" as const,
-    createdAt: new Date().toISOString(),
-  },
-  {
-    id: "2",
-    itemType: "supplierMaterial" as const,
-    itemId: "3", // Citric Acid
-    itemName: "",
-    currentStock: 50,
-    unit: "kg",
-    minStockLevel: 75,
-    maxStockLevel: 500,
-    lastUpdated: new Date().toISOString(),
-    status: "low-stock" as const,
-    createdAt: new Date().toISOString(),
-  },
-  {
-    id: "3",
-    itemType: "supplierPackaging" as const,
-    itemId: "1", // 500ml PET Bottle
-    itemName: "",
-    currentStock: 2000,
-    unit: "pcs",
-    minStockLevel: 500,
-    maxStockLevel: 5000,
-    lastUpdated: new Date().toISOString(),
-    status: "in-stock" as const,
-    createdAt: new Date().toISOString(),
-  },
-  {
-    id: "4",
     itemType: "supplierLabel" as const,
     itemId: "1", // Standard Label
-    itemName: "",
+    itemName: "Standard Sticker Label",
     currentStock: 2100,
     unit: "pcs",
     minStockLevel: 500,
     maxStockLevel: 10000,
     lastUpdated: new Date().toISOString(),
     status: "out-of-stock" as const,
-    createdAt: new Date().toISOString(),
+    notes: "Color printed labels for branding",
   },
   {
-    id: "5",
     itemType: "supplierMaterial" as const,
     itemId: "1", // supplier material id 1 (Acid Slurry)
-    itemName: "",
+    itemName: "Acid Slurry 90%",
     currentStock: 150,
     unit: "kg",
     minStockLevel: 50,
     maxStockLevel: 800,
     lastUpdated: new Date().toISOString(),
     status: "in-stock" as const,
-    createdAt: new Date().toISOString(),
+    notes: "Ingredient and usage information",
   },
   {
-    id: "6",
     itemType: "supplierMaterial" as const,
-    itemId: "4", // supplier material id 4 (Caustic Soda)
-    itemName: "",
+    itemId: "4", // supplier material id 4 (Acid Blue Color)
+    itemName: "Acid Blue Color",
     currentStock: 800,
     unit: "kg",
     minStockLevel: 200,
     maxStockLevel: 2000,
     lastUpdated: new Date().toISOString(),
     status: "in-stock" as const,
-    createdAt: new Date().toISOString(),
+    notes: "Ingredient for few recipes",
   },
   {
-    id: "7",
     itemType: "supplierPackaging" as const,
     itemId: "4", // spray bottle
-    itemName: "",
+    itemName: "250ml Spray Bottle",
     currentStock: 5000,
     unit: "pcs",
     minStockLevel: 1000,
     maxStockLevel: 20000,
     lastUpdated: new Date().toISOString(),
     status: "in-stock" as const,
-    createdAt: new Date().toISOString(),
+    notes: "Generic notes for packaging",
   },
   {
-    id: "8",
     itemType: "supplierPackaging" as const,
     itemId: "7", // plastic pouch
-    itemName: "",
+    itemName: "500g Plastic Pouch",
     currentStock: 12000,
     unit: "pcs",
     minStockLevel: 3000,
     maxStockLevel: 50000,
     lastUpdated: new Date().toISOString(),
     status: "in-stock" as const,
-    createdAt: new Date().toISOString(),
+    notes: "Good packaging",
   },
   {
-    id: "9",
     itemType: "supplierLabel" as const,
     itemId: "3", // supplier label id 3
-    itemName: "",
+    itemName: "Custom Shape Tag",
     currentStock: 2500,
     unit: "pieces",
     minStockLevel: 1000,
     maxStockLevel: 10000,
     lastUpdated: new Date().toISOString(),
     status: "in-stock" as const,
-    createdAt: new Date().toISOString(),
+    notes: "Specialty Custom labels",
   },
   {
-    id: "10",
     itemType: "supplierLabel" as const,
     itemId: "5", // supplier label id 5
-    itemName: "",
+    itemName: "Small Sticker",
     currentStock: 6000,
     unit: "pieces",
     minStockLevel: 2000,
     maxStockLevel: 20000,
     lastUpdated: new Date().toISOString(),
     status: "in-stock" as const,
-    createdAt: new Date().toISOString(),
+    notes: "Specialty small labels",
   },
   {
-    id: "11",
     itemType: "supplierMaterial" as const,
     itemId: "7", // Soda Ash
-    itemName: "",
+    itemName: "Soda Ash",
     currentStock: 0,
     unit: "kg",
     minStockLevel: 200,
     maxStockLevel: 1500,
     lastUpdated: new Date().toISOString(),
     status: "out-of-stock" as const,
-    createdAt: new Date().toISOString(),
+    notes: "Base material for formulations",
   },
   {
-    id: "12",
     itemType: "supplierMaterial" as const,
-    itemId: "10", // AOS Powder
-    itemName: "",
+    itemId: "10", //AOS Powder
+    itemName: "AOS Powder 96%",
     currentStock: 1200,
     unit: "kg",
     minStockLevel: 100,
     maxStockLevel: 2000,
     lastUpdated: new Date().toISOString(),
     status: "overstock" as const,
-    createdAt: new Date().toISOString(),
+    notes: "Surfactant for cleaning formulations",
   },
 ];
 

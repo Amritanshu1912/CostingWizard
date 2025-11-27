@@ -1,18 +1,18 @@
 // src/app/inventory/components/inventory-manager.tsx
 "use client";
 
-import { useState } from "react";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
-import { Package, Plus } from "lucide-react";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   useInventoryItemsWithDetails,
   useInventoryStats,
 } from "@/hooks/use-inventory";
+import { Package, Plus } from "lucide-react";
+import { useState } from "react";
+import { BulkAdjustDialog } from "./inventory-bulk-adjust-dialog";
+import { InventoryItemDialog } from "./inventory-item-dialog";
 import { InventoryOverview } from "./inventory-overview";
 import { InventoryStockList } from "./inventory-stock-list";
-import { InventoryItemDialog } from "./inventory-item-dialog";
-import { BulkAdjustDialog } from "./inventory-bulk-adjust-dialog";
 
 export function InventoryManager() {
   const [showAddDialog, setShowAddDialog] = useState(false);

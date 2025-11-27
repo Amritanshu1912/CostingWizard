@@ -1,37 +1,39 @@
+// src/app/inventory/components/inventory-alerts-dialog.tsx
 "use client";
 
-import React, { useState } from "react";
+import { getSeverityIcon } from "@/app/inventory/utils/inventory-utils";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import {
   DialogContent,
+  DialogDescription,
   DialogHeader,
   DialogTitle,
-  DialogDescription,
 } from "@/components/ui/dialog";
 import {
   useInventoryAlerts,
-  useResolveAlert,
-  useMarkAlertAsRead,
   useInventoryItemsWithDetails,
+  useMarkAlertAsRead,
+  useResolveAlert,
 } from "@/hooks/use-inventory";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { getSeverityIcon } from "@/app/inventory/utils/inventory-utils";
 import { format } from "date-fns";
+import { useState } from "react";
 import { toast } from "sonner";
 
-interface AlertsDialogProps {}
-
-export default function AlertsDialog(_: AlertsDialogProps) {
+export default function AlertsDialog() {
   const alerts = useInventoryAlerts();
   const items = useInventoryItemsWithDetails();
   const resolveAlert = useResolveAlert();
   const markAsRead = useMarkAlertAsRead();
 
   // Compute alert type counts safely
-  const alertTypeCounts = (alerts || []).reduce((acc, alert) => {
-    acc[alert.alertType] = (acc[alert.alertType] || 0) + 1;
-    return acc;
-  }, {} as Record<string, number>);
+  const alertTypeCounts = (alerts || []).reduce(
+    (acc, alert) => {
+      acc[alert.alertType] = (acc[alert.alertType] || 0) + 1;
+      return acc;
+    },
+    {} as Record<string, number>
+  );
 
   const getItemName = (id?: string) =>
     id ? items?.find((i) => i.id === id)?.itemName : undefined;

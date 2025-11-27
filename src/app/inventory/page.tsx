@@ -1,3 +1,4 @@
+// src/app/inventory/page.tsx
 import { Sidebar } from "@/components/sidebar";
 import { InventoryManager } from "./components/inventory-manager";
 

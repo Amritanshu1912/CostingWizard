@@ -1,26 +1,27 @@
+// src/app/inventory/components/inventory-overview.tsx
 "use client";
 
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Package, AlertTriangle, DollarSign } from "lucide-react";
-import { MetricCard } from "@/components/ui/metric-card";
-import type { InventoryStats, InventoryItemWithDetails } from "@/lib/types";
 import { formatCurrency } from "@/app/inventory/utils/inventory-utils";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { MetricCard } from "@/components/ui/metric-card";
+import { CHART_COLORS } from "@/lib/color-utils";
+import type { InventoryItemWithDetails, InventoryStats } from "@/lib/types";
+import { AlertTriangle, DollarSign, Package } from "lucide-react";
 import {
-  PieChart,
-  Pie,
+  Bar,
+  BarChart,
+  CartesianGrid,
   Cell,
+  Legend,
+  Pie,
+  PieChart,
   ResponsiveContainer,
   Tooltip,
-  BarChart,
-  Bar,
   XAxis,
   YAxis,
-  CartesianGrid,
-  Legend,
 } from "recharts";
-import { CHART_COLORS } from "@/lib/color-utils";
-import TransactionHistoryCard from "./inventory-txn-card";
 import AlertsCard from "./inventory-alerts-card";
+import TransactionHistoryCard from "./inventory-txn-card";
 
 interface InventoryOverviewProps {
   stats: InventoryStats | undefined;
@@ -157,7 +158,7 @@ export function InventoryOverview({ stats, items }: InventoryOverviewProps) {
                         layout="vertical"
                         align="right"
                         verticalAlign="middle"
-                        formatter={(value, entry) => {
+                        formatter={(value) => {
                           const item: any = pieData.find(
                             (d) => d.name === value
                           );

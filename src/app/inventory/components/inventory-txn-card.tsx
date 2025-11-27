@@ -1,16 +1,16 @@
+// src/app/inventory/components/inventory-txn-card.tsx
 "use client";
 
-import React from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Dialog, DialogTrigger } from "@/components/ui/dialog";
-import TransactionsDialog from "./inventory-txn-dialog";
-import { ClockIcon, CheckCircle, AlertTriangle } from "lucide-react";
 import {
-  useInventoryTransactions,
   useInventoryItemsWithDetails,
+  useInventoryTransactions,
 } from "@/hooks/use-inventory";
 import type { InventoryTransaction } from "@/lib/types";
+import { AlertTriangle, CheckCircle, ClockIcon } from "lucide-react";
+import TransactionsDialog from "./inventory-txn-dialog";
 
 interface TransactionHistoryCardProps {
   previewCount?: number;
@@ -71,8 +71,8 @@ export function TransactionHistoryCard({
             const qtyClass = isIn
               ? "text-green-600"
               : isOut
-              ? "text-destructive"
-              : "text-amber-600";
+                ? "text-destructive"
+                : "text-amber-600";
             const label = isIn ? `+${qty}` : isOut ? `-${qty}` : `${qty}`;
 
             return (

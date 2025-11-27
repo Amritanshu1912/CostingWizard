@@ -1,33 +1,33 @@
 // src/app/inventory/components/inventory-stock-list.tsx
 "use client";
 
-import { useState } from "react";
+import {
+  formatCurrency,
+  getStatusBadge,
+  getTypeIcon,
+} from "@/app/inventory/utils/inventory-utils";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { Search, Filter, Edit, History, Beaker, Box, Tag } from "lucide-react";
-import { SortableTable, ColumnDef } from "@/components/ui/sortable-table";
+import { ColumnDef, SortableTable } from "@/components/ui/sortable-table";
 import {
   Tooltip,
   TooltipContent,
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import type { InventoryItemWithDetails } from "@/lib/types";
-import { format } from "date-fns";
-import { Card } from "@/components/ui/card";
-import { InventoryItemDialog } from "./inventory-item-dialog";
-import { ItemTransactionsDialog } from "./inventory-item-txn-dialog";
-import { toast } from "sonner";
-import {
-  formatCurrency,
-  getTypeIcon,
-  getStatusBadge,
-} from "@/app/inventory/utils/inventory-utils";
 import {
   useAllItemsWithInventoryStatus,
   useInventoryFilters,
 } from "@/hooks/use-inventory";
+import type { InventoryItemWithDetails } from "@/lib/types";
+import { format } from "date-fns";
+import { Beaker, Box, Edit, Filter, History, Search, Tag } from "lucide-react";
+import { useState } from "react";
+import { toast } from "sonner";
+import { InventoryItemDialog } from "./inventory-item-dialog";
+import { ItemTransactionsDialog } from "./inventory-item-txn-dialog";
 
 export function InventoryStockList() {
   const allItemsWithStatus = useAllItemsWithInventoryStatus();

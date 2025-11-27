@@ -1,18 +1,18 @@
 // src/app/inventory/components/inventory-bulk-adjust-dialog.tsx
 "use client";
 
-import React, { useEffect, useState } from "react";
+import { getTypeIcon } from "@/app/inventory/utils/inventory-utils";
+import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   Dialog,
   DialogContent,
+  DialogFooter,
   DialogHeader,
   DialogTitle,
-  DialogFooter,
 } from "@/components/ui/dialog";
-import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Checkbox } from "@/components/ui/checkbox";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import {
   Select,
@@ -22,36 +22,24 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import {
-  useAllItemsWithInventoryStatus,
   useAdjustStock,
+  useAllItemsWithInventoryStatus,
   useCreateInventoryItem,
 } from "@/hooks/use-inventory";
 import { Search } from "lucide-react";
+import { useMemo, useState } from "react";
 import { toast } from "sonner";
-import { getTypeIcon } from "@/app/inventory/utils/inventory-utils";
 
 interface BulkAdjustDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
 }
 
-interface BulkItem {
-  id: string; // may be an untracked id like 'untracked-...'
-  itemId?: string; // original supplier item id for untracked rows
-  itemName: string;
-  supplierName: string;
-  currentStock: number;
-  unit: string;
-  itemType: string;
-  selected: boolean;
-  quantity: number; // user-entered value (delta or desired total depending on mode)
-}
-
 export function BulkAdjustDialog({
   open,
   onOpenChange,
 }: BulkAdjustDialogProps) {
-  const items = useAllItemsWithInventoryStatus();
+  const allItems = useAllItemsWithInventoryStatus();
   const adjustStock = useAdjustStock();
   const createInventoryItem = useCreateInventoryItem();
 
@@ -59,52 +47,29 @@ export function BulkAdjustDialog({
   const [reason, setReason] = useState("Purchase Order");
   const [reference, setReference] = useState("");
   const [loading, setLoading] = useState(false);
-  const [bulkItems, setBulkItems] = useState<BulkItem[]>([]);
   const [mode, setMode] = useState<"add" | "adjust">("add");
 
-  // Initialize/reconcile bulkItems from combined items
-  useEffect(() => {
-    if (!items) return;
+  // User edits stored separately
+  const [userEdits, setUserEdits] = useState<
+    Record<string, { selected: boolean; quantity: number }>
+  >({});
 
-    // If not yet initialized, create base list
-    if (bulkItems.length === 0) {
-      setBulkItems(
-        items.map((it) => ({
-          id: it.id,
-          itemId: (it as any).itemId || undefined,
-          itemName: it.itemName,
-          supplierName: it.supplierName,
-          currentStock: it.currentStock,
-          unit: it.unit,
-          itemType: it.itemType,
-          selected: false,
-          quantity: 0,
-        }))
-      );
-      return;
-    }
+  // Merge items with user edits (no setState in effect!)
+  const bulkItems = useMemo(() => {
+    if (!allItems) return [];
 
-    // Add newly-appeared items while preserving user edits
-    const missing = items.filter(
-      (it) => !bulkItems.some((b) => b.id === it.id)
-    );
-    if (missing.length > 0) {
-      setBulkItems((prev) => [
-        ...prev,
-        ...missing.map((it) => ({
-          id: it.id,
-          itemId: (it as any).itemId || undefined,
-          itemName: it.itemName,
-          supplierName: it.supplierName,
-          currentStock: it.currentStock,
-          unit: it.unit,
-          itemType: it.itemType,
-          selected: false,
-          quantity: 0,
-        })),
-      ]);
-    }
-  }, [items]);
+    return allItems.map((item) => ({
+      id: item.id,
+      itemId: (item as any).itemId || undefined,
+      itemName: item.itemName,
+      supplierName: item.supplierName,
+      currentStock: item.currentStock,
+      unit: item.unit,
+      itemType: item.itemType,
+      selected: userEdits[item.id]?.selected ?? false,
+      quantity: userEdits[item.id]?.quantity ?? 0,
+    }));
+  }, [allItems, userEdits]);
 
   const filteredItems = bulkItems.filter(
     (item) =>
@@ -117,25 +82,38 @@ export function BulkAdjustDialog({
     (item) => item.quantity !== 0
   ).length;
 
-  const toggleSelection = (id: string) =>
-    setBulkItems((prev) =>
-      prev.map((i) => (i.id === id ? { ...i, selected: !i.selected } : i))
-    );
+  const toggleSelection = (id: string) => {
+    setUserEdits((prev) => ({
+      ...prev,
+      [id]: {
+        selected: !prev[id]?.selected,
+        quantity: prev[id]?.quantity ?? 0,
+      },
+    }));
+  };
 
-  const updateQuantity = (id: string, quantity: number) =>
-    setBulkItems((prev) =>
-      prev.map((i) => (i.id === id ? { ...i, quantity } : i))
-    );
+  const updateQuantity = (id: string, quantity: number) => {
+    setUserEdits((prev) => ({
+      ...prev,
+      [id]: {
+        selected: prev[id]?.selected ?? false,
+        quantity,
+      },
+    }));
+  };
 
   const selectAll = () => {
     const allSelected = filteredItems.every((f) => f.selected);
-    setBulkItems((prev) =>
-      prev.map((it) =>
-        filteredItems.some((f) => f.id === it.id)
-          ? { ...it, selected: !allSelected }
-          : it
-      )
-    );
+    const updates: Record<string, { selected: boolean; quantity: number }> = {};
+
+    filteredItems.forEach((item) => {
+      updates[item.id] = {
+        selected: !allSelected,
+        quantity: userEdits[item.id]?.quantity ?? 0,
+      };
+    });
+
+    setUserEdits((prev) => ({ ...prev, ...updates }));
   };
 
   const handleSubmit = async () => {
@@ -151,7 +129,6 @@ export function BulkAdjustDialog({
 
     for (const item of itemsToAdjust) {
       try {
-        // Untracked supplier items may have ids like 'untracked-...'
         if (item.id.startsWith("untracked-") && item.itemId) {
           const initialStock = item.quantity;
           await createInventoryItem(
@@ -188,9 +165,7 @@ export function BulkAdjustDialog({
 
     if (successCount === itemsToAdjust.length) {
       onOpenChange(false);
-      setBulkItems((prev) =>
-        prev.map((item) => ({ ...item, selected: false, quantity: 0 }))
-      );
+      setUserEdits({});
       setSearchQuery("");
       setReference("");
     }
@@ -204,7 +179,6 @@ export function BulkAdjustDialog({
         </DialogHeader>
 
         <div className="space-y-4">
-          {/* Search */}
           <div className="relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input
@@ -274,7 +248,6 @@ export function BulkAdjustDialog({
             </div>
           </div>
 
-          {/* Items List */}
           <div className="border border-border/50 rounded-lg">
             <div className="flex items-center justify-between p-3 border-b border-border/50 bg-muted/30">
               <div className="flex items-center gap-2">
@@ -371,8 +344,8 @@ export function BulkAdjustDialog({
             {loading
               ? "Processing..."
               : mode === "add"
-              ? `Add ${totalAdjustments} Items`
-              : `Set ${totalAdjustments} Items`}
+                ? `Add ${totalAdjustments} Items`
+                : `Set ${totalAdjustments} Items`}
           </Button>
         </DialogFooter>
       </DialogContent>

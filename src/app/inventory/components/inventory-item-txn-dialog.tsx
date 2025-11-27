@@ -1,23 +1,23 @@
-// src/app/inventory/components/inventory-item-transactions-dialog.tsx
+// src/app/inventory/components/inventory-item-txn-dialog.tsx
 "use client";
 
+import {
+  getTransactionTypeBadge,
+  getTransactionTypeIcon,
+} from "@/app/inventory/utils/inventory-utils";
+import { Badge } from "@/components/ui/badge";
+import { Card, CardContent } from "@/components/ui/card";
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { Badge } from "@/components/ui/badge";
-import { Card, CardContent } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Calendar } from "lucide-react";
-import { format } from "date-fns";
-import type { InventoryItemWithDetails } from "@/lib/types";
-import {
-  getTransactionTypeIcon,
-  getTransactionTypeBadge,
-} from "@/app/inventory/utils/inventory-utils";
 import { useGroupedTransactions } from "@/hooks/use-inventory";
+import type { InventoryItemWithDetails } from "@/lib/types";
+import { format } from "date-fns";
+import { Calendar } from "lucide-react";
 
 interface ItemTransactionsDialogProps {
   item: InventoryItemWithDetails;

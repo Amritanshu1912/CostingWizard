@@ -1,27 +1,25 @@
+// src/app/inventory/components/inventory-txn-dialog.tsx
 "use client";
 
-import React from "react";
-import {
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
-} from "@/components/ui/dialog";
 import {
   Accordion,
+  AccordionContent,
   AccordionItem,
   AccordionTrigger,
-  AccordionContent,
 } from "@/components/ui/accordion";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { format } from "date-fns";
 import {
-  useInventoryTransactions,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import {
   useInventoryItemsWithDetails,
+  useInventoryTransactions,
 } from "@/hooks/use-inventory";
 import type { InventoryTransaction } from "@/lib/types";
-import { CheckCircle, AlertTriangle, Clock } from "lucide-react";
+import { format } from "date-fns";
+import { AlertTriangle, CheckCircle, Clock } from "lucide-react";
 
 const typeIcon = (t: InventoryTransaction["type"]) => {
   switch (t) {
@@ -134,13 +132,13 @@ export default function TransactionsDialog() {
                                   const qtyClass = isIn
                                     ? "text-green-600"
                                     : isOut
-                                    ? "text-destructive"
-                                    : "text-amber-600";
+                                      ? "text-destructive"
+                                      : "text-amber-600";
                                   const qtyLabel = isIn
                                     ? `+${qty}`
                                     : isOut
-                                    ? `-${qty}`
-                                    : `${qty}`;
+                                      ? `-${qty}`
+                                      : `${qty}`;
                                   return (
                                     <div
                                       className={`text-sm font-semibold ${qtyClass}`}

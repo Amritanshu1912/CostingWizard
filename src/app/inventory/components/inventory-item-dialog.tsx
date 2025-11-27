@@ -1,18 +1,16 @@
 // src/app/inventory/components/inventory-item-dialog.tsx
 "use client";
 
-import { useState, useEffect } from "react";
+import { Button } from "@/components/ui/button";
 import {
   Dialog,
   DialogContent,
+  DialogFooter,
   DialogHeader,
   DialogTitle,
-  DialogFooter,
 } from "@/components/ui/dialog";
-import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
 import {
   Select,
   SelectContent,
@@ -20,11 +18,13 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Textarea } from "@/components/ui/textarea";
 import { useAdjustStock, useCreateInventoryItem } from "@/hooks/use-inventory";
 import { db } from "@/lib/db";
-import { useLiveQuery } from "dexie-react-hooks";
 import type { InventoryItem, InventoryItemWithDetails } from "@/lib/types";
-import { Plus, Minus, Beaker, Box, Tag } from "lucide-react";
+import { useLiveQuery } from "dexie-react-hooks";
+import { Beaker, Box, Minus, Plus, Tag } from "lucide-react";
+import { useEffect, useState } from "react";
 import { toast } from "sonner";
 
 interface InventoryItemDialogProps {
@@ -565,8 +565,8 @@ export function InventoryItemDialog({
             {loading
               ? "Saving..."
               : isEditMode
-              ? "Save Changes"
-              : "Add to Inventory"}
+                ? "Save Changes"
+                : "Add to Inventory"}
           </Button>
         </DialogFooter>
       </DialogContent>
