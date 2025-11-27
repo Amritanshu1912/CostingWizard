@@ -1,5 +1,6 @@
-import { Sidebar } from "@/components/sidebar";
+// src/app/suppliers/page.tsx
 import { SuppliersManager } from "@/app/suppliers/components/suppliers-manager";
+import { Sidebar } from "@/components/sidebar";
 
 export default function SuppliersPage() {
   return (

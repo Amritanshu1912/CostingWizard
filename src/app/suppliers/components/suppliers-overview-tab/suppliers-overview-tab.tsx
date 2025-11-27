@@ -1,12 +1,13 @@
+// src/app/suppliers/components/suppliers-overview-tab/suppliers-overview-tab.tsx
 "use client";
 
-import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
-import { Plus } from "lucide-react";
-import type { Supplier } from "@/lib/types";
 import { db } from "@/lib/db";
-import { SuppliersList } from "./suppliers-list";
+import type { Supplier } from "@/lib/types";
+import { Plus } from "lucide-react";
+import { useEffect, useState } from "react";
 import { SuppliersDetailsCard } from "./suppliers-details-card";
+import { SuppliersList } from "./suppliers-list";
 
 interface SuppliersOverviewTabProps {
   suppliers: Supplier[];

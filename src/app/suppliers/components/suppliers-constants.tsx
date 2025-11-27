@@ -1,7 +1,4 @@
-// ============================================================================
-// SUPPLIERS
-// ============================================================================
-
+// src/app/suppliers/components/suppliers-constants.tsx
 import { Supplier } from "@/lib/types";
 
 export const SUPPLIERS: Supplier[] = [

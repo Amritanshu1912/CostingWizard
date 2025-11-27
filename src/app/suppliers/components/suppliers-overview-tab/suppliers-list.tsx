@@ -1,12 +1,13 @@
+// src/app/suppliers/components/suppliers-overview-tab/suppliers-list.tsx
 "use client";
 
+import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Search, Building2, Star } from "lucide-react";
 import type { Supplier } from "@/lib/types";
 import { cn } from "@/lib/utils";
+import { Building2, Search, Star } from "lucide-react";
 
 interface SuppliersListProps {
   suppliers: Supplier[];

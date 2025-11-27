@@ -1,27 +1,28 @@
+// src/app/suppliers/components/suppliers-items-tab/suppliers-items-content.tsx
 "use client";
 
-import { useState, useCallback } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Package, Box, Tag, Plus } from "lucide-react";
-import { toast } from "sonner";
-import { nanoid } from "nanoid";
-import type { Supplier } from "@/lib/types";
-import { EnhancedMaterialDialog } from "@/app/materials/components/supplier-materials-dialog";
-import { EnhancedSupplierPackagingDialog } from "@/app/packaging/components/supplier-packaging-dialog";
-import { EnhancedSupplierLabelsDialog } from "@/app/labels/components/supplier-labels-dialog";
-import type { MaterialFormData } from "@/app/materials/components/supplier-materials-dialog";
-import type { PackagingFormData } from "@/app/packaging/components/supplier-packaging-dialog";
 import type { LabelFormData } from "@/app/labels/components/supplier-labels-dialog";
+import { EnhancedSupplierLabelsDialog } from "@/app/labels/components/supplier-labels-dialog";
 import { DEFAULT_MATERIAL_FORM } from "@/app/materials/components/materials-constants";
-import { normalizeText } from "@/lib/text-utils";
+import type { MaterialFormData } from "@/app/materials/components/supplier-materials-dialog";
+import { EnhancedMaterialDialog } from "@/app/materials/components/supplier-materials-dialog";
+import type { PackagingFormData } from "@/app/packaging/components/supplier-packaging-dialog";
+import { EnhancedSupplierPackagingDialog } from "@/app/packaging/components/supplier-packaging-dialog";
+import { SUPPLIERS } from "@/app/suppliers/components/suppliers-constants";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { useDexieTable } from "@/hooks/use-dexie-table";
 import { assignCategoryColor } from "@/lib/color-utils";
 import { db } from "@/lib/db";
-import { useDexieTable } from "@/hooks/use-dexie-table";
-import { SUPPLIERS } from "@/app/suppliers/components/suppliers-constants";
+import { normalizeText } from "@/lib/text-utils";
+import type { Supplier } from "@/lib/types";
+import { Box, Package, Plus, Tag } from "lucide-react";
+import { nanoid } from "nanoid";
+import { useCallback, useState } from "react";
+import { toast } from "sonner";
 import { SuppliersItemsTable } from "./suppliers-items-table";
-import { Badge } from "@/components/ui/badge";
 
 const DEFAULT_PACKAGING_FORM: PackagingFormData = {
   supplierId: "",
@@ -548,7 +549,6 @@ export function SuppliersItemsContent({
             </TabsList>
 
             <SuppliersItemsTable
-              activeTab={activeTab}
               supplierMaterials={supplierMaterials}
               supplierPackaging={supplierPackaging}
               supplierLabels={supplierLabels}

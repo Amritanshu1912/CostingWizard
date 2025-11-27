@@ -1,10 +1,10 @@
+// src/app/suppliers/components/suppliers-manager.tsx
 "use client";
 
-import React from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { SuppliersOverviewTab } from "./suppliers-overview-tab/suppliers-overview-tab";
+import { useItemsBySupplier, useSuppliers } from "@/hooks/use-suppliers";
 import { SuppliersItemsTab } from "./suppliers-items-tab/suppliers-items-tab";
-import { useSuppliers, useItemsBySupplier } from "@/hooks/use-suppliers";
+import { SuppliersOverviewTab } from "./suppliers-overview-tab/suppliers-overview-tab";
 
 export function SuppliersManager() {
   // Use separate hooks for data and state management

@@ -1,22 +1,6 @@
+// src/app/suppliers/components/suppliers-overview-tab/suppliers-details-card.tsx
 "use client";
 
-import { useState, useEffect } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
-import { Badge } from "@/components/ui/badge";
-import { Switch } from "@/components/ui/switch";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import { ScrollArea } from "@/components/ui/scroll-area";
-import { Separator } from "@/components/ui/separator";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -27,28 +11,45 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Separator } from "@/components/ui/separator";
+import { Switch } from "@/components/ui/switch";
+import { Textarea } from "@/components/ui/textarea";
+import type { Supplier } from "@/lib/types";
+import {
+  Award,
   Building2,
-  Star,
-  Edit2,
-  Trash2,
-  Save,
-  X,
-  Mail,
-  Phone,
-  MapPin,
   Calendar,
   Clock,
   CreditCard,
-  TrendingUp,
-  Award,
   DollarSign,
+  Edit2,
+  Mail,
+  MapPin,
   Package,
+  Phone,
   Plus,
+  Save,
+  Star,
+  Trash2,
+  TrendingUp,
+  X,
 } from "lucide-react";
-import type { Supplier, ContactPerson } from "@/lib/types";
-import { PAYMENT_TERMS } from "../suppliers-constants";
+import { useEffect, useState } from "react";
 import { toast } from "sonner";
+import { PAYMENT_TERMS } from "../suppliers-constants";
 
 interface SuppliersDetailsCardProps {
   supplier: Supplier | null;
@@ -765,9 +766,9 @@ export function SuppliersDetailsCard({
             <AlertDialogHeader>
               <AlertDialogTitle>Confirm Delete</AlertDialogTitle>
               <AlertDialogDescription>
-                Are you sure you want to delete supplier "
-                {(displaySupplier as Supplier)?.name}"? This action will mark
-                the supplier as inactive.
+                Are you sure you want to delete supplier &quot;
+                {(displaySupplier as Supplier)?.name}&quot;? This action will
+                mark the supplier as inactive.
               </AlertDialogDescription>
             </AlertDialogHeader>
             <AlertDialogFooter>

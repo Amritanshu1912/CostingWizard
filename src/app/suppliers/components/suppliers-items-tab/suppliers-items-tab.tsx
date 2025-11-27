@@ -1,8 +1,8 @@
+// src/app/suppliers/components/suppliers-items-tab/suppliers-items-tab.tsx
 "use client";
 
-import { useState, useMemo } from "react";
+import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
 import {
   Select,
   SelectContent,
@@ -10,12 +10,12 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Package } from "lucide-react";
-import { Badge } from "@/components/ui/badge";
-import type { Supplier } from "@/lib/types";
+import { useSupplierLabelsWithDetails } from "@/hooks/use-supplier-labels-with-details";
 import { useSupplierMaterialsWithDetails } from "@/hooks/use-supplier-materials-with-details";
 import { useSupplierPackagingWithDetails } from "@/hooks/use-supplier-packaging-with-details";
-import { useSupplierLabelsWithDetails } from "@/hooks/use-supplier-labels-with-details";
+import type { Supplier } from "@/lib/types";
+import { Package } from "lucide-react";
+import { useMemo, useState } from "react";
 import { SuppliersItemsContent } from "./suppliers-items-content";
 
 interface SuppliersItemsTabProps {

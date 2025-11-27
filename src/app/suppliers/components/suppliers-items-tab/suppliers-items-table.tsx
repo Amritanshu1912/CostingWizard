@@ -1,8 +1,8 @@
+// src/app/suppliers/components/suppliers-items-tab/suppliers-items-table.tsx
 "use client";
 
-import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { TabsContent } from "@/components/ui/tabs";
+import { Button } from "@/components/ui/button";
 import {
   Table,
   TableBody,
@@ -11,10 +11,10 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Package, Box, Tag, Plus, Pencil } from "lucide-react";
+import { TabsContent } from "@/components/ui/tabs";
+import { Box, Package, Pencil, Plus, Tag } from "lucide-react";
 
 interface SuppliersItemsTableProps {
-  activeTab: string;
   supplierMaterials: any[];
   supplierPackaging: any[];
   supplierLabels: any[];
@@ -24,8 +24,33 @@ interface SuppliersItemsTableProps {
   onEditLabel: (label: any) => void;
 }
 
+const EmptyState = ({
+  icon: Icon,
+  title,
+  description,
+  buttonText,
+  onAddItem,
+}: {
+  icon: any;
+  title: string;
+  description: string;
+  buttonText: string;
+  onAddItem: () => void;
+}) => (
+  <div className="text-center py-16 text-muted-foreground border-2 border-dashed rounded-lg bg-muted/10">
+    <div className="rounded-full bg-muted p-6 w-fit mx-auto mb-4">
+      <Icon className="h-10 w-10 text-muted-foreground" />
+    </div>
+    <h3 className="text-lg font-semibold mb-2">{title}</h3>
+    <p className="text-sm mb-6 max-w-sm mx-auto">{description}</p>
+    <Button onClick={onAddItem} size="lg" className="shadow-sm">
+      <Plus className="h-4 w-4 mr-2" />
+      {buttonText}
+    </Button>
+  </div>
+);
+
 export function SuppliersItemsTable({
-  activeTab,
   supplierMaterials,
   supplierPackaging,
   supplierLabels,
@@ -66,30 +91,6 @@ export function SuppliersItemsTable({
         return <Badge variant="outline">Unknown</Badge>;
     }
   };
-
-  const EmptyState = ({
-    icon: Icon,
-    title,
-    description,
-    buttonText,
-  }: {
-    icon: any;
-    title: string;
-    description: string;
-    buttonText: string;
-  }) => (
-    <div className="text-center py-16 text-muted-foreground border-2 border-dashed rounded-lg bg-muted/10">
-      <div className="rounded-full bg-muted p-6 w-fit mx-auto mb-4">
-        <Icon className="h-10 w-10 text-muted-foreground" />
-      </div>
-      <h3 className="text-lg font-semibold mb-2">{title}</h3>
-      <p className="text-sm mb-6 max-w-sm mx-auto">{description}</p>
-      <Button onClick={onAddItem} size="lg" className="shadow-sm">
-        <Plus className="h-4 w-4 mr-2" />
-        {buttonText}
-      </Button>
-    </div>
-  );
 
   return (
     <>
@@ -173,6 +174,7 @@ export function SuppliersItemsTable({
             title="No Materials Found"
             description="Add materials that this supplier provides to start tracking inventory and pricing"
             buttonText="Add First Material"
+            onAddItem={onAddItem}
           />
         )}
       </TabsContent>
@@ -261,6 +263,7 @@ export function SuppliersItemsTable({
             title="No Packaging Found"
             description="Add packaging options that this supplier provides for your products"
             buttonText="Add First Packaging"
+            onAddItem={onAddItem}
           />
         )}
       </TabsContent>
@@ -353,6 +356,7 @@ export function SuppliersItemsTable({
             title="No Labels Found"
             description="Add labels that this supplier provides for product branding and information"
             buttonText="Add First Label"
+            onAddItem={onAddItem}
           />
         )}
       </TabsContent>
