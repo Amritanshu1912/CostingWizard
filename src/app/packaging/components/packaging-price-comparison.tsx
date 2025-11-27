@@ -1,17 +1,18 @@
+// src/app/packaging/components/packaging-price-comparison.tsx
 "use client";
 
+import { Badge } from "@/components/ui/badge";
 import {
   Card,
   CardContent,
+  CardDescription,
   CardHeader,
   CardTitle,
-  CardDescription,
 } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import { SortableTable } from "@/components/ui/sortable-table";
-import { Star, TrendingDown, AlertCircle } from "lucide-react";
 import { usePackagingPriceComparison } from "@/hooks/use-supplier-packaging-with-details";
 import type { SupplierPackagingWithDetails } from "@/lib/types";
+import { AlertCircle, Star, TrendingDown } from "lucide-react";
 
 export function PackagingPriceComparison() {
   // Use the smart hook that groups by packaging automatically
@@ -49,7 +50,7 @@ export function PackagingPriceComparison() {
       key: "unitPrice",
       label: "Price",
       sortable: true,
-      render: (value: number, row: SupplierPackagingWithDetails) => (
+      render: (value: number) => (
         <div className="font-medium text-foreground">
           <div>₹{value.toFixed(2)}</div>
           <div className="text-xs text-muted-foreground">per unit</div>
@@ -60,7 +61,7 @@ export function PackagingPriceComparison() {
       key: "moq",
       label: "MOQ",
       sortable: true,
-      render: (value: number, row: SupplierPackagingWithDetails) => (
+      render: (value: number) => (
         <span className="text-muted-foreground">{value}</span>
       ),
     },
@@ -82,8 +83,8 @@ export function PackagingPriceComparison() {
             value === "in-stock"
               ? "default"
               : value === "limited"
-              ? "secondary"
-              : "destructive"
+                ? "secondary"
+                : "destructive"
           }
           className="text-xs"
         >

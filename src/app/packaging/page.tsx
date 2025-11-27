@@ -1,5 +1,6 @@
-import { Sidebar } from "@/components/sidebar";
+// src/app/packaging/page.tsx
 import { PackagingManager } from "@/app/packaging/components/packaging-manager";
+import { Sidebar } from "@/components/sidebar";
 
 export default function PackagingPage() {
   return (

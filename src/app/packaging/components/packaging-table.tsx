@@ -1,31 +1,6 @@
-import { useMemo, useState } from "react";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+// src/app/packaging/components/packaging-table.tsx
 import { Badge } from "@/components/ui/badge";
-import { SortableTable } from "@/components/ui/sortable-table";
-import {
-  Edit,
-  Trash2,
-  Loader2,
-  Plus,
-  Check,
-  ChevronsUpDown,
-} from "lucide-react";
-import { format } from "date-fns";
-import type { PackagingWithSuppliers } from "@/lib/types";
+import { Button } from "@/components/ui/button";
 import {
   Command,
   CommandEmpty,
@@ -34,12 +9,38 @@ import {
   CommandItem,
   CommandList,
 } from "@/components/ui/command";
+import { Input } from "@/components/ui/input";
 import {
   Popover,
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { SortableTable } from "@/components/ui/sortable-table";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
+import type { PackagingWithSuppliers } from "@/lib/types";
 import { cn } from "@/lib/utils";
+import { format } from "date-fns";
+import {
+  Check,
+  ChevronsUpDown,
+  Edit,
+  Loader2,
+  Plus,
+  Trash2,
+} from "lucide-react";
+import { useCallback, useMemo, useState } from "react";
 
 interface PackagingTableProps {
   data: PackagingWithSuppliers[];
@@ -61,12 +62,10 @@ interface PackagingTableProps {
 }
 
 import {
-  PACKAGING_TYPE_LABELS,
   BUILD_MATERIAL_LABELS,
   CAPACITY_UNIT_VALUES,
   getPackagingTypeLabel,
-  getBuildMaterialLabel,
-  getCapacityUnitLabel,
+  PACKAGING_TYPE_LABELS,
 } from "./packaging-constants";
 
 const packagingTypes = PACKAGING_TYPE_LABELS;
@@ -119,16 +118,19 @@ export function PackagingTable({
     );
   }, [buildMaterialSearch]);
 
-  const handleSelectType = (type: string) => {
-    onEditFormChange({ ...editForm, type });
-    setTypeSearch(type);
-    setOpenTypeCombobox(false);
-  };
+  const handleSelectType = useCallback(
+    (type: string) => {
+      onEditFormChange({ ...editForm, type });
+      setTypeSearch(type);
+      setOpenTypeCombobox(false);
+    },
+    [editForm, onEditFormChange]
+  );
 
-  const handleNewType = () => {
+  const handleNewType = useCallback(() => {
     onEditFormChange({ ...editForm, type: typeSearch });
     setOpenTypeCombobox(false);
-  };
+  }, [editForm, onEditFormChange, typeSearch]);
 
   const columns = useMemo(
     () => [
@@ -213,7 +215,7 @@ export function PackagingTable({
                         <CommandGroup>
                           <CommandItem onSelect={handleNewType}>
                             <Plus className="mr-2 h-4 w-4" />
-                            Create "{typeSearch}"
+                            Create {`"${typeSearch}"`}
                           </CommandItem>
                         </CommandGroup>
                       )}
@@ -306,7 +308,7 @@ export function PackagingTable({
                             }}
                           >
                             <Plus className="mr-2 h-4 w-4" />
-                            Create "{buildMaterialSearch}"
+                            Create {`"${buildMaterialSearch}"`}
                           </CommandItem>
                         </CommandGroup>
                       )}
@@ -515,15 +517,23 @@ export function PackagingTable({
     [
       editingPackagingId,
       editForm,
-      loading,
+      onEditFormChange,
       openTypeCombobox,
-      openBuildMaterialCombobox,
+      shakeFields,
       typeSearch,
-      buildMaterialSearch,
       filteredTypes,
-      filteredBuildMaterials,
       isNewType,
+      handleNewType,
+      handleSelectType,
+      openBuildMaterialCombobox,
+      buildMaterialSearch,
+      filteredBuildMaterials,
       isNewBuildMaterial,
+      onSaveEdit,
+      loading,
+      onCancelEdit,
+      onStartEdit,
+      onInitiateDelete,
     ]
   );
 

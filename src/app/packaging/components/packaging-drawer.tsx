@@ -1,13 +1,7 @@
+// src/app/packaging/components/packaging-drawer.tsx
 "use client";
 
-import { useState } from "react";
-import {
-  Sheet,
-  SheetContent,
-  SheetDescription,
-  SheetHeader,
-  SheetTitle,
-} from "@/components/ui/sheet";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -19,9 +13,15 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
-import { Loader2, Plus, Package, AlertCircle } from "lucide-react";
-import { toast } from "sonner";
+import {
+  Sheet,
+  SheetContent,
+  SheetDescription,
+  SheetHeader,
+  SheetTitle,
+} from "@/components/ui/sheet";
 import { db } from "@/lib/db";
+import { normalizeText } from "@/lib/text-utils";
 import type {
   BuildMaterial,
   CapacityUnit,
@@ -29,10 +29,11 @@ import type {
   PackagingWithSuppliers,
 } from "@/lib/types";
 import { useLiveQuery } from "dexie-react-hooks";
-import { normalizeText } from "@/lib/text-utils";
+import { AlertCircle, Loader2, Package, Plus } from "lucide-react";
 import { nanoid } from "nanoid";
+import { useState } from "react";
+import { toast } from "sonner";
 import { PackagingTable } from "./packaging-table";
-import { Alert, AlertDescription } from "@/components/ui/alert";
 
 interface PackagingDrawerProps {
   open: boolean;
@@ -312,7 +313,6 @@ export function PackagingDrawer({
     }
   };
 
-  const totalPackaging = packagingWithSuppliers?.length || 0;
   const activePackaging =
     packagingWithSuppliers?.filter((p) => p.id !== "new").length || 0;
 

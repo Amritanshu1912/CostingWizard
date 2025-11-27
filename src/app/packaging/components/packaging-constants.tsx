@@ -1,3 +1,5 @@
+// src/app/packaging/components/packaging-constants.tsx
+import { CAPACITY_UNITS } from "@/lib/constants";
 import {
   BuildMaterial,
   CapacityUnit,
@@ -5,15 +7,6 @@ import {
   PackagingType,
   SupplierPackaging,
 } from "@/lib/types";
-import { CAPACITY_UNITS } from "@/lib/constants";
-import {
-  TrendingUp,
-  Target,
-  AlertTriangle,
-  DollarSign,
-  Package,
-  Clock,
-} from "lucide-react";
 
 // ============================================================================
 // ANALYTICS CONFIGURATION
@@ -188,9 +181,9 @@ export const PACKAGING: Packaging[] = [
   },
   {
     id: "2",
-    name: "1L Glass Jar",
+    name: "2L Glass Jar",
     type: "jar",
-    capacity: 1,
+    capacity: 2,
     unit: "L",
     buildMaterial: "Glass",
     createdAt: "2024-01-01T00:00:00.000Z",
@@ -407,7 +400,7 @@ export const SUPPLIER_PACKAGING: SupplierPackaging[] = [
   {
     id: "8",
     supplierId: "1",
-    packagingId: "8",
+    packagingId: "10",
     unitPrice: 12.0,
     tax: 5,
     moq: 300,

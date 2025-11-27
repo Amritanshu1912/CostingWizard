@@ -1,22 +1,6 @@
+// src/app/packaging/components/supplier-packaging-table.tsx
 "use client";
 
-import { useState, useMemo } from "react";
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-  CardDescription,
-} from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -27,13 +11,29 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { Badge } from "@/components/ui/badge";
-import { SortableTable } from "@/components/ui/sortable-table";
-import { Search, Filter, Edit, Trash2, Plus } from "lucide-react";
-import type { Supplier, SupplierPackagingWithDetails } from "@/lib/types";
+import { Button } from "@/components/ui/button";
 import {
-  PACKAGING_TYPES,
-  getPackagingTypeColor,
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { SortableTable } from "@/components/ui/sortable-table";
+import type { Supplier, SupplierPackagingWithDetails } from "@/lib/types";
+import { Edit, Filter, Plus, Search, Trash2 } from "lucide-react";
+import { useMemo, useState } from "react";
+import {
   getBuildMaterialColor,
+  getPackagingTypeColor,
   getPackagingTypeLabel,
 } from "./packaging-constants";
 
@@ -262,8 +262,8 @@ export function SupplierPackagingTable({
               value === "in-stock"
                 ? "default"
                 : value === "limited"
-                ? "secondary"
-                : "destructive"
+                  ? "secondary"
+                  : "destructive"
             }
             className="text-xs"
           >

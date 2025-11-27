@@ -1,6 +1,7 @@
+// src/app/packaging/components/packaging-analytics.tsx
 "use client";
 
-import React, { useMemo } from "react";
+import { Badge } from "@/components/ui/badge";
 import {
   Card,
   CardContent,
@@ -8,40 +9,40 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Progress } from "@/components/ui/progress";
 import {
   MetricCard,
-  MetricCardWithProgress,
   MetricCardWithBadge,
+  MetricCardWithProgress,
 } from "@/components/ui/metric-card";
+import { Progress } from "@/components/ui/progress";
+import { useSupplierPackagingWithDetails } from "@/hooks/use-supplier-packaging-with-details";
+import { CHART_COLORS } from "@/lib/color-utils";
 import {
-  LineChart,
-  Line,
-  BarChart,
+  AlertTriangle,
+  Clock,
+  DollarSign,
+  Sparkles,
+  Target,
+  TrendingUp,
+} from "lucide-react";
+import { useMemo } from "react";
+import {
   Bar,
-  PieChart,
-  Pie,
-  Cell,
+  BarChart,
   CartesianGrid,
+  Cell,
+  Legend,
+  Line,
+  LineChart,
+  Pie,
+  PieChart,
+  PieLabelRenderProps,
+  ResponsiveContainer,
+  Tooltip,
   XAxis,
   YAxis,
-  Tooltip,
-  Legend,
-  ResponsiveContainer,
-  PieLabelRenderProps,
 } from "recharts";
-import { Sparkles } from "lucide-react";
 import { AI_INSIGHTS } from "./packaging-constants";
-import { CHART_COLORS } from "@/lib/color-utils";
-import { useSupplierPackagingWithDetails } from "@/hooks/use-supplier-packaging-with-details";
-import {
-  TrendingUp,
-  Target,
-  AlertTriangle,
-  DollarSign,
-  Clock,
-} from "lucide-react";
 
 export function PackagingAnalytics() {
   const supplierPackaging = useSupplierPackagingWithDetails();
@@ -149,6 +150,17 @@ export function PackagingAnalytics() {
     ];
   }, [supplierPackaging]);
 
+  const getStableRandom = (seed: string): number => {
+    let hash = 0;
+    for (let i = 0; i < seed.length; i++) {
+      const char = seed.charCodeAt(i);
+      hash = (hash << 5) - hash + char;
+      hash &= hash; // Convert to 32bit integer
+    }
+    // Ensure the result is a positive number between 0 and 1
+    return (hash & 0x7fffffff) / 0x7fffffff;
+  };
+
   // Price History Data - create mock trend data based on current prices
   const priceHistoryData = useMemo(() => {
     if (!supplierPackaging.length) return [];
@@ -160,7 +172,7 @@ export function PackagingAnalytics() {
     const basePackaging = supplierPackaging.length * 1000; // Mock packaging count
 
     return months.map((month, index) => {
-      const variation = (Math.random() - 0.5) * 0.4; // ±20% variation
+      const variation = (getStableRandom("5") - 0.5) * 0.4; // ±20% variation
       const avgPrice = baseAvgPrice * (1 + variation);
       const packaging = Math.round(basePackaging * (1 + index * 0.05)); // Gradual increase
 
@@ -176,22 +188,24 @@ export function PackagingAnalytics() {
   const packagingUsageData = useMemo(() => {
     if (!supplierPackaging.length) return [];
 
-    const typeGroups = supplierPackaging.reduce((acc, sp) => {
-      const type = sp.displayType || "Unknown";
-      if (!acc[type]) {
-        acc[type] = { count: 0, totalCost: 0 };
-      }
-      acc[type].count += 1;
-      acc[type].totalCost +=
-        sp.unitPrice * (sp.quantityForBulkPrice || sp.moq || 1000);
-      return acc;
-    }, {} as Record<string, { count: number; totalCost: number }>);
+    const typeGroups = supplierPackaging.reduce(
+      (acc, sp) => {
+        const type = sp.displayType || "Unknown";
+        if (!acc[type]) {
+          acc[type] = { count: 0, totalCost: 0 };
+        }
+        acc[type].count += 1;
+        acc[type].totalCost +=
+          sp.unitPrice * (sp.quantityForBulkPrice || sp.moq || 1000);
+        return acc;
+      },
+      {} as Record<string, { count: number; totalCost: number }>
+    );
 
     return Object.entries(typeGroups).map(([packaging, data]) => ({
       packaging,
       usage: data.count * 1000, // Mock usage based on count
       cost: Math.round(data.totalCost),
-      efficiency: 85 + Math.floor(Math.random() * 10), // Mock efficiency 85-95%
     }));
   }, [supplierPackaging]);
 
@@ -199,11 +213,14 @@ export function PackagingAnalytics() {
   const packagingTypeDistribution = useMemo(() => {
     if (!supplierPackaging.length) return [];
 
-    const typeCounts = supplierPackaging.reduce((acc, sp) => {
-      const type = sp.displayType || "Other";
-      acc[type] = (acc[type] || 0) + 1;
-      return acc;
-    }, {} as Record<string, number>);
+    const typeCounts = supplierPackaging.reduce(
+      (acc, sp) => {
+        const type = sp.displayType || "Other";
+        acc[type] = (acc[type] || 0) + 1;
+        return acc;
+      },
+      {} as Record<string, number>
+    );
 
     const total = supplierPackaging.length;
     const chartColors = Object.values(CHART_COLORS.light);
@@ -219,15 +236,18 @@ export function PackagingAnalytics() {
   const supplierPerformanceData = useMemo(() => {
     if (!supplierPackaging.length) return [];
 
-    const supplierGroups = supplierPackaging.reduce((acc, sp) => {
-      const supplierName = sp.supplier?.name || "Unknown Supplier";
-      if (!acc[supplierName]) {
-        acc[supplierName] = { leadTimes: [], prices: [] };
-      }
-      acc[supplierName].leadTimes.push(sp.leadTime || 0);
-      acc[supplierName].prices.push(sp.unitPrice);
-      return acc;
-    }, {} as Record<string, { leadTimes: number[]; prices: number[] }>);
+    const supplierGroups = supplierPackaging.reduce(
+      (acc, sp) => {
+        const supplierName = sp.supplier?.name || "Unknown Supplier";
+        if (!acc[supplierName]) {
+          acc[supplierName] = { leadTimes: [], prices: [] };
+        }
+        acc[supplierName].leadTimes.push(sp.leadTime || 0);
+        acc[supplierName].prices.push(sp.unitPrice);
+        return acc;
+      },
+      {} as Record<string, { leadTimes: number[]; prices: number[] }>
+    );
 
     return Object.entries(supplierGroups).map(([supplier, data]) => ({
       supplier,

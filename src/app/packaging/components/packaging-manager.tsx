@@ -1,24 +1,25 @@
+// src/app/packaging/components/packaging-manager.tsx
 "use client";
 
-import { useState, useCallback } from "react";
-import { Button } from "@/components/ui/button";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { toast } from "sonner";
-import { Plus, List, Package, BarChart3, TrendingUp } from "lucide-react";
-import { nanoid } from "nanoid";
-import { MetricCard } from "@/components/ui/metric-card";
-import type { SupplierPackaging } from "@/lib/types";
-import type { PackagingFormData } from "./supplier-packaging-dialog";
 import { SUPPLIERS } from "@/app/suppliers/components/suppliers-constants";
+import { Button } from "@/components/ui/button";
+import { MetricCard } from "@/components/ui/metric-card";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useDexieTable } from "@/hooks/use-dexie-table";
+import { useSupplierPackagingWithDetails } from "@/hooks/use-supplier-packaging-with-details";
 import { db } from "@/lib/db";
-import { SupplierPackagingTable } from "./supplier-packaging-table";
-import { EnhancedSupplierPackagingDialog } from "./supplier-packaging-dialog";
-import { PackagingPriceComparison } from "./packaging-price-comparison";
+import { normalizeText } from "@/lib/text-utils";
+import type { SupplierPackaging } from "@/lib/types";
+import { BarChart3, List, Package, TrendingUp } from "lucide-react";
+import { nanoid } from "nanoid";
+import { useCallback, useState } from "react";
+import { toast } from "sonner";
 import { PackagingAnalytics } from "./packaging-analytics";
 import { PackagingDrawer } from "./packaging-drawer";
-import { useSupplierPackagingWithDetails } from "@/hooks/use-supplier-packaging-with-details";
-import { normalizeText } from "@/lib/text-utils";
+import { PackagingPriceComparison } from "./packaging-price-comparison";
+import type { PackagingFormData } from "./supplier-packaging-dialog";
+import { EnhancedSupplierPackagingDialog } from "./supplier-packaging-dialog";
+import { SupplierPackagingTable } from "./supplier-packaging-table";
 
 const DEFAULT_PACKAGING_FORM: PackagingFormData = {
   supplierId: "",

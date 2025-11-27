@@ -1,16 +1,9 @@
+// src/app/packaging/components/supplier-packaging-dialog.tsx
 "use client";
 
-import { useState, useEffect, useMemo } from "react";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import {
   Command,
   CommandEmpty,
@@ -19,6 +12,15 @@ import {
   CommandItem,
   CommandList,
 } from "@/components/ui/command";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import {
   Popover,
   PopoverContent,
@@ -32,40 +34,30 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
-import { Badge } from "@/components/ui/badge";
-import { Alert, AlertDescription } from "@/components/ui/alert";
 import {
+  AlertTriangle,
   Check,
   ChevronsUpDown,
-  Plus,
-  Package,
-  Truck,
   Clock,
-  AlertTriangle,
   Loader2,
+  Package,
+  Plus,
 } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
 
+import { useDuplicateCheck } from "@/hooks/use-duplicate-check";
+import { AVAILABILITY_MAP, CAPACITY_UNITS } from "@/lib/constants";
+import { normalizeText } from "@/lib/text-utils";
 import type {
-  SupplierPackaging,
-  Supplier,
+  BuildMaterial,
+  CapacityUnit,
   Packaging,
   PackagingType,
-  CapacityUnit,
-  BuildMaterial,
+  Supplier,
+  SupplierPackaging,
 } from "@/lib/types";
-import { CAPACITY_UNITS } from "@/lib/constants";
-import {
-  PACKAGING_TYPES,
-  BUILD_MATERIALS,
-  getPackagingTypeColor,
-  getBuildMaterialColor,
-  getPackagingTypeLabel,
-  getBuildMaterialLabel,
-} from "./packaging-constants";
-import { AVAILABILITY_MAP } from "@/lib/constants";
 import { cn } from "@/lib/utils";
-import { useDuplicateCheck } from "@/hooks/use-duplicate-check";
-import { normalizeText } from "@/lib/text-utils";
+import { BUILD_MATERIALS, PACKAGING_TYPES } from "./packaging-constants";
 
 // Form-specific type
 export interface PackagingFormData extends Partial<SupplierPackaging> {
@@ -152,6 +144,7 @@ export function EnhancedSupplierPackagingDialog({
     packagingList,
     packaging.packagingId,
     packagingAutoFilled,
+    checkPackagingDuplicate,
   ]);
 
   // Initialize when editing
@@ -418,8 +411,8 @@ export function EnhancedSupplierPackagingDialog({
                                 option === "in-stock"
                                   ? "bg-green-500"
                                   : option === "limited"
-                                  ? "bg-yellow-500"
-                                  : "bg-red-500"
+                                    ? "bg-yellow-500"
+                                    : "bg-red-500"
                               }`}
                             />
                             {option}
@@ -513,8 +506,8 @@ export function EnhancedSupplierPackagingDialog({
                             <CommandItem onSelect={handleNewPackaging}>
                               <Plus className="mr-2 h-4 w-4 text-primary" />
                               <span>
-                                Create "
-                                <strong>{packagingSearch.trim()}</strong>"
+                                Create &quot;
+                                <strong>{packagingSearch.trim()}</strong>&quot;
                               </span>
                             </CommandItem>
                           </CommandGroup>
