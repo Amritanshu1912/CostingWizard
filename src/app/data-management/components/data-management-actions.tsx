@@ -1,25 +1,23 @@
+// src/app/data-management/components/data-management-actions.tsx
 "use client";
-// ============================================
-// FILE 4: data-management-actions.tsx
-// ============================================
 
-import React from "react";
 import { Button } from "@/components/ui/button";
 import {
   Card,
   CardContent,
+  CardDescription,
   CardHeader,
   CardTitle,
-  CardDescription,
 } from "@/components/ui/card";
 import {
-  Download,
-  Upload,
   AlertCircle,
   Calendar,
   CheckCircle,
+  Download,
+  Upload,
 } from "lucide-react";
-import type { ExportProgress, BackupSettings } from "./data-management-types";
+import React from "react";
+import type { BackupSettings, ExportProgress } from "./data-management-utils";
 
 interface DataManagementActionsProps {
   selectedTablesCount: number;

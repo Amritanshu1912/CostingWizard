@@ -1,6 +1,4 @@
-// ============================================
-// FILE 1: data-management-types.ts
-// ============================================
+// src/app/data-management/components/data-management-utils.ts
 export interface TableStat {
   count: number;
   size: number;

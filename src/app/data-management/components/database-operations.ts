@@ -1,8 +1,6 @@
-// ============================================
-// FILE 2: database-operations.ts
-// ============================================
+// src/app/data-management/components/database-operations.ts
 import { db } from "@/lib/db";
-import type { TableStat } from "./data-management-types";
+import type { TableStat } from "./data-management-utils";
 
 export const loadDatabaseStats = async (): Promise<
   Record<string, TableStat>

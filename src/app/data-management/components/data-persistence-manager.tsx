@@ -1,25 +1,25 @@
+// src/app/data-management/components/data-persistence-manager.tsx
 "use client";
-// data-persistence-manager.tsx (Main Component)
 
-import React, { useState, useEffect } from "react";
-import { RefreshCw, Database, Layers, Clock } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
+import { Clock, Database, Layers, RefreshCw } from "lucide-react";
+import React, { useEffect, useState } from "react";
 import { toast } from "sonner";
-import { DatabaseTableSelector } from "./database-table-selector";
 import { DataManagementActions } from "./data-management-actions";
+import type {
+  BackupSettings,
+  ExportProgress,
+  TableStat,
+} from "./data-management-utils";
+import { formatBytes, TABLE_CATEGORIES } from "./data-management-utils";
 import {
-  loadDatabaseStats,
+  clearTable,
   exportTables,
   importBackup,
-  clearTable,
+  loadDatabaseStats,
 } from "./database-operations";
-import { formatBytes, TABLE_CATEGORIES } from "./data-management-types";
-import type {
-  TableStat,
-  ExportProgress,
-  BackupSettings,
-} from "./data-management-types";
+import { DatabaseTableSelector } from "./database-table-selector";
 
 export default function DataManagementPages() {
   const [tableStats, setTableStats] = useState<Record<string, TableStat>>({});

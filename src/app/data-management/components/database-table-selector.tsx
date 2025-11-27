@@ -1,17 +1,6 @@
+// src/app/data-management/components/database-table-selector.tsx
 "use client";
-// ============================================
-// FILE 3: database-table-selector.tsx
-// ============================================
 
-import React, { useState } from "react";
-import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-  CardDescription,
-} from "@/components/ui/card";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -22,13 +11,22 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { Trash2, RefreshCw } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { RefreshCw, Trash2 } from "lucide-react";
+import { useState } from "react";
+import type { TableStat } from "./data-management-utils";
 import {
   TABLE_CATEGORIES,
-  formatTableName,
   formatBytes,
-} from "./data-management-types";
-import type { TableStat } from "./data-management-types";
+  formatTableName,
+} from "./data-management-utils";
 
 interface DatabaseTableSelectorProps {
   tableStats: Record<string, TableStat>;
@@ -170,8 +168,8 @@ export function DatabaseTableSelector({
           <AlertDialogHeader>
             <AlertDialogTitle>Clear Table Data</AlertDialogTitle>
             <AlertDialogDescription>
-              Are you sure you want to clear all data from "
-              {clearingTable ? formatTableName(clearingTable) : ""}"? This
+              Are you sure you want to clear all data from &quot;
+              {clearingTable ? formatTableName(clearingTable) : ""}&quot;? This
               action cannot be undone.
             </AlertDialogDescription>
           </AlertDialogHeader>
