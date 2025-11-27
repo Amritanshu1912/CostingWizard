@@ -1,22 +1,6 @@
+// src/app/labels/components/supplier-labels-table.tsx
 "use client";
 
-import { useState, useMemo } from "react";
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-  CardDescription,
-} from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -27,18 +11,35 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { Badge } from "@/components/ui/badge";
-import { SortableTable } from "@/components/ui/sortable-table";
-import { Search, Filter, Edit, Trash2, Plus } from "lucide-react";
-import type { Supplier, SupplierLabelWithDetails } from "@/lib/types";
+import { Button } from "@/components/ui/button";
 import {
-  getLabelTypeLabel,
-  getPrintingTypeLabel,
-  getMaterialTypeLabel,
-  getShapeTypeLabel,
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { SortableTable } from "@/components/ui/sortable-table";
+import type { Supplier, SupplierLabelWithDetails } from "@/lib/types";
+import { Edit, Filter, Plus, Search, Trash2 } from "lucide-react";
+import { useMemo, useState } from "react";
+import {
   getLabelTypeColor,
-  getPrintingTypeColor,
+  getLabelTypeLabel,
   getMaterialTypeColor,
+  getMaterialTypeLabel,
+  getPrintingTypeColor,
+  getPrintingTypeLabel,
   getShapeTypeColor,
+  getShapeTypeLabel,
 } from "./labels-constants";
 
 interface SupplierLabelsTableProps {
@@ -257,7 +258,7 @@ export function SupplierLabelsTable({
         key: "priceWithTax",
         label: "Price with Tax",
         sortable: true,
-        render: (value: number, row: SupplierLabelWithDetails) => (
+        render: (value: number) => (
           <div>
             <div className="font-medium">₹{value.toFixed(2)}</div>
             {/* <div className="text-xs text-muted-foreground">
@@ -292,8 +293,8 @@ export function SupplierLabelsTable({
               value === "in-stock"
                 ? "default"
                 : value === "limited"
-                ? "secondary"
-                : "destructive"
+                  ? "secondary"
+                  : "destructive"
             }
             className="text-xs"
           >

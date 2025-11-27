@@ -1,13 +1,7 @@
+// src/app/labels/components/labels-drawer.tsx
 "use client";
 
-import { useMemo, useState } from "react";
-import {
-  Sheet,
-  SheetContent,
-  SheetDescription,
-  SheetHeader,
-  SheetTitle,
-} from "@/components/ui/sheet";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -19,15 +13,22 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
-import { Loader2, Plus, Tag, AlertCircle } from "lucide-react";
-import { toast } from "sonner";
-import { db } from "@/lib/db";
-import type { LabelsWithSuppliers } from "@/lib/types";
-import { normalizeText } from "@/lib/text-utils";
-import { nanoid } from "nanoid";
-import { LabelsTableDrawer } from "./labels-table";
-import { Alert, AlertDescription } from "@/components/ui/alert";
+import {
+  Sheet,
+  SheetContent,
+  SheetDescription,
+  SheetHeader,
+  SheetTitle,
+} from "@/components/ui/sheet";
 import { useSupplierLabelsWithDetails } from "@/hooks/use-supplier-labels-with-details";
+import { db } from "@/lib/db";
+import { normalizeText } from "@/lib/text-utils";
+import type { LabelsWithSuppliers } from "@/lib/types";
+import { AlertCircle, Loader2, Plus, Tag } from "lucide-react";
+import { nanoid } from "nanoid";
+import { useMemo, useState } from "react";
+import { toast } from "sonner";
+import { LabelsTableDrawer } from "./labels-table";
 
 interface LabelsDrawerProps {
   onRefresh?: () => void;
@@ -63,13 +64,16 @@ export function LabelsDrawer({
 
   const labelsWithSuppliers = useMemo(() => {
     // Group supplier labels by labelId for efficient lookup
-    const supplierLabelsByLabel = supplierLabelsData.reduce((acc, sl) => {
-      if (sl.labelId) {
-        if (!acc[sl.labelId]) acc[sl.labelId] = [];
-        acc[sl.labelId].push(sl);
-      }
-      return acc;
-    }, {} as Record<string, typeof supplierLabelsData>);
+    const supplierLabelsByLabel = supplierLabelsData.reduce(
+      (acc, sl) => {
+        if (sl.labelId) {
+          if (!acc[sl.labelId]) acc[sl.labelId] = [];
+          acc[sl.labelId].push(sl);
+        }
+        return acc;
+      },
+      {} as Record<string, typeof supplierLabelsData>
+    );
 
     const result = supplierLabelsData
       .filter((sl) => sl.label) // Only include supplier labels with valid labels
@@ -332,7 +336,6 @@ export function LabelsDrawer({
     }
   };
 
-  const totalLabels = labelsWithSuppliers?.length || 0;
   const activeLabels =
     labelsWithSuppliers?.filter((l) => l.id !== "new").length || 0;
 

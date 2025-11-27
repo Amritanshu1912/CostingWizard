@@ -1,13 +1,9 @@
+// src/app/labels/components/labels-table.tsx
 "use client";
 
-import { useState, useMemo } from "react";
-import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { SortableTable } from "@/components/ui/sortable-table";
-import { Edit, Trash2, Loader2 } from "lucide-react";
-import { format } from "date-fns";
-import type { LabelsWithSuppliers } from "@/lib/types";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import {
   Select,
   SelectContent,
@@ -15,21 +11,26 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { SortableTable } from "@/components/ui/sortable-table";
 import {
   Tooltip,
   TooltipContent,
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import type { LabelsWithSuppliers } from "@/lib/types";
+import { format } from "date-fns";
+import { Edit, Loader2, Trash2 } from "lucide-react";
+import { useMemo } from "react";
 import {
-  getLabelTypeLabel,
-  getPrintingTypeLabel,
-  getMaterialTypeLabel,
-  getShapeTypeLabel,
   getLabelTypeColor,
-  getPrintingTypeColor,
+  getLabelTypeLabel,
   getMaterialTypeColor,
+  getMaterialTypeLabel,
+  getPrintingTypeColor,
+  getPrintingTypeLabel,
   getShapeTypeColor,
+  getShapeTypeLabel,
 } from "./labels-constants";
 
 interface LabelsTableDrawerProps {
@@ -68,7 +69,6 @@ export function LabelsTableDrawer({
   editingLabelId,
   editForm,
   loading,
-  shakeFields = false,
   onEditFormChange,
   onStartEdit,
   onSaveEdit,

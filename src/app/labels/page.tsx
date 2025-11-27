@@ -1,3 +1,4 @@
+// src/app/labels/page.tsx
 import { Sidebar } from "@/components/sidebar";
 import { LabelsManager } from "./components/labels-manager";
 

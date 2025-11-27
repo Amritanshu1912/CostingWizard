@@ -1,17 +1,18 @@
+// src/app/labels/components/labels-price-comparison.tsx
 "use client";
 
+import { Badge } from "@/components/ui/badge";
 import {
   Card,
   CardContent,
+  CardDescription,
   CardHeader,
   CardTitle,
-  CardDescription,
 } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import { SortableTable } from "@/components/ui/sortable-table";
-import { Star, TrendingDown, AlertCircle } from "lucide-react";
 import { useLabelPriceComparison } from "@/hooks/use-supplier-labels-with-details";
 import type { SupplierLabelWithDetails } from "@/lib/types";
+import { AlertCircle, Star, TrendingDown } from "lucide-react";
 
 export function LabelsPriceComparison() {
   // Use the smart hook that groups by label automatically
@@ -49,7 +50,7 @@ export function LabelsPriceComparison() {
       key: "unitPrice",
       label: "Price",
       sortable: true,
-      render: (value: number, row: SupplierLabelWithDetails) => (
+      render: (value: number) => (
         <div className="font-medium text-foreground">
           <div>₹{value.toFixed(2)}</div>
           <div className="text-xs text-muted-foreground">per unit</div>
@@ -60,7 +61,7 @@ export function LabelsPriceComparison() {
       key: "moq",
       label: "MOQ",
       sortable: true,
-      render: (value: number, row: SupplierLabelWithDetails) => (
+      render: (value: number) => (
         <span className="text-muted-foreground">{value}</span>
       ),
     },
@@ -82,8 +83,8 @@ export function LabelsPriceComparison() {
             value === "in-stock"
               ? "default"
               : value === "limited"
-              ? "secondary"
-              : "destructive"
+                ? "secondary"
+                : "destructive"
           }
           className="text-xs"
         >

@@ -1,19 +1,12 @@
+// src/app/labels/components/labels-constants.tsx
 import {
+  Label,
+  LabelMaterialType,
   LabelType,
   PrintingType,
-  LabelMaterialType,
   ShapeType,
-  Label,
   SupplierLabel,
 } from "@/lib/types";
-import {
-  TrendingUp,
-  Target,
-  AlertTriangle,
-  DollarSign,
-  Tag,
-  Clock,
-} from "lucide-react";
 
 // ============================================================================
 // ANALYTICS DATA

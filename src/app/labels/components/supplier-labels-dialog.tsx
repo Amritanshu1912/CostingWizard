@@ -1,16 +1,9 @@
+// src/app/labels/components/supplier-labels-dialog.tsx
 "use client";
 
-import { useState, useEffect, useMemo } from "react";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import {
   Command,
   CommandEmpty,
@@ -19,6 +12,15 @@ import {
   CommandItem,
   CommandList,
 } from "@/components/ui/command";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import {
   Popover,
   PopoverContent,
@@ -32,46 +34,44 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
-import { Badge } from "@/components/ui/badge";
-import { Alert, AlertDescription } from "@/components/ui/alert";
 import {
+  AlertTriangle,
   Check,
   ChevronsUpDown,
+  Clock,
+  Loader2,
   Plus,
   Tag,
-  Truck,
-  Clock,
-  AlertTriangle,
-  Loader2,
 } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
 
+import { useDuplicateCheck } from "@/hooks/use-duplicate-check";
+import { AVAILABILITY_MAP } from "@/lib/constants";
+import { normalizeText } from "@/lib/text-utils";
 import type {
-  SupplierLabel,
-  Supplier,
+  LabelMaterialType,
   Label as Labels,
   LabelType,
   PrintingType,
-  LabelMaterialType,
   ShapeType,
+  Supplier,
+  SupplierLabel,
 } from "@/lib/types";
-import {
-  LABEL_TYPES,
-  PRINTING_TYPES,
-  MATERIAL_TYPES,
-  SHAPE_TYPES,
-  getLabelTypeColor,
-  getPrintingTypeColor,
-  getMaterialTypeColor,
-  getShapeTypeColor,
-  getLabelTypeLabel,
-  getPrintingTypeLabel,
-  getMaterialTypeLabel,
-  getShapeTypeLabel,
-} from "./labels-constants";
-import { AVAILABILITY_MAP } from "@/lib/constants";
 import { cn } from "@/lib/utils";
-import { useDuplicateCheck } from "@/hooks/use-duplicate-check";
-import { normalizeText } from "@/lib/text-utils";
+import {
+  getLabelTypeColor,
+  getLabelTypeLabel,
+  getMaterialTypeColor,
+  getMaterialTypeLabel,
+  getPrintingTypeColor,
+  getPrintingTypeLabel,
+  getShapeTypeColor,
+  getShapeTypeLabel,
+  LABEL_TYPES,
+  MATERIAL_TYPES,
+  PRINTING_TYPES,
+  SHAPE_TYPES,
+} from "./labels-constants";
 
 // Form-specific type
 export interface LabelFormData extends Partial<SupplierLabel> {
@@ -155,7 +155,13 @@ export function EnhancedSupplierLabelsDialog({
       setFilteredLabels(labelsList);
       setIsNewLabel(false);
     }
-  }, [labelSearch, labelsList, label.labelId, labelAutoFilled]);
+  }, [
+    labelSearch,
+    labelsList,
+    label.labelId,
+    labelAutoFilled,
+    checkLabelDuplicate,
+  ]);
 
   // Initialize when editing
   useEffect(() => {
@@ -410,8 +416,8 @@ export function EnhancedSupplierLabelsDialog({
                                 option === "in-stock"
                                   ? "bg-green-500"
                                   : option === "limited"
-                                  ? "bg-yellow-500"
-                                  : "bg-red-500"
+                                    ? "bg-yellow-500"
+                                    : "bg-red-500"
                               }`}
                             />
                             {option.replace("-", " ")}
@@ -505,7 +511,8 @@ export function EnhancedSupplierLabelsDialog({
                             <CommandItem onSelect={handleNewLabel}>
                               <Plus className="mr-2 h-4 w-4 text-primary" />
                               <span>
-                                Create "<strong>{labelSearch.trim()}</strong>"
+                                Create &quot;
+                                <strong>{labelSearch.trim()}</strong>&quot;
                               </span>
                             </CommandItem>
                           </CommandGroup>

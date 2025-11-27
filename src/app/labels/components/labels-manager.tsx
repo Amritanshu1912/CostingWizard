@@ -1,25 +1,25 @@
+// src/app/labels/components/labels-manager.tsx
 "use client";
 
-import { useState, useCallback } from "react";
 import { Button } from "@/components/ui/button";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { toast } from "sonner";
-import { Plus, List, Package, BarChart3, TrendingUp } from "lucide-react";
-import { nanoid } from "nanoid";
 import { MetricCard } from "@/components/ui/metric-card";
-
-import type { SupplierLabel } from "@/lib/types";
-import type { LabelFormData } from "./supplier-labels-dialog";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { BarChart3, List, Package, TrendingUp } from "lucide-react";
+import { nanoid } from "nanoid";
+import { useCallback, useState } from "react";
+import { toast } from "sonner";
 import { SUPPLIERS } from "@/app/suppliers/components/suppliers-constants";
 import { useDexieTable } from "@/hooks/use-dexie-table";
+import { useSupplierLabelsWithDetails } from "@/hooks/use-supplier-labels-with-details";
 import { db } from "@/lib/db";
-import { SupplierLabelsTable } from "./supplier-labels-table";
-import { EnhancedSupplierLabelsDialog } from "./supplier-labels-dialog";
-import { LabelsPriceComparison } from "./labels-price-comparison";
+import { normalizeText } from "@/lib/text-utils";
+import type { SupplierLabel } from "@/lib/types";
 import { LabelsAnalytics } from "./labels-analytics";
 import { LabelsDrawer } from "./labels-drawer";
-import { useSupplierLabelsWithDetails } from "@/hooks/use-supplier-labels-with-details";
-import { normalizeText } from "@/lib/text-utils";
+import { LabelsPriceComparison } from "./labels-price-comparison";
+import type { LabelFormData } from "./supplier-labels-dialog";
+import { EnhancedSupplierLabelsDialog } from "./supplier-labels-dialog";
+import { SupplierLabelsTable } from "./supplier-labels-table";
 
 const DEFAULT_LABEL_FORM: LabelFormData = {
   supplierId: "",

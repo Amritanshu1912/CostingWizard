@@ -1,6 +1,7 @@
+// src/app/labels/components/labels-analytics.tsx
 "use client";
 
-import React, { useMemo } from "react";
+import { Badge } from "@/components/ui/badge";
 import {
   Card,
   CardContent,
@@ -8,45 +9,41 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Progress } from "@/components/ui/progress";
 import {
   MetricCard,
-  MetricCardWithProgress,
   MetricCardWithBadge,
+  MetricCardWithProgress,
 } from "@/components/ui/metric-card";
+import { Progress } from "@/components/ui/progress";
+import { useSupplierLabelsWithDetails } from "@/hooks/use-supplier-labels-with-details";
+import { CHART_COLORS } from "@/lib/color-utils";
+import { SupplierLabel, SupplierLabelWithDetails } from "@/lib/types";
 import {
-  LineChart,
-  Line,
-  BarChart,
+  AlertTriangle,
+  Clock,
+  DollarSign,
+  Sparkles,
+  Target,
+  TrendingUp,
+} from "lucide-react";
+import { useMemo } from "react";
+import {
   Bar,
-  PieChart,
-  Pie,
-  Cell,
+  BarChart,
   CartesianGrid,
+  Cell,
+  Legend,
+  Line,
+  LineChart,
+  Pie,
+  PieChart,
+  PieLabelRenderProps,
+  ResponsiveContainer,
+  Tooltip,
   XAxis,
   YAxis,
-  Tooltip,
-  Legend,
-  ResponsiveContainer,
-  PieLabelRenderProps,
 } from "recharts";
-import { Sparkles } from "lucide-react";
-import {
-  AI_INSIGHTS,
-  getLabelTypeColor,
-  getPrintingTypeColor,
-} from "./labels-constants";
-import { CHART_COLORS } from "@/lib/color-utils";
-import { useSupplierLabelsWithDetails } from "@/hooks/use-supplier-labels-with-details";
-import {
-  TrendingUp,
-  Target,
-  AlertTriangle,
-  DollarSign,
-  Tag,
-  Clock,
-} from "lucide-react";
+import { AI_INSIGHTS } from "./labels-constants";
 
 export function LabelsAnalytics() {
   const supplierLabels = useSupplierLabelsWithDetails();
@@ -154,20 +151,19 @@ export function LabelsAnalytics() {
     ];
   }, [supplierLabels]);
 
-  // Price History Data - create mock trend data based on current prices
-  const priceHistoryData = useMemo(() => {
+  function generatePriceHistory(supplierLabels: SupplierLabel[]) {
     if (!supplierLabels.length) return [];
 
     const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun"];
     const baseAvgPrice =
       supplierLabels.reduce((sum, sl) => sum + sl.unitPrice, 0) /
       supplierLabels.length;
-    const baseLabels = supplierLabels.length * 1000; // Mock label count
+    const baseLabels = supplierLabels.length * 1000;
 
     return months.map((month, index) => {
-      const variation = (Math.random() - 0.5) * 0.4; // ±20% variation
+      const variation = (Math.random() - 0.5) * 0.4;
       const avgPrice = baseAvgPrice * (1 + variation);
-      const labels = Math.round(baseLabels * (1 + index * 0.05)); // Gradual increase
+      const labels = Math.round(baseLabels * (1 + index * 0.05));
 
       return {
         month,
@@ -175,40 +171,63 @@ export function LabelsAnalytics() {
         labels,
       };
     });
-  }, [supplierLabels]);
+  }
+
+  // Price History Data - create mock trend data based on current prices
+  const priceHistoryData = useMemo(
+    () => generatePriceHistory(supplierLabels),
+    [supplierLabels]
+  );
+
+  // ---------------------------------------------------------
+  // Mock Generator for Labels Usage Data (outside component)
+  // ---------------------------------------------------------
+  function generateLabelsUsageData(supplierLabels: SupplierLabelWithDetails[]) {
+    if (!supplierLabels.length) return [];
+
+    const typeGroups = supplierLabels.reduce(
+      (acc, sl) => {
+        const type = sl.displayType || "Unknown";
+        if (!acc[type]) {
+          acc[type] = { count: 0, totalCost: 0 };
+        }
+        acc[type].count += 1;
+        acc[type].totalCost +=
+          sl.unitPrice * (sl.quantityForBulkPrice || sl.moq || 1000);
+        return acc;
+      },
+      {} as Record<string, { count: number; totalCost: number }>
+    );
+
+    return Object.entries(typeGroups).map(([label, data]) => {
+      const efficiency = 85 + Math.floor(Math.random() * 10); // 85–94
+
+      return {
+        label,
+        usage: data.count * 1000,
+        cost: Math.round(data.totalCost),
+        efficiency,
+      };
+    });
+  }
 
   // Labels Usage Data - calculate based on label types
   const labelsUsageData = useMemo(() => {
-    if (!supplierLabels.length) return [];
-
-    const typeGroups = supplierLabels.reduce((acc, sl) => {
-      const type = sl.displayType || "Unknown";
-      if (!acc[type]) {
-        acc[type] = { count: 0, totalCost: 0 };
-      }
-      acc[type].count += 1;
-      acc[type].totalCost +=
-        sl.unitPrice * (sl.quantityForBulkPrice || sl.moq || 1000);
-      return acc;
-    }, {} as Record<string, { count: number; totalCost: number }>);
-
-    return Object.entries(typeGroups).map(([label, data]) => ({
-      label,
-      usage: data.count * 1000, // Mock usage based on count
-      cost: Math.round(data.totalCost),
-      efficiency: 85 + Math.floor(Math.random() * 10), // Mock efficiency 85-95%
-    }));
+    return generateLabelsUsageData(supplierLabels);
   }, [supplierLabels]);
 
   // Label Type Distribution
   const labelTypeDistribution = useMemo(() => {
     if (!supplierLabels.length) return [];
 
-    const typeCounts = supplierLabels.reduce((acc, sl) => {
-      const type = sl.displayType || "Other";
-      acc[type] = (acc[type] || 0) + 1;
-      return acc;
-    }, {} as Record<string, number>);
+    const typeCounts = supplierLabels.reduce(
+      (acc, sl) => {
+        const type = sl.displayType || "Other";
+        acc[type] = (acc[type] || 0) + 1;
+        return acc;
+      },
+      {} as Record<string, number>
+    );
 
     const total = supplierLabels.length;
     const chartColors = Object.values(CHART_COLORS.light);
@@ -223,11 +242,14 @@ export function LabelsAnalytics() {
   const printingTypeDistribution = useMemo(() => {
     if (!supplierLabels.length) return [];
 
-    const printingCounts = supplierLabels.reduce((acc, sl) => {
-      const printing = sl.displayPrintingType || "Other";
-      acc[printing] = (acc[printing] || 0) + 1;
-      return acc;
-    }, {} as Record<string, number>);
+    const printingCounts = supplierLabels.reduce(
+      (acc, sl) => {
+        const printing = sl.displayPrintingType || "Other";
+        acc[printing] = (acc[printing] || 0) + 1;
+        return acc;
+      },
+      {} as Record<string, number>
+    );
 
     const total = supplierLabels.length;
     const chartColors = Object.values(CHART_COLORS.light);
