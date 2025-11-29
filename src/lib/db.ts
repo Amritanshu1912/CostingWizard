@@ -50,6 +50,7 @@ import {
   MOCK_TRANSACTIONS,
 } from "@/app/inventory/components/inventory-constants";
 import { sweepAndGenerateAlerts } from "./alerts";
+import { autoGenerateMissingInventoryItems } from "./autoGenerateMissingInventoryItems";
 
 export class CostingWizardDB extends Dexie {
   categories!: Table<Category>;
@@ -207,6 +208,7 @@ export class CostingWizardDB extends Dexie {
         await db.inventoryItems.bulkAdd(MOCK_INVENTORY_ITEMS);
         await db.inventoryTransactions.bulkAdd(MOCK_TRANSACTIONS);
       }
+      await autoGenerateMissingInventoryItems(db);
       // After seeding (or when DB ready) run a sweep to create alerts for
       // untracked items (those created by `useAllItemsWithInventoryStatus`).
       try {

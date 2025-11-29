@@ -10,6 +10,7 @@ import { ChevronDown, ChevronRight, Package2 } from "lucide-react";
 import { useState } from "react";
 import { TotalCostDisplay } from "../../utils/price-display";
 import { RequirementItemRowCompact } from "./requirement-item-row";
+import { Button } from "@/components/ui/button";
 
 interface ProductRequirements {
   productId: string;
@@ -37,19 +38,32 @@ interface ProductWiseRequirementsProps {
 export function ProductWiseRequirements({
   products,
 }: ProductWiseRequirementsProps) {
+  const [isExpanded, setIsExpanded] = useState(false);
+
   return (
     <Card>
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <Package2 className="h-5 w-5" />
-          Requirements by Product
-        </CardTitle>
-      </CardHeader>
-      <CardContent className="space-y-4">
-        {products.map((product) => (
-          <ProductCard key={product.productId} product={product} />
-        ))}
-      </CardContent>
+      <Collapsible open={isExpanded} onOpenChange={setIsExpanded}>
+        <CollapsibleTrigger asChild>
+          <CardHeader className="cursor-pointer hover:bg-accent/50 transition-colors">
+            <CardTitle className="flex items-center gap-2">
+              {isExpanded ? (
+                <ChevronDown className="h-5 w-5" />
+              ) : (
+                <ChevronRight className="h-5 w-5" />
+              )}
+              <Package2 className="h-5 w-5" />
+              Requirements by Product
+            </CardTitle>
+          </CardHeader>
+        </CollapsibleTrigger>
+        <CollapsibleContent className="mt-4">
+          <CardContent className="space-y-4">
+            {products.map((product) => (
+              <ProductCard key={product.productId} product={product} />
+            ))}
+          </CardContent>
+        </CollapsibleContent>
+      </Collapsible>
     </Card>
   );
 }
@@ -71,38 +85,30 @@ function ProductCard({ product }: ProductCardProps) {
       <Collapsible open={isExpanded} onOpenChange={setIsExpanded}>
         <CardContent className="p-4 space-y-4">
           {/* Product Header */}
-          <CollapsibleTrigger className="w-full">
-            <div className="flex items-center justify-between gap-4 hover:bg-accent/50 p-2 rounded-lg transition-colors">
-              <div className="flex items-center gap-3 flex-1 min-w-0">
-                <div className="h-12 w-12 rounded-lg bg-primary/10 flex items-center justify-center flex-shrink-0">
-                  <Package2 className="h-6 w-6 text-primary" />
-                </div>
-                <div className="flex-1 min-w-0 text-left">
-                  <h3 className="font-semibold text-lg truncate">
-                    {product.productName}
-                  </h3>
-                  <div className="flex items-center gap-3 text-sm text-muted-foreground">
-                    <span>{product.variants.length} variants</span>
-                    <span>•</span>
-                    <span>{totalItems} items</span>
-                  </div>
-                </div>
-                <div className="text-right">
-                  <p className="text-xl font-bold text-primary">
-                    ₹{product.totalCost.toFixed(2)}
-                  </p>
-                  <p className="text-xs text-muted-foreground">total cost</p>
-                </div>
-                <div>
-                  {isExpanded ? (
-                    <ChevronDown className="h-5 w-5 text-muted-foreground" />
-                  ) : (
-                    <ChevronRight className="h-5 w-5 text-muted-foreground" />
-                  )}
+
+          <div className="flex items-center justify-between gap-4 hover:bg-accent/50 p-2 rounded-lg transition-colors">
+            <div className="flex items-center gap-3 flex-1 min-w-0">
+              <div className="h-12 w-12 rounded-lg bg-primary/10 flex items-center justify-center flex-shrink-0">
+                <Package2 className="h-6 w-6 text-primary" />
+              </div>
+              <div className="flex-1 min-w-0 text-left">
+                <h3 className="font-semibold text-lg truncate">
+                  {product.productName}
+                </h3>
+                <div className="flex items-center gap-3 text-sm text-muted-foreground">
+                  <span>{product.variants.length} variants</span>
+                  <span>•</span>
+                  <span>{totalItems} items</span>
                 </div>
               </div>
+              <div className="text-right">
+                <p className="text-xl font-bold text-primary">
+                  ₹{product.totalCost.toFixed(2)}
+                </p>
+                <p className="text-xs text-muted-foreground">total cost</p>
+              </div>
             </div>
-          </CollapsibleTrigger>
+          </div>
 
           {/* Total Cost Display */}
           <div className="p-3 bg-primary/5 rounded-lg border">
@@ -161,57 +167,78 @@ function ProductCard({ product }: ProductCardProps) {
             />
           </div>
 
+          {/* Show/Hide Details Button */}
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => setIsExpanded(!isExpanded)}
+            className="w-auto text-xs"
+          >
+            {isExpanded ? "Hide Details" : "Show Details"}
+          </Button>
+
           {/* Expanded Content */}
           <CollapsibleContent className="space-y-4 pt-2">
-            {/* Combined Requirements Details */}
-            <div className="border-l-4 border-primary/30 pl-4 space-y-3">
-              <h4 className="font-semibold text-sm text-muted-foreground">
-                Combined Requirements (All Variants)
-              </h4>
+            {/* Combined Requirements Collapsible Card */}
+            <Collapsible defaultOpen={false}>
+              <Card className="py-3 gap-0">
+                <CollapsibleTrigger asChild>
+                  <CardHeader className="cursor-pointer p-3">
+                    <div className="flex items-center gap-2">
+                      <ChevronRight className="h-4 w-4" />
+                      <span className="font-medium text-sm">
+                        Combined Requirements (All Variants)
+                      </span>
+                    </div>
+                  </CardHeader>
+                </CollapsibleTrigger>
+                <CollapsibleContent>
+                  <CardContent className="py-3 pr-3 pl-6 p space-y-3">
+                    {product.totalMaterials.length > 0 && (
+                      <div className="space-y-1">
+                        <p className="text-xs font-medium text-muted-foreground">
+                          Materials ({product.totalMaterials.length})
+                        </p>
+                        {product.totalMaterials.map((item) => (
+                          <RequirementItemRowCompact
+                            key={`combined-material-${item.itemId}`}
+                            item={item}
+                          />
+                        ))}
+                      </div>
+                    )}
 
-              {product.totalMaterials.length > 0 && (
-                <div className="space-y-1">
-                  <p className="text-xs font-medium text-muted-foreground">
-                    Materials ({product.totalMaterials.length})
-                  </p>
-                  {product.totalMaterials.map((item) => (
-                    <RequirementItemRowCompact
-                      key={`combined-material-${item.itemId}`}
-                      item={item}
-                    />
-                  ))}
-                </div>
-              )}
+                    {product.totalPackaging.length > 0 && (
+                      <div className="space-y-1">
+                        <p className="text-xs font-medium text-muted-foreground">
+                          Packaging ({product.totalPackaging.length})
+                        </p>
+                        {product.totalPackaging.map((item) => (
+                          <RequirementItemRowCompact
+                            key={`combined-packaging-${item.itemId}`}
+                            item={item}
+                          />
+                        ))}
+                      </div>
+                    )}
 
-              {product.totalPackaging.length > 0 && (
-                <div className="space-y-1">
-                  <p className="text-xs font-medium text-muted-foreground">
-                    Packaging ({product.totalPackaging.length})
-                  </p>
-                  {product.totalPackaging.map((item) => (
-                    <RequirementItemRowCompact
-                      key={`combined-packaging-${item.itemId}`}
-                      item={item}
-                    />
-                  ))}
-                </div>
-              )}
-
-              {product.totalLabels.length > 0 && (
-                <div className="space-y-1">
-                  <p className="text-xs font-medium text-muted-foreground">
-                    Labels ({product.totalLabels.length})
-                  </p>
-                  {product.totalLabels.map((item) => (
-                    <RequirementItemRowCompact
-                      key={`combined-label-${item.itemId}`}
-                      item={item}
-                    />
-                  ))}
-                </div>
-              )}
-            </div>
-
+                    {product.totalLabels.length > 0 && (
+                      <div className="space-y-1">
+                        <p className="text-xs font-medium text-muted-foreground">
+                          Labels ({product.totalLabels.length})
+                        </p>
+                        {product.totalLabels.map((item) => (
+                          <RequirementItemRowCompact
+                            key={`combined-label-${item.itemId}`}
+                            item={item}
+                          />
+                        ))}
+                      </div>
+                    )}
+                  </CardContent>
+                </CollapsibleContent>
+              </Card>
+            </Collapsible>
             {/* Variant Breakdown */}
             {product.variants.length > 1 && (
               <div className="space-y-3 pt-3 border-t">

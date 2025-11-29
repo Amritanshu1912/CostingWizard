@@ -11,6 +11,7 @@ import type { SupplierRequirement } from "@/lib/types";
 import {
   Building2,
   ChevronDown,
+  ChevronRight,
   ChevronUp,
   FileText,
   Mail,
@@ -18,6 +19,12 @@ import {
 import { useState } from "react";
 import { ShortageBadge } from "../../utils/shortage-badge";
 import { RequirementItemRowCompact } from "./requirement-item-row";
+import {
+  Tooltip,
+  TooltipProvider,
+  TooltipTrigger,
+  TooltipContent,
+} from "@/components/ui/tooltip";
 
 interface SupplierWiseRequirementsProps {
   suppliers: SupplierRequirement[];
@@ -30,26 +37,38 @@ export function SupplierWiseRequirements({
   onGeneratePO,
   onContactSupplier,
 }: SupplierWiseRequirementsProps) {
+  const [isExpanded, setIsExpanded] = useState(false);
   return (
     <Card>
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <Building2 className="h-5 w-5" />
-          Requirements by Supplier
-        </CardTitle>
-      </CardHeader>
-      <CardContent>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {suppliers.map((supplier) => (
-            <SupplierCard
-              key={supplier.supplierId}
-              supplier={supplier}
-              onGeneratePO={onGeneratePO}
-              onContactSupplier={onContactSupplier}
-            />
-          ))}
-        </div>
-      </CardContent>
+      <Collapsible open={isExpanded} onOpenChange={setIsExpanded}>
+        <CollapsibleTrigger asChild>
+          <CardHeader className="cursor-pointer hover:bg-accent/50 transition-colors">
+            <CardTitle className="flex items-center gap-2">
+              {isExpanded ? (
+                <ChevronDown className="h-5 w-5" />
+              ) : (
+                <ChevronRight className="h-5 w-5" />
+              )}
+              <Building2 className="h-5 w-5" />
+              Requirements by Supplier
+            </CardTitle>
+          </CardHeader>
+        </CollapsibleTrigger>
+        <CollapsibleContent className="mt-4">
+          <CardContent>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {suppliers.map((supplier) => (
+                <SupplierCard
+                  key={supplier.supplierId}
+                  supplier={supplier}
+                  onGeneratePO={onGeneratePO}
+                  onContactSupplier={onContactSupplier}
+                />
+              ))}
+            </div>
+          </CardContent>
+        </CollapsibleContent>
+      </Collapsible>
     </Card>
   );
 }
@@ -257,24 +276,43 @@ function SupplierCard({
 
         {/* Actions */}
         <div className="flex gap-2 pt-2 border-t">
-          <Button
-            variant="outline"
-            size="sm"
-            className="flex-1"
-            onClick={() => onGeneratePO?.(supplier.supplierId)}
-          >
-            <FileText className="h-3 w-3 mr-1" />
-            PO
-          </Button>
-          <Button
-            variant="outline"
-            size="sm"
-            className="flex-1"
-            onClick={() => onContactSupplier?.(supplier.supplierId)}
-          >
-            <Mail className="h-3 w-3 mr-1" />
-            Contact
-          </Button>
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="flex-1"
+                  onClick={() => onGeneratePO?.(supplier.supplierId)}
+                >
+                  <FileText className="h-3 w-3 mr-1" />
+                  PO
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p className="text-xs">Generate Purchase Order (Coming Soon)</p>
+              </TooltipContent>
+            </Tooltip>
+
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="flex-1"
+                  onClick={() => onContactSupplier?.(supplier.supplierId)}
+                >
+                  <Mail className="h-3 w-3 mr-1" />
+                  Contact
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p className="text-xs">
+                  Email supplier with requirements (Coming Soon)
+                </p>
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
         </div>
       </CardContent>
     </Card>

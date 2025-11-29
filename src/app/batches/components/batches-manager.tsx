@@ -72,7 +72,7 @@ export function BatchesManager() {
       </div>
 
       <Tabs defaultValue="batches" className="space-y-6">
-        <TabsList>
+        <TabsList className="w-full">
           <TabsTrigger value="batches">Batches</TabsTrigger>
           <TabsTrigger value="analytics">Analytics</TabsTrigger>
         </TabsList>

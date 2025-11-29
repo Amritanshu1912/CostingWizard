@@ -7,7 +7,7 @@ import {
   Package,
   TrendingUp,
 } from "lucide-react";
-import { StatCard } from "../../utils/stat-card";
+import { MetricCardWithChildren } from "@/components/ui/metric-card";
 
 interface RequirementsOverviewProps {
   requirements: BatchRequirementsAnalysis;
@@ -43,11 +43,11 @@ export function RequirementsOverview({
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
       {/* Total Items */}
-      <StatCard
+      <MetricCardWithChildren
         title="Total Items"
         value={totalItems}
         icon={Package}
-        subtitle="to procure"
+        description="to procure"
         variant="default"
       >
         <div className="space-y-1 text-xs">
@@ -64,14 +64,14 @@ export function RequirementsOverview({
             <span className="font-medium">{requirements.labels.length}</span>
           </div>
         </div>
-      </StatCard>
+      </MetricCardWithChildren>
 
       {/* Total Cost */}
-      <StatCard
+      <MetricCardWithChildren
         title="Total Cost"
         value={`₹${requirements.totalCost.toFixed(1)}k`}
         icon={DollarSign}
-        subtitle="procurement cost"
+        description="procurement cost"
         variant="info"
       >
         <div className="space-y-1 text-xs">
@@ -88,14 +88,14 @@ export function RequirementsOverview({
             <span className="font-medium">{labelPercent.toFixed(0)}%</span>
           </div>
         </div>
-      </StatCard>
+      </MetricCardWithChildren>
 
       {/* Suppliers */}
-      <StatCard
+      <MetricCardWithChildren
         title="Suppliers"
         value={requirements.bySupplier.length}
         icon={Building2}
-        subtitle="to contact"
+        description="to contact"
         variant="default"
         onClick={onSupplierClick}
       >
@@ -119,14 +119,14 @@ export function RequirementsOverview({
             </p>
           )}
         </div>
-      </StatCard>
+      </MetricCardWithChildren>
 
       {/* Shortages */}
-      <StatCard
+      <MetricCardWithChildren
         title="Shortages"
         value={requirements.criticalShortages.length}
         icon={hasShortages ? AlertCircle : TrendingUp}
-        subtitle={hasShortages ? "items short" : "all available"}
+        description={hasShortages ? "items short" : "all available"}
         variant={hasShortages ? "danger" : "success"}
         onClick={hasShortages ? onShortageClick : undefined}
       >
@@ -154,7 +154,7 @@ export function RequirementsOverview({
             ✓ All items available in stock
           </p>
         )}
-      </StatCard>
+      </MetricCardWithChildren>
     </div>
   );
 }

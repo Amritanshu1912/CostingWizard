@@ -205,8 +205,8 @@ export function BatchDetailsPanel({
       <div className="flex-1 overflow-hidden flex flex-col">
         <Tabs defaultValue="details" className="flex-1 flex flex-col">
           {/* Sticky Tabs */}
-          <div className="sticky top-0 z-10 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80 border-b px-6">
-            <TabsList className="grid w-full max-w-md grid-cols-3 h-12">
+          <div className="sticky top-0 z-10 bg-background/95 backdrop-blur px-6">
+            <TabsList className="grid w-full grid-cols-3">
               <TabsTrigger value="details">Details</TabsTrigger>
               <TabsTrigger value="requirements">Requirements</TabsTrigger>
               <TabsTrigger value="analytics">Analytics</TabsTrigger>

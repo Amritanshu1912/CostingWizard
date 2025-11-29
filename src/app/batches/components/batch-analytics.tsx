@@ -3,6 +3,7 @@
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
+import { CHART_COLORS } from "@/lib/color-utils";
 import type { BatchCostAnalysis } from "@/lib/types";
 import { AlertCircle, DollarSign, Package, TrendingUp } from "lucide-react";
 import {
@@ -24,9 +25,9 @@ interface BatchAnalyticsProps {
 }
 
 const COLORS = {
-  materials: "hsl(var(--chart-1))",
-  packaging: "hsl(var(--chart-2))",
-  labels: "hsl(var(--chart-3))",
+  materials: CHART_COLORS.light.chart1,
+  packaging: CHART_COLORS.light.chart5,
+  labels: CHART_COLORS.light.chart4,
 };
 
 export function BatchAnalytics({ costAnalysis }: BatchAnalyticsProps) {
@@ -141,68 +142,75 @@ export function BatchAnalytics({ costAnalysis }: BatchAnalyticsProps) {
             <CardTitle>Cost Breakdown</CardTitle>
           </CardHeader>
           <CardContent>
-            <ResponsiveContainer width="100%" height={300}>
-              <PieChart>
-                <Pie
-                  data={costBreakdownData}
-                  cx="50%"
-                  cy="50%"
-                  labelLine={false}
-                  label={(props) => {
-                    const { name } = props as any;
-                    const percent = (props as any).percent as number;
+            <div className="flex gap-4 items-center">
+              <ResponsiveContainer width="100%" height={250} className="flex-1">
+                <PieChart>
+                  <Pie
+                    data={costBreakdownData}
+                    cx="50%"
+                    cy="50%"
+                    labelLine={false}
+                    label={false}
+                    outerRadius={80}
+                    dataKey="value"
+                  >
+                    {costBreakdownData.map((entry, index) => (
+                      <Cell
+                        key={`cell-${index}`}
+                        fill={
+                          index === 0
+                            ? COLORS.materials
+                            : index === 1
+                              ? COLORS.packaging
+                              : COLORS.labels
+                        }
+                      />
+                    ))}
+                  </Pie>
 
-                    return `${name}: ${(percent * 100).toFixed(1)}%`;
-                  }}
-                  outerRadius={80}
-                  dataKey="value"
-                >
-                  {costBreakdownData.map((entry, index) => (
-                    <Cell
-                      key={`cell-${index}`}
-                      fill={
-                        index === 0
-                          ? COLORS.materials
-                          : index === 1
-                            ? COLORS.packaging
-                            : COLORS.labels
-                      }
-                    />
-                  ))}
-                </Pie>
+                  <Tooltip
+                    formatter={(value: number) => `₹${value.toFixed(0)}`}
+                  />
+                </PieChart>
+              </ResponsiveContainer>
 
-                <Tooltip
-                  formatter={(value: number) => `₹${value.toFixed(0)}`}
-                />
-              </PieChart>
-            </ResponsiveContainer>
-
-            {/* Legend */}
-            <div className="space-y-2 mt-4">
-              {costBreakdownData.map((item, index) => (
-                <div
-                  key={item.name}
-                  className="flex items-center justify-between"
-                >
-                  <div className="flex items-center gap-2">
+              {/* Custom Legend */}
+              <div className="flex-none w-52 space-y-2">
+                {costBreakdownData.map((item, index) => (
+                  <div
+                    key={item.name}
+                    className="flex items-center justify-between"
+                  >
+                    <div className="flex items-center gap-2">
+                      <div
+                        className="h-3 w-3 rounded-full"
+                        style={{
+                          backgroundColor:
+                            index === 0
+                              ? COLORS.materials
+                              : index === 1
+                                ? COLORS.packaging
+                                : COLORS.labels,
+                        }}
+                      />
+                      <span className="text-sm">{item.name}</span>
+                    </div>
                     <div
-                      className="h-3 w-3 rounded-full"
+                      className="text-sm font-medium"
                       style={{
-                        backgroundColor:
+                        color:
                           index === 0
                             ? COLORS.materials
                             : index === 1
                               ? COLORS.packaging
                               : COLORS.labels,
                       }}
-                    />
-                    <span className="text-sm">{item.name}</span>
+                    >
+                      ₹{item.value.toFixed(0)} ({item.percentage.toFixed(1)}%)
+                    </div>
                   </div>
-                  <div className="text-sm font-medium">
-                    ₹{item.value.toFixed(0)} ({item.percentage.toFixed(1)}%)
-                  </div>
-                </div>
-              ))}
+                ))}
+              </div>
             </div>
           </CardContent>
         </Card>
@@ -218,17 +226,35 @@ export function BatchAnalytics({ costAnalysis }: BatchAnalyticsProps) {
                 <CartesianGrid strokeDasharray="3 3" />
                 <XAxis
                   dataKey="name"
-                  angle={-45}
+                  angle={-25}
                   textAnchor="end"
-                  height={100}
-                  style={{ fontSize: "12px" }}
+                  height={70}
+                  interval={0}
+                  tick={{ fontSize: 12 }}
                 />
                 <YAxis />
-                <Tooltip formatter={(value: number) => `₹${value}`} />
+                <Tooltip
+                  formatter={(value, name) => [
+                    `₹${value.toLocaleString()}`,
+                    name,
+                  ]}
+                />
                 <Legend />
-                <Bar dataKey="cost" fill={COLORS.materials} name="Cost" />
-                <Bar dataKey="revenue" fill={COLORS.packaging} name="Revenue" />
-                <Bar dataKey="profit" fill={COLORS.labels} name="Profit" />
+                <Bar
+                  dataKey="cost"
+                  fill={COLORS.materials}
+                  radius={[4, 4, 0, 0]}
+                />
+                <Bar
+                  dataKey="revenue"
+                  fill={COLORS.packaging}
+                  radius={[4, 4, 0, 0]}
+                />
+                <Bar
+                  dataKey="profit"
+                  fill={COLORS.labels}
+                  radius={[4, 4, 0, 0]}
+                />
               </BarChart>
             </ResponsiveContainer>
           </CardContent>
