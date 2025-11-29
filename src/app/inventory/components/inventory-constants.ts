@@ -159,9 +159,9 @@ export const MOCK_INVENTORY_ITEMS: InventoryItem[] = [
   {
     id: "12",
     itemType: "supplierMaterial" as const,
-    itemId: "10", //AOS Powder
+    itemId: "5", //AOS Powder
     itemName: "AOS Powder 96%",
-    currentStock: 1200,
+    currentStock: 120,
     unit: "kg",
     minStockLevel: 100,
     maxStockLevel: 2000,

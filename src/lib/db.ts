@@ -44,12 +44,13 @@ import {
   PRODUCT_VARIANTS,
   PRODUCTS,
 } from "@/app/products/components/products-constants";
-import { PRODUCTION_BATCHES } from "@/app/batches/components/planning-constants";
+import { PRODUCTION_BATCHES } from "@/app/batches_old/components/batches-constants";
 import {
   MOCK_INVENTORY_ITEMS,
   MOCK_TRANSACTIONS,
 } from "@/app/inventory/components/inventory-constants";
 import { sweepAndGenerateAlerts } from "./alerts";
+import { autoGenerateMissingInventoryItems } from "./autoGenerateMissingInventoryItems";
 
 export class CostingWizardDB extends Dexie {
   categories!: Table<Category>;
@@ -98,7 +99,7 @@ export class CostingWizardDB extends Dexie {
         productionBatches: "id, batchName, status, startDate, endDate",
         purchaseOrders: "id, orderId, supplierId, status, dateCreated",
         inventoryItems:
-          "id, itemType, itemId, status, currentStock, lastUpdated",
+          "id, itemType, itemId, status, currentStock, lastUpdated, [itemId+itemType]",
         inventoryTransactions:
           "id, inventoryItemId, type, createdAt, reference",
         inventoryAlerts:
@@ -207,6 +208,7 @@ export class CostingWizardDB extends Dexie {
         await db.inventoryItems.bulkAdd(MOCK_INVENTORY_ITEMS);
         await db.inventoryTransactions.bulkAdd(MOCK_TRANSACTIONS);
       }
+      await autoGenerateMissingInventoryItems(db);
       // After seeding (or when DB ready) run a sweep to create alerts for
       // untracked items (those created by `useAllItemsWithInventoryStatus`).
       try {

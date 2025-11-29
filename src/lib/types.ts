@@ -413,34 +413,6 @@ export interface ProductVariant extends BaseEntity {
   // Status
   isActive: boolean;
 
-  // Optional: Lock component prices at a point in time
-  priceSnapshot?: ProductVariantPriceSnapshot;
-
-  notes?: string;
-}
-
-/**
- * ProductVariantPriceSnapshot - Optional price locking
- * Captures costs at a specific point in time for quotations/analysis
- */
-export interface ProductVariantPriceSnapshot {
-  snapshotAt: Date;
-  reason?: "quotation" | "cost_analysis" | "production_batch" | "other";
-
-  // Recipe cost at snapshot time
-  recipeCostPerKg: number;
-  recipeTaxPerKg: number;
-
-  // Packaging cost at snapshot time
-  packagingUnitPrice: number;
-  packagingTax: number;
-
-  // Label costs at snapshot time
-  frontLabelUnitPrice?: number;
-  frontLabelTax?: number;
-  backLabelUnitPrice?: number;
-  backLabelTax?: number;
-
   notes?: string;
 }
 
@@ -548,7 +520,6 @@ export interface ProductVariantCostAnalysis {
   }[];
 
   // Price comparison with snapshot (if locked)
-  priceSnapshot?: ProductVariantPriceSnapshot;
   priceChangedSinceSnapshot: boolean;
   costDifferenceFromSnapshot?: number; // Current cost - snapshot cost
   costDifferencePercentage?: number;
@@ -633,21 +604,10 @@ export interface VariantComparison {
 export interface ProductionBatch extends BaseEntity {
   batchName: string;
   description?: string;
-  startDate: string;
-  endDate: string;
+  startDate?: string;
+  endDate?: string;
   status: "draft" | "scheduled" | "in-progress" | "completed" | "cancelled";
-  progress: number; // 0-100
-
-  // Products with their variant quantities
   items: BatchProductItem[];
-
-  // Computed metrics (calculated on save)
-  totalUnits: number;
-  totalFillQuantity: number; // Total kg/L across all variants
-  totalCost: number;
-  totalRevenue: number;
-  totalProfit: number;
-  profitMargin: number;
 }
 
 export interface BatchProductItem {
@@ -657,10 +617,70 @@ export interface BatchProductItem {
 
 export interface BatchVariantItem {
   variantId: string;
-  fillQuantity: number; // How much kg/L to produce
-  fillUnit: CapacityUnit;
-  // Computed at runtime:
-  // units = fillQuantity / variant.fillQuantity
+  totalFillQuantity: number; // How much kg/L to produce
+  fillUnit: CapacityUnit; // Always in L or kg
+}
+
+export interface BatchVariantDetails {
+  variantId: string;
+  variantName: string;
+  productName: string;
+  fillQuantity: number; // Variant's capacity
+  fillUnit: CapacityUnit; // Variant's unit (mL, g, etc.)
+  totalFillQuantity: number; // Batch quantity in L/kg
+  units: number; // Calculated
+  displayQuantity: string; // Formatted for UI
+}
+
+export interface BatchProductDetails {
+  productId: string;
+  productName: string;
+  variants: BatchVariantDetails[];
+}
+
+/**
+ * BatchWithDetails - Batch with all joined data
+ */
+export interface BatchWithDetails extends ProductionBatch {
+  products: BatchProductDetails[];
+}
+
+// Minimal cost analysis interface
+export interface BatchCostAnalysis {
+  batchId: string;
+  totalUnits: number;
+  totalCost: number;
+  totalRevenue: number;
+  totalProfit: number;
+  profitMargin: number;
+
+  // Cost breakdown by type
+  materialsCost: number;
+  packagingCost: number;
+  labelsCost: number;
+
+  // Percentages
+  materialsPercentage: number;
+  packagingPercentage: number;
+  labelsPercentage: number;
+
+  // Remove heavy arrays unless specifically needed
+  variantCosts?: VariantCost[]; // Make optional
+}
+
+export interface VariantCost {
+  variantId: string;
+  variantName: string;
+  productName: string;
+  fillQuantity: number; // NEW
+  fillUnit: string; // NEW
+  units: number;
+  totalCost: number;
+  totalRevenue: number;
+  profit: number;
+  margin: number;
+  costPerUnit: number; // NEW
+  revenuePerUnit: number; // NEW
 }
 
 // Computed analysis (NOT stored)
@@ -685,6 +705,14 @@ export interface BatchRequirementsAnalysis {
 
   // Grouped by supplier
   bySupplier: SupplierRequirement[];
+  byProduct: ProductRequirements[];
+  itemsWithoutInventory: ItemWithoutInventory[];
+}
+export interface ItemWithoutInventory {
+  itemType: "material" | "packaging" | "label";
+  itemId: string;
+  itemName: string;
+  supplierName: string;
 }
 
 export interface RequirementItem {
@@ -703,7 +731,10 @@ export interface RequirementItem {
   tax: number;
   totalCost: number; // (required * unitPrice) * (1 + tax/100)
 }
-
+export interface EnhancedRequirementItem extends RequirementItem {
+  isLocked?: boolean; // For materials with locked pricing
+  hasInventoryTracking?: boolean;
+}
 export interface SupplierRequirement {
   supplierId: string;
   supplierName: string;
@@ -712,61 +743,27 @@ export interface SupplierRequirement {
   labels: RequirementItem[];
   totalCost: number;
 }
-
-export interface BatchCostAnalysis {
-  batchId: string;
-
-  // Per-variant costs
-  variantCosts: {
-    variantId: string;
-    variantName: string;
-    productName: string;
-    fillQuantity: number;
-    fillUnit: string;
-    units: number;
-    costPerUnit: number;
-    revenuePerUnit: number;
-    totalCost: number;
-    totalRevenue: number;
-    profit: number;
-    margin: number;
-  }[];
-
-  // Cost breakdown by type
-  materialsCost: number;
-  packagingCost: number;
-  labelsCost: number;
-
-  // Percentages
-  materialsPercentage: number;
-  packagingPercentage: number;
-  labelsPercentage: number;
-
-  // Business metrics
-  totalCost: number;
-  totalRevenue: number;
-  totalProfit: number;
-  overallMargin: number;
-  breakEvenUnits: number;
-}
-
 /**
- * BatchWithDetails - Batch with all joined data
+ * Product-wise requirements grouping
  */
-export interface BatchWithDetails extends ProductionBatch {
-  products: {
-    productId: string;
-    productName: string;
-    variants: {
-      variantId: string;
-      variantName: string;
-      fillQuantity: number;
-      fillUnit: CapacityUnit;
-      units: number; // Calculated
-    }[];
-  }[];
+export interface ProductRequirements {
+  productId: string;
+  productName: string;
+  variants: VariantRequirements[];
+  // Aggregated totals for the product
+  totalMaterials: RequirementItem[];
+  totalPackaging: RequirementItem[];
+  totalLabels: RequirementItem[];
+  totalCost: number;
 }
-
+export interface VariantRequirements {
+  variantId: string;
+  variantName: string;
+  materials: RequirementItem[];
+  packaging: RequirementItem[];
+  labels: RequirementItem[];
+  totalCost: number;
+}
 // ============================================================================
 // PROCUREMENT & ORDERS
 // ============================================================================

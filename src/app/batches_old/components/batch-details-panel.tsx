@@ -1,24 +1,19 @@
-// components/batches/batch-details-panel.tsx (updated)
 "use client";
 
-import { useBatchOperations } from "../hooks/use-batch-operations";
-import { useBatchCostAnalysis, useBatchDetails } from "../hooks/use-batches";
+import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { useBatchOperations } from "@/app/batches_old/old_hooks/use-batch-operations";
+import {
+  useBatchDetails,
+  useBatchCostAnalysis,
+  useBatchRequirements,
+} from "@/app/batches_old/old_hooks/use-batches";
 import { convertToDisplayUnit } from "@/hooks/use-unit-conversion";
 import type { ProductionBatch } from "@/lib/types";
-import { cn } from "@/lib/utils";
-import {
-  Calendar,
-  Edit2,
-  Plus,
-  Trash2,
-  TrendingDown,
-  TrendingUp,
-} from "lucide-react";
+import { Calendar, Edit2, Plus, Trash2 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { BatchAnalytics } from "./batch-analytics";
 import { BatchForm } from "./batch-form";
@@ -48,10 +43,13 @@ export function BatchDetailsPanel({
     type: isCreating ? "CREATING_BATCH" : "VIEWING_BATCH",
   });
 
+  // Use the new focused hooks
   const batchDetails = useBatchDetails(batch?.id || null);
   const costAnalysis = useBatchCostAnalysis(batch?.id || null);
+  const requirements = useBatchRequirements(batch?.id || null);
 
   const { createBatch, updateBatch, deleteBatch } = useBatchOperations();
+  // const { convertToDisplayUnit } = useUnitConversion();
 
   useEffect(() => {
     if (isCreating) {
@@ -143,30 +141,10 @@ export function BatchDetailsPanel({
     );
   }
 
-  // Determine profit color
-  const getProfitColor = (profit: number, margin: number) => {
-    if (profit < 0) return "text-red-600 dark:text-red-400";
-    if (margin >= 40) return "text-green-600 dark:text-green-400";
-    if (margin >= 30) return "text-emerald-600 dark:text-emerald-400";
-    if (margin >= 20) return "text-yellow-600 dark:text-yellow-400";
-    if (margin >= 10) return "text-orange-600 dark:text-orange-400";
-    return "text-red-600 dark:text-red-400";
-  };
-
-  const getProfitBgColor = (profit: number, margin: number) => {
-    if (profit < 0)
-      return "bg-red-50 dark:bg-red-950/20 border-red-200 dark:border-red-900";
-    if (margin >= 30)
-      return "bg-green-50 dark:bg-green-950/20 border-green-200 dark:border-green-900";
-    if (margin >= 20)
-      return "bg-yellow-50 dark:bg-yellow-950/20 border-yellow-200 dark:border-yellow-900";
-    return "bg-orange-50 dark:bg-orange-950/20 border-orange-200 dark:border-orange-900";
-  };
-
   // VIEWING BATCH (Default)
   return (
-    <Card className="h-full flex flex-col">
-      <CardHeader className="flex-shrink-0">
+    <Card className="h-full">
+      <CardHeader>
         <div className="flex items-start justify-between">
           <div className="flex-1">
             <div className="flex items-center gap-3 mb-2">
@@ -202,20 +180,16 @@ export function BatchDetailsPanel({
         </div>
       </CardHeader>
 
-      <div className="flex-1 overflow-hidden flex flex-col">
-        <Tabs defaultValue="details" className="flex-1 flex flex-col">
-          {/* Sticky Tabs */}
-          <div className="sticky top-0 z-10 bg-background/95 backdrop-blur px-6">
-            <TabsList className="grid w-full grid-cols-3">
-              <TabsTrigger value="details">Details</TabsTrigger>
-              <TabsTrigger value="requirements">Requirements</TabsTrigger>
-              <TabsTrigger value="analytics">Analytics</TabsTrigger>
-            </TabsList>
-          </div>
+      <CardContent className="max-h-[calc(100vh-250px)] overflow-y-auto">
+        <Tabs defaultValue="details" className="space-y-6">
+          <TabsList className="grid w-full grid-cols-3">
+            <TabsTrigger value="details">Details</TabsTrigger>
+            <TabsTrigger value="requirements">Requirements</TabsTrigger>
+            <TabsTrigger value="analytics">Analytics</TabsTrigger>
+          </TabsList>
 
-          {/* Scrollable Content */}
-          <div className="flex-1 overflow-y-auto">
-            <TabsContent value="details" className="p-6 space-y-4 m-0">
+          <TabsContent value="details" className="space-y-4">
+            <div className="space-y-4">
               {/* Quick Metrics */}
               {!costAnalysis ? (
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
@@ -226,7 +200,7 @@ export function BatchDetailsPanel({
                 </div>
               ) : (
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                  <div className="p-4 bg-muted/50 rounded-lg border">
+                  <div className="p-4 bg-muted/50 rounded-lg">
                     <div className="text-xs text-muted-foreground mb-1">
                       Total Units
                     </div>
@@ -234,7 +208,7 @@ export function BatchDetailsPanel({
                       {costAnalysis.totalUnits}
                     </div>
                   </div>
-                  <div className="p-4 bg-muted/50 rounded-lg border">
+                  <div className="p-4 bg-muted/50 rounded-lg">
                     <div className="text-xs text-muted-foreground mb-1">
                       Total Cost
                     </div>
@@ -245,7 +219,7 @@ export function BatchDetailsPanel({
                       incl. tax
                     </div>
                   </div>
-                  <div className="p-4 bg-muted/50 rounded-lg border">
+                  <div className="p-4 bg-muted/50 rounded-lg">
                     <div className="text-xs text-muted-foreground mb-1">
                       Expected Revenue
                     </div>
@@ -256,57 +230,21 @@ export function BatchDetailsPanel({
                       selling price
                     </div>
                   </div>
-                  <div
-                    className={cn(
-                      "p-4 rounded-lg border",
-                      getProfitBgColor(
-                        costAnalysis.totalProfit,
-                        costAnalysis.profitMargin
-                      )
-                    )}
-                  >
-                    <div className="flex items-center gap-1 text-xs mb-1">
-                      {costAnalysis.totalProfit >= 0 ? (
-                        <TrendingUp className="h-3 w-3" />
-                      ) : (
-                        <TrendingDown className="h-3 w-3" />
-                      )}
-                      <span
-                        className={getProfitColor(
-                          costAnalysis.totalProfit,
-                          costAnalysis.profitMargin
-                        )}
-                      >
-                        Expected Profit
-                      </span>
+                  <div className="p-4 bg-green-50 dark:bg-green-950/20 rounded-lg">
+                    <div className="text-xs text-green-700 dark:text-green-300 mb-1">
+                      Expected Profit
                     </div>
-                    <div
-                      className={cn(
-                        "text-2xl font-bold",
-                        getProfitColor(
-                          costAnalysis.totalProfit,
-                          costAnalysis.profitMargin
-                        )
-                      )}
-                    >
+                    <div className="text-2xl font-bold text-green-700 dark:text-green-300">
                       ₹{costAnalysis.totalProfit.toFixed(0)}
                     </div>
-                    <div
-                      className={cn(
-                        "text-xs",
-                        getProfitColor(
-                          costAnalysis.totalProfit,
-                          costAnalysis.profitMargin
-                        )
-                      )}
-                    >
-                      {costAnalysis.profitMargin.toFixed(1)}% margin
+                    <div className="text-xs text-green-600 dark:text-green-400">
+                      after tax costs
                     </div>
                   </div>
                 </div>
               )}
 
-              {/* Products & Variants */}
+              {/* Products & Variants - FIXED */}
               {!batchDetails ? (
                 <div className="space-y-3">
                   <Skeleton className="h-8 w-1/3" />
@@ -358,18 +296,20 @@ export function BatchDetailsPanel({
                   No products with valid quantities in this batch
                 </div>
               )}
-            </TabsContent>
+            </div>
+          </TabsContent>
 
-            <TabsContent value="requirements" className="p-6 m-0">
-              {batch && <BatchRequirements batch={batch} />}
-            </TabsContent>
+          <TabsContent value="requirements">
+            {batch && requirements && (
+              <BatchRequirements batch={batch} requirements={requirements} />
+            )}
+          </TabsContent>
 
-            <TabsContent value="analytics" className="p-6 m-0">
-              {costAnalysis && <BatchAnalytics costAnalysis={costAnalysis} />}
-            </TabsContent>
-          </div>
+          <TabsContent value="analytics">
+            {costAnalysis && <BatchAnalytics costAnalysis={costAnalysis} />}
+          </TabsContent>
         </Tabs>
-      </div>
+      </CardContent>
     </Card>
   );
 }
