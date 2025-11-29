@@ -15,7 +15,7 @@ import { Progress } from "@/components/ui/progress";
 import { quickActions, quickStats, recentMaterials } from "@/lib/constants";
 import { BarChart3, Package, TrendingDown, TrendingUp } from "lucide-react";
 
-export function DashboardOverview() {
+function DashboardOverview() {
   return (
     <div className="space-y-6 animate-fade-in">
       {/* Header */}

@@ -1,10 +1,10 @@
+// hooks/use-batch-operations.ts
 import { db } from "@/lib/db";
 import type { ProductionBatch } from "@/lib/types";
 
-
-
 /**
- * Create a new batch (no calculations needed - they're computed on-the-fly)
+ * Create a new batch
+ * Calculations are done on-the-fly by hooks, not stored
  */
 export async function createBatch(
   batchData: Omit<ProductionBatch, "id" | "createdAt" | "updatedAt">
@@ -22,7 +22,7 @@ export async function createBatch(
 }
 
 /**
- * Update existing batch (no calculations needed)
+ * Update existing batch
  */
 export async function updateBatch(
   batchId: string,
@@ -49,7 +49,7 @@ export async function deleteBatch(batchId: string): Promise<void> {
 }
 
 /**
- * Hook for batch operations
+ * Hook for batch operations (convenience wrapper)
  */
 export function useBatchOperations() {
   return {

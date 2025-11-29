@@ -4,7 +4,7 @@
 import { Skeleton } from "@/components/ui/skeleton";
 import type { ProductionBatch } from "@/lib/types";
 import { AlertCircle } from "lucide-react";
-import { useBatchRequirements } from "../../hooks/use-batches";
+import { useBatchRequirements } from "@/hooks/use-batches";
 import { InventoryWarningsAlert } from "./inventory-warnings-alert";
 import { ProductWiseRequirements } from "./product-wise-requirements";
 import { RequirementsCategoryList } from "./requirements-category-list";

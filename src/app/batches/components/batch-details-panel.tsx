@@ -1,8 +1,8 @@
 // components/batches/batch-details-panel.tsx (updated)
 "use client";
 
-import { useBatchOperations } from "../hooks/use-batch-operations";
-import { useBatchCostAnalysis, useBatchDetails } from "../hooks/use-batches";
+import { useBatchOperations } from "@/hooks/use-batch-operations";
+import { useBatchCostAnalysis, useBatchDetails } from "@/hooks/use-batches";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";

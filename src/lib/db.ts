@@ -44,7 +44,7 @@ import {
   PRODUCT_VARIANTS,
   PRODUCTS,
 } from "@/app/products/components/products-constants";
-import { PRODUCTION_BATCHES } from "@/app/batches_old/components/batches-constants";
+import { PRODUCTION_BATCHES } from "@/app/batches/components/batches-constants";
 import {
   MOCK_INVENTORY_ITEMS,
   MOCK_TRANSACTIONS,
