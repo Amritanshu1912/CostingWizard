@@ -1,3 +1,4 @@
+// src/lib/alerts.ts
 import type {
   InventoryItem,
   InventoryAlert,
@@ -228,8 +229,10 @@ export async function sweepAndGenerateAlerts(db: any) {
   }
 }
 
-export default {
+const alertsModule = {
   createOrUpdateAlertForItemById,
   createOrUpdateAlertForItem,
   sweepAndGenerateAlerts,
 };
+
+export default alertsModule;

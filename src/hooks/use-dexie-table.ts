@@ -1,6 +1,6 @@
 // hooks/use-dexie-table.ts
-import { useLiveQuery } from "dexie-react-hooks";
 import type { Table } from "dexie";
+import { useLiveQuery } from "dexie-react-hooks";
 import { nanoid } from "nanoid";
 
 /**

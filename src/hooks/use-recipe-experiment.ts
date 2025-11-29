@@ -1,14 +1,10 @@
 // hooks/use-recipe-experiment.ts
-import { useState, useMemo, useCallback } from "react";
-import { toast } from "sonner";
-import type {
-  RecipeIngredient,
-  RecipeDisplay,
-  CapacityUnit,
-} from "@/lib/types";
-import { recipeCalculator } from "./use-recipes";
-import { useSupplierMaterialsWithDetails } from "./use-supplier-materials-with-details";
 import { db } from "@/lib/db";
+import type { RecipeDisplay, RecipeIngredient } from "@/lib/types";
+import { useCallback, useMemo, useState } from "react";
+import { toast } from "sonner";
+import { useSupplierMaterialsWithDetails } from "./use-supplier-materials";
+import { convertToBaseUnit, normalizeToKg } from "./use-unit-conversion";
 
 export interface ExperimentIngredient extends RecipeIngredient {
   _changed?: boolean;
@@ -99,10 +95,7 @@ export function useRecipeExperiment(recipe: RecipeDisplay | null) {
       const sm = supplierMaterials.find((s) => s.id === ing.supplierMaterialId);
       if (!sm) return;
 
-      const quantityInKg = recipeCalculator.normalizeToKg(
-        ing.quantity,
-        ing.unit
-      );
+      const quantityInKg = normalizeToKg(ing.quantity, ing.unit);
       const pricePerKg = ing.lockedPricing?.unitPrice || sm.unitPrice;
       const tax = ing.lockedPricing?.tax || sm.tax || 0;
       const cost = pricePerKg * quantityInKg;
@@ -110,28 +103,23 @@ export function useRecipeExperiment(recipe: RecipeDisplay | null) {
 
       modifiedTotalCost += cost;
       modifiedTotalCostWithTax += costWithTax;
-      modifiedWeight += recipeCalculator.convertToStandard(
-        ing.quantity,
-        ing.unit
-      );
+      modifiedWeight += convertToBaseUnit(ing.quantity, ing.unit).quantity;
     });
 
     const modifiedCostPerKg =
       modifiedWeight > 0
-        ? modifiedTotalCost /
-          recipeCalculator.normalizeToKg(modifiedWeight, "gm")
+        ? modifiedTotalCost / normalizeToKg(modifiedWeight, "gm")
         : 0;
 
     const modifiedCostPerKgWithTax =
       modifiedWeight > 0
-        ? modifiedTotalCostWithTax /
-          recipeCalculator.normalizeToKg(modifiedWeight, "gm")
+        ? modifiedTotalCostWithTax / normalizeToKg(modifiedWeight, "gm")
         : 0;
 
     // Original values
     const originalCostPerKg = recipe.costPerKg;
     const originalWeight = experimentIngredients.reduce((sum, ing) => {
-      return sum + recipeCalculator.convertToStandard(ing.quantity, ing.unit);
+      return sum + convertToBaseUnit(ing.quantity, ing.unit).quantity;
     }, 0);
     const originalTotalCost = recipe.totalCost;
     const originalTotalCostWithTax = recipe.taxedTotalCost;
@@ -237,6 +225,7 @@ export function useRecipeExperiment(recipe: RecipeDisplay | null) {
       setExperimentIngredients((prev) => {
         const updated = [...prev];
         if (updated[index].lockedPricing) {
+          // eslint-disable-next-line @typescript-eslint/no-unused-vars
           const { lockedPricing, ...rest } = updated[index];
           updated[index] = rest;
         } else {

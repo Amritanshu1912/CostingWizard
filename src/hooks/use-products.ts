@@ -1,19 +1,14 @@
-// ============================================================================
-// FILE: hooks/use-products.ts
-// Centralized hooks and database operations for products management
-// ============================================================================
-
-import { useMemo } from "react";
-import { useLiveQuery } from "dexie-react-hooks";
+// hooks/use-products.ts
 import { db } from "@/lib/db";
-import { normalizeToKg } from "./use-recipes";
 import type {
   Product,
   ProductVariant,
-  ProductVariantWithDetails,
   ProductVariantCostAnalysis,
-  CapacityUnit,
+  ProductVariantWithDetails,
 } from "@/lib/types";
+import { useLiveQuery } from "dexie-react-hooks";
+import { useMemo } from "react";
+import { normalizeToKg } from "./use-unit-conversion";
 
 // ============================================================================
 // DATA FETCHING HOOKS
@@ -407,16 +402,26 @@ export async function calculateVariantCostAnalysis(
 /**
  * Helper: Calculate recipe cost per kg
  */
-async function getRecipeCostPerKg(productId: string) {
+export async function getRecipeCostPerKg(productId: string) {
   const product = await db.products.get(productId);
   if (!product) throw new Error("Product not found");
 
-  const recipe = await db.recipes.get(product.recipeId);
-  if (!recipe) throw new Error("Recipe not found");
+  // Handle recipe variants
+  const recipeId = product.isRecipeVariant
+    ? (await db.recipeVariants.get(product.recipeId))?.originalRecipeId
+    : product.recipeId;
+
+  if (!recipeId) {
+    // This can happen if the recipe variant is deleted or data is inconsistent
+    console.warn(
+      `Could not resolve a valid recipe ID for product ${productId}.`
+    );
+    return { costPerKg: 0, taxPerKg: 0 };
+  }
 
   const ingredients = await db.recipeIngredients
     .where("recipeId")
-    .equals(recipe.id)
+    .equals(recipeId)
     .toArray();
 
   if (ingredients.length === 0) {

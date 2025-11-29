@@ -1,6 +1,6 @@
 // hooks/use-duplicate-check.ts
-import { useState, useCallback, useEffect } from "react";
 import { findSimilarItems } from "@/lib/text-utils";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 /**
  * useDebounce
@@ -60,18 +60,44 @@ export function useDuplicateCheck<T extends { id: string; name: string }>(
   options: UseDuplicateCheckOptions = {}
 ) {
   const { threshold = 2, debounceMs = 300, minLength = 2 } = options;
-
   const [warning, setWarning] = useState<string | null>(null);
 
+  // Use refs to maintain stable references to changing values
+  const itemsRef = useRef(items);
+  const currentIdRef = useRef(currentId);
+  const thresholdRef = useRef(threshold);
+  const minLengthRef = useRef(minLength);
+
+  // Update refs when values change
+  useEffect(() => {
+    itemsRef.current = items;
+  }, [items]);
+
+  useEffect(() => {
+    currentIdRef.current = currentId;
+  }, [currentId]);
+
+  useEffect(() => {
+    thresholdRef.current = threshold;
+  }, [threshold]);
+
+  useEffect(() => {
+    minLengthRef.current = minLength;
+  }, [minLength]);
+
+  // Create a stable checkDuplicate function
   const checkDuplicate = useDebouncedCallback((searchTerm: string) => {
-    // Clear warning if search term is too short
-    if (!searchTerm || searchTerm.length < minLength) {
+    if (!searchTerm || searchTerm.length < minLengthRef.current) {
       setWarning(null);
       return;
     }
 
-    // Check for similar matches only (exact matches are handled by dropdown filtering)
-    const similar = findSimilarItems(searchTerm, items, currentId, threshold);
+    const similar = findSimilarItems(
+      searchTerm,
+      itemsRef.current,
+      currentIdRef.current,
+      thresholdRef.current
+    );
 
     if (similar.length > 0) {
       const names = similar
@@ -85,5 +111,6 @@ export function useDuplicateCheck<T extends { id: string; name: string }>(
   }, debounceMs);
 
   const clearWarning = useCallback(() => setWarning(null), []);
+
   return { warning, checkDuplicate, clearWarning };
 }

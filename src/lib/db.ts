@@ -1,3 +1,4 @@
+// src/lib/db.ts
 import Dexie, { Table } from "dexie";
 import type {
   Supplier,
@@ -20,7 +21,7 @@ import type {
   InventoryAlert,
   TransportationCost,
 } from "./types";
-import { CATEGORIES, PURCHASE_ORDERS } from "./constants";
+import { CATEGORIES } from "./constants";
 import { SUPPLIERS } from "@/app/suppliers/components/suppliers-constants";
 import {
   MATERIALS,
@@ -43,7 +44,7 @@ import {
   PRODUCT_VARIANTS,
   PRODUCTS,
 } from "@/app/products/components/products-constants";
-import { PRODUCTION_BATCHES } from "@/app/batches/components/planning-constants";
+import { PRODUCTION_BATCHES } from "@/app/batches/components/batches-constants";
 import {
   MOCK_INVENTORY_ITEMS,
   MOCK_TRANSACTIONS,
@@ -212,7 +213,7 @@ export class CostingWizardDB extends Dexie {
         await sweepAndGenerateAlerts(db);
       } catch (err) {
         // non-fatal - log for debugging
-        // console.error("sweepAndGenerateAlerts failed:", err);
+        console.error("sweepAndGenerateAlerts failed:", err);
       }
     });
   }

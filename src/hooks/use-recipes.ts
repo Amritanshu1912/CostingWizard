@@ -1,92 +1,20 @@
 // hooks/use-recipes.ts
-// Single unified hook file for all recipe-related data operations
-
-import { useMemo } from "react";
-import { useLiveQuery } from "dexie-react-hooks";
 import { db } from "@/lib/db";
 import type {
-  Recipe,
-  RecipeIngredient,
-  RecipeVariant,
-  RecipeDisplay,
-  RecipeIngredientDisplay,
   CapacityUnit,
+  RecipeDisplay,
+  RecipeIngredient,
+  RecipeIngredientDisplay,
+  RecipeVariant,
   SupplierMaterialWithDetails,
 } from "@/lib/types";
-
-// ============================================================================
-// HELPER FUNCTIONS
-// ============================================================================
-
-/**
- * Convert quantity to kilograms for standardized calculations
- */
-export function normalizeToKg(quantity: number, unit: CapacityUnit): number {
-  const conversions: Record<string, number> = {
-    kg: 1,
-    gm: 0.001,
-    g: 0.001,
-    L: 1, // Assume density ~1 for liquids
-    ml: 0.001,
-    pcs: 0.001, // Default for pieces
-  };
-
-  const conversionFactor = conversions[unit] ?? 1;
-  return parseFloat((quantity * conversionFactor).toFixed(3));
-}
-
-/**
- * Format quantity for display
- */
-function formatQuantity(quantity: number, unit: CapacityUnit): string {
-  return `${quantity} ${unit}`;
-}
-
-/**
- * Get standard unit for material type (gm, ml, or pcs)
- */
-function getStandardUnit(unit: CapacityUnit): "gm" | "ml" | "pcs" {
-  if (unit === "kg" || unit === "gm") return "gm";
-  if (unit === "L" || unit === "ml") return "ml";
-  return "pcs";
-}
-
-/**
- * Convert to standard unit (used in edit mode for display)
- */
-function convertToStandard(quantity: number, unit: CapacityUnit): number {
-  const standard = getStandardUnit(unit);
-  if (standard === "gm") {
-    if (unit === "kg") return quantity * 1000;
-    if (unit === "gm") return quantity;
-  } else if (standard === "ml") {
-    if (unit === "L") return quantity * 1000;
-    if (unit === "ml") return quantity;
-  }
-  return quantity;
-}
-
-/**
- * Convert from standard unit back to material's unit
- */
-function convertFromStandard(
-  quantityStandard: number,
-  targetUnit: CapacityUnit
-): number {
-  const standard = getStandardUnit(targetUnit);
-  if (standard === "gm") {
-    if (targetUnit === "kg") return quantityStandard / 1000;
-    return quantityStandard;
-  } else if (standard === "ml") {
-    if (targetUnit === "L") return quantityStandard / 1000;
-    return quantityStandard;
-  }
-  return quantityStandard;
-}
-
-// ============================================================================
-// CORE DATA HOOK - Single source of truth
-// ============================================================================
+import { useLiveQuery } from "dexie-react-hooks";
+import { useMemo } from "react";
+import {
+  convertToBaseUnit,
+  formatQuantity,
+  normalizeToKg,
+} from "./use-unit-conversion";
 
 /**
  * Fetches all recipe-related data once and creates lookup maps
@@ -236,10 +164,10 @@ export function useEnrichedRecipes(): RecipeDisplay[] {
         0
       );
       const totalWeight = enrichedIngredients.reduce((sum, ing) => {
-        let quantityInGrams = recipeCalculator.convertToStandard(
+        let quantityInGrams = convertToBaseUnit(
           ing.quantity,
           ing.unit
-        );
+        ).quantity;
         return sum + quantityInGrams;
       }, 0);
 
@@ -341,7 +269,7 @@ export function useRecipeVariants(
   const variants = useMemo(() => {
     if (!data || !recipeId || !originalRecipe) return [];
 
-    const { ingredientsByRecipe, smMap, materialMap, supplierMap } = data;
+    const { ingredientsByRecipe, smMap } = data;
 
     return data.variants
       .filter((v) => v.originalRecipeId === recipeId)
@@ -350,8 +278,6 @@ export function useRecipeVariants(
 
         const enrichedVariantIngredients = variantIngredients.map((ing) => {
           const sm = smMap.get(ing.supplierMaterialId);
-          const supplier = sm ? supplierMap.get(sm.supplierId) : null;
-          const material = sm ? materialMap.get(sm.materialId) : null;
 
           const quantityInKg = normalizeToKg(ing.quantity, ing.unit);
           const pricePerKg = ing.lockedPricing?.unitPrice || sm?.unitPrice || 0;
@@ -600,11 +526,6 @@ export function useRecipeOptimizations(
  */
 export const recipeCalculator = {
   // Basic conversions
-  normalizeToKg,
-  formatQuantity,
-  getStandardUnit,
-  convertToStandard,
-  convertFromStandard,
 
   /**
    * Calculate total weight from ingredients array
@@ -614,7 +535,7 @@ export const recipeCalculator = {
     ingredients: { quantity: number; unit: CapacityUnit }[]
   ): number {
     return ingredients.reduce((sum, ing) => {
-      return sum + convertToStandard(ing.quantity, ing.unit);
+      return sum + convertToBaseUnit(ing.quantity, ing.unit).quantity;
     }, 0);
   },
 
@@ -746,13 +667,7 @@ export function useMaterialsWithSuppliers() {
   const materialsWithSuppliers = useMemo(() => {
     if (!data) return [];
 
-    const {
-      materials,
-      supplierMaterials,
-      suppliers,
-      materialMap,
-      supplierMap,
-    } = data;
+    const { materials, supplierMaterials, materialMap, supplierMap } = data;
 
     // Group supplier materials by material ID
     const suppliersByMaterial = new Map<
@@ -802,7 +717,7 @@ export function useMaterialsWithSuppliers() {
 // EXPORT ALL
 // ============================================================================
 
-export default {
+const useRecipes = {
   useRecipeData,
   useEnrichedRecipes,
   useEnrichedRecipe,
@@ -815,3 +730,5 @@ export default {
   useMaterialsWithSuppliers,
   recipeCalculator,
 };
+
+export default useRecipes;

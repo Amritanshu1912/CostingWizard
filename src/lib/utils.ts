@@ -136,7 +136,6 @@ export function checkForSimilarItems(
   });
 
   if (similar.length > 0) {
-    const typeLabel = itemType.charAt(0).toUpperCase() + itemType.slice(1);
     return `Similar ${itemType} found: "${similar[0].name}". Did you mean that?`;
   }
 

@@ -1,13 +1,12 @@
-import { useMemo } from "react";
-import { useLiveQuery } from "dexie-react-hooks";
+// src/hooks/use-suppliers.ts
 import { db } from "@/lib/db";
 import type { Supplier } from "@/lib/types";
+import { useLiveQuery } from "dexie-react-hooks";
+import { useMemo } from "react";
 
 /**
  * Hook that returns all suppliers with enriched data
  * Uses Dexie's reactive queries for real-time updates
- *
- * Performance: ~5-8ms for 1000 records (imperceptible to users)
  */
 export function useSuppliers(): Supplier[] {
   const suppliersData = useLiveQuery(() => db.suppliers.toArray(), []);

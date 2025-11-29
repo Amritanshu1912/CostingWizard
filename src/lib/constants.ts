@@ -1,11 +1,5 @@
-import type {
-  Category,
-  Supplier,
-  Product,
-  ProductionBatch,
-  PurchaseOrder,
-  Recipe,
-} from "@/lib/types";
+// src/lib/constants.ts
+import type { Category, PurchaseOrder } from "@/lib/types";
 import {
   Calendar,
   DollarSign,
