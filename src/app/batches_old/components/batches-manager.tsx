@@ -1,7 +1,6 @@
 // src/app/batches/components/batches-manager.tsx
 "use client";
 
-import { Card, CardContent } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { db } from "@/lib/db";
 import type { ProductionBatch } from "@/lib/types";
@@ -9,7 +8,6 @@ import { useLiveQuery } from "dexie-react-hooks";
 import { useEffect, useState } from "react";
 import { BatchDetailsPanel } from "./batch-details-panel";
 import { BatchesListView } from "./batches-list-view";
-import { LoadingState } from "./empty-batch-state";
 
 export function BatchesManager() {
   const [selectedBatch, setSelectedBatch] = useState<ProductionBatch | null>(
@@ -54,10 +52,6 @@ export function BatchesManager() {
     setIsCreatingNew(true);
     setSelectedBatch(null);
   };
-
-  if (!batches) {
-    return <LoadingState />;
-  }
 
   return (
     <div className="space-y-6 animate-fade-in">
@@ -105,13 +99,9 @@ export function BatchesManager() {
         </TabsContent>
 
         <TabsContent value="analytics" className="space-y-6">
-          <Card>
-            <CardContent className="p-12 text-center">
-              <p className="text-muted-foreground">
-                Analytics Dashboard - Coming Soon
-              </p>
-            </CardContent>
-          </Card>
+          <div className="text-center py-12 text-muted-foreground">
+            Analytics - Coming Soon
+          </div>
         </TabsContent>
       </Tabs>
     </div>

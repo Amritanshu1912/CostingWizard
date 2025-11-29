@@ -44,7 +44,7 @@ import {
   PRODUCT_VARIANTS,
   PRODUCTS,
 } from "@/app/products/components/products-constants";
-import { PRODUCTION_BATCHES } from "@/app/batches/components/batches-constants";
+import { PRODUCTION_BATCHES } from "@/app/batches_old/components/batches-constants";
 import {
   MOCK_INVENTORY_ITEMS,
   MOCK_TRANSACTIONS,
@@ -98,7 +98,7 @@ export class CostingWizardDB extends Dexie {
         productionBatches: "id, batchName, status, startDate, endDate",
         purchaseOrders: "id, orderId, supplierId, status, dateCreated",
         inventoryItems:
-          "id, itemType, itemId, status, currentStock, lastUpdated",
+          "id, itemType, itemId, status, currentStock, lastUpdated, [itemId+itemType]",
         inventoryTransactions:
           "id, inventoryItemId, type, createdAt, reference",
         inventoryAlerts:

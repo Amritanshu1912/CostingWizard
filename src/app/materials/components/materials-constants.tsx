@@ -384,7 +384,7 @@ export const SUPPLIER_MATERIALS: SupplierMaterial[] = [
     createdAt: "2024-02-01",
   },
   {
-    id: "10",
+    id: "8",
     supplierId: "1",
     materialId: "9",
     unit: "kg",

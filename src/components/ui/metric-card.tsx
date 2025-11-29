@@ -1,17 +1,9 @@
-import React from "react";
-import {
-  LucideIcon,
-  TrendingUp,
-  TrendingDown,
-  Target,
-  AlertCircle,
-  Package,
-  DollarSign,
-} from "lucide-react";
+import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
-import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
+import { LucideIcon, TrendingDown, TrendingUp } from "lucide-react";
+import React from "react";
 
 // ============================================================================
 // METRIC CARDS - Professional Dashboard Components

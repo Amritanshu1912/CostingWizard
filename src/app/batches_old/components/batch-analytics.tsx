@@ -56,7 +56,7 @@ export function BatchAnalytics({ costAnalysis }: BatchAnalyticsProps) {
     },
   ];
 
-  const variantComparisonData = (costAnalysis.variantCosts || []).map((v) => ({
+  const variantComparisonData = costAnalysis.variantCosts.map((v) => ({
     name: `${v.productName} ${v.variantName}`,
     cost: Math.round(v.totalCost),
     revenue: Math.round(v.totalRevenue),
@@ -242,7 +242,7 @@ export function BatchAnalytics({ costAnalysis }: BatchAnalyticsProps) {
         </CardHeader>
         <CardContent>
           <div className="space-y-4">
-            {(costAnalysis.variantCosts || []).map((variant) => {
+            {costAnalysis.variantCosts.map((variant) => {
               const marginColor =
                 variant.margin >= 30
                   ? "text-green-600"
@@ -360,7 +360,7 @@ export function BatchAnalytics({ costAnalysis }: BatchAnalyticsProps) {
               </div>
             )}
 
-            {(costAnalysis.variantCosts || []).some((v) => v.margin > 40) && (
+            {costAnalysis.variantCosts.some((v) => v.margin > 40) && (
               <div className="flex items-start gap-3 p-3 bg-green-50 dark:bg-green-950/20 rounded-lg">
                 <TrendingUp className="h-5 w-5 text-green-600 mt-0.5" />
                 <div>

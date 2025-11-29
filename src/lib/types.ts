@@ -2,11 +2,6 @@
 // BASE TYPES
 // ============================================================================
 
-import {
-  ItemWithoutInventory,
-  ProductRequirements,
-} from "@/app/bacthes_new/types-extensions";
-
 export interface BaseEntity {
   id: string;
   createdAt: string;
@@ -418,34 +413,6 @@ export interface ProductVariant extends BaseEntity {
   // Status
   isActive: boolean;
 
-  // Optional: Lock component prices at a point in time
-  priceSnapshot?: ProductVariantPriceSnapshot;
-
-  notes?: string;
-}
-
-/**
- * ProductVariantPriceSnapshot - Optional price locking
- * Captures costs at a specific point in time for quotations/analysis
- */
-export interface ProductVariantPriceSnapshot {
-  snapshotAt: Date;
-  reason?: "quotation" | "cost_analysis" | "production_batch" | "other";
-
-  // Recipe cost at snapshot time
-  recipeCostPerKg: number;
-  recipeTaxPerKg: number;
-
-  // Packaging cost at snapshot time
-  packagingUnitPrice: number;
-  packagingTax: number;
-
-  // Label costs at snapshot time
-  frontLabelUnitPrice?: number;
-  frontLabelTax?: number;
-  backLabelUnitPrice?: number;
-  backLabelTax?: number;
-
   notes?: string;
 }
 
@@ -553,7 +520,6 @@ export interface ProductVariantCostAnalysis {
   }[];
 
   // Price comparison with snapshot (if locked)
-  priceSnapshot?: ProductVariantPriceSnapshot;
   priceChangedSinceSnapshot: boolean;
   costDifferenceFromSnapshot?: number; // Current cost - snapshot cost
   costDifferencePercentage?: number;
@@ -706,11 +672,15 @@ export interface VariantCost {
   variantId: string;
   variantName: string;
   productName: string;
+  fillQuantity: number; // NEW
+  fillUnit: string; // NEW
   units: number;
   totalCost: number;
   totalRevenue: number;
   profit: number;
   margin: number;
+  costPerUnit: number; // NEW
+  revenuePerUnit: number; // NEW
 }
 
 // Computed analysis (NOT stored)
@@ -738,6 +708,12 @@ export interface BatchRequirementsAnalysis {
   byProduct: ProductRequirements[];
   itemsWithoutInventory: ItemWithoutInventory[];
 }
+export interface ItemWithoutInventory {
+  itemType: "material" | "packaging" | "label";
+  itemId: string;
+  itemName: string;
+  supplierName: string;
+}
 
 export interface RequirementItem {
   itemType: "material" | "packaging" | "label";
@@ -755,7 +731,10 @@ export interface RequirementItem {
   tax: number;
   totalCost: number; // (required * unitPrice) * (1 + tax/100)
 }
-
+export interface EnhancedRequirementItem extends RequirementItem {
+  isLocked?: boolean; // For materials with locked pricing
+  hasInventoryTracking?: boolean;
+}
 export interface SupplierRequirement {
   supplierId: string;
   supplierName: string;
@@ -764,7 +743,27 @@ export interface SupplierRequirement {
   labels: RequirementItem[];
   totalCost: number;
 }
-
+/**
+ * Product-wise requirements grouping
+ */
+export interface ProductRequirements {
+  productId: string;
+  productName: string;
+  variants: VariantRequirements[];
+  // Aggregated totals for the product
+  totalMaterials: RequirementItem[];
+  totalPackaging: RequirementItem[];
+  totalLabels: RequirementItem[];
+  totalCost: number;
+}
+export interface VariantRequirements {
+  variantId: string;
+  variantName: string;
+  materials: RequirementItem[];
+  packaging: RequirementItem[];
+  labels: RequirementItem[];
+  totalCost: number;
+}
 // ============================================================================
 // PROCUREMENT & ORDERS
 // ============================================================================

@@ -14,29 +14,21 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
-import { convertToDisplayUnit } from "@/hooks/use-unit-conversion";
 import { db } from "@/lib/db";
 import type { BatchProductItem, ProductionBatch } from "@/lib/types";
-import { cn } from "@/lib/utils";
 import { useLiveQuery } from "dexie-react-hooks";
-import { AlertCircle, Check, Package2, Plus, Trash2, X } from "lucide-react";
+import { Check, Package2, Plus, Trash2, X } from "lucide-react";
 import { useState } from "react";
+import { convertToDisplayUnit } from "@/hooks/use-unit-conversion";
 
 interface BatchFormProps {
   initialBatch?: ProductionBatch;
-  onSave: (
-    batch: Omit<ProductionBatch, "id" | "createdAt" | "updatedAt">
-  ) => void;
+  onSave: (batch: ProductionBatch) => void;
   onCancel: () => void;
   onDelete?: () => void;
 }
 
-export function BatchForm({
-  initialBatch,
-  onSave,
-  onCancel,
-  onDelete,
-}: BatchFormProps) {
+export function BatchForm({ initialBatch, onSave, onCancel }: BatchFormProps) {
   const [formData, setFormData] = useState({
     batchName: initialBatch?.batchName || "",
     description: initialBatch?.description || "",
@@ -51,69 +43,28 @@ export function BatchForm({
 
   const products = useLiveQuery(() => db.products.toArray(), []);
   const [selectedProductId, setSelectedProductId] = useState<string>("");
-  const [errors, setErrors] = useState<Record<string, string>>({});
-
-  const validateForm = () => {
-    const newErrors: Record<string, string> = {};
-
-    if (!formData.batchName.trim()) {
-      newErrors.batchName = "Batch name is required";
-    }
-
-    if (!formData.startDate) {
-      newErrors.startDate = "Start date is required";
-    }
-
-    if (!formData.endDate) {
-      newErrors.endDate = "End date is required";
-    }
-
-    if (
-      formData.startDate &&
-      formData.endDate &&
-      formData.startDate > formData.endDate
-    ) {
-      newErrors.endDate = "End date must be after start date";
-    }
-
-    if (items.length === 0) {
-      newErrors.items = "Please add at least one product";
-    }
-
-    const hasQuantities = items.some((item) =>
-      item.variants.some((v) => v.totalFillQuantity > 0)
-    );
-
-    if (items.length > 0 && !hasQuantities) {
-      newErrors.quantities =
-        "Please specify quantities for at least one variant";
-    }
-
-    setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
-  };
 
   const handleAddProduct = async () => {
     if (!selectedProductId) return;
 
+    // Check if product already exists
     if (items.some((item) => item.productId === selectedProductId)) {
-      setErrors({ ...errors, product: "Product already added to this batch" });
+      alert("Product already added to this batch");
       return;
     }
 
+    // Get all variants for this product
     const variants = await db.productVariants
       .where("productId")
       .equals(selectedProductId)
       .toArray();
 
     if (variants.length === 0) {
-      setErrors({
-        ...errors,
-        product: "This product has no variants. Please add variants first.",
-      });
+      alert("This product has no variants. Please add variants first.");
       return;
     }
 
+    // Add product with empty variant quantities
     const newItem: BatchProductItem = {
       productId: selectedProductId,
       variants: variants.map((v) => ({
@@ -125,7 +76,6 @@ export function BatchForm({
 
     setItems([...items, newItem]);
     setSelectedProductId("");
-    setErrors({ ...errors, product: "", items: "" });
   };
 
   const handleRemoveProduct = (productId: string) => {
@@ -152,14 +102,35 @@ export function BatchForm({
         return item;
       })
     );
-    setErrors({ ...errors, quantities: "" });
   };
 
   const handleSubmit = async () => {
-    if (!validateForm()) {
+    if (!formData.batchName.trim()) {
+      alert("Batch name is required");
       return;
     }
 
+    if (!formData.startDate || !formData.endDate) {
+      alert("Start and end dates are required");
+      return;
+    }
+
+    if (items.length === 0) {
+      alert("Please add at least one product");
+      return;
+    }
+
+    // Validate that at least one variant has quantity > 0
+    const hasQuantities = items.some((item) =>
+      item.variants.some((v) => v.totalFillQuantity > 0)
+    );
+
+    if (!hasQuantities) {
+      alert("Please specify quantities for at least one variant");
+      return;
+    }
+
+    // Filter out variants with 0 quantity
     const filteredItems = items
       .map((item) => ({
         ...item,
@@ -167,6 +138,7 @@ export function BatchForm({
       }))
       .filter((item) => item.variants.length > 0);
 
+    // Create batch object WITHOUT totals (they'll be calculated in the hook)
     const batch = {
       batchName: formData.batchName,
       description: formData.description,
@@ -176,54 +148,22 @@ export function BatchForm({
       items: filteredItems,
     };
 
-    onSave(batch as any);
+    onSave(batch as any); // Type assertion needed due to omitted calculated fields
   };
-
-  const totalProducts = items.length;
-  const totalVariants = items.reduce(
-    (sum, item) => sum + item.variants.length,
-    0
-  );
-  const variantsWithQuantity = items.reduce(
-    (sum, item) =>
-      sum + item.variants.filter((v) => v.totalFillQuantity > 0).length,
-    0
-  );
-
   return (
     <div className="space-y-6">
-      {/* Form Stats */}
-      <div className="grid grid-cols-3 gap-3 p-3 bg-muted/30 rounded-lg">
-        <div className="text-center">
-          <p className="text-2xl font-bold">{totalProducts}</p>
-          <p className="text-xs text-muted-foreground">Products</p>
-        </div>
-        <div className="text-center">
-          <p className="text-2xl font-bold">{variantsWithQuantity}</p>
-          <p className="text-xs text-muted-foreground">Variants Planned</p>
-        </div>
-        <div className="text-center">
-          <p className="text-2xl font-bold">{totalVariants}</p>
-          <p className="text-xs text-muted-foreground">Total Variants</p>
-        </div>
-      </div>
-
       {/* Basic Info */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div className="space-y-2">
           <Label className="text-xs">Batch Name *</Label>
           <Input
             value={formData.batchName}
-            onChange={(e) => {
-              setFormData({ ...formData, batchName: e.target.value });
-              setErrors({ ...errors, batchName: "" });
-            }}
+            onChange={(e) =>
+              setFormData({ ...formData, batchName: e.target.value })
+            }
             placeholder="e.g., March Production Run"
-            className={cn("h-9", errors.batchName && "border-red-500")}
+            className="h-8"
           />
-          {errors.batchName && (
-            <p className="text-xs text-red-600">{errors.batchName}</p>
-          )}
         </div>
 
         <div className="space-y-2">
@@ -237,7 +177,7 @@ export function BatchForm({
               })
             }
           >
-            <SelectTrigger className="h-9">
+            <SelectTrigger className="h-8">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -255,15 +195,11 @@ export function BatchForm({
           <Input
             type="date"
             value={formData.startDate}
-            onChange={(e) => {
-              setFormData({ ...formData, startDate: e.target.value });
-              setErrors({ ...errors, startDate: "", endDate: "" });
-            }}
-            className={cn("h-9", errors.startDate && "border-red-500")}
+            onChange={(e) =>
+              setFormData({ ...formData, startDate: e.target.value })
+            }
+            className="h-8"
           />
-          {errors.startDate && (
-            <p className="text-xs text-red-600">{errors.startDate}</p>
-          )}
         </div>
 
         <div className="space-y-2">
@@ -271,15 +207,11 @@ export function BatchForm({
           <Input
             type="date"
             value={formData.endDate}
-            onChange={(e) => {
-              setFormData({ ...formData, endDate: e.target.value });
-              setErrors({ ...errors, endDate: "" });
-            }}
-            className={cn("h-9", errors.endDate && "border-red-500")}
+            onChange={(e) =>
+              setFormData({ ...formData, endDate: e.target.value })
+            }
+            className="h-8"
           />
-          {errors.endDate && (
-            <p className="text-xs text-red-600">{errors.endDate}</p>
-          )}
         </div>
       </div>
 
@@ -292,33 +224,22 @@ export function BatchForm({
           }
           placeholder="Batch description..."
           rows={2}
-          className="text-sm resize-none"
+          className="text-sm"
         />
       </div>
 
       {/* Add Products */}
       <div className="space-y-3">
         <div className="flex items-center justify-between">
-          <Label className="text-sm font-semibold">Products & Variants</Label>
-          {errors.items && (
-            <p className="text-xs text-red-600 flex items-center gap-1">
-              <AlertCircle className="h-3 w-3" />
-              {errors.items}
-            </p>
-          )}
+          <Label className="text-sm font-medium">Products & Variants</Label>
         </div>
 
         <div className="flex gap-2">
           <Select
             value={selectedProductId}
-            onValueChange={(value) => {
-              setSelectedProductId(value);
-              setErrors({ ...errors, product: "" });
-            }}
+            onValueChange={setSelectedProductId}
           >
-            <SelectTrigger
-              className={cn("h-9 flex-1", errors.product && "border-red-500")}
-            >
+            <SelectTrigger className="h-8 flex-1">
               <SelectValue placeholder="Select product to add" />
             </SelectTrigger>
             <SelectContent>
@@ -333,21 +254,12 @@ export function BatchForm({
             onClick={handleAddProduct}
             size="sm"
             disabled={!selectedProductId}
-            className="h-9"
+            className="h-8"
           >
-            <Plus className="h-4 w-4 mr-1" />
+            <Plus className="h-3 w-3 mr-1" />
             Add
           </Button>
         </div>
-        {errors.product && (
-          <p className="text-xs text-red-600">{errors.product}</p>
-        )}
-        {errors.quantities && (
-          <p className="text-xs text-red-600 flex items-center gap-1">
-            <AlertCircle className="h-3 w-3" />
-            {errors.quantities}
-          </p>
-        )}
       </div>
 
       {/* Products List */}
@@ -362,18 +274,15 @@ export function BatchForm({
         ))}
 
         {items.length === 0 && (
-          <div className="text-center py-12 text-muted-foreground border-2 border-dashed rounded-lg bg-muted/10">
-            <Package2 className="h-16 w-16 mx-auto mb-3 opacity-30" />
-            <p className="text-sm font-medium mb-1">No products added yet</p>
-            <p className="text-xs">
-              Add products above to start planning your batch
-            </p>
+          <div className="text-center py-8 text-muted-foreground border-2 border-dashed rounded-lg">
+            <Package2 className="h-12 w-12 mx-auto mb-2 opacity-50" />
+            <p className="text-sm">No products added yet</p>
           </div>
         )}
       </div>
 
       {/* Actions */}
-      <div className="flex gap-2 pt-4 border-t sticky bottom-0 bg-background py-3">
+      <div className="flex gap-2 pt-4 border-t">
         <Button onClick={handleSubmit} className="flex-1">
           <Check className="h-4 w-4 mr-2" />
           {initialBatch ? "Update Batch" : "Create Batch"}
@@ -382,17 +291,12 @@ export function BatchForm({
           <X className="h-4 w-4 mr-2" />
           Cancel
         </Button>
-        {onDelete && initialBatch && (
-          <Button onClick={onDelete} variant="destructive" className="px-4">
-            <Trash2 className="h-4 w-4" />
-          </Button>
-        )}
       </div>
     </div>
   );
 }
 
-// Product Item Card Component (Enhanced)
+// Product Item Card Component
 interface ProductItemCardProps {
   item: BatchProductItem;
   onRemove: () => void;
@@ -429,53 +333,33 @@ function ProductItemCard({
 
   if (!product) return null;
 
-  const variantsWithQty = item.variants.filter(
-    (v) => v.totalFillQuantity > 0
-  ).length;
-
   return (
-    <Card className="border-2 hover:border-primary/50 transition-colors">
-      <CardContent className="p-4 space-y-4">
-        {/* Header */}
-        <div className="flex items-start justify-between gap-2">
-          <div className="flex items-center gap-3 flex-1">
-            <div className="h-12 w-12 rounded-lg bg-gradient-to-br from-primary/20 to-primary/5 flex items-center justify-center flex-shrink-0 border border-primary/20">
-              <Package2 className="h-6 w-6 text-primary" />
+    <Card>
+      <CardContent className="p-4">
+        <div className="flex items-start justify-between mb-4">
+          <div className="flex items-center gap-3">
+            <div className="h-10 w-10 rounded bg-primary/10 flex items-center justify-center">
+              <Package2 className="h-5 w-5 text-primary" />
             </div>
-            <div className="flex-1 min-w-0">
-              <h4 className="font-semibold text-base truncate">
-                {product.name}
-              </h4>
-              <div className="flex items-center gap-2 mt-1">
-                <p className="text-xs text-muted-foreground">
-                  {item.variants.length} variants
-                </p>
-                {variantsWithQty > 0 && (
-                  <>
-                    <span className="text-muted-foreground">•</span>
-                    <Badge variant="secondary" className="text-xs">
-                      {variantsWithQty} planned
-                    </Badge>
-                  </>
-                )}
-              </div>
+            <div>
+              <h4 className="font-semibold">{product.name}</h4>
+              <p className="text-xs text-muted-foreground">
+                {item.variants.length} variant
+                {item.variants.length !== 1 ? "s" : ""}
+              </p>
             </div>
           </div>
           <Button
             variant="ghost"
             size="sm"
             onClick={onRemove}
-            className="text-red-600 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-950/20 h-8 w-8 p-0"
+            className="text-red-600 hover:text-red-700 h-8 w-8 p-0"
           >
             <Trash2 className="h-4 w-4" />
           </Button>
         </div>
 
-        {/* Variants */}
         <div className="space-y-2">
-          <Label className="text-xs text-muted-foreground">
-            Variant Quantities
-          </Label>
           {variants.map((v) => {
             if (!v.variant) return null;
 
@@ -484,22 +368,15 @@ function ProductItemCard({
                 ? Math.round(v.totalFillQuantity / v.variant.fillQuantity)
                 : 0;
 
-            const hasQuantity = v.totalFillQuantity > 0;
-
             return (
               <div
                 key={v.variantId}
-                className={cn(
-                  "grid grid-cols-12 gap-3 items-center p-3 rounded-lg border transition-colors",
-                  hasQuantity
-                    ? "bg-primary/5 border-primary/20"
-                    : "bg-muted/30 border-border"
-                )}
+                className="grid grid-cols-12 gap-2 items-center p-2 rounded bg-muted/30"
               >
-                <div className="col-span-4 text-sm font-medium truncate">
+                <div className="col-span-5 text-sm font-medium truncate">
                   {v.variant.name}
                 </div>
-                <div className="col-span-4">
+                <div className="col-span-3">
                   <Input
                     type="number"
                     value={v.totalFillQuantity || ""}
@@ -508,7 +385,7 @@ function ProductItemCard({
                       onVariantChange(item.productId, v.variantId, newValue);
                     }}
                     placeholder="0"
-                    className="h-9 text-sm"
+                    className="h-7 text-xs"
                     min="0"
                     step="10"
                   />
@@ -518,9 +395,9 @@ function ProductItemCard({
                     ? convertToDisplayUnit(1, v.variant.fillUnit).unit
                     : ""}
                 </div>
-                <div className="col-span-2 text-right">
+                <div className="col-span-2 text-xs text-right">
                   {units > 0 && (
-                    <Badge variant="default" className="text-xs font-semibold">
+                    <Badge variant="secondary" className="text-xs">
                       {units} units
                     </Badge>
                   )}
