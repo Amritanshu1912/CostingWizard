@@ -6,16 +6,16 @@ import type {
   ExperimentIngredient,
   ExperimentMetrics,
 } from "@/hooks/use-recipe-experiment";
-import type { SupplierMaterialWithDetails } from "@/lib/types";
+import type { SupplierMaterialRow } from "@/types/material-types";
 import { AlertCircle, CheckCircle2, Sparkles } from "lucide-react";
 
 interface RecipeLabMetricsProps {
   metrics: ExperimentMetrics;
   targetCost?: number;
   experimentIngredients: ExperimentIngredient[];
-  supplierMaterials: SupplierMaterialWithDetails[];
+  supplierMaterials: SupplierMaterialRow[];
   onApplySuggestion: (index: number, supplierId: string) => void;
-  getAlternatives: (ing: ExperimentIngredient) => SupplierMaterialWithDetails[];
+  getAlternatives: (ing: ExperimentIngredient) => SupplierMaterialRow[];
 }
 
 export function RecipeLabMetrics({
@@ -220,10 +220,10 @@ export function RecipeLabMetrics({
                       <div className="flex items-start gap-2 mb-2">
                         <div className="flex-1 min-w-0">
                           <p className="text-sm font-medium truncate">
-                            Switch {sm.displayName}
+                            Switch {sm.materialName}
                           </p>
                           <p className="text-xs text-muted-foreground truncate">
-                            {sm.supplier?.name} → {cheapest.supplier?.name}
+                            {sm.supplierName} → {cheapest.supplierName}
                           </p>
                         </div>
                       </div>

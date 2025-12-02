@@ -6,7 +6,7 @@ import {
   Packaging,
   PackagingType,
   SupplierPackaging,
-} from "@/lib/types";
+} from "@/types/shared-types";
 
 // ============================================================================
 // ANALYTICS CONFIGURATION

@@ -24,12 +24,13 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
 import { useMaterialsWithSuppliers } from "@/hooks/use-recipes";
-import { useSupplierMaterialsWithDetails } from "@/hooks/use-supplier-materials";
+import { useSupplierMaterialRows } from "@/hooks/material-hooks/use-materials-queries";
+
 import {
   convertToBaseUnit,
   formatQuantity,
   normalizeToKg,
-} from "@/hooks/use-unit-conversion";
+} from "@/utils/unit-conversion-utils";
 import type {
   LockedPricing,
   Recipe,
@@ -37,8 +38,8 @@ import type {
   RecipeIngredient,
   RecipeIngredientDisplay,
   RecipeVariant,
-} from "@/lib/types";
-import { formatDate } from "@/lib/utils";
+} from "@/types/shared-types";
+import { formatDate } from "@/utils/shared-utils";
 import {
   AlertCircle,
   CheckCircle2,
@@ -104,7 +105,7 @@ export function RecipeDetailView({
   onCancelEdit,
   onSaveEdit,
 }: RecipeDetailViewProps) {
-  const supplierMaterials = useSupplierMaterialsWithDetails();
+  const supplierMaterials = useSupplierMaterialRows();
   const materialsWithSuppliers = useMaterialsWithSuppliers();
 
   // Edit state - ONLY for fields we save to DB
@@ -924,7 +925,7 @@ export function RecipeDetailView({
                                         key={supplierSM.id}
                                         value={supplierSM.id}
                                       >
-                                        {supplierSM.supplier?.name} - ₹
+                                        {supplierSM.supplierName} - ₹
                                         {supplierSM.unitPrice.toFixed(2)}/kg
                                         {supplierSM.moq &&
                                           ` - MOQ: ${supplierSM.moq}`}

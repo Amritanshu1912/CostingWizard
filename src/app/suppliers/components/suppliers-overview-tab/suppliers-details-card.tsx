@@ -27,7 +27,7 @@ import {
 import { Separator } from "@/components/ui/separator";
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
-import type { Supplier } from "@/lib/types";
+import type { Supplier } from "@/types/shared-types";
 import {
   Award,
   Building2,

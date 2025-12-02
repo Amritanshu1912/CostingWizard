@@ -1,6 +1,6 @@
 // hooks/use-supplier-labels.ts
 import { db } from "@/lib/db";
-import type { SupplierLabelWithDetails } from "@/lib/types";
+import type { SupplierLabelWithDetails } from "@/types/shared-types";
 import { useLiveQuery } from "dexie-react-hooks";
 
 // Hook that automatically joins supplier labels with their labels and suppliers

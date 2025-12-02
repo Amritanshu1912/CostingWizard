@@ -10,7 +10,7 @@ import {
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { CheckCircle, AlertTriangle, Clock, XCircle } from "lucide-react";
-import type { PurchaseOrder } from "@/lib/types";
+import type { PurchaseOrder } from "@/types/shared-types";
 import { ORDER_STATUS_MAP } from "./procurement-constants";
 import { OrdersTable } from "./procurement-tables";
 

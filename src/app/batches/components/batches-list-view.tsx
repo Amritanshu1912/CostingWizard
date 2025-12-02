@@ -5,8 +5,8 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import type { ProductionBatch } from "@/lib/types";
-import { cn } from "@/lib/utils";
+import type { ProductionBatch } from "@/types/shared-types";
+import { cn } from "@/utils/shared-utils";
 import {
   Calendar,
   CheckCircle,

@@ -1,5 +1,5 @@
 // src/app/suppliers/components/suppliers-constants.tsx
-import { Supplier } from "@/lib/types";
+import { Supplier } from "@/types/shared-types";
 
 export const SUPPLIERS: Supplier[] = [
   {

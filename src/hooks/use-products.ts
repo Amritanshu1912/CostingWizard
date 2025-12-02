@@ -5,10 +5,10 @@ import type {
   ProductVariant,
   ProductVariantCostAnalysis,
   ProductVariantWithDetails,
-} from "@/lib/types";
+} from "@/types/shared-types";
 import { useLiveQuery } from "dexie-react-hooks";
 import { useMemo } from "react";
-import { normalizeToKg } from "./use-unit-conversion";
+import { normalizeToKg } from "../utils/unit-conversion-utils";
 
 // ============================================================================
 // DATA FETCHING HOOKS

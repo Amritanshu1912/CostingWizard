@@ -1,6 +1,6 @@
 // src/hooks/use-supplier-packaging.ts
 import { db } from "@/lib/db";
-import type { SupplierPackagingWithDetails } from "@/lib/types";
+import type { SupplierPackagingWithDetails } from "@/types/shared-types";
 import { useLiveQuery } from "dexie-react-hooks";
 
 /**

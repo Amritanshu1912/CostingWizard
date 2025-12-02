@@ -1,6 +1,6 @@
 // src/hooks/use-suppliers.ts
 import { db } from "@/lib/db";
-import type { Supplier } from "@/lib/types";
+import type { Supplier } from "@/types/shared-types";
 import { useLiveQuery } from "dexie-react-hooks";
 import { useMemo } from "react";
 

@@ -1,11 +1,11 @@
 // src/hooks/use-inventory.ts
-import { createOrUpdateAlertForItemById } from "@/lib/alerts";
+import { createOrUpdateAlertForItemById } from "@/utils/inventory-alerts";
 import { db } from "@/lib/db";
 import type {
   InventoryItem,
   InventoryItemWithDetails,
   InventoryStats,
-} from "@/lib/types";
+} from "@/types/shared-types";
 import { format } from "date-fns";
 import { useLiveQuery } from "dexie-react-hooks";
 import { useCallback, useMemo, useState } from "react";

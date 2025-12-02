@@ -12,27 +12,53 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import type { Category, CategoryManagerProps } from "@/lib/types";
+import type { Category } from "@/types/material-types";
 import { Edit, Plus, Settings, Trash2 } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 
+interface CategoryManagerProps {
+  categories: Category[];
+  onAdd: (data: { name: string; description?: string }) => Promise<void>;
+  onUpdate: (
+    id: string,
+    data: { name: string; description?: string }
+  ) => Promise<void>;
+  onDelete: (id: string) => Promise<void>;
+}
+
+/**
+ * Dialog for managing material categories
+ * Allows CRUD operations on categories
+ */
 export function CategoryManager({
   categories,
-  addCategory,
-  updateCategory,
-  deleteCategory,
+  onAdd,
+  onUpdate,
+  onDelete,
 }: CategoryManagerProps) {
+  // ============================================================================
+  // STATE
+  // ============================================================================
+
   const [isOpen, setIsOpen] = useState(false);
   const [editingCategory, setEditingCategory] = useState<Category | null>(null);
   const [newCategory, setNewCategory] = useState({ name: "", description: "" });
 
-  const handleAddCategory = () => {
+  // ============================================================================
+  // HANDLERS
+  // ============================================================================
+
+  /**
+   * Add new category
+   */
+  const handleAddCategory = async () => {
     if (!newCategory.name.trim()) {
       toast.error("Category name is required");
       return;
     }
 
+    // Check for duplicates
     if (
       categories.some(
         (cat) => cat.name.toLowerCase() === newCategory.name.toLowerCase()
@@ -42,49 +68,69 @@ export function CategoryManager({
       return;
     }
 
-    const categoryData = {
-      name: newCategory.name.trim(),
-      description: newCategory.description.trim(),
-      createdAt: new Date().toISOString(),
-    };
-
-    addCategory(categoryData);
-    setNewCategory({ name: "", description: "" });
-    setIsOpen(false);
-    toast.success("Category added successfully");
+    try {
+      await onAdd({
+        name: newCategory.name.trim(),
+        description: newCategory.description.trim() || undefined,
+      });
+      setNewCategory({ name: "", description: "" });
+      toast.success("Category added successfully");
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    } catch (error) {
+      // Error already handled by parent
+    }
   };
 
+  /**
+   * Start editing a category
+   */
   const handleEditCategory = (category: Category) => {
     setEditingCategory(category);
   };
 
-  const handleUpdateCategory = () => {
+  /**
+   * Update category
+   */
+  const handleUpdateCategory = async () => {
     if (!editingCategory?.name.trim()) {
       toast.error("Category name is required");
       return;
     }
 
-    const updatedCategory = {
-      ...editingCategory,
-      name: editingCategory.name.trim(),
-      description: editingCategory.description?.trim() || "",
-      updatedAt: new Date().toISOString(),
-    };
-
-    updateCategory(updatedCategory);
-    setEditingCategory(null);
-    toast.success("Category updated successfully");
+    try {
+      await onUpdate(editingCategory.id, {
+        name: editingCategory.name.trim(),
+        description: editingCategory.description?.trim() || undefined,
+      });
+      setEditingCategory(null);
+      toast.success("Category updated successfully");
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    } catch (error) {
+      // Error already handled by parent
+    }
   };
 
-  const handleDeleteCategory = (id: string) => {
-    deleteCategory(id);
-    toast.success("Category deleted successfully");
+  /**
+   * Delete category
+   */
+  const handleDeleteCategory = async (id: string) => {
+    try {
+      await onDelete(id);
+      toast.success("Category deleted successfully");
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    } catch (error) {
+      // Error already handled by parent
+    }
   };
+
+  // ============================================================================
+  // RENDER
+  // ============================================================================
 
   return (
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
       <DialogTrigger asChild>
-        <Button variant="outline" size="sm">
+        <Button variant="outline" className="flex-1 sm:flex-none">
           <Settings className="h-4 w-4 mr-2" />
           Manage Categories
         </Button>
@@ -105,7 +151,10 @@ export function CategoryManager({
             <h3 className="font-medium text-foreground">Add New Category</h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <Label htmlFor="category-name" className="text-foreground">
+                <Label
+                  htmlFor="category-name"
+                  className="text-foreground mb-2 ml-1"
+                >
                   Category Name *
                 </Label>
                 <Input
@@ -119,7 +168,10 @@ export function CategoryManager({
                 />
               </div>
               <div>
-                <Label htmlFor="category-desc" className="text-foreground">
+                <Label
+                  htmlFor="category-desc"
+                  className="text-foreground mb-2 ml-1"
+                >
                   Description
                 </Label>
                 <Input
@@ -143,8 +195,8 @@ export function CategoryManager({
           </div>
 
           {/* Existing Categories */}
-          <div className="space-y-4">
-            <h3 className="font-medium text-foreground">
+          <div className="space-y-4 bg-gray-100 p-2">
+            <h3 className="font-medium text-foreground ">
               Existing Categories ({categories.length})
             </h3>
             <div className="grid gap-3 max-h-60 overflow-y-auto">
@@ -153,15 +205,21 @@ export function CategoryManager({
                   key={category.id}
                   className="flex items-center justify-between p-3 rounded-lg bg-muted/30 border border-border/50"
                 >
-                  <div className="flex-1 min-w-0">
-                    <div className="font-medium text-foreground truncate">
-                      {category.name}
-                    </div>
-                    {category.description && (
-                      <div className="text-sm text-muted-foreground truncate">
-                        {category.description}
+                  <div className="flex-1 min-w-0 flex items-center gap-3">
+                    <div
+                      className="w-4 h-4 rounded-full flex-shrink-0"
+                      style={{ backgroundColor: category.color }}
+                    />
+                    <div className="flex-1 min-w-0">
+                      <div className="font-medium text-foreground truncate">
+                        {category.name}
                       </div>
-                    )}
+                      {category.description && (
+                        <div className="text-sm text-muted-foreground truncate">
+                          {category.description}
+                        </div>
+                      )}
+                    </div>
                   </div>
                   <div className="flex items-center space-x-2 ml-4">
                     <Button

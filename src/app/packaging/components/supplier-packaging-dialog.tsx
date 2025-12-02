@@ -47,7 +47,7 @@ import { useEffect, useMemo, useState } from "react";
 
 import { useDuplicateCheck } from "@/hooks/use-duplicate-check";
 import { AVAILABILITY_MAP, CAPACITY_UNITS } from "@/lib/constants";
-import { normalizeText } from "@/lib/text-utils";
+import { normalizeText } from "@/utils/text-utils";
 import type {
   BuildMaterial,
   CapacityUnit,
@@ -55,8 +55,8 @@ import type {
   PackagingType,
   Supplier,
   SupplierPackaging,
-} from "@/lib/types";
-import { cn } from "@/lib/utils";
+} from "@/types/shared-types";
+import { cn } from "@/utils/shared-utils";
 import { BUILD_MATERIALS, PACKAGING_TYPES } from "./packaging-constants";
 
 // Form-specific type
@@ -104,7 +104,7 @@ export function EnhancedSupplierPackagingDialog({
   const {
     warning: packagingWarning,
     checkDuplicate: checkPackagingDuplicate,
-    clearWarning: clearPackagingWarning,
+    clearCheck: clearPackagingWarning,
   } = useDuplicateCheck(packagingList, packaging.packagingId);
 
   // Reset state when dialog opens/closes

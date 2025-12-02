@@ -6,15 +6,16 @@ import type {
   RecipeIngredient,
   RecipeIngredientDisplay,
   RecipeVariant,
-  SupplierMaterialWithDetails,
-} from "@/lib/types";
+} from "@/types/shared-types";
+import type { SupplierMaterialRow } from "@/types/material-types";
+
 import { useLiveQuery } from "dexie-react-hooks";
 import { useMemo } from "react";
 import {
   convertToBaseUnit,
   formatQuantity,
   normalizeToKg,
-} from "./use-unit-conversion";
+} from "../utils/unit-conversion-utils";
 
 /**
  * Fetches all recipe-related data once and creates lookup maps
@@ -670,10 +671,7 @@ export function useMaterialsWithSuppliers() {
     const { materials, supplierMaterials, materialMap, supplierMap } = data;
 
     // Group supplier materials by material ID
-    const suppliersByMaterial = new Map<
-      string,
-      SupplierMaterialWithDetails[]
-    >();
+    const suppliersByMaterial = new Map<string, SupplierMaterialRow[]>();
 
     supplierMaterials.forEach((sm) => {
       const material = materialMap.get(sm.materialId);
@@ -681,14 +679,18 @@ export function useMaterialsWithSuppliers() {
 
       if (!material || !supplier) return; // Skip orphaned records
 
-      const enrichedSM: SupplierMaterialWithDetails = {
+      const enrichedSM: SupplierMaterialRow = {
         ...sm,
-        material,
-        supplier,
-        displayName: material.name,
-        displayCategory: material.category,
-        displayUnit: sm.unit ?? "kg",
+        materialName: material.name,
+        materialCategory: material.category,
+        unit: sm.unit ?? "kg",
         priceWithTax: sm.unitPrice * (1 + (sm.tax ?? 0) / 100),
+        categoryColor: "",
+        supplierName: supplier.name,
+        moq: sm.moq ?? 0,
+        leadTime: sm.leadTime ?? 0,
+        availability: sm.availability ?? "out-of-stock",
+        supplierRating: supplier.rating,
       };
 
       if (!suppliersByMaterial.has(sm.materialId)) {
@@ -712,11 +714,6 @@ export function useMaterialsWithSuppliers() {
 
   return materialsWithSuppliers;
 }
-
-// ============================================================================
-// EXPORT ALL
-// ============================================================================
-
 const useRecipes = {
   useRecipeData,
   useEnrichedRecipes,

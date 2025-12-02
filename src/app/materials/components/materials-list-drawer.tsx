@@ -1,4 +1,4 @@
-// src/app/materials/components/materials-drawer.tsx
+// src/app/materials/components/materials-list-drawer.tsx
 "use client";
 
 import { Alert, AlertDescription } from "@/components/ui/alert";
@@ -20,28 +20,40 @@ import {
   SheetHeader,
   SheetTitle,
 } from "@/components/ui/sheet";
-import { assignCategoryColor } from "@/lib/color-utils";
-import { db } from "@/lib/db";
-import { normalizeText } from "@/lib/text-utils";
-import type { Category, MaterialWithSuppliers } from "@/lib/types";
-import { useLiveQuery } from "dexie-react-hooks";
 import { AlertCircle, Loader2, Package, Plus } from "lucide-react";
-import { nanoid } from "nanoid";
 import { useState } from "react";
 import { toast } from "sonner";
-import { MaterialsTableDrawer } from "./materials-table";
 
-interface MaterialsDrawerProps {
+// Hooks
+import { useMaterialsWithSuppliers } from "@/hooks/material-hooks/use-materials-queries";
+import { useMaterialMutations } from "@/hooks/material-hooks/use-materials-mutations";
+import { useLiveQuery } from "dexie-react-hooks";
+import { db } from "@/lib/db";
+
+// Types
+import type { MaterialWithSuppliers } from "@/types/material-types";
+
+// Components
+import { MaterialsListTable } from "./materials-list-table";
+
+interface MaterialsListDrawerProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onRefresh?: () => void;
 }
 
-export function MaterialsDrawer({
+/**
+ * Drawer for managing the master materials list
+ * Shows all materials with their supplier counts
+ * Allows inline editing and deletion
+ */
+export function MaterialsListDrawer({
   open,
   onOpenChange,
-  onRefresh,
-}: MaterialsDrawerProps) {
+}: MaterialsListDrawerProps) {
+  // ============================================================================
+  // STATE
+  // ============================================================================
+
   const [editingMaterialId, setEditingMaterialId] = useState<string | null>(
     null
   );
@@ -50,99 +62,78 @@ export function MaterialsDrawer({
   const [materialToDelete, setMaterialToDelete] =
     useState<MaterialWithSuppliers | null>(null);
   const [loading, setLoading] = useState(false);
-  const [categorySearch, setCategorySearch] = useState("");
-  const [openCategoryCombobox, setOpenCategoryCombobox] = useState(false);
   const [isAddingNew, setIsAddingNew] = useState(false);
 
-  // Fetch materials with supplier count
-  const materialsWithSuppliers = useLiveQuery(async () => {
-    const [materials, supplierMaterials, suppliers, categories] =
-      await Promise.all([
-        db.materials.toArray(),
-        db.supplierMaterials.toArray(),
-        db.suppliers.toArray(),
-        db.categories.toArray(),
-      ]);
+  // ============================================================================
+  // DATA HOOKS
+  // ============================================================================
 
-    const result = materials.map((material) => {
-      const supplierMatList = supplierMaterials.filter(
-        (sm) => sm.materialId === material.id
-      );
-
-      const suppliersList = supplierMatList
-        .map((sm) => suppliers.find((s) => s.id === sm.supplierId))
-        .filter((s): s is (typeof suppliers)[0] => s !== undefined);
-
-      const category = categories.find((c) => c.name === material.category);
-
-      return {
-        ...material,
-        supplierCount: suppliersList.length,
-        suppliersList: suppliersList,
-        categoryColor:
-          category?.color || assignCategoryColor(material.category),
-      } as MaterialWithSuppliers & { categoryColor: string };
-    });
-
-    // Add empty row for new material if adding
-    if (isAddingNew) {
-      result.unshift({
-        id: "new",
-        name: "",
-        category: "",
-        supplierCount: 0,
-        suppliersList: [],
-        createdAt: new Date().toISOString(),
-        categoryColor: assignCategoryColor("Other"),
-      } as MaterialWithSuppliers & { categoryColor: string });
-    }
-
-    return result;
-  }, [isAddingNew]);
+  // Fetch materials with supplier info
+  const materials = useMaterialsWithSuppliers();
 
   // Fetch categories for combobox
   const categories = useLiveQuery(() => db.categories.toArray(), []);
 
-  // Start editing
+  // Mutation hooks
+  const { createMaterial, updateMaterial, deleteMaterial } =
+    useMaterialMutations();
+
+  // ============================================================================
+  // COMPUTED VALUES
+  // ============================================================================
+
+  // Add empty row for new material if adding
+  const displayMaterials = isAddingNew
+    ? [
+        {
+          id: "new",
+          name: "",
+          category: "",
+          categoryColor: "#6366f1",
+          notes: "",
+          supplierCount: 0,
+          suppliers: [],
+          createdAt: new Date().toISOString(),
+        } as MaterialWithSuppliers,
+        ...materials,
+      ]
+    : materials;
+
+  const activeMaterialsCount = materials.length;
+
+  // ============================================================================
+  // HANDLERS
+  // ============================================================================
+
+  /**
+   * Start editing a material
+   */
   const startEdit = (material: MaterialWithSuppliers) => {
     setEditingMaterialId(material.id);
     setEditForm({ name: material.name, category: material.category });
-    setCategorySearch(material.category);
   };
 
-  // Start adding new material
+  /**
+   * Start adding a new material
+   */
   const startAddingNew = () => {
     setIsAddingNew(true);
     setEditingMaterialId("new");
-    setEditForm({
-      name: "",
-      category: "",
-    });
-    setCategorySearch("");
+    setEditForm({ name: "", category: "" });
   };
 
-  // Cancel editing
+  /**
+   * Cancel editing or adding
+   */
   const cancelEdit = () => {
     setEditingMaterialId(null);
     setIsAddingNew(false);
     setEditForm({ name: "", category: "" });
-    setCategorySearch("");
   };
 
-  // Handle category selection in edit
-  const handleSelectCategory = (category: Category) => {
-    setEditForm({ ...editForm, category: category.name });
-    setCategorySearch(category.name);
-    setOpenCategoryCombobox(false);
-  };
-
-  // Handle new category creation
-  const handleNewCategory = () => {
-    setEditForm({ ...editForm, category: categorySearch });
-    setOpenCategoryCombobox(false);
-  };
-
-  // Save edit
+  /**
+   * Save material (create or update)
+   */
   const saveEdit = async () => {
     if (!editingMaterialId) return;
 
@@ -156,119 +147,66 @@ export function MaterialsDrawer({
 
     setLoading(true);
     try {
-      const now = new Date().toISOString();
-
       if (isAddingNew) {
-        // Check for duplicate name
-        const normalized = normalizeText(trimmedName);
-        const duplicate = await db.materials
-          .filter((m) => normalizeText(m.name) === normalized)
-          .first();
-
-        if (duplicate) {
-          toast.error(`Material "${duplicate.name}" already exists`);
-          return;
-        }
-
         // Create new material
-        await db.materials.add({
-          id: nanoid(),
+        await createMaterial({
           name: trimmedName,
           category: trimmedCategory,
-          createdAt: now,
         });
-
         toast.success("Material added successfully");
       } else {
-        // Check for duplicate name (excluding current material)
-        const normalized = normalizeText(trimmedName);
-        const duplicate = await db.materials
-          .filter(
-            (m) =>
-              m.id !== editingMaterialId && normalizeText(m.name) === normalized
-          )
-          .first();
-
-        if (duplicate) {
-          toast.error(`Material "${duplicate.name}" already exists`);
-          return;
-        }
-
-        // Create/update category if needed
-        const existingCategory = await db.categories
-          .filter(
-            (c) => normalizeText(c.name) === normalizeText(trimmedCategory)
-          )
-          .first();
-
-        if (!existingCategory) {
-          await db.categories.add({
-            id: nanoid(),
-            name: trimmedCategory,
-            color: assignCategoryColor(trimmedCategory),
-            createdAt: now,
-          });
-        }
-
-        // Update material
-        await db.materials.update(editingMaterialId, {
+        // Update existing material
+        await updateMaterial(editingMaterialId, {
           name: trimmedName,
           category: trimmedCategory,
-          updatedAt: now,
         });
-
         toast.success("Material updated successfully");
       }
 
       cancelEdit();
-
-      // Trigger refresh of other components
-      if (onRefresh) onRefresh();
     } catch (error) {
       console.error("Error saving material:", error);
-      toast.error("Failed to save material");
+      toast.error(
+        error instanceof Error ? error.message : "Failed to save material"
+      );
     } finally {
       setLoading(false);
     }
   };
 
-  // Initiate delete
+  /**
+   * Initiate delete (show confirmation dialog)
+   */
   const initiateDelete = (material: MaterialWithSuppliers) => {
     setMaterialToDelete(material);
     setDeleteConfirmOpen(true);
   };
 
-  // Confirm delete
+  /**
+   * Confirm and execute delete
+   */
   const confirmDelete = async () => {
     if (!materialToDelete) return;
 
     setLoading(true);
     try {
-      // Double-check no supplier materials reference it
-      const supplierMatCount = await db.supplierMaterials
-        .where("materialId")
-        .equals(materialToDelete.id)
-        .count();
-
-      if (supplierMatCount > 0) {
-        toast.error("Cannot delete material that is used by suppliers");
-        return;
-      }
-
-      await db.materials.delete(materialToDelete.id);
+      await deleteMaterial(materialToDelete.id);
       toast.success("Material deleted successfully");
       setDeleteConfirmOpen(false);
       setMaterialToDelete(null);
     } catch (error) {
       console.error("Error deleting material:", error);
-      toast.error("Failed to delete material");
+      toast.error(
+        error instanceof Error ? error.message : "Failed to delete material"
+      );
     } finally {
       setLoading(false);
     }
   };
 
-  const activeMaterials =
-    materialsWithSuppliers?.filter((m) => m.id !== "new").length || 0;
+  // ============================================================================
+  // RENDER
+  // ============================================================================
 
   return (
     <>
@@ -287,7 +225,7 @@ export function MaterialsDrawer({
                     Materials Management
                   </SheetTitle>
                   <SheetDescription className="text-base">
-                    Manage your raw materials inventory and specifications
+                    Manage your master materials list and specifications
                   </SheetDescription>
                 </div>
                 <Button
@@ -306,7 +244,8 @@ export function MaterialsDrawer({
                 <div className="flex items-center gap-2 px-3 py-1.5 bg-primary/10 rounded-md">
                   <Package className="h-4 w-4 text-primary" />
                   <span className="text-sm font-medium">
-                    {activeMaterials} {activeMaterials === 1 ? "Item" : "Items"}
+                    {activeMaterialsCount}{" "}
+                    {activeMaterialsCount === 1 ? "Material" : "Materials"}
                   </span>
                 </div>
               </div>
@@ -315,7 +254,8 @@ export function MaterialsDrawer({
 
           {/* Content Section - Scrollable */}
           <div className="flex-1 overflow-y-auto px-6 py-4">
-            {!materialsWithSuppliers ? (
+            {!materials ? (
+              // Loading state
               <div className="flex items-center justify-center h-96">
                 <div className="text-center space-y-3">
                   <Loader2 className="h-8 w-8 animate-spin text-primary mx-auto" />
@@ -324,8 +264,8 @@ export function MaterialsDrawer({
                   </p>
                 </div>
               </div>
-            ) : materialsWithSuppliers.length === 0 ||
-              (materialsWithSuppliers.length === 1 && isAddingNew) ? (
+            ) : materials.length === 0 && !isAddingNew ? (
+              // Empty state
               <div className="flex items-center justify-center h-96">
                 <div className="text-center space-y-4 max-w-md">
                   <div className="mx-auto w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center">
@@ -338,43 +278,35 @@ export function MaterialsDrawer({
                       them to suppliers later.
                     </p>
                   </div>
-                  {!isAddingNew && (
-                    <Button onClick={startAddingNew} className="mt-4">
-                      <Plus className="h-4 w-4 mr-2" />
-                      Add Your First Material
-                    </Button>
-                  )}
+                  <Button onClick={startAddingNew} className="mt-4">
+                    <Plus className="h-4 w-4 mr-2" />
+                    Add Your First Material
+                  </Button>
                 </div>
               </div>
             ) : (
+              // Materials table
               <div className="space-y-4">
                 {isAddingNew && (
                   <Alert className="border-primary/50 bg-primary/5">
                     <AlertCircle className="h-4 w-4 text-primary" />
                     <AlertDescription>
                       Fill in the details in the first row to add a new material
-                      item
                     </AlertDescription>
                   </Alert>
                 )}
 
-                <MaterialsTableDrawer
-                  data={materialsWithSuppliers}
+                <MaterialsListTable
+                  data={displayMaterials}
                   editingMaterialId={editingMaterialId}
                   editForm={editForm}
                   loading={loading}
-                  categories={categories}
-                  categorySearch={categorySearch}
-                  openCategoryCombobox={openCategoryCombobox}
+                  categories={categories || []}
                   onEditFormChange={setEditForm}
                   onStartEdit={startEdit}
                   onSaveEdit={saveEdit}
                   onCancelEdit={cancelEdit}
                   onInitiateDelete={initiateDelete}
-                  onCategorySearchChange={setCategorySearch}
-                  onSelectCategory={handleSelectCategory}
-                  onNewCategory={handleNewCategory}
-                  onOpenCategoryComboboxChange={setOpenCategoryCombobox}
                 />
               </div>
             )}
@@ -390,7 +322,8 @@ export function MaterialsDrawer({
               Delete {materialToDelete?.name}?
             </AlertDialogTitle>
             <AlertDialogDescription>
-              This action cannot be undone.
+              This action cannot be undone. This will permanently delete this
+              material and remove it from all supplier material entries.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

@@ -4,8 +4,8 @@
 import type { LabelFormData } from "@/app/labels/components/supplier-labels-dialog";
 import { EnhancedSupplierLabelsDialog } from "@/app/labels/components/supplier-labels-dialog";
 import { DEFAULT_MATERIAL_FORM } from "@/app/materials/components/materials-constants";
-import type { MaterialFormData } from "@/app/materials/components/supplier-materials-dialog";
-import { EnhancedMaterialDialog } from "@/app/materials/components/supplier-materials-dialog";
+import type { SupplierMaterialFormData } from "@/types/material-types";
+import { MaterialsSupplierDialog } from "@/app/materials/components/materials-supplier-dialog";
 import type { PackagingFormData } from "@/app/packaging/components/supplier-packaging-dialog";
 import { EnhancedSupplierPackagingDialog } from "@/app/packaging/components/supplier-packaging-dialog";
 import { SUPPLIERS } from "@/app/suppliers/components/suppliers-constants";
@@ -14,10 +14,10 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useDexieTable } from "@/hooks/use-dexie-table";
-import { assignCategoryColor } from "@/lib/color-utils";
+import { assignCategoryColor } from "@/utils/color-utils";
 import { db } from "@/lib/db";
-import { normalizeText } from "@/lib/text-utils";
-import type { Supplier } from "@/lib/types";
+import { normalizeText } from "@/utils/text-utils";
+import type { Supplier } from "@/types/shared-types";
 import { Box, Package, Plus, Tag } from "lucide-react";
 import { nanoid } from "nanoid";
 import { useCallback, useState } from "react";
@@ -86,9 +86,8 @@ export function SuppliersItemsContent({
   const [editingLabel, setEditingLabel] = useState<any>(null);
 
   // Form states
-  const [materialFormData, setMaterialFormData] = useState<MaterialFormData>(
-    DEFAULT_MATERIAL_FORM
-  );
+  const [materialFormData, setMaterialFormData] =
+    useState<SupplierMaterialFormData>(DEFAULT_MATERIAL_FORM);
   const [packagingFormData, setPackagingFormData] = useState<PackagingFormData>(
     DEFAULT_PACKAGING_FORM
   );
@@ -562,16 +561,15 @@ export function SuppliersItemsContent({
       </Card>
 
       {/* Dialogs */}
-      <EnhancedMaterialDialog
+      <MaterialsSupplierDialog
         open={showMaterialDialog}
         onOpenChange={(open) => handleDialogClose(open, "material")}
-        material={materialFormData}
-        setMaterial={setMaterialFormData}
+        supplierMaterial={materialFormData || undefined}
+        isEditing={!!editingMaterial}
         onSave={handleSaveMaterial}
         suppliers={suppliersData}
         materials={materials}
         categories={categories}
-        isEditing={!!editingMaterial}
       />
 
       <EnhancedSupplierPackagingDialog

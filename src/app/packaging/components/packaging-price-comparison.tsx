@@ -11,7 +11,7 @@ import {
 } from "@/components/ui/card";
 import { SortableTable } from "@/components/ui/sortable-table";
 import { usePackagingPriceComparison } from "@/hooks/use-supplier-packaging";
-import type { SupplierPackagingWithDetails } from "@/lib/types";
+import type { SupplierPackagingWithDetails } from "@/types/shared-types";
 import { AlertCircle, Star, TrendingDown } from "lucide-react";
 
 export function PackagingPriceComparison() {

@@ -22,10 +22,10 @@ import {
   useEnrichedRecipes,
   useRecipeVariants,
 } from "@/hooks/use-recipes";
-import { useSupplierMaterialsWithDetails } from "@/hooks/use-supplier-materials";
+import { useSupplierMaterialRows } from "@/hooks/material-hooks/use-materials-queries";
 import { db } from "@/lib/db";
-import type { RecipeVariant } from "@/lib/types";
-import { OptimizationGoalType } from "@/lib/types";
+import type { RecipeVariant } from "@/types/shared-types";
+import { OptimizationGoalType } from "@/types/shared-types";
 import { FlaskConical } from "lucide-react";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
@@ -36,7 +36,7 @@ import { RecipeLabWorkspace } from "./recipe-lab-workspace";
 
 export default function RecipeLab() {
   const enrichedRecipes = useEnrichedRecipes();
-  const supplierMaterials = useSupplierMaterialsWithDetails();
+  const supplierMaterials = useSupplierMaterialRows();
 
   const [selectedRecipeId, setSelectedRecipeId] = useState<string>("");
   const [saveDialogOpen, setSaveDialogOpen] = useState(false);
@@ -105,7 +105,7 @@ export default function RecipeLab() {
         if (changeTypes.includes("quantity")) {
           changes.push({
             type: "quantity_change" as const,
-            ingredientName: sm?.displayName || "Unknown",
+            ingredientName: sm?.materialName || "Unknown",
             oldValue: `${ing._originalQuantity}`,
             newValue: `${ing.quantity}`,
             changedAt: new Date(),
@@ -115,11 +115,11 @@ export default function RecipeLab() {
         if (changeTypes.includes("supplier")) {
           changes.push({
             type: "supplier_change" as const,
-            ingredientName: sm?.displayName || "Unknown",
+            ingredientName: sm?.materialName || "Unknown",
             oldValue:
               supplierMaterials.find((s) => s.id === ing._originalSupplierId)
-                ?.supplier?.name || "Unknown",
-            newValue: sm?.supplier?.name || "Unknown",
+                ?.supplierName || "Unknown",
+            newValue: sm?.supplierName || "Unknown",
             changedAt: new Date(),
           });
         }

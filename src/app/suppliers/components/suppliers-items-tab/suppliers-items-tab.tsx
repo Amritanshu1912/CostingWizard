@@ -10,10 +10,10 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { useSupplierMaterialRows } from "@/hooks/material-hooks/use-materials-queries";
 import { useSupplierLabelsWithDetails } from "@/hooks/use-supplier-labels";
-import { useSupplierMaterialsWithDetails } from "@/hooks/use-supplier-materials";
 import { useSupplierPackagingWithDetails } from "@/hooks/use-supplier-packaging";
-import type { Supplier } from "@/lib/types";
+import type { Supplier } from "@/types/shared-types";
 import { Package } from "lucide-react";
 import { useMemo, useState } from "react";
 import { SuppliersItemsContent } from "./suppliers-items-content";
@@ -34,7 +34,7 @@ export function SuppliersItemsTab({ suppliers }: SuppliersItemsTabProps) {
   );
 
   // Fetch all data using hooks
-  const allSupplierMaterials = useSupplierMaterialsWithDetails();
+  const allSupplierMaterials = useSupplierMaterialRows();
   const allSupplierPackaging = useSupplierPackagingWithDetails();
   const allSupplierLabels = useSupplierLabelsWithDetails();
 

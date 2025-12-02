@@ -47,7 +47,7 @@ import { useEffect, useMemo, useState } from "react";
 
 import { useDuplicateCheck } from "@/hooks/use-duplicate-check";
 import { AVAILABILITY_MAP } from "@/lib/constants";
-import { normalizeText } from "@/lib/text-utils";
+import { normalizeText } from "@/utils/text-utils";
 import type {
   LabelMaterialType,
   Label as Labels,
@@ -56,8 +56,8 @@ import type {
   ShapeType,
   Supplier,
   SupplierLabel,
-} from "@/lib/types";
-import { cn } from "@/lib/utils";
+} from "@/types/shared-types";
+import { cn } from "@/utils/shared-utils";
 import {
   getLabelTypeColor,
   getLabelTypeLabel,
@@ -120,7 +120,7 @@ export function EnhancedSupplierLabelsDialog({
   const {
     warning: labelWarning,
     checkDuplicate: checkLabelDuplicate,
-    clearWarning: clearLabelWarning,
+    clearCheck: clearLabelWarning,
   } = useDuplicateCheck(labelsList, label.labelId);
 
   // Reset state when dialog opens/closes

@@ -29,8 +29,8 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import type { PackagingWithSuppliers } from "@/lib/types";
-import { cn } from "@/lib/utils";
+import type { PackagingWithSuppliers } from "@/types/shared-types";
+import { cn } from "@/utils/shared-utils";
 import { format } from "date-fns";
 import {
   Check,

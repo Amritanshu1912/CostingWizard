@@ -4,8 +4,11 @@
 import { formatCurrency } from "@/app/inventory/utils/inventory-utils";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { MetricCard } from "@/components/ui/metric-card";
-import { CHART_COLORS } from "@/lib/color-utils";
-import type { InventoryItemWithDetails, InventoryStats } from "@/lib/types";
+import { CHART_COLORS } from "@/utils/color-utils";
+import type {
+  InventoryItemWithDetails,
+  InventoryStats,
+} from "@/types/shared-types";
 import { AlertTriangle, DollarSign, Package } from "lucide-react";
 import {
   Bar,

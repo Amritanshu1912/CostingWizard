@@ -7,7 +7,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Plus } from "lucide-react";
 import { db } from "@/lib/db";
 import { useDexieTable } from "@/hooks/use-dexie-table";
-import { Supplier, PurchaseOrder, SupplierMaterial } from "@/lib/types";
+import { Supplier, PurchaseOrder } from "@/types/shared-types";
 import { ProcurementAnalytics } from "./procurement-analytics";
 import { OrdersTab } from "./procurement-orders-tab";
 import { OrderDialog } from "./procurement-orders-dialogs";
@@ -18,6 +18,9 @@ import {
   ORDER_STATUS_DATA,
   getSupplierPerformanceData,
 } from "./procurement-constants";
+import { useSupplierMaterialRows } from "@/hooks/material-hooks/use-materials-queries";
+
+// Get enriched data with all joins already done
 
 export default function ProcurementManager() {
   const [activeTab, setActiveTab] = useState("orders");
@@ -28,9 +31,7 @@ export default function ProcurementManager() {
   const { data: purchaseOrders } = useDexieTable<PurchaseOrder>(
     db.purchaseOrders
   );
-  const { data: supplierMaterials } = useDexieTable<SupplierMaterial>(
-    db.supplierMaterials
-  );
+  const supplierMaterials = useSupplierMaterialRows();
 
   const {
     metrics,

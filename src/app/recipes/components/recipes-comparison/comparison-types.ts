@@ -3,7 +3,7 @@ import type {
   RecipeDisplay,
   RecipeIngredientDisplay,
   RecipeVariant,
-} from "@/lib/types";
+} from "@/types/shared-types";
 
 /**
  * Unified type for items that can be compared

@@ -28,7 +28,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { SortableTable } from "@/components/ui/sortable-table";
-import type { Supplier, SupplierLabelWithDetails } from "@/lib/types";
+import type { Supplier, SupplierLabelWithDetails } from "@/types/shared-types";
 import { Edit, Filter, Plus, Search, Trash2 } from "lucide-react";
 import { useMemo, useState } from "react";
 import {

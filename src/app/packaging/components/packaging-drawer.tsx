@@ -21,13 +21,13 @@ import {
   SheetTitle,
 } from "@/components/ui/sheet";
 import { db } from "@/lib/db";
-import { normalizeText } from "@/lib/text-utils";
+import { normalizeText } from "@/utils/text-utils";
 import type {
   BuildMaterial,
   CapacityUnit,
   PackagingType,
   PackagingWithSuppliers,
-} from "@/lib/types";
+} from "@/types/shared-types";
 import { useLiveQuery } from "dexie-react-hooks";
 import { AlertCircle, Loader2, Package, Plus } from "lucide-react";
 import { nanoid } from "nanoid";

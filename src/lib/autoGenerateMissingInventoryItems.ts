@@ -1,5 +1,5 @@
 import { CostingWizardDB } from "./db";
-import { InventoryItem } from "./types";
+import { InventoryItem } from "../types/shared-types";
 
 /**
  * Auto-generate inventory items for supplier materials/packaging/labels

@@ -5,8 +5,8 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import type { Supplier } from "@/lib/types";
-import { cn } from "@/lib/utils";
+import type { Supplier } from "@/types/shared-types";
+import { cn } from "@/utils/shared-utils";
 import { Building2, Search, Star } from "lucide-react";
 
 interface SuppliersListProps {

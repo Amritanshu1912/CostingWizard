@@ -4,18 +4,18 @@ import {
   ComparisonItem,
   ComparisonSummary,
 } from "@/app/recipes/components/recipes-comparison/comparison-types";
+import type { Material, SupplierMaterial } from "@/types/material-types";
 import type {
-  Material,
   RecipeIngredient,
   RecipeIngredientDisplay,
   RecipeVariant,
   Supplier,
-  SupplierMaterial,
   VariantIngredientSnapshot,
-} from "@/lib/types";
+} from "@/types/shared-types";
+
 import { useMemo } from "react";
+import { formatQuantity, normalizeToKg } from "../utils/unit-conversion-utils";
 import { useEnrichedRecipes, useRecipeData } from "./use-recipes";
-import { formatQuantity, normalizeToKg } from "./use-unit-conversion";
 
 /**
  * Resolves a variant's ingredients from a snapshot or ingredient IDs.

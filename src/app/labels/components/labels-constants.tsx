@@ -6,7 +6,7 @@ import {
   PrintingType,
   ShapeType,
   SupplierLabel,
-} from "@/lib/types";
+} from "@/types/shared-types";
 
 // ============================================================================
 // ANALYTICS DATA

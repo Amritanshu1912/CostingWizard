@@ -1,4 +1,4 @@
-// src/app/materials/components/supplier-materials-table.tsx
+// src/app/materials/components/materials-supplier-table.tsx
 "use client";
 
 import {
@@ -6,6 +6,7 @@ import {
   AlertDialogAction,
   AlertDialogCancel,
   AlertDialogContent,
+  AlertDialogDescription,
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
@@ -28,132 +29,178 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { SortableTable } from "@/components/ui/sortable-table";
-import type {
-  Supplier,
-  SupplierMaterial,
-  SupplierMaterialWithDetails,
-} from "@/lib/types";
-import { Edit, Filter, Plus, Search, Trash2 } from "lucide-react";
+import { Edit, Filter, Info, Plus, Search, Trash2 } from "lucide-react";
 import { useMemo, useState } from "react";
-import { MATERIAL_CATEGORIES } from "./materials-constants";
+import { useInventoryItems } from "@/hooks/use-inventory";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
+import { SupplierMaterialRow } from "@/types/material-types";
+import { Supplier } from "@/types/shared-types";
 
-interface MaterialsTableProps {
-  materials: SupplierMaterialWithDetails[];
+interface SupplierMaterialsTableProps {
+  items: SupplierMaterialRow[];
   suppliers: Supplier[];
-  onEdit: (material: SupplierMaterial) => void;
+  onEdit: (item: SupplierMaterialRow) => void;
   onDelete: (id: string) => void;
   onAddMaterial: () => void;
 }
 
-export function MaterialsTable({
-  materials,
+/**
+ * Table displaying supplier materials with filtering and actions
+ * Optimized to use SupplierMaterialRow type (already has joined data)
+ */
+export function SupplierMaterialsTable({
+  items,
   suppliers,
   onEdit,
   onDelete,
   onAddMaterial,
-}: MaterialsTableProps) {
+}: SupplierMaterialsTableProps) {
+  // ============================================================================
+  // STATE
+  // ============================================================================
+
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("all");
   const [selectedSupplier, setSelectedSupplier] = useState("all");
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
-  const [materialToDelete, setMaterialToDelete] =
-    useState<SupplierMaterialWithDetails | null>(null);
+  const [itemToDelete, setItemToDelete] = useState<SupplierMaterialRow | null>(
+    null
+  );
 
-  // Filter materials using enriched data
-  const filteredMaterials = useMemo(() => {
-    return materials.filter((material) => {
+  const inventoryItems = useInventoryItems();
+  const inventoryMap = useMemo(() => {
+    if (!inventoryItems) return new Map();
+    return new Map(inventoryItems.map((item) => [item.itemId, item]));
+  }, [inventoryItems]);
+
+  // ============================================================================
+  // COMPUTED VALUES
+  // ============================================================================
+
+  // Extract unique categories from items
+  const categories = useMemo(() => {
+    const uniqueCategories = new Set(
+      items.map((item) => item.materialCategory)
+    );
+    return Array.from(uniqueCategories).sort();
+  }, [items]);
+
+  // Filter items based on search and filters
+  const filteredItems = useMemo(() => {
+    return items.filter((item) => {
+      // Search filter
       const matchesSearch =
-        material.displayName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        material.supplier?.name
-          .toLowerCase()
-          .includes(searchTerm.toLowerCase());
+        searchTerm === "" ||
+        item.materialName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        item.supplierName.toLowerCase().includes(searchTerm.toLowerCase());
+
+      // Category filter
       const matchesCategory =
         selectedCategory === "all" ||
-        material.displayCategory === selectedCategory;
+        item.materialCategory === selectedCategory;
+
+      // Supplier filter
       const matchesSupplier =
-        selectedSupplier === "all" || material.supplierId === selectedSupplier;
+        selectedSupplier === "all" || item.supplierId === selectedSupplier;
+
       return matchesSearch && matchesCategory && matchesSupplier;
     });
-  }, [materials, searchTerm, selectedCategory, selectedSupplier]);
+  }, [items, searchTerm, selectedCategory, selectedSupplier]);
 
-  // Clear filters
+  // ============================================================================
+  // HANDLERS
+  // ============================================================================
+
   const clearFilters = () => {
     setSearchTerm("");
     setSelectedCategory("all");
     setSelectedSupplier("all");
   };
 
-  // Initiate delete
-  const initiateDelete = (material: SupplierMaterialWithDetails) => {
-    setMaterialToDelete(material);
+  const initiateDelete = (item: SupplierMaterialRow) => {
+    setItemToDelete(item);
     setDeleteConfirmOpen(true);
   };
 
-  // Confirm delete
   const confirmDelete = () => {
-    if (materialToDelete) {
-      onDelete(materialToDelete.id);
+    if (itemToDelete) {
+      onDelete(itemToDelete.id);
       setDeleteConfirmOpen(false);
-      setMaterialToDelete(null);
+      setItemToDelete(null);
     }
   };
 
-  // Table columns using enriched data
+  // ============================================================================
+  // TABLE COLUMNS
+  // ============================================================================
+
   const columns = useMemo(
     () => [
       {
-        key: "displayName",
+        key: "materialName",
         label: "Material Name",
         sortable: true,
-        render: (value: string) => (
-          <span className="font-medium text-foreground">{value}</span>
+        render: (value: string, row: SupplierMaterialRow) => (
+          <div>
+            <span className="font-medium text-foreground">{value}</span>
+            <div className="flex items-center gap-2 mt-1">
+              <Badge
+                variant="outline"
+                className="text-xs"
+                style={{
+                  backgroundColor: row.categoryColor + "20",
+                  color: row.categoryColor,
+                  borderColor: row.categoryColor,
+                }}
+              >
+                {row.materialCategory}
+              </Badge>
+            </div>
+          </div>
         ),
       },
       {
-        key: "displayCategory",
-        label: "Category",
-        sortable: true,
-        render: (value: string) => (
-          <Badge variant="outline" className="text-xs">
-            {value}
-          </Badge>
-        ),
-      },
-      {
-        key: "supplier",
+        key: "supplierName",
         label: "Supplier",
         sortable: true,
-        render: (_: any, row: SupplierMaterialWithDetails) => (
-          <span className="text-muted-foreground">
-            {row.supplier?.name || "Unknown"}
-          </span>
+        render: (value: string, row: SupplierMaterialRow) => (
+          <div>
+            <span className="text-foreground">{value}</span>
+            <div className="text-xs text-muted-foreground mt-1">
+              ⭐ {row.supplierRating.toFixed(1)}
+            </div>
+          </div>
         ),
       },
       {
         key: "unitPrice",
         label: "Price per Unit",
         sortable: true,
-        render: (value: number, row: SupplierMaterialWithDetails) => {
+        render: (value: number, row: SupplierMaterialRow) => {
           const hasBulkPricing =
             row.quantityForBulkPrice && row.quantityForBulkPrice > 1;
 
           return (
             <div className="text-foreground">
-              {/* Main unit price */}
               <div className="font-medium">₹{value.toFixed(2)}</div>
 
               {/* Bulk pricing info */}
               {hasBulkPricing && row.bulkPrice && (
                 <div className="text-xs text-muted-foreground mt-1">
                   ₹{row.bulkPrice.toFixed(2)} for {row.quantityForBulkPrice}{" "}
-                  {row.displayUnit}
+                  {row.unit}
                 </div>
               )}
 
               {/* Unit indicator for non-bulk */}
               {!hasBulkPricing && (
                 <div className="text-xs text-muted-foreground">
-                  per {row.displayUnit}
+                  per {row.unit}
                 </div>
               )}
             </div>
@@ -165,33 +212,27 @@ export function MaterialsTable({
         label: "Tax",
         sortable: true,
         render: (value: number) => (
-          <div className="text-muted-foreground font-normal">
-            <div>{value}%</div>
-          </div>
+          <span className="text-muted-foreground">{value}%</span>
         ),
       },
       {
         key: "priceWithTax",
         label: "Price after Tax",
         sortable: true,
-        render: (value: number, row: SupplierMaterialWithDetails) => {
-          return (
-            <div className="text-foreground">
-              <div className="font-medium">₹{row.priceWithTax.toFixed(2)}</div>
-              <div className="text-xs text-muted-foreground">
-                per {row.displayUnit}
-              </div>
-            </div>
-          );
-        },
+        render: (value: number, row: SupplierMaterialRow) => (
+          <div className="text-foreground">
+            <div className="font-medium">₹{value.toFixed(2)}</div>
+            <div className="text-xs text-muted-foreground">per {row.unit}</div>
+          </div>
+        ),
       },
       {
         key: "moq",
         label: "MOQ",
         sortable: true,
-        render: (value: number, row: SupplierMaterialWithDetails) => (
+        render: (value: number, row: SupplierMaterialRow) => (
           <span className="text-muted-foreground">
-            {value} {row.displayUnit}
+            {value} {row.unit}
           </span>
         ),
       },
@@ -205,37 +246,65 @@ export function MaterialsTable({
       },
       {
         key: "availability",
-        label: "Availability",
+        label: "Inventory Status",
         sortable: true,
-        render: (value: string) => (
-          <Badge
-            variant={
-              value === "in-stock"
-                ? "default"
-                : value === "limited"
-                  ? "secondary"
-                  : "destructive"
-            }
-          >
-            {value === "in-stock"
-              ? "In Stock"
-              : value === "limited"
-                ? "Limited"
-                : "Out of Stock"}
-          </Badge>
-        ),
+        render: (_: any, row: SupplierMaterialRow) => {
+          const inventoryItem = inventoryMap.get(row.id);
+          const status = inventoryItem?.status ?? "not-tracked";
+          const currentStock = inventoryItem?.currentStock ?? 0;
+
+          return (
+            <div className="flex items-center gap-2">
+              <Badge
+                variant={
+                  status === "in-stock"
+                    ? "default"
+                    : status === "low-stock"
+                      ? "secondary"
+                      : status === "out-of-stock"
+                        ? "destructive"
+                        : "outline"
+                }
+                className="text-xs"
+              >
+                {status === "in-stock"
+                  ? "In Stock"
+                  : status === "low-stock"
+                    ? "Low Stock"
+                    : status === "out-of-stock"
+                      ? "Out of Stock"
+                      : "Not Tracked"}
+              </Badge>
+              {inventoryItem && (
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger>
+                      <Info className="h-4 w-4 text-muted-foreground" />
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p>
+                        {currentStock} {row.unit} in stock
+                      </p>
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
+              )}
+            </div>
+          );
+        },
       },
       {
         key: "actions",
         label: "Actions",
         sortable: false,
-        render: (_: any, row: SupplierMaterialWithDetails) => (
+        render: (_: any, row: SupplierMaterialRow) => (
           <div className="flex space-x-2">
             <Button
               variant="ghost"
               size="sm"
               onClick={() => onEdit(row)}
               className="h-8 w-8 p-0 hover:bg-primary/10 hover:text-primary"
+              title="Edit material"
             >
               <Edit className="h-4 w-4" />
             </Button>
@@ -244,6 +313,7 @@ export function MaterialsTable({
               size="sm"
               onClick={() => initiateDelete(row)}
               className="h-8 w-8 p-0 text-destructive hover:text-destructive hover:bg-destructive/10"
+              title="Delete material"
             >
               <Trash2 className="h-4 w-4" />
             </Button>
@@ -251,8 +321,12 @@ export function MaterialsTable({
         ),
       },
     ],
-    [onEdit]
+    [onEdit, inventoryMap]
   );
+
+  // ============================================================================
+  // RENDER
+  // ============================================================================
 
   return (
     <>
@@ -260,9 +334,9 @@ export function MaterialsTable({
         <CardHeader>
           <div className="flex items-center justify-between">
             <div>
-              <CardTitle className="pb-1.5">Materials Inventory</CardTitle>
+              <CardTitle className="pb-1.5">Supplier Materials</CardTitle>
               <CardDescription>
-                Manage your raw materials and supplier pricing
+                Manage raw materials from your suppliers
               </CardDescription>
             </div>
             <Button
@@ -278,6 +352,7 @@ export function MaterialsTable({
         <CardContent className="space-y-4">
           {/* Filters */}
           <div className="flex flex-col pb-2 sm:flex-row gap-4">
+            {/* Search */}
             <div className="flex-1">
               <div className="relative">
                 <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
@@ -289,6 +364,8 @@ export function MaterialsTable({
                 />
               </div>
             </div>
+
+            {/* Category Filter */}
             <Select
               value={selectedCategory}
               onValueChange={setSelectedCategory}
@@ -298,7 +375,7 @@ export function MaterialsTable({
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">All Categories</SelectItem>
-                {MATERIAL_CATEGORIES.map((category) => (
+                {categories.map((category) => (
                   <SelectItem key={category} value={category}>
                     {category}
                   </SelectItem>
@@ -306,6 +383,7 @@ export function MaterialsTable({
               </SelectContent>
             </Select>
 
+            {/* Supplier Filter */}
             <Select
               value={selectedSupplier}
               onValueChange={setSelectedSupplier}
@@ -323,6 +401,7 @@ export function MaterialsTable({
               </SelectContent>
             </Select>
 
+            {/* Clear Filters */}
             <Button
               variant="outline"
               onClick={clearFilters}
@@ -333,9 +412,18 @@ export function MaterialsTable({
             </Button>
           </div>
 
+          {/* Results count */}
+          {(searchTerm ||
+            selectedCategory !== "all" ||
+            selectedSupplier !== "all") && (
+            <div className="text-sm text-muted-foreground">
+              Showing {filteredItems.length} of {items.length} materials
+            </div>
+          )}
+
           {/* Table */}
           <SortableTable
-            data={filteredMaterials}
+            data={filteredItems}
             columns={columns}
             className="table-enhanced"
             showSerialNumber={true}
@@ -348,9 +436,13 @@ export function MaterialsTable({
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>
-              Delete {materialToDelete?.displayName} from{" "}
-              {materialToDelete?.supplier?.name}?
+              Delete {itemToDelete?.materialName} from{" "}
+              {itemToDelete?.supplierName}?
             </AlertDialogTitle>
+            <AlertDialogDescription>
+              This action cannot be undone. This will permanently delete this
+              supplier material entry.
+            </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancel</AlertDialogCancel>

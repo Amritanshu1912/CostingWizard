@@ -6,7 +6,7 @@ import {
   CollapsibleTrigger,
 } from "@/components/ui/collapsible";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import type { RequirementItem } from "@/lib/types";
+import type { RequirementItem } from "@/types/shared-types";
 import {
   ChevronDown,
   ChevronRight,

@@ -24,7 +24,9 @@ import {
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import type { ExperimentIngredient } from "@/hooks/use-recipe-experiment";
-import type { RecipeVariant, SupplierMaterialWithDetails } from "@/lib/types";
+import type { RecipeVariant } from "@/types/shared-types";
+import type { SupplierMaterialRow } from "@/types/material-types";
+
 import {
   Check,
   ChevronDown,
@@ -43,10 +45,10 @@ interface RecipeLabWorkspaceProps {
   loadedVariantName: string | null;
   currentVariant?: RecipeVariant;
   experimentIngredients: ExperimentIngredient[];
-  supplierMaterials: SupplierMaterialWithDetails[];
+  supplierMaterials: SupplierMaterialRow[];
   expandedAlternatives: Set<string>;
   metrics: any;
-  getAlternatives: (ing: any) => SupplierMaterialWithDetails[];
+  getAlternatives: (ing: any) => SupplierMaterialRow[];
   onQuantityChange: (index: number, quantity: number) => void;
   onSupplierChange: (index: number, supplierId: string) => void;
   onTogglePriceLock: (index: number) => void;

@@ -3,7 +3,7 @@ import type {
   InventoryItem,
   InventoryAlert,
   InventoryItemWithDetails,
-} from "./types";
+} from "../types/shared-types";
 
 // Utility module to centralize alert creation logic.
 // All functions accept a `db` instance so we avoid circular imports with `db.ts`.

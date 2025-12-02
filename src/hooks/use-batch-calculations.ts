@@ -1,13 +1,13 @@
 // hooks/use-batch-calculations.ts
-import { normalizeToKg } from "@/hooks/use-unit-conversion";
+import { normalizeToKg } from "@/utils/unit-conversion-utils";
 import { db } from "@/lib/db";
 import type {
   InventoryItem,
   RecipeIngredient,
   RequirementItem,
-  SupplierMaterial,
   SupplierRequirement,
-} from "@/lib/types";
+} from "@/types/shared-types";
+import type { SupplierMaterial } from "@/types/material-types";
 
 // ============================================================================
 // PRICE RESOLUTION

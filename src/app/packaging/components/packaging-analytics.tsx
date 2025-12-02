@@ -16,7 +16,7 @@ import {
 } from "@/components/ui/metric-card";
 import { Progress } from "@/components/ui/progress";
 import { useSupplierPackagingWithDetails } from "@/hooks/use-supplier-packaging";
-import { CHART_COLORS } from "@/lib/color-utils";
+import { CHART_COLORS } from "@/utils/color-utils";
 import {
   AlertTriangle,
   Clock,

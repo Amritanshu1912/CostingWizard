@@ -1,116 +1,111 @@
-// hooks/use-duplicate-check.ts
-import { findSimilarItems } from "@/lib/text-utils";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { findSimilarItems } from "@/utils/text-utils";
+import { useCallback, useMemo, useState } from "react";
 
 /**
- * useDebounce
- * Delays updating the value until a certain amount of time has passed
- * after the last change.
+ * Similar item for duplicate detection
  */
-export function useDebounce<T>(value: T, delay = 300): T {
-  const [debouncedValue, setDebouncedValue] = useState<T>(value);
-
-  useEffect(() => {
-    const handler = setTimeout(() => {
-      setDebouncedValue(value);
-    }, delay);
-
-    return () => {
-      clearTimeout(handler);
-    };
-  }, [value, delay]);
-
-  return debouncedValue;
+export interface SimilarItem {
+  id: string;
+  name: string;
+  similarity: number; // 0-100
 }
 
 /**
- * Debounced callback function
+ * Duplicate check result
  */
-export function useDebouncedCallback<T extends (...args: any[]) => any>(
-  callback: T,
-  delay: number = 300
-): (...args: Parameters<T>) => void {
-  const [timeoutId, setTimeoutId] = useState<NodeJS.Timeout | null>(null);
-
-  return (...args: Parameters<T>) => {
-    if (timeoutId) {
-      clearTimeout(timeoutId);
-    }
-
-    const newTimeoutId = setTimeout(() => {
-      callback(...args);
-    }, delay);
-
-    setTimeoutId(newTimeoutId);
-  };
-}
-
-interface UseDuplicateCheckOptions {
-  threshold?: number;
-  debounceMs?: number;
-  minLength?: number;
+export interface DuplicateCheckResult {
+  hasDuplicates: boolean;
+  exactMatch?: SimilarItem;
+  similarItems: SimilarItem[];
+  warning?: string;
 }
 
 /**
- * Hook for checking duplicate items with fuzzy matching
+ * Generic duplicate checking hook - works with any item type
+ * Usage: const { duplicateCheck, checkDuplicate, clearCheck } = useDuplicateCheck(items, currentId)
  */
 export function useDuplicateCheck<T extends { id: string; name: string }>(
   items: T[],
-  currentId?: string,
-  options: UseDuplicateCheckOptions = {}
+  currentId?: string
 ) {
-  const { threshold = 2, debounceMs = 300, minLength = 2 } = options;
-  const [warning, setWarning] = useState<string | null>(null);
+  const [searchTerm, setSearchTerm] = useState("");
 
-  // Use refs to maintain stable references to changing values
-  const itemsRef = useRef(items);
-  const currentIdRef = useRef(currentId);
-  const thresholdRef = useRef(threshold);
-  const minLengthRef = useRef(minLength);
-
-  // Update refs when values change
-  useEffect(() => {
-    itemsRef.current = items;
-  }, [items]);
-
-  useEffect(() => {
-    currentIdRef.current = currentId;
-  }, [currentId]);
-
-  useEffect(() => {
-    thresholdRef.current = threshold;
-  }, [threshold]);
-
-  useEffect(() => {
-    minLengthRef.current = minLength;
-  }, [minLength]);
-
-  // Create a stable checkDuplicate function
-  const checkDuplicate = useDebouncedCallback((searchTerm: string) => {
-    if (!searchTerm || searchTerm.length < minLengthRef.current) {
-      setWarning(null);
-      return;
+  const duplicateCheck = useMemo<DuplicateCheckResult>(() => {
+    if (!searchTerm || searchTerm.length < 2) {
+      return { hasDuplicates: false, similarItems: [] };
     }
 
-    const similar = findSimilarItems(
-      searchTerm,
-      itemsRef.current,
-      currentIdRef.current,
-      thresholdRef.current
+    const similar = findSimilarItems(searchTerm, items, currentId, 2);
+
+    if (similar.length === 0) {
+      return { hasDuplicates: false, similarItems: [] };
+    }
+
+    const exactMatch = similar.find(
+      (s) => s.name.toLowerCase() === searchTerm.toLowerCase()
     );
 
-    if (similar.length > 0) {
-      const names = similar
-        .slice(0, 2)
-        .map((s) => `"${s.name}"`)
-        .join(" or ");
-      setWarning(`Similar item found: ${names}!`);
-    } else {
-      setWarning(null);
+    const similarItems: SimilarItem[] = similar
+      .map((item) => {
+        const normalizedSearch = searchTerm.toLowerCase();
+        const normalizedItem = item.name.toLowerCase();
+
+        let similarity = 0;
+        if (normalizedSearch === normalizedItem) {
+          similarity = 100;
+        } else if (normalizedItem.includes(normalizedSearch)) {
+          similarity = 80;
+        } else if (normalizedSearch.includes(normalizedItem)) {
+          similarity = 70;
+        } else {
+          const searchChars = new Set(normalizedSearch.split(""));
+          const itemChars = normalizedItem.split("");
+          const overlap = itemChars.filter((c) => searchChars.has(c)).length;
+          similarity = Math.round(
+            (overlap /
+              Math.max(normalizedSearch.length, normalizedItem.length)) *
+              60
+          );
+        }
+
+        return { id: item.id, name: item.name, similarity };
+      })
+      .sort((a, b) => b.similarity - a.similarity);
+
+    let warning: string | undefined;
+    if (exactMatch) {
+      warning = `"${exactMatch.name}" already exists`;
+    } else if (similarItems.length > 0) {
+      const topMatches = similarItems.slice(0, 2);
+      warning =
+        topMatches.length === 1
+          ? `Similar item found: "${topMatches[0].name}"`
+          : `Similar items found: "${topMatches[0].name}" and "${topMatches[1].name}"`;
     }
-  }, debounceMs);
 
-  const clearWarning = useCallback(() => setWarning(null), []);
+    return {
+      hasDuplicates: true,
+      exactMatch: exactMatch
+        ? { id: exactMatch.id, name: exactMatch.name, similarity: 100 }
+        : undefined,
+      similarItems,
+      warning,
+    };
+  }, [searchTerm, items, currentId]);
 
-  return { warning, checkDuplicate, clearWarning };
+  const checkDuplicate = useCallback((term: string) => {
+    setSearchTerm(term);
+  }, []);
+
+  const clearCheck = useCallback(() => {
+    setSearchTerm("");
+  }, []);
+
+  return {
+    duplicateCheck,
+    checkDuplicate,
+    clearCheck,
+    hasDuplicates: duplicateCheck.hasDuplicates,
+    warning: duplicateCheck.warning,
+  };
 }

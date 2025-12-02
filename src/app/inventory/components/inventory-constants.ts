@@ -1,5 +1,5 @@
 // src/app/inventory/components/inventory-constants.ts
-import { InventoryItem, InventoryTransaction } from "@/lib/types";
+import { InventoryItem, InventoryTransaction } from "@/types/shared-types";
 
 export const MOCK_INVENTORY_ITEMS: InventoryItem[] = [
   {

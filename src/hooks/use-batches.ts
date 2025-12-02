@@ -5,14 +5,14 @@ import type {
   BatchRequirementsAnalysis,
   BatchWithDetails,
   ProductVariant,
-} from "@/lib/types";
+} from "@/types/shared-types";
 import { useLiveQuery } from "dexie-react-hooks";
 
 import {
   calculateUnits,
   convertToDisplayUnit,
   normalizeToKg,
-} from "@/hooks/use-unit-conversion";
+} from "@/utils/unit-conversion-utils";
 
 import { getRecipeCostPerKg } from "@/hooks/use-products";
 import {

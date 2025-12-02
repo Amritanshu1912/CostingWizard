@@ -22,8 +22,8 @@ import {
 } from "@/components/ui/sheet";
 import { useSupplierLabelsWithDetails } from "@/hooks/use-supplier-labels";
 import { db } from "@/lib/db";
-import { normalizeText } from "@/lib/text-utils";
-import type { LabelsWithSuppliers } from "@/lib/types";
+import { normalizeText } from "@/utils/text-utils";
+import type { LabelsWithSuppliers } from "@/types/shared-types";
 import { AlertCircle, Loader2, Plus, Tag } from "lucide-react";
 import { nanoid } from "nanoid";
 import { useMemo, useState } from "react";

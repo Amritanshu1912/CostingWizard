@@ -11,7 +11,7 @@ import {
 } from "@/components/ui/card";
 import { SortableTable } from "@/components/ui/sortable-table";
 import { useLabelPriceComparison } from "@/hooks/use-supplier-labels";
-import type { SupplierLabelWithDetails } from "@/lib/types";
+import type { SupplierLabelWithDetails } from "@/types/shared-types";
 import { AlertCircle, Star, TrendingDown } from "lucide-react";
 
 export function LabelsPriceComparison() {

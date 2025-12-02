@@ -18,7 +18,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import type { LabelsWithSuppliers } from "@/lib/types";
+import type { LabelsWithSuppliers } from "@/types/shared-types";
 import { format } from "date-fns";
 import { Edit, Loader2, Trash2 } from "lucide-react";
 import { useMemo } from "react";

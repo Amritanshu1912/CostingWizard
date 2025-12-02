@@ -17,19 +17,6 @@ export interface BulkDiscount {
 // CATEGORIES
 // ============================================================================
 
-export interface Category extends BaseEntity {
-  name: string;
-  description?: string;
-  color?: string;
-}
-
-export interface CategoryManagerProps {
-  categories: Category[];
-  addCategory: (category: Omit<Category, "id">) => void;
-  updateCategory: (category: Category) => void;
-  deleteCategory: (id: string) => void;
-}
-
 export type CapacityUnit = "kg" | "L" | "ml" | "gm" | "pcs";
 
 // ============================================================================
@@ -57,55 +44,6 @@ export interface Supplier extends BaseEntity {
     qualityScore: number;
     priceCompetitiveness: number;
   };
-}
-
-// ============================================================================
-// MATERIALS
-// ============================================================================
-
-export interface Material extends BaseEntity {
-  name: string;
-  category: string;
-  notes?: string;
-}
-
-export interface SupplierMaterial extends BaseEntity {
-  supplierId: string;
-  materialId: string;
-
-  unit: CapacityUnit;
-  unitPrice: number;
-  tax: number;
-  moq?: number;
-
-  bulkPrice?: number; // The actual quoted price
-  quantityForBulkPrice?: number;
-
-  bulkDiscounts?: BulkDiscount[];
-  leadTime?: number;
-  availability?: "in-stock" | "limited" | "out-of-stock";
-  transportationCost?: number;
-  notes?: string;
-}
-
-// Helper type for material with supplier count
-export interface MaterialWithSuppliers extends Material {
-  supplierCount: number;
-  suppliersList: Supplier[];
-}
-
-/**
- * Extended SupplierMaterial with joined data
- */
-export interface SupplierMaterialWithDetails extends SupplierMaterial {
-  material?: Material;
-  supplier?: Supplier;
-
-  // Computed display fields (always accurate)
-  displayName: string;
-  displayCategory: string;
-  displayUnit: string;
-  priceWithTax: number;
 }
 
 // ============================================================================
@@ -145,7 +83,6 @@ export interface SupplierPackaging extends BaseEntity {
   quantityForBulkPrice: number;
   bulkDiscounts?: BulkDiscount[];
   leadTime?: number;
-  availability?: "in-stock" | "limited" | "out-of-stock";
   transportationCost?: number;
   notes?: string;
 }
@@ -201,7 +138,6 @@ export interface SupplierLabel extends BaseEntity {
   tax?: number;
   bulkDiscounts?: BulkDiscount[];
   leadTime: number;
-  availability: "in-stock" | "limited" | "out-of-stock";
   transportationCost?: number;
   notes?: string;
 }

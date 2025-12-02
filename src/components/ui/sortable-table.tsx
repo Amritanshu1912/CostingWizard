@@ -12,7 +12,7 @@ import {
 } from "@/components/ui/table";
 import { ArrowUpDown, ArrowUp, ArrowDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { cn } from "@/lib/utils";
+import { cn } from "@/utils/shared-utils";
 
 export interface ColumnDef<T> {
   key: string;
@@ -197,7 +197,9 @@ export function SortableTable<T extends Record<string, any>>({
                       key={column.key}
                       className={cn(getAlignmentClass(column.align))}
                     >
-                      {column.render ? column.render(value, row) : value ?? "—"}
+                      {column.render
+                        ? column.render(value, row)
+                        : (value ?? "—")}
                     </TableCell>
                   );
                 })}
