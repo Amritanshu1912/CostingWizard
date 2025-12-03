@@ -1,19 +1,5 @@
-// ============================================================================
-// DATABASE ENTITIES - Direct mapping to Dexie tables
-// ============================================================================
-
-export type CapacityUnit = "kg" | "L" | "ml" | "gm" | "pcs";
-
-export interface BaseEntity {
-  id: string;
-  createdAt: string;
-  updatedAt?: string;
-}
-
-export interface BulkDiscount {
-  quantity: number;
-  discount: number;
-}
+// src/types/material-types.ts
+import type { BaseEntity, BulkDiscount, CapacityUnit } from "./shared-types";
 
 /** Category table entity */
 export interface Category extends BaseEntity {
