@@ -1,8 +1,8 @@
 // src/app/suppliers/components/suppliers-items-tab/suppliers-items-content.tsx
 "use client";
 
-import type { LabelFormData } from "@/app/labels/components/supplier-labels-dialog";
-import { EnhancedSupplierLabelsDialog } from "@/app/labels/components/supplier-labels-dialog";
+import type { SupplierLabelFormData } from "@/types/label-types";
+import { SupplierLabelsDialog } from "@/app/labels/components/supplier-labels-dialog";
 import { DEFAULT_MATERIAL_FORM } from "@/app/materials/components/materials-constants";
 import type { SupplierMaterialFormData } from "@/types/material-types";
 import { MaterialsSupplierDialog } from "@/app/materials/components/materials-supplier-dialog";
@@ -37,26 +37,29 @@ const DEFAULT_PACKAGING_FORM: PackagingFormData = {
   tax: 0,
   moq: 1,
   leadTime: 7,
-  availability: "in-stock",
   notes: "",
 };
 
-const DEFAULT_LABEL_FORM: LabelFormData = {
+const DEFAULT_LABEL_FORM: SupplierLabelFormData = {
   supplierId: "",
   labelName: "",
   labelId: "",
-  labelType: undefined,
-  printingType: undefined,
-  material: undefined,
-  shape: undefined,
+  labelType: "sticker",
+  printingType: "bw",
+  material: "paper",
+  shape: "rectangular",
   size: "",
   labelFor: "",
   bulkPrice: 0,
   quantityForBulkPrice: 1,
+  unit: "pieces",
   tax: 0,
   moq: 1,
   leadTime: 7,
-  availability: "in-stock",
+  transportationCost: 0,
+  bulkDiscounts: [],
+  currentStock: 0,
+  stockStatus: "out-of-stock",
   notes: "",
 };
 
@@ -92,7 +95,7 @@ export function SuppliersItemsContent({
     DEFAULT_PACKAGING_FORM
   );
   const [labelFormData, setLabelFormData] =
-    useState<LabelFormData>(DEFAULT_LABEL_FORM);
+    useState<SupplierLabelFormData>(DEFAULT_LABEL_FORM);
 
   // Database hooks - useLiveQuery automatically refreshes when data changes
   const { data: suppliersData } = useDexieTable(db.suppliers, SUPPLIERS);
@@ -276,7 +279,6 @@ export function SuppliersItemsContent({
             moq: materialFormData.moq || 1,
             bulkDiscounts: materialFormData.bulkDiscounts || [],
             leadTime: materialFormData.leadTime || 7,
-            availability: materialFormData.availability || "in-stock",
             transportationCost: materialFormData.transportationCost,
             notes: materialFormData.notes || "",
             createdAt: now,
@@ -356,7 +358,6 @@ export function SuppliersItemsContent({
             tax: packagingFormData.tax || 0,
             moq: packagingFormData.moq || 1,
             leadTime: packagingFormData.leadTime || 7,
-            availability: packagingFormData.availability || "in-stock",
             notes: packagingFormData.notes || "",
             createdAt: now,
           });
@@ -438,7 +439,6 @@ export function SuppliersItemsContent({
           quantityForBulkPrice: bulkQuantity,
           moq: labelFormData.moq || 1,
           leadTime: labelFormData.leadTime || 7,
-          availability: labelFormData.availability || "in-stock",
           tax: labelFormData.tax || 0,
           notes: labelFormData.notes || "",
           createdAt: now,
@@ -583,7 +583,7 @@ export function SuppliersItemsContent({
         isEditing={!!editingPackaging}
       />
 
-      <EnhancedSupplierLabelsDialog
+      <SupplierLabelsDialog
         open={showLabelDialog}
         onOpenChange={(open) => handleDialogClose(open, "label")}
         label={labelFormData}

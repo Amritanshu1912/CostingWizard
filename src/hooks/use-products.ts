@@ -345,12 +345,6 @@ export async function calculateVariantCostAnalysis(
       `Margin below minimum threshold (${variant.minimumProfitMargin}%)`
     );
   }
-  if (packaging?.availability === "out-of-stock") {
-    warnings.push("Packaging is out of stock");
-  }
-  if (frontLabel?.availability === "out-of-stock") {
-    warnings.push("Front label is out of stock");
-  }
 
   return {
     variantId: variant.id,

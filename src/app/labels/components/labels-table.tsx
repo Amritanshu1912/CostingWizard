@@ -18,7 +18,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import type { LabelsWithSuppliers } from "@/types/shared-types";
+import type { LabelWithSuppliers } from "@/types/label-types";
 import { format } from "date-fns";
 import { Edit, Loader2, Trash2 } from "lucide-react";
 import { useMemo } from "react";
@@ -34,7 +34,7 @@ import {
 } from "./labels-constants";
 
 interface LabelsTableDrawerProps {
-  data: LabelsWithSuppliers[];
+  data: LabelWithSuppliers[];
   editingLabelId: string | null;
   editForm: {
     name: string;
@@ -58,10 +58,10 @@ interface LabelsTableDrawerProps {
     labelFor: string;
     notes: string;
   }) => void;
-  onStartEdit: (label: LabelsWithSuppliers) => void;
+  onStartEdit: (label: LabelWithSuppliers) => void;
   onSaveEdit: () => void;
   onCancelEdit: () => void;
-  onInitiateDelete: (label: LabelsWithSuppliers) => void;
+  onInitiateDelete: (label: LabelWithSuppliers) => void;
 }
 
 export function LabelsTableDrawer({
@@ -82,7 +82,7 @@ export function LabelsTableDrawer({
         key: "name",
         label: "Label Name",
         sortable: true,
-        render: (_: any, row: LabelsWithSuppliers) => {
+        render: (_: any, row: LabelWithSuppliers) => {
           if (editingLabelId === row.id) {
             return (
               <Input
@@ -104,7 +104,7 @@ export function LabelsTableDrawer({
         key: "type",
         label: "Type",
         sortable: true,
-        render: (_: any, row: LabelsWithSuppliers) => {
+        render: (_: any, row: LabelWithSuppliers) => {
           if (editingLabelId === row.id) {
             return (
               <Select
@@ -141,7 +141,7 @@ export function LabelsTableDrawer({
         key: "printingType",
         label: "Printing",
         sortable: true,
-        render: (_: any, row: LabelsWithSuppliers) => {
+        render: (_: any, row: LabelWithSuppliers) => {
           if (editingLabelId === row.id) {
             return (
               <Select
@@ -179,7 +179,7 @@ export function LabelsTableDrawer({
         key: "material",
         label: "Material",
         sortable: true,
-        render: (_: any, row: LabelsWithSuppliers) => {
+        render: (_: any, row: LabelWithSuppliers) => {
           if (editingLabelId === row.id) {
             return (
               <Select
@@ -217,7 +217,7 @@ export function LabelsTableDrawer({
         key: "shape",
         label: "Shape",
         sortable: true,
-        render: (_: any, row: LabelsWithSuppliers) => {
+        render: (_: any, row: LabelWithSuppliers) => {
           if (editingLabelId === row.id) {
             return (
               <Select
@@ -253,7 +253,7 @@ export function LabelsTableDrawer({
         key: "size",
         label: "Size",
         sortable: true,
-        render: (_: any, row: LabelsWithSuppliers) => {
+        render: (_: any, row: LabelWithSuppliers) => {
           if (editingLabelId === row.id) {
             return (
               <Input
@@ -275,7 +275,7 @@ export function LabelsTableDrawer({
         key: "supplierCount",
         label: "# Suppliers",
         sortable: true,
-        render: (_: any, row: LabelsWithSuppliers) => {
+        render: (_: any, row: LabelWithSuppliers) => {
           if (row.supplierCount === 0) {
             return <span className="text-muted-foreground">0</span>;
           }
@@ -296,7 +296,7 @@ export function LabelsTableDrawer({
                       Linked Suppliers ({row.supplierCount})
                     </div>
                     <div className="space-y-1">
-                      {row.suppliersList.map((s, index) => (
+                      {row.suppliers.map((s, index) => (
                         <div key={`${s.id}-${index}`} className="text-white">
                           • {s.name}
                         </div>
@@ -313,7 +313,7 @@ export function LabelsTableDrawer({
         key: "updatedAt",
         label: "Updated At",
         sortable: true,
-        render: (_: any, row: LabelsWithSuppliers) => {
+        render: (_: any, row: LabelWithSuppliers) => {
           const displayDate = row.updatedAt || row.createdAt;
           return (
             <span className="text-sm text-muted-foreground">
@@ -326,7 +326,7 @@ export function LabelsTableDrawer({
         key: "actions",
         label: "Actions",
         sortable: false,
-        render: (_: any, row: LabelsWithSuppliers) => {
+        render: (_: any, row: LabelWithSuppliers) => {
           if (editingLabelId === row.id) {
             return (
               <div className="flex gap-2">

@@ -6,7 +6,7 @@ import {
   PrintingType,
   ShapeType,
   SupplierLabel,
-} from "@/types/shared-types";
+} from "@/types/label-types";
 
 // ============================================================================
 // ANALYTICS DATA
@@ -329,10 +329,10 @@ export const SUPPLIER_LABELS: SupplierLabel[] = [
       { quantity: 10000, discount: 18 },
     ],
     leadTime: 7,
-    availability: "in-stock",
     transportationCost: 8,
     notes: "Standard quality sticker labels",
     createdAt: "2024-01-15T00:00:00.000Z",
+    tax: 5,
   },
   {
     id: "2",
@@ -348,10 +348,11 @@ export const SUPPLIER_LABELS: SupplierLabel[] = [
       { quantity: 5000, discount: 20 },
     ],
     leadTime: 10,
-    availability: "in-stock",
+
     transportationCost: 15,
     notes: "Premium foil printing available",
     createdAt: "2024-01-15T00:00:00.000Z",
+    tax: 5,
   },
   {
     id: "3",
@@ -367,10 +368,11 @@ export const SUPPLIER_LABELS: SupplierLabel[] = [
       { quantity: 10000, discount: 15 },
     ],
     leadTime: 5,
-    availability: "in-stock",
+
     transportationCost: 6,
     notes: "Custom die-cutting service available",
     createdAt: "2024-01-20T00:00:00.000Z",
+    tax: 5,
   },
   {
     id: "4",
@@ -386,10 +388,11 @@ export const SUPPLIER_LABELS: SupplierLabel[] = [
       { quantity: 5000, discount: 25 },
     ],
     leadTime: 12,
-    availability: "limited",
+
     transportationCost: 18,
     notes: "Specialized embossing equipment",
     createdAt: "2024-01-20T00:00:00.000Z",
+    tax: 5,
   },
   {
     id: "5",
@@ -405,10 +408,11 @@ export const SUPPLIER_LABELS: SupplierLabel[] = [
       { quantity: 25000, discount: 20 },
     ],
     leadTime: 4,
-    availability: "in-stock",
+
     transportationCost: 4,
     notes: "Bulk pricing for small labels",
     createdAt: "2024-02-01T00:00:00.000Z",
+    tax: 5,
   },
   {
     id: "6",
@@ -424,10 +428,11 @@ export const SUPPLIER_LABELS: SupplierLabel[] = [
       { quantity: 10000, discount: 18 },
     ],
     leadTime: 6,
-    availability: "in-stock",
+
     transportationCost: 10,
     notes: "Large format printing capabilities",
     createdAt: "2024-02-01T00:00:00.000Z",
+    tax: 5,
   },
   {
     id: "7",
@@ -443,10 +448,11 @@ export const SUPPLIER_LABELS: SupplierLabel[] = [
       { quantity: 5000, discount: 15 },
     ],
     leadTime: 8,
-    availability: "in-stock",
+
     transportationCost: 12,
     notes: "Security features available",
     createdAt: "2024-01-15T00:00:00.000Z",
+    tax: 5,
   },
   {
     id: "8",
@@ -462,9 +468,10 @@ export const SUPPLIER_LABELS: SupplierLabel[] = [
       { quantity: 10000, discount: 18 },
     ],
     leadTime: 5,
-    availability: "in-stock",
+
     transportationCost: 5,
     notes: "Eco-friendly materials",
     createdAt: "2024-01-20T00:00:00.000Z",
+    tax: 5,
   },
 ];

@@ -46,18 +46,17 @@ import {
 import { useEffect, useMemo, useState } from "react";
 
 import { useDuplicateCheck } from "@/hooks/use-duplicate-check";
-import { AVAILABILITY_MAP } from "@/lib/constants";
-import { normalizeText } from "@/utils/text-utils";
 import type {
   LabelMaterialType,
   Label as Labels,
   LabelType,
   PrintingType,
   ShapeType,
-  Supplier,
-  SupplierLabel,
-} from "@/types/shared-types";
+  SupplierLabelFormData,
+} from "@/types/label-types";
+import type { Supplier } from "@/types/shared-types";
 import { cn } from "@/utils/shared-utils";
+import { normalizeText } from "@/utils/text-utils";
 import {
   getLabelTypeColor,
   getLabelTypeLabel,
@@ -73,31 +72,18 @@ import {
   SHAPE_TYPES,
 } from "./labels-constants";
 
-// Form-specific type
-export interface LabelFormData extends Partial<SupplierLabel> {
-  labelName?: string;
-  labelType?: LabelType;
-  printingType?: PrintingType;
-  material?: LabelMaterialType;
-  shape?: ShapeType;
-  size?: string;
-  labelFor?: string;
-  bulkPrice?: number;
-  quantityForBulkPrice?: number;
-}
-
-interface EnhancedSupplierLabelsDialogProps {
+interface SupplierLabelsDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  label: LabelFormData;
-  setLabel: React.Dispatch<React.SetStateAction<LabelFormData>>;
+  label: SupplierLabelFormData;
+  setLabel: React.Dispatch<React.SetStateAction<SupplierLabelFormData>>;
   onSave: () => Promise<void>;
   suppliers: Supplier[];
   labelsList: Labels[];
   isEditing?: boolean;
 }
 
-export function EnhancedSupplierLabelsDialog({
+export function SupplierLabelsDialog({
   open,
   onOpenChange,
   label,
@@ -106,7 +92,7 @@ export function EnhancedSupplierLabelsDialog({
   suppliers,
   labelsList,
   isEditing = false,
-}: EnhancedSupplierLabelsDialogProps) {
+}: SupplierLabelsDialogProps) {
   const [labelSearch, setLabelSearch] = useState("");
   const [openLabelCombobox, setOpenLabelCombobox] = useState(false);
   const [filteredLabels, setFilteredLabels] = useState<Labels[]>([]);
@@ -394,38 +380,6 @@ export function EnhancedSupplierLabelsDialog({
                       className="pl-10 w-[120px] focus-enhanced"
                     />
                   </div>
-                </div>
-
-                <div className="space-y-0">
-                  <Label htmlFor="availability">Availability</Label>
-                  <Select
-                    value={label.availability}
-                    onValueChange={(value) =>
-                      setLabel({ ...label, availability: value as any })
-                    }
-                  >
-                    <SelectTrigger id="availability" className="focus-enhanced">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {Object.keys(AVAILABILITY_MAP).map((option) => (
-                        <SelectItem key={option} value={option}>
-                          <div className="flex items-center gap-2">
-                            <div
-                              className={`w-2 h-2 rounded-full ${
-                                option === "in-stock"
-                                  ? "bg-green-500"
-                                  : option === "limited"
-                                    ? "bg-yellow-500"
-                                    : "bg-red-500"
-                              }`}
-                            />
-                            {option.replace("-", " ")}
-                          </div>
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
                 </div>
               </div>
             </div>

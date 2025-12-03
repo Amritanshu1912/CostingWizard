@@ -10,8 +10,8 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { SortableTable } from "@/components/ui/sortable-table";
-import { useLabelPriceComparison } from "@/hooks/use-supplier-labels";
-import type { SupplierLabelWithDetails } from "@/types/shared-types";
+import { useLabelPriceComparison } from "@/hooks/label-hooks/use-labels-queries";
+import type { SupplierLabelCard } from "@/types/label-types";
 import { AlertCircle, Star, TrendingDown } from "lucide-react";
 
 export function LabelsPriceComparison() {
@@ -24,17 +24,16 @@ export function LabelsPriceComparison() {
       key: "supplierName",
       label: "Supplier",
       sortable: true,
-      render: (value: any, row: SupplierLabelWithDetails) => {
-        const supplier = row.supplier;
+      render: (value: any, row: SupplierLabelCard) => {
         const alternatives = labelGroups
-          .find((g) => g.labelName === row.displayName)
+          .find((g) => g.labelName === row.labelName)
           ?.alternatives.sort((a, b) => a.unitPrice - b.unitPrice);
         const isCheapest = alternatives?.[0]?.id === row.id;
 
         return (
           <div className="flex items-center gap-2">
             <span className="font-medium text-foreground">
-              {supplier?.name}
+              {row.supplierName}
             </span>
             {isCheapest && (
               <Badge variant="default" className="text-xs">
@@ -96,15 +95,12 @@ export function LabelsPriceComparison() {
       key: "rating",
       label: "Supplier Rating",
       sortable: true,
-      render: (value: any, row: SupplierLabelWithDetails) => {
-        const supplier = row.supplier;
-        return (
-          <div className="flex items-center gap-1">
-            <Star className="h-3 w-3 text-yellow-500 fill-current" />
-            <span className="text-sm font-medium">{supplier?.rating}</span>
-          </div>
-        );
-      },
+      render: (value: any, row: SupplierLabelCard) => (
+        <div className="flex items-center gap-1">
+          <Star className="h-3 w-3 text-yellow-500 fill-current" />
+          <span className="text-sm font-medium">{row.supplierRating}</span>
+        </div>
+      ),
     },
   ];
 

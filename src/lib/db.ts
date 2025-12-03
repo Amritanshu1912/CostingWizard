@@ -4,8 +4,6 @@ import type {
   Supplier,
   Packaging,
   SupplierPackaging,
-  Label,
-  SupplierLabel,
   RecipeIngredient,
   Recipe,
   RecipeVariant,
@@ -23,6 +21,8 @@ import type {
   Material,
   SupplierMaterial,
 } from "@/types/material-types";
+import type { Label, SupplierLabel } from "@/types/label-types";
+
 import { MATERIAL_CATEGORIES } from "./constants";
 import { SUPPLIERS } from "@/app/suppliers/components/suppliers-constants";
 import {

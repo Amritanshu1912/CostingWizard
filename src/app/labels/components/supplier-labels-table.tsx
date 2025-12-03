@@ -28,7 +28,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { SortableTable } from "@/components/ui/sortable-table";
-import type { Supplier, SupplierLabelWithDetails } from "@/types/shared-types";
+import type { Supplier } from "@/types/shared-types";
 import { Edit, Filter, Plus, Search, Trash2 } from "lucide-react";
 import { useMemo, useState } from "react";
 import {
@@ -42,10 +42,12 @@ import {
   getShapeTypeLabel,
 } from "./labels-constants";
 
+import type { SupplierLabelRow } from "@/types/label-types";
+
 interface SupplierLabelsTableProps {
-  supplierLabels: SupplierLabelWithDetails[];
+  supplierLabels: SupplierLabelRow[];
   suppliers: Supplier[];
-  onEditLabel: (label: SupplierLabelWithDetails) => void;
+  onEditLabel: (label: SupplierLabelRow) => void;
   onDeleteLabel: (id: string) => void;
   onAddSupplierLabel: () => void;
 }
@@ -61,22 +63,23 @@ export function SupplierLabelsTable({
   const [selectedType, setSelectedType] = useState("all");
   const [selectedSupplier, setSelectedSupplier] = useState("all");
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
-  const [labelToDelete, setLabelToDelete] =
-    useState<SupplierLabelWithDetails | null>(null);
+  const [labelToDelete, setLabelToDelete] = useState<SupplierLabelRow | null>(
+    null
+  );
 
   // Get unique label types from the data
   const labelTypes = Array.from(
-    new Set(supplierLabels.map((sl) => sl.displayType))
+    new Set(supplierLabels.map((sl) => sl.labelType))
   );
 
   // Filter labels using enriched data
   const filteredLabels = useMemo(() => {
     return supplierLabels.filter((label) => {
       const matchesSearch =
-        label.displayName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        label.supplier?.name.toLowerCase().includes(searchTerm.toLowerCase());
+        label.labelName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        label.supplierName.toLowerCase().includes(searchTerm.toLowerCase());
       const matchesType =
-        selectedType === "all" || label.displayType === selectedType;
+        selectedType === "all" || label.labelType === selectedType;
       const matchesSupplier =
         selectedSupplier === "all" || label.supplierId === selectedSupplier;
       return matchesSearch && matchesType && matchesSupplier;
@@ -91,7 +94,7 @@ export function SupplierLabelsTable({
   };
 
   // Initiate delete
-  const initiateDelete = (label: SupplierLabelWithDetails) => {
+  const initiateDelete = (label: SupplierLabelRow) => {
     setLabelToDelete(label);
     setDeleteConfirmOpen(true);
   };
@@ -108,7 +111,7 @@ export function SupplierLabelsTable({
   const columns = useMemo(
     () => [
       {
-        key: "displayName",
+        key: "labelName",
         label: "Label Name",
         sortable: true,
         render: (value: string) => (
@@ -116,19 +119,17 @@ export function SupplierLabelsTable({
         ),
       },
       {
-        key: "displayType",
+        key: "labelType",
         label: "Type",
         sortable: true,
-        render: (value: string, row: SupplierLabelWithDetails) => {
-          const label = row.label;
-          const displayValue = label ? getLabelTypeLabel(label.type) : value;
-          const color = label ? getLabelTypeColor(label.type) : "#6b7280";
+        render: (value: string) => {
+          const displayValue = getLabelTypeLabel(value as any);
+          const color = getLabelTypeColor(value as any);
           return (
             <Badge
               variant="outline"
               className="text-xs"
               style={{
-                // backgroundColor: color,
                 borderColor: color,
                 color,
               }}
@@ -139,17 +140,12 @@ export function SupplierLabelsTable({
         },
       },
       {
-        key: "displayPrintingType",
+        key: "printingType",
         label: "Printing",
         sortable: true,
-        render: (value: string, row: SupplierLabelWithDetails) => {
-          const label = row.label;
-          const displayValue = label
-            ? getPrintingTypeLabel(label.printingType)
-            : value;
-          const color = label
-            ? getPrintingTypeColor(label.printingType)
-            : "#6b7280";
+        render: (value: string) => {
+          const displayValue = getPrintingTypeLabel(value as any);
+          const color = getPrintingTypeColor(value as any);
           return (
             <Badge
               variant="outline"
@@ -166,17 +162,12 @@ export function SupplierLabelsTable({
         },
       },
       {
-        key: "displayMaterial",
+        key: "material",
         label: "Material",
         sortable: true,
-        render: (value: string, row: SupplierLabelWithDetails) => {
-          const label = row.label;
-          const displayValue = label
-            ? getMaterialTypeLabel(label.material)
-            : value;
-          const color = label
-            ? getMaterialTypeColor(label.material)
-            : "#6b7280";
+        render: (value: string) => {
+          const displayValue = getMaterialTypeLabel(value as any);
+          const color = getMaterialTypeColor(value as any);
           return (
             <Badge
               variant="outline"
@@ -189,13 +180,12 @@ export function SupplierLabelsTable({
         },
       },
       {
-        key: "displayShape",
+        key: "shape",
         label: "Shape",
         sortable: true,
-        render: (value: string, row: SupplierLabelWithDetails) => {
-          const label = row.label;
-          const displayValue = label ? getShapeTypeLabel(label.shape) : value;
-          const color = label ? getShapeTypeColor(label.shape) : "#6b7280";
+        render: (value: string) => {
+          const displayValue = getShapeTypeLabel(value as any);
+          const color = getShapeTypeColor(value as any);
           return (
             <Badge
               variant="outline"
@@ -208,18 +198,18 @@ export function SupplierLabelsTable({
         },
       },
       {
-        key: "supplier.name",
+        key: "supplierName",
         label: "Supplier",
         sortable: true,
-        render: (value: any, row: SupplierLabelWithDetails) => (
-          <span className="text-foreground">{row.supplier?.name || "—"}</span>
+        render: (value: string) => (
+          <span className="text-foreground">{value || "—"}</span>
         ),
       },
       {
         key: "unitPrice",
         label: "Price per Unit",
         sortable: true,
-        render: (value: number, row: SupplierLabelWithDetails) => {
+        render: (value: number, row: SupplierLabelRow) => {
           const hasBulkPricing =
             row.quantityForBulkPrice && row.quantityForBulkPrice > 1;
 
@@ -250,7 +240,7 @@ export function SupplierLabelsTable({
         sortable: true,
         render: (value: number) => (
           <div className="text-muted-foreground font-normal">
-            <div>{value}%</div>
+            <div>{value || 0}%</div>
           </div>
         ),
       },
@@ -261,9 +251,6 @@ export function SupplierLabelsTable({
         render: (value: number) => (
           <div>
             <div className="font-medium">₹{value.toFixed(2)}</div>
-            {/* <div className="text-xs text-muted-foreground">
-              Tax: {row.tax || 0}%
-            </div> */}
           </div>
         ),
       },
@@ -284,15 +271,15 @@ export function SupplierLabelsTable({
         ),
       },
       {
-        key: "availability",
-        label: "Availability",
+        key: "stockStatus",
+        label: "Stock Status",
         sortable: true,
         render: (value: string) => (
           <Badge
             variant={
               value === "in-stock"
                 ? "default"
-                : value === "limited"
+                : value === "low-stock"
                   ? "secondary"
                   : "destructive"
             }
@@ -306,7 +293,7 @@ export function SupplierLabelsTable({
         key: "actions",
         label: "Actions",
         sortable: false,
-        render: (_: any, row: SupplierLabelWithDetails) => (
+        render: (_: any, row: SupplierLabelRow) => (
           <div className="flex space-x-2">
             <Button
               variant="ghost"
@@ -423,8 +410,8 @@ export function SupplierLabelsTable({
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>
-              Delete {labelToDelete?.displayName} from{" "}
-              {labelToDelete?.supplier?.name}?
+              Delete {labelToDelete?.labelName} from{" "}
+              {labelToDelete?.supplierName}?
             </AlertDialogTitle>
           </AlertDialogHeader>
           <AlertDialogFooter>

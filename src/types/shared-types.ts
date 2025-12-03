@@ -2,6 +2,8 @@
 // BASE TYPES
 // ============================================================================
 
+import { SupplierLabelRow } from "./label-types";
+
 export interface BaseEntity {
   id: string;
   createdAt: string;
@@ -103,62 +105,6 @@ export interface SupplierPackagingWithDetails extends SupplierPackaging {
   displayName: string;
   displayType: string;
   displayUnit: string;
-  priceWithTax: number;
-}
-
-// ============================================================================
-// LABELS
-// ============================================================================
-
-export type LabelType = "sticker" | "label" | "tag" | "other";
-export type PrintingType = "bw" | "color" | "foil" | "embossed";
-export type LabelMaterialType = "paper" | "vinyl" | "plastic" | "other";
-export type ShapeType = "rectangular" | "custom";
-
-export interface Label extends BaseEntity {
-  name: string;
-  type: LabelType;
-  printingType: PrintingType;
-  material: LabelMaterialType;
-  shape: ShapeType;
-  size?: string; // e.g., "50x30mm"
-  labelFor?: string; //product name
-  notes?: string;
-}
-
-export interface SupplierLabel extends BaseEntity {
-  supplierId: string;
-  labelId?: string;
-
-  unit: "pieces" | "sheets" | string;
-  unitPrice: number;
-  bulkPrice?: number; // The actual quoted price
-  quantityForBulkPrice?: number;
-  moq: number;
-  tax?: number;
-  bulkDiscounts?: BulkDiscount[];
-  leadTime: number;
-  transportationCost?: number;
-  notes?: string;
-}
-
-export interface LabelsWithSuppliers extends Label {
-  supplierCount: number;
-  suppliersList: Supplier[];
-}
-
-// Extended SupplierLabel with joined data
-
-export interface SupplierLabelWithDetails extends SupplierLabel {
-  label?: Label;
-  supplier?: Supplier;
-
-  // Computed display fields (always accurate)
-  displayName: string;
-  displayType: string;
-  displayPrintingType: string;
-  displayMaterial: string;
-  displayShape: string;
   priceWithTax: number;
 }
 
@@ -378,9 +324,9 @@ export interface ProductVariantWithDetails extends ProductVariant {
   packagingUnit: CapacityUnit;
 
   // Joined label info
-  frontLabel?: SupplierLabelWithDetails;
+  frontLabel?: SupplierLabelRow;
   frontLabelName?: string;
-  backLabel?: SupplierLabelWithDetails;
+  backLabel?: SupplierLabelRow;
   backLabelName?: string;
 
   // Display helpers

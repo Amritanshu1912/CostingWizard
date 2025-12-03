@@ -15,9 +15,12 @@ import {
   MetricCardWithProgress,
 } from "@/components/ui/metric-card";
 import { Progress } from "@/components/ui/progress";
-import { useSupplierLabelsWithDetails } from "@/hooks/use-supplier-labels";
+import {
+  useLabelsAnalytics,
+  useSupplierLabelRows,
+} from "@/hooks/label-hooks/use-labels-queries";
 import { CHART_COLORS } from "@/utils/color-utils";
-import { SupplierLabel, SupplierLabelWithDetails } from "@/types/shared-types";
+import { SupplierLabelRow } from "@/types/label-types";
 import {
   AlertTriangle,
   Clock,
@@ -46,7 +49,8 @@ import {
 import { AI_INSIGHTS } from "./labels-constants";
 
 export function LabelsAnalytics() {
-  const supplierLabels = useSupplierLabelsWithDetails();
+  const supplierLabels = useSupplierLabelRows();
+  const analytics = useLabelsAnalytics();
 
   // Calculate key metrics dynamically
   const keyMetrics = useMemo(() => {
@@ -61,10 +65,10 @@ export function LabelsAnalytics() {
       prices.length;
     const volatility = (Math.sqrt(variance) / avgPrice) * 100;
 
-    // Stock Alerts - count labels with limited or out-of-stock
+    // Stock Alerts - count labels with low-stock or out-of-stock
     const stockAlerts = supplierLabels.filter(
       (sl) =>
-        sl.availability === "limited" || sl.availability === "out-of-stock"
+        sl.stockStatus === "low-stock" || sl.stockStatus === "out-of-stock"
     ).length;
 
     // Total Value - sum of unitPrice * quantityForBulkPrice for all labels
@@ -151,7 +155,7 @@ export function LabelsAnalytics() {
     ];
   }, [supplierLabels]);
 
-  function generatePriceHistory(supplierLabels: SupplierLabel[]) {
+  function generatePriceHistory(supplierLabels: SupplierLabelRow[]) {
     if (!supplierLabels.length) return [];
 
     const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun"];
@@ -182,12 +186,12 @@ export function LabelsAnalytics() {
   // ---------------------------------------------------------
   // Mock Generator for Labels Usage Data (outside component)
   // ---------------------------------------------------------
-  function generateLabelsUsageData(supplierLabels: SupplierLabelWithDetails[]) {
+  function generateLabelsUsageData(supplierLabels: SupplierLabelRow[]) {
     if (!supplierLabels.length) return [];
 
     const typeGroups = supplierLabels.reduce(
       (acc, sl) => {
-        const type = sl.displayType || "Unknown";
+        const type = sl.labelType || "Unknown";
         if (!acc[type]) {
           acc[type] = { count: 0, totalCost: 0 };
         }
@@ -216,13 +220,21 @@ export function LabelsAnalytics() {
     return generateLabelsUsageData(supplierLabels);
   }, [supplierLabels]);
 
-  // Label Type Distribution
+  // Label Type Distribution - use analytics data if available, otherwise calculate
   const labelTypeDistribution = useMemo(() => {
+    if (analytics?.typeDistribution) {
+      return analytics.typeDistribution.map((item) => ({
+        name: item.type,
+        value: item.percentage,
+        color: CHART_COLORS.light.chart1, // Default color
+      }));
+    }
+
     if (!supplierLabels.length) return [];
 
     const typeCounts = supplierLabels.reduce(
       (acc, sl) => {
-        const type = sl.displayType || "Other";
+        const type = sl.labelType || "Other";
         acc[type] = (acc[type] || 0) + 1;
         return acc;
       },
@@ -236,15 +248,23 @@ export function LabelsAnalytics() {
       value: Math.round((count / total) * 100),
       color: chartColors[index % chartColors.length],
     }));
-  }, [supplierLabels]);
+  }, [supplierLabels, analytics]);
 
-  // Printing Type Distribution
+  // Printing Type Distribution - use analytics data if available, otherwise calculate
   const printingTypeDistribution = useMemo(() => {
+    if (analytics?.printingTypeDistribution) {
+      return analytics.printingTypeDistribution.map((item) => ({
+        name: item.printingType,
+        value: item.percentage,
+        color: CHART_COLORS.light.chart2, // Default color
+      }));
+    }
+
     if (!supplierLabels.length) return [];
 
     const printingCounts = supplierLabels.reduce(
       (acc, sl) => {
-        const printing = sl.displayPrintingType || "Other";
+        const printing = sl.printingType || "Other";
         acc[printing] = (acc[printing] || 0) + 1;
         return acc;
       },
@@ -258,7 +278,7 @@ export function LabelsAnalytics() {
       value: Math.round((count / total) * 100),
       color: chartColors[index % chartColors.length],
     }));
-  }, [supplierLabels]);
+  }, [supplierLabels, analytics]);
   return (
     <div className="space-y-6">
       {/* Key Metrics */}
