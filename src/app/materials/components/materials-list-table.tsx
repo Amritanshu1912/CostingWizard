@@ -24,7 +24,10 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import type { Category, MaterialWithSuppliers } from "@/types/material-types";
+import type {
+  Category,
+  MaterialWithSupplierCount,
+} from "@/types/material-types";
 import { cn } from "@/utils/shared-utils";
 import { format } from "date-fns";
 import {
@@ -39,16 +42,16 @@ import {
 import { useCallback, useMemo, useState } from "react";
 
 interface MaterialsListTableProps {
-  data: MaterialWithSuppliers[];
+  data: MaterialWithSupplierCount[];
   editingMaterialId: string | null;
   editForm: { name: string; category: string };
   loading: boolean;
   categories: Category[];
   onEditFormChange: (form: { name: string; category: string }) => void;
-  onStartEdit: (material: MaterialWithSuppliers) => void;
+  onStartEdit: (material: MaterialWithSupplierCount) => void;
   onSaveEdit: () => void;
   onCancelEdit: () => void;
-  onInitiateDelete: (material: MaterialWithSuppliers) => void;
+  onInitiateDelete: (material: MaterialWithSupplierCount) => void;
 }
 
 /**
@@ -122,7 +125,7 @@ export function MaterialsListTable({
         key: "name",
         label: "Material Name",
         sortable: true,
-        render: (_: any, row: MaterialWithSuppliers) => {
+        render: (_: any, row: MaterialWithSupplierCount) => {
           if (editingMaterialId === row.id) {
             return (
               <Input
@@ -145,7 +148,7 @@ export function MaterialsListTable({
         key: "category",
         label: "Category",
         sortable: true,
-        render: (_: any, row: MaterialWithSuppliers) => {
+        render: (_: any, row: MaterialWithSupplierCount) => {
           if (editingMaterialId === row.id) {
             return (
               <Popover
@@ -232,7 +235,7 @@ export function MaterialsListTable({
         key: "supplierCount",
         label: "# Suppliers",
         sortable: true,
-        render: (_: any, row: MaterialWithSuppliers) => {
+        render: (_: any, row: MaterialWithSupplierCount) => {
           if (editingMaterialId === row.id) {
             return <span className="text-muted-foreground">—</span>;
           }
@@ -272,7 +275,7 @@ export function MaterialsListTable({
         key: "updatedAt",
         label: "Last Updated",
         sortable: true,
-        render: (_: any, row: MaterialWithSuppliers) => {
+        render: (_: any, row: MaterialWithSupplierCount) => {
           if (editingMaterialId === row.id) {
             return <span className="text-muted-foreground">—</span>;
           }
@@ -289,7 +292,7 @@ export function MaterialsListTable({
         key: "actions",
         label: "Actions",
         sortable: false,
-        render: (_: any, row: MaterialWithSuppliers) => {
+        render: (_: any, row: MaterialWithSupplierCount) => {
           if (editingMaterialId === row.id) {
             return (
               <div className="flex gap-2">

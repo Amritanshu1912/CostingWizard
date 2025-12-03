@@ -38,20 +38,20 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import { SupplierMaterialRow } from "@/types/material-types";
+import { SupplierMaterialTableRow } from "@/types/material-types";
 import { Supplier } from "@/types/shared-types";
 
 interface SupplierMaterialsTableProps {
-  items: SupplierMaterialRow[];
+  items: SupplierMaterialTableRow[];
   suppliers: Supplier[];
-  onEdit: (item: SupplierMaterialRow) => void;
+  onEdit: (item: SupplierMaterialTableRow) => void;
   onDelete: (id: string) => void;
   onAddMaterial: () => void;
 }
 
 /**
  * Table displaying supplier materials with filtering and actions
- * Optimized to use SupplierMaterialRow type (already has joined data)
+ * Optimized to use SupplierMaterialTableRow type (already has joined data)
  */
 export function SupplierMaterialsTable({
   items,
@@ -68,9 +68,8 @@ export function SupplierMaterialsTable({
   const [selectedCategory, setSelectedCategory] = useState("all");
   const [selectedSupplier, setSelectedSupplier] = useState("all");
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
-  const [itemToDelete, setItemToDelete] = useState<SupplierMaterialRow | null>(
-    null
-  );
+  const [itemToDelete, setItemToDelete] =
+    useState<SupplierMaterialTableRow | null>(null);
 
   const inventoryItems = useInventoryItems();
   const inventoryMap = useMemo(() => {
@@ -122,7 +121,7 @@ export function SupplierMaterialsTable({
     setSelectedSupplier("all");
   };
 
-  const initiateDelete = (item: SupplierMaterialRow) => {
+  const initiateDelete = (item: SupplierMaterialTableRow) => {
     setItemToDelete(item);
     setDeleteConfirmOpen(true);
   };
@@ -145,7 +144,7 @@ export function SupplierMaterialsTable({
         key: "materialName",
         label: "Material Name",
         sortable: true,
-        render: (value: string, row: SupplierMaterialRow) => (
+        render: (value: string, row: SupplierMaterialTableRow) => (
           <div>
             <span className="font-medium text-foreground">{value}</span>
             <div className="flex items-center gap-2 mt-1">
@@ -168,7 +167,7 @@ export function SupplierMaterialsTable({
         key: "supplierName",
         label: "Supplier",
         sortable: true,
-        render: (value: string, row: SupplierMaterialRow) => (
+        render: (value: string, row: SupplierMaterialTableRow) => (
           <div>
             <span className="text-foreground">{value}</span>
             <div className="text-xs text-muted-foreground mt-1">
@@ -181,7 +180,7 @@ export function SupplierMaterialsTable({
         key: "unitPrice",
         label: "Price per Unit",
         sortable: true,
-        render: (value: number, row: SupplierMaterialRow) => {
+        render: (value: number, row: SupplierMaterialTableRow) => {
           const hasBulkPricing =
             row.quantityForBulkPrice && row.quantityForBulkPrice > 1;
 
@@ -219,7 +218,7 @@ export function SupplierMaterialsTable({
         key: "priceWithTax",
         label: "Price after Tax",
         sortable: true,
-        render: (value: number, row: SupplierMaterialRow) => (
+        render: (value: number, row: SupplierMaterialTableRow) => (
           <div className="text-foreground">
             <div className="font-medium">₹{value.toFixed(2)}</div>
             <div className="text-xs text-muted-foreground">per {row.unit}</div>
@@ -230,7 +229,7 @@ export function SupplierMaterialsTable({
         key: "moq",
         label: "MOQ",
         sortable: true,
-        render: (value: number, row: SupplierMaterialRow) => (
+        render: (value: number, row: SupplierMaterialTableRow) => (
           <span className="text-muted-foreground">
             {value} {row.unit}
           </span>
@@ -248,7 +247,7 @@ export function SupplierMaterialsTable({
         key: "availability",
         label: "Inventory Status",
         sortable: true,
-        render: (_: any, row: SupplierMaterialRow) => {
+        render: (_: any, row: SupplierMaterialTableRow) => {
           const inventoryItem = inventoryMap.get(row.id);
           const status = inventoryItem?.status ?? "not-tracked";
           const currentStock = inventoryItem?.currentStock ?? 0;
@@ -297,7 +296,7 @@ export function SupplierMaterialsTable({
         key: "actions",
         label: "Actions",
         sortable: false,
-        render: (_: any, row: SupplierMaterialRow) => (
+        render: (_: any, row: SupplierMaterialTableRow) => (
           <div className="flex space-x-2">
             <Button
               variant="ghost"

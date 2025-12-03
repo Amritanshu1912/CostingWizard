@@ -2,62 +2,164 @@
 
 import { db } from "@/lib/db";
 import type {
-  MaterialDetails,
-  MaterialFilters,
-  MaterialListItem,
+  MaterialWithSupplierCount,
+  SupplierMaterialTableRow,
   MaterialPriceComparison,
+  SupplierMaterialForComparison,
   MaterialsAnalytics,
-  MaterialWithSuppliers,
-  SupplierMaterialCard,
-  SupplierMaterialRow,
+  MaterialFilters,
+  Category,
+  Material,
+  MaterialSupplierMapping,
 } from "@/types/material-types";
 import { useLiveQuery } from "dexie-react-hooks";
 import { useMemo } from "react";
-import { getCategoryInfo, useMaterialsData } from "./use-materials-data";
+import { getCategoryColor, useMaterialsBaseData } from "./use-materials-data";
+import { Supplier } from "@/types/shared-types";
 
 // ============================================================================
 // MATERIAL QUERIES
 // ============================================================================
 
 /**
- * Get lightweight material list for tables/dropdowns
- * Returns only essential fields to minimize memory usage
+ * Get materials with category info and supplier details for lists/dropdowns
+ * Returns: id, name, category, categoryColor, supplierCount, suppliers array
  */
-export function useMaterialsList(): MaterialListItem[] {
-  const data = useMaterialsData();
+export function useMaterialsWithSupplierCount(): MaterialWithSupplierCount[] {
+  const baseData = useMaterialsBaseData();
+  const suppliers = useLiveQuery(() => db.suppliers.toArray(), []);
 
   return useMemo(() => {
-    if (!data) return [];
+    if (!baseData || !suppliers) return [];
 
-    return data.materials.map((material) => {
-      const categoryInfo = getCategoryInfo(material.category, data.categoryMap);
-      const supplierMaterials =
-        data.supplierMaterialsByMaterial.get(material.id) || [];
-      const uniqueSuppliers = new Set(
-        supplierMaterials.map((sm) => sm.supplierId)
+    const supplierMap = new Map(suppliers.map((s) => [s.id, s]));
+
+    return baseData.materials.map((material) => {
+      const categoryColor = getCategoryColor(
+        material.category,
+        baseData.categoryMap
       );
+      const supplierMaterials =
+        baseData.supplierMaterialsByMaterial.get(material.id) || [];
+      const supplierCount = new Set(
+        supplierMaterials.map((sm) => sm.supplierId)
+      ).size;
+
+      // Build suppliers array with details
+      const suppliers = supplierMaterials
+        .map((sm) => {
+          const supplier = supplierMap.get(sm.supplierId);
+          return supplier
+            ? { id: supplier.id, name: supplier.name, rating: supplier.rating }
+            : null;
+        })
+        .filter(Boolean) as Array<{ id: string; name: string; rating: number }>;
 
       return {
         id: material.id,
         name: material.name,
         category: material.category,
-        categoryColor: categoryInfo.color,
-        supplierCount: uniqueSuppliers.size,
+        categoryColor,
+        supplierCount,
+        suppliers,
+        createdAt: material.createdAt,
         updatedAt: material.updatedAt,
       };
     });
-  }, [data]);
+  }, [baseData, suppliers]);
 }
 
 /**
- * Get single material with full details
+ * Get supplier materials as table rows (main table)
+ * Returns: All fields needed for materials-supplier-table
  */
-export function useMaterialDetails(
-  materialId: string | undefined
-): MaterialDetails | null {
-  const data = useMaterialsData();
+export function useSupplierMaterialTableRows(
+  filters?: MaterialFilters
+): SupplierMaterialTableRow[] {
+  const baseData = useMaterialsBaseData();
+  const suppliers = useLiveQuery(() => db.suppliers.toArray(), []);
+  const inventory = useLiveQuery(
+    () =>
+      db.inventoryItems.where("itemType").equals("supplierMaterial").toArray(),
+    []
+  );
+  return useMemo(() => {
+    if (!baseData || !suppliers || !inventory) return [];
 
-  // Also fetch suppliers and inventory data
+    const supplierMap = new Map(suppliers.map((s) => [s.id, s]));
+    const inventoryMap = new Map(inventory.map((i) => [i.itemId, i]));
+
+    let rows = baseData.supplierMaterials.map((sm) => {
+      const material = baseData.materialMap.get(sm.materialId);
+      const supplier = supplierMap.get(sm.supplierId);
+      const categoryColor = material
+        ? getCategoryColor(material.category, baseData.categoryMap)
+        : "#6366f1";
+      const inventoryItem = inventoryMap.get(sm.id);
+      const priceWithTax = sm.unitPrice * (1 + sm.tax / 100);
+
+      return {
+        id: sm.id,
+        materialId: sm.materialId,
+        supplierId: sm.supplierId,
+        materialName: material?.name || "Unknown",
+        materialCategory: material?.category || "Unknown",
+        categoryColor,
+        supplierName: supplier?.name || "Unknown",
+        supplierRating: supplier?.rating || 0,
+        unitPrice: sm.unitPrice,
+        priceWithTax,
+        bulkPrice: sm.bulkPrice,
+        quantityForBulkPrice: sm.quantityForBulkPrice,
+        tax: sm.tax,
+        unit: sm.unit,
+        moq: sm.moq,
+        leadTime: sm.leadTime,
+        currentStock: inventoryItem?.currentStock || 0,
+        stockStatus: inventoryItem?.status || "Unknown",
+        transportationCost: sm.transportationCost,
+        notes: sm.notes,
+        createdAt: sm.createdAt,
+        updatedAt: sm.updatedAt,
+      };
+    });
+
+    // Apply filters
+    if (filters) {
+      if (filters.searchTerm) {
+        const search = filters.searchTerm.toLowerCase();
+        rows = rows.filter(
+          (r) =>
+            r.materialName.toLowerCase().includes(search) ||
+            r.supplierName.toLowerCase().includes(search)
+        );
+      }
+      if (filters.category) {
+        rows = rows.filter((r) => r.materialCategory === filters.category);
+      }
+      if (filters.supplierId) {
+        rows = rows.filter((r) => r.supplierId === filters.supplierId);
+      }
+      if (filters.priceRange) {
+        if (filters.priceRange.min) {
+          rows = rows.filter((r) => r.unitPrice >= filters.priceRange!.min!);
+        }
+        if (filters.priceRange.max) {
+          rows = rows.filter((r) => r.unitPrice <= filters.priceRange!.max!);
+        }
+      }
+    }
+
+    return rows;
+  }, [baseData, suppliers, inventory, filters]);
+}
+
+/**
+ * Get price comparison data grouped by material
+ * Returns: Materials with multiple suppliers for comparison
+ */
+export function useMaterialPriceComparison(): MaterialPriceComparison[] {
+  const baseData = useMaterialsBaseData();
   const suppliers = useLiveQuery(() => db.suppliers.toArray(), []);
   const inventory = useLiveQuery(
     () =>
@@ -66,324 +168,67 @@ export function useMaterialDetails(
   );
 
   return useMemo(() => {
-    if (!data || !materialId || !suppliers || !inventory) return null;
+    if (!baseData || !suppliers || !inventory) return [];
 
-    const material = data.materialMap.get(materialId);
-    if (!material) return null;
-
-    const categoryInfo = getCategoryInfo(material.category, data.categoryMap);
-    const supplierMaterials =
-      data.supplierMaterialsByMaterial.get(materialId) || [];
-
-    // Get unique suppliers with their info
-    const supplierInfoMap = new Map(suppliers.map((s) => [s.id, s]));
-    const uniqueSupplierIds = new Set(
-      supplierMaterials.map((sm) => sm.supplierId)
-    );
-
-    const suppliersList = Array.from(uniqueSupplierIds)
-      .map((supplierId) => {
-        const supplier = supplierInfoMap.get(supplierId);
-        return supplier
-          ? {
-              id: supplier.id,
-              name: supplier.name,
-              rating: supplier.rating,
-            }
-          : null;
-      })
-      .filter((s): s is NonNullable<typeof s> => s !== null);
-
-    // Calculate total stock across all supplier materials
+    const supplierMap = new Map(suppliers.map((s) => [s.id, s]));
     const inventoryMap = new Map(inventory.map((i) => [i.itemId, i]));
-    let totalStock = 0;
-    let hasLowStock = false;
-    let hasOutOfStock = false;
 
-    supplierMaterials.forEach((sm) => {
-      const inv = inventoryMap.get(sm.id);
-      if (inv) {
-        totalStock += inv.currentStock;
-        if (inv.status === "low-stock") hasLowStock = true;
-        if (inv.status === "out-of-stock") hasOutOfStock = true;
-      }
-    });
+    // Group supplier materials by material
+    const byMaterial = new Map<string, SupplierMaterialForComparison[]>();
 
-    const stockStatus = hasOutOfStock
-      ? "out-of-stock"
-      : hasLowStock
-        ? "low-stock"
-        : "in-stock";
-
-    return {
-      id: material.id,
-      name: material.name,
-      category: material.category,
-      categoryColor: categoryInfo.color,
-      notes: material.notes,
-      suppliers: suppliersList,
-      totalStock,
-      stockStatus,
-      createdAt: material.createdAt,
-      updatedAt: material.updatedAt,
-    };
-  }, [data, materialId, suppliers, inventory]);
-}
-
-/**
- * Get materials with full supplier list (for management drawer)
- */
-export function useMaterialsWithSuppliers(): MaterialWithSuppliers[] {
-  const data = useMaterialsData();
-  const suppliers = useLiveQuery(() => db.suppliers.toArray(), []);
-
-  return useMemo(() => {
-    if (!data || !suppliers) return [];
-
-    const supplierMap = new Map(suppliers.map((s) => [s.id, s]));
-
-    return data.materials.map((material) => {
-      const categoryInfo = getCategoryInfo(material.category, data.categoryMap);
-      const supplierMaterials =
-        data.supplierMaterialsByMaterial.get(material.id) || [];
-
-      const uniqueSupplierIds = new Set(
-        supplierMaterials.map((sm) => sm.supplierId)
-      );
-      const suppliersList = Array.from(uniqueSupplierIds)
-        .map((supplierId) => {
-          const supplier = supplierMap.get(supplierId);
-          return supplier
-            ? {
-                id: supplier.id,
-                name: supplier.name,
-                rating: supplier.rating,
-                isActive: supplier.isActive,
-              }
-            : null;
-        })
-        .filter((s): s is NonNullable<typeof s> => s !== null);
-
-      return {
-        id: material.id,
-        name: material.name,
-        category: material.category,
-        categoryColor: categoryInfo.color,
-        notes: material.notes,
-        supplierCount: suppliersList.length,
-        suppliers: suppliersList,
-        createdAt: material.createdAt,
-        updatedAt: material.updatedAt,
-      };
-    });
-  }, [data, suppliers]);
-}
-
-// ============================================================================
-// SUPPLIER MATERIAL QUERIES
-// ============================================================================
-
-/**
- * Get supplier materials as table rows with joined data
- */
-export function useSupplierMaterialRows(
-  filters?: MaterialFilters
-): SupplierMaterialRow[] {
-  const data = useMaterialsData();
-  const suppliers = useLiveQuery(() => db.suppliers.toArray(), []);
-
-  return useMemo(() => {
-    if (!data || !suppliers) return [];
-
-    const supplierMap = new Map(suppliers.map((s) => [s.id, s]));
-
-    const rows = data.supplierMaterials.map((sm) => {
-      const material = data.materialMap.get(sm.materialId);
+    baseData.supplierMaterials.forEach((sm) => {
+      const material = baseData.materialMap.get(sm.materialId);
       const supplier = supplierMap.get(sm.supplierId);
-      const categoryInfo = material
-        ? getCategoryInfo(material.category, data.categoryMap)
-        : { name: "Unknown", color: "#6366f1" };
+      if (!material || !supplier) return;
 
-      const priceWithTax = sm.unitPrice * (1 + (sm.tax || 0) / 100);
+      const inventoryItem = inventoryMap.get(sm.id);
+      const priceWithTax = sm.unitPrice * (1 + sm.tax / 100);
 
-      return {
+      const comparison: SupplierMaterialForComparison = {
         id: sm.id,
-        materialId: sm.materialId,
-        materialName: material?.name || "Unknown",
-        materialCategory: material?.category || "Unknown",
-        categoryColor: categoryInfo.color,
         supplierId: sm.supplierId,
-        supplierName: supplier?.name || "Unknown",
-        supplierRating: supplier?.rating || 0,
+        supplierName: supplier.name,
+        supplierRating: supplier.rating,
         unitPrice: sm.unitPrice,
         priceWithTax,
-        bulkPrice: sm.bulkPrice,
-        quantityForBulkPrice: sm.quantityForBulkPrice,
         unit: sm.unit,
-        tax: sm.tax,
-        moq: sm.moq || 1,
-        leadTime: sm.leadTime || 7,
-        transportationCost: sm.transportationCost,
-        notes: sm.notes,
-        createdAt: sm.createdAt,
-        updatedAt: sm.updatedAt,
+        moq: sm.moq,
+        leadTime: sm.leadTime,
+        currentStock: inventoryItem?.currentStock || 0,
       };
+
+      const existing = byMaterial.get(material.name) || [];
+      existing.push(comparison);
+      byMaterial.set(material.name, existing);
     });
 
-    // Apply filters if provided
-    if (!filters) return rows;
-
-    return rows.filter((row) => {
-      if (filters.searchTerm) {
-        const search = filters.searchTerm.toLowerCase();
-        const matchesSearch =
-          row.materialName.toLowerCase().includes(search) ||
-          row.supplierName.toLowerCase().includes(search);
-        if (!matchesSearch) return false;
-      }
-
-      if (filters.category && row.materialCategory !== filters.category) {
-        return false;
-      }
-
-      if (filters.supplierId && row.supplierId !== filters.supplierId) {
-        return false;
-      }
-
-      if (filters.priceRange) {
-        if (filters.priceRange.min && row.unitPrice < filters.priceRange.min) {
-          return false;
-        }
-        if (filters.priceRange.max && row.unitPrice > filters.priceRange.max) {
-          return false;
-        }
-      }
-
-      return true;
-    });
-  }, [data, suppliers, filters]);
-}
-
-/**
- * Get supplier materials as cards for grid view
- */
-export function useSupplierMaterialCards(): SupplierMaterialCard[] {
-  const rows = useSupplierMaterialRows();
-  const inventory = useLiveQuery(() => db.inventoryItems.toArray(), []);
-
-  return useMemo(() => {
-    // Group by material to identify best prices
-    const byMaterial = new Map<string, SupplierMaterialRow[]>();
-    rows.forEach((row) => {
-      const existing = byMaterial.get(row.materialName) || [];
-      existing.push(row);
-      byMaterial.set(row.materialName, existing);
-    });
-
-    // Create inventory map for quick lookup
-    const inventoryMap = new Map(
-      inventory?.map((inv) => [inv.itemId, inv]) || []
-    );
-
-    return rows.map((row) => {
-      const alternatives = byMaterial.get(row.materialName) || [];
-      const sorted = [...alternatives].sort(
-        (a, b) => a.unitPrice - b.unitPrice
-      );
-      const cheapest = sorted[0];
-      const mostExpensive = sorted[sorted.length - 1];
-
-      const isBestPrice = row.id === cheapest?.id;
-      const savings =
-        alternatives.length > 1 ? mostExpensive.unitPrice - row.unitPrice : 0;
-
-      // Get current stock from inventory
-      const inventoryItem = inventoryMap.get(row.id);
-      const currentStock = inventoryItem?.currentStock || 0;
-
-      return {
-        id: row.id,
-        materialName: row.materialName,
-        materialCategory: row.materialCategory,
-        categoryColor: row.categoryColor,
-        supplierName: row.supplierName,
-        supplierRating: row.supplierRating,
-        unitPrice: row.unitPrice,
-        priceWithTax: row.priceWithTax,
-        unit: row.unit,
-        moq: row.moq,
-        leadTime: row.leadTime,
-        isBestPrice,
-        savings: savings > 0 ? savings : undefined,
-        currentStock,
-      };
-    });
-  }, [rows, inventory]);
-}
-
-/**
- * Get supplier materials by supplier ID
- */
-export function useSupplierMaterialsBySupplier(
-  supplierId: string | undefined
-): SupplierMaterialRow[] {
-  const allRows = useSupplierMaterialRows();
-
-  return useMemo(() => {
-    if (!supplierId) return [];
-    return allRows.filter((row) => row.supplierId === supplierId);
-  }, [allRows, supplierId]);
-}
-
-/**
- * Get supplier materials by material ID
- */
-export function useSupplierMaterialsByMaterial(
-  materialId: string | undefined
-): SupplierMaterialRow[] {
-  const allRows = useSupplierMaterialRows();
-
-  return useMemo(() => {
-    if (!materialId) return [];
-    return allRows.filter((row) => row.materialId === materialId);
-  }, [allRows, materialId]);
-}
-
-// ============================================================================
-// ANALYTICS QUERIES
-// ============================================================================
-
-/**
- * Calculate price comparison data grouped by material
- */
-export function useMaterialPriceComparison(): MaterialPriceComparison[] {
-  const cards = useSupplierMaterialCards();
-
-  return useMemo(() => {
-    // Group by material
-    const byMaterial = new Map<string, SupplierMaterialCard[]>();
-    cards.forEach((card) => {
-      const existing = byMaterial.get(card.materialName) || [];
-      existing.push(card);
-      byMaterial.set(card.materialName, existing);
-    });
-
-    // Only include materials with multiple suppliers
+    // Only include materials with 2+ suppliers
     return Array.from(byMaterial.entries())
-      .filter(([, items]) => items.length >= 2)
-      .map(([materialName, items]) => {
-        const sorted = [...items].sort((a, b) => a.unitPrice - b.unitPrice);
+      .filter(([, alternatives]) => alternatives.length >= 2)
+      .map(([materialName, alternatives]) => {
+        const sorted = [...alternatives].sort(
+          (a, b) => a.unitPrice - b.unitPrice
+        );
         const cheapest = sorted[0];
         const mostExpensive = sorted[sorted.length - 1];
         const savings = mostExpensive.unitPrice - cheapest.unitPrice;
         const averagePrice =
-          items.reduce((sum, item) => sum + item.unitPrice, 0) / items.length;
+          alternatives.reduce((sum, a) => sum + a.unitPrice, 0) /
+          alternatives.length;
+
+        const material = baseData.materials.find(
+          (m) => m.name === materialName
+        )!;
+        const categoryColor = getCategoryColor(
+          material.category,
+          baseData.categoryMap
+        );
 
         return {
-          materialId: cheapest.id,
+          materialId: material.id,
           materialName,
-          materialCategory: cheapest.materialCategory,
-          categoryColor: cheapest.categoryColor,
+          materialCategory: material.category,
+          categoryColor,
           alternatives: sorted,
           cheapest,
           mostExpensive,
@@ -393,105 +238,104 @@ export function useMaterialPriceComparison(): MaterialPriceComparison[] {
         };
       })
       .sort((a, b) => b.savings - a.savings);
-  }, [cards]);
+  }, [baseData, suppliers, inventory]);
 }
 
 /**
- * Calculate materials analytics
+ * Get analytics data for dashboard
  */
 export function useMaterialsAnalytics(): MaterialsAnalytics {
-  const rows = useSupplierMaterialRows();
-  const data = useMaterialsData();
-  const inventory = useLiveQuery(() => db.inventoryItems.toArray(), []);
+  const baseData = useMaterialsBaseData();
+  const inventory = useLiveQuery(
+    () =>
+      db.inventoryItems.where("itemType").equals("supplierMaterial").toArray(),
+    []
+  );
 
   return useMemo(() => {
-    if (rows.length === 0 || !data) {
+    if (!baseData || !inventory) {
       return {
         totalMaterials: 0,
         avgPrice: 0,
         avgTax: 0,
         highestPrice: 0,
         stockAlerts: 0,
-        costEfficiency: 0,
         categoryDistribution: [],
         priceRanges: [],
       };
     }
 
-    const totalMaterials = rows.length;
+    const totalMaterials = baseData.supplierMaterials.length;
+    if (totalMaterials === 0) {
+      return {
+        totalMaterials: 0,
+        avgPrice: 0,
+        avgTax: 0,
+        highestPrice: 0,
+        stockAlerts: 0,
+        categoryDistribution: [],
+        priceRanges: [],
+      };
+    }
+
     const avgPrice =
-      rows.reduce((sum, r) => sum + r.unitPrice, 0) / totalMaterials;
-    const avgTax = rows.reduce((sum, r) => sum + r.tax, 0) / totalMaterials;
-    const highestPrice = Math.max(...rows.map((r) => r.unitPrice));
+      baseData.supplierMaterials.reduce((sum, sm) => sum + sm.unitPrice, 0) /
+      totalMaterials;
+    const avgTax =
+      baseData.supplierMaterials.reduce((sum, sm) => sum + sm.tax, 0) /
+      totalMaterials;
+    const highestPrice = Math.max(
+      ...baseData.supplierMaterials.map((sm) => sm.unitPrice)
+    );
 
-    // Stock alerts - count inventory items with low-stock or out-of-stock status
-    const stockAlerts =
-      inventory?.filter(
-        (item) =>
-          item.itemType === "supplierMaterial" &&
-          (item.status === "low-stock" || item.status === "out-of-stock")
-      ).length || 0;
-
-    // Cost efficiency (materials with bulk discounts)
-    const withBulkDiscounts = data.supplierMaterials.filter(
-      (sm) => sm.bulkDiscounts && sm.bulkDiscounts.length > 0
+    const stockAlerts = inventory.filter(
+      (item) => item.status === "low-stock" || item.status === "out-of-stock"
     ).length;
-    const costEfficiency =
-      totalMaterials > 0 ? (withBulkDiscounts / totalMaterials) * 100 : 0;
 
     // Category distribution
-    const categoryCount = new Map<
+    const categoryStats = new Map<
       string,
       { count: number; totalPrice: number }
     >();
-    rows.forEach((r) => {
-      const existing = categoryCount.get(r.materialCategory) || {
+    baseData.supplierMaterials.forEach((sm) => {
+      const material = baseData.materialMap.get(sm.materialId);
+      if (!material) return;
+
+      const stats = categoryStats.get(material.category) || {
         count: 0,
         totalPrice: 0,
       };
-      existing.count++;
-      existing.totalPrice += r.unitPrice;
-      categoryCount.set(r.materialCategory, existing);
+      stats.count++;
+      stats.totalPrice += sm.unitPrice;
+      categoryStats.set(material.category, stats);
     });
 
-    const categoryDistribution = Array.from(categoryCount.entries())
-      .map(([category, stats]) => {
-        const categoryInfo = getCategoryInfo(category, data.categoryMap);
-        return {
-          category,
-          categoryColor: categoryInfo.color,
-          count: stats.count,
-          percentage: (stats.count / totalMaterials) * 100,
-          avgPrice: stats.totalPrice / stats.count,
-        };
-      })
+    const categoryDistribution = Array.from(categoryStats.entries())
+      .map(([category, stats]) => ({
+        category,
+        categoryColor: getCategoryColor(category, baseData.categoryMap),
+        count: stats.count,
+        percentage: (stats.count / totalMaterials) * 100,
+        avgPrice: stats.totalPrice / stats.count,
+      }))
       .sort((a, b) => b.count - a.count);
 
     // Price ranges
     const priceRanges = [
-      {
-        range: "₹0-50",
-        count: rows.filter((r) => r.unitPrice < 50).length,
-        percentage: 0,
-      },
-      {
-        range: "₹50-100",
-        count: rows.filter((r) => r.unitPrice >= 50 && r.unitPrice < 100)
-          .length,
-        percentage: 0,
-      },
-      {
-        range: "₹100-500",
-        count: rows.filter((r) => r.unitPrice >= 100 && r.unitPrice < 500)
-          .length,
-        percentage: 0,
-      },
-      {
-        range: "₹500+",
-        count: rows.filter((r) => r.unitPrice >= 500).length,
-        percentage: 0,
-      },
-    ].map((range) => ({
+      { range: "₹0-50", count: 0 },
+      { range: "₹50-100", count: 0 },
+      { range: "₹100-500", count: 0 },
+      { range: "₹500+", count: 0 },
+    ];
+
+    baseData.supplierMaterials.forEach((sm) => {
+      if (sm.unitPrice < 50) priceRanges[0].count++;
+      else if (sm.unitPrice < 100) priceRanges[1].count++;
+      else if (sm.unitPrice < 500) priceRanges[2].count++;
+      else priceRanges[3].count++;
+    });
+
+    const priceRangesWithPercentage = priceRanges.map((range) => ({
       ...range,
       percentage: (range.count / totalMaterials) * 100,
     }));
@@ -502,9 +346,100 @@ export function useMaterialsAnalytics(): MaterialsAnalytics {
       avgTax,
       highestPrice,
       stockAlerts,
-      costEfficiency,
       categoryDistribution,
-      priceRanges,
+      priceRanges: priceRangesWithPercentage,
     };
-  }, [rows, data, inventory]);
+  }, [baseData, inventory]);
+}
+
+// ============================================================================
+// Lightweight hooks for specific needs
+// ============================================================================
+
+/**
+ * Get raw materials array for dropdowns (minimal data)
+ */
+export function useMaterialsForDropdown(): Pick<
+  Material,
+  "id" | "name" | "category"
+>[] {
+  return (
+    useLiveQuery(async () => {
+      const materials = await db.materials.toArray();
+      return materials.map((m) => ({
+        id: m.id,
+        name: m.name,
+        category: m.category,
+      }));
+    }, []) || []
+  );
+}
+
+/**
+ * Get raw categories array for dropdowns
+ */
+export function useCategoriesForDropdown(): Pick<
+  Category,
+  "id" | "name" | "color"
+>[] {
+  return (
+    useLiveQuery(async () => {
+      const categories = await db.categories.toArray();
+      return categories.map((c) => ({
+        id: c.id,
+        name: c.name,
+        color: c.color,
+      }));
+    }, []) || []
+  );
+}
+/**
+ * Get all categories (for category manager)
+ */
+export function useAllMaterials(): Material[] {
+  return useLiveQuery(() => db.materials.toArray(), []) || [];
+} /**
+ * Get all categories (for category manager)
+ */
+export function useAllSuppliers(): Supplier[] {
+  return useLiveQuery(() => db.suppliers.toArray(), []) || [];
+}
+/**
+ * Get all categories (for category manager)
+ */
+export function useAllCategories(): Category[] {
+  return useLiveQuery(() => db.categories.toArray(), []) || [];
+}
+
+/**
+ * Get supplier materials by supplier ID
+ */
+export function useSupplierMaterialsBySupplier(
+  supplierId: string | undefined
+): SupplierMaterialTableRow[] {
+  const allRows = useSupplierMaterialTableRows();
+  return useMemo(() => {
+    if (!supplierId) return [];
+    return allRows.filter((row) => row.supplierId === supplierId);
+  }, [allRows, supplierId]);
+}
+
+/**
+ * Get minimal material-supplier mappings for analytics calculations
+ * Returns: materialName and supplierId for supplier diversity analysis
+ */
+export function useMaterialSupplierMappings(): MaterialSupplierMapping[] {
+  const baseData = useMaterialsBaseData();
+
+  return useMemo(() => {
+    if (!baseData) return [];
+
+    return baseData.supplierMaterials.map((sm) => {
+      const material = baseData.materialMap.get(sm.materialId);
+      return {
+        materialName: material?.name || "Unknown",
+        supplierId: sm.supplierId,
+      };
+    });
+  }, [baseData]);
 }

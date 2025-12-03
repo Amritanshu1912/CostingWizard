@@ -11,7 +11,7 @@ import {
 import { MetricCard, MetricCardWithBadge } from "@/components/ui/metric-card";
 import {
   useMaterialsAnalytics,
-  useSupplierMaterialRows,
+  useMaterialSupplierMappings,
 } from "@/hooks/material-hooks/use-materials-queries";
 import { CHART_COLORS } from "@/utils/color-utils";
 import { AlertTriangle, DollarSign, Package, Users } from "lucide-react";
@@ -37,7 +37,7 @@ import {
 export function MaterialsAnalytics() {
   // Get analytics data
   const analytics = useMaterialsAnalytics();
-  const supplierMaterials = useSupplierMaterialRows();
+  const supplierMaterials = useMaterialSupplierMappings();
 
   // ============================================================================
   // COMPUTED METRICS

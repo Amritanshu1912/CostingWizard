@@ -141,7 +141,7 @@ export function CategoryManager({
             Manage Categories
           </DialogTitle>
           <DialogDescription>
-            Add, edit, or remove material categories
+            Add, edit, or remove material categoriess
           </DialogDescription>
         </DialogHeader>
 

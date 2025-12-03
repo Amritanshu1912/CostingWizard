@@ -25,13 +25,14 @@ import { useState } from "react";
 import { toast } from "sonner";
 
 // Hooks
-import { useMaterialsWithSuppliers } from "@/hooks/material-hooks/use-materials-queries";
 import { useMaterialMutations } from "@/hooks/material-hooks/use-materials-mutations";
-import { useLiveQuery } from "dexie-react-hooks";
-import { db } from "@/lib/db";
+import {
+  useAllCategories,
+  useMaterialsWithSupplierCount,
+} from "@/hooks/material-hooks/use-materials-queries";
 
 // Types
-import type { MaterialWithSuppliers } from "@/types/material-types";
+import type { MaterialWithSupplierCount } from "@/types/material-types";
 
 // Components
 import { MaterialsListTable } from "./materials-list-table";
@@ -60,7 +61,7 @@ export function MaterialsListDrawer({
   const [editForm, setEditForm] = useState({ name: "", category: "" });
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
   const [materialToDelete, setMaterialToDelete] =
-    useState<MaterialWithSuppliers | null>(null);
+    useState<MaterialWithSupplierCount | null>(null);
   const [loading, setLoading] = useState(false);
   const [isAddingNew, setIsAddingNew] = useState(false);
 
@@ -69,10 +70,10 @@ export function MaterialsListDrawer({
   // ============================================================================
 
   // Fetch materials with supplier info
-  const materials = useMaterialsWithSuppliers();
+  const materials = useMaterialsWithSupplierCount();
 
   // Fetch categories for combobox
-  const categories = useLiveQuery(() => db.categories.toArray(), []);
+  const categories = useAllCategories();
 
   // Mutation hooks
   const { createMaterial, updateMaterial, deleteMaterial } =
@@ -94,7 +95,7 @@ export function MaterialsListDrawer({
           supplierCount: 0,
           suppliers: [],
           createdAt: new Date().toISOString(),
-        } as MaterialWithSuppliers,
+        } as MaterialWithSupplierCount,
         ...materials,
       ]
     : materials;
@@ -108,7 +109,7 @@ export function MaterialsListDrawer({
   /**
    * Start editing a material
    */
-  const startEdit = (material: MaterialWithSuppliers) => {
+  const startEdit = (material: MaterialWithSupplierCount) => {
     setEditingMaterialId(material.id);
     setEditForm({ name: material.name, category: material.category });
   };
@@ -177,7 +178,7 @@ export function MaterialsListDrawer({
   /**
    * Initiate delete (show confirmation dialog)
    */
-  const initiateDelete = (material: MaterialWithSuppliers) => {
+  const initiateDelete = (material: MaterialWithSupplierCount) => {
     setMaterialToDelete(material);
     setDeleteConfirmOpen(true);
   };

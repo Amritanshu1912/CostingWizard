@@ -11,11 +11,12 @@ import { toast } from "sonner";
 // New hooks
 import { useMaterialsMutations } from "@/hooks/material-hooks/use-materials-mutations";
 import {
+  useAllCategories,
+  useAllMaterials,
+  useAllSuppliers,
   useMaterialsAnalytics,
-  useSupplierMaterialRows,
+  useSupplierMaterialTableRows,
 } from "@/hooks/material-hooks/use-materials-queries";
-import { db } from "@/lib/db";
-import { useLiveQuery } from "dexie-react-hooks";
 
 // Types
 import type { SupplierMaterialFormData } from "@/types/material-types";
@@ -45,12 +46,12 @@ export function MaterialsManager() {
   );
 
   // Data hooks - only fetch what we need for dropdowns
-  const suppliers = useLiveQuery(() => db.suppliers.toArray(), []);
-  const materials = useLiveQuery(() => db.materials.toArray(), []);
-  const categories = useLiveQuery(() => db.categories.toArray(), []);
+  const suppliers = useAllSuppliers();
+  const materials = useAllMaterials();
+  const categories = useAllCategories();
 
   // Query hooks - get transformed data for display
-  const supplierMaterialRows = useSupplierMaterialRows();
+  const supplierMaterialRows = useSupplierMaterialTableRows();
   const analytics = useMaterialsAnalytics();
 
   // Mutation hooks - all CRUD operations
