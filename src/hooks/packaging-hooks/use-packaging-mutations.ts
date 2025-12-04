@@ -187,6 +187,7 @@ export function useSupplierPackagingMutations() {
             bulkDiscounts: data.bulkDiscounts || [],
             notes: data.notes?.trim(),
             createdAt: now,
+            unitPrice: data.unitPrice,
           });
 
           return supplierPackagingId;
@@ -267,6 +268,7 @@ export function useSupplierPackagingMutations() {
             ...(data.quantityForBulkPrice !== undefined && {
               quantityForBulkPrice: data.quantityForBulkPrice,
             }),
+            ...(data.unitPrice !== undefined && { unitPrice: data.unitPrice }),
             ...(data.tax !== undefined && { tax: data.tax }),
             ...(data.moq !== undefined && { moq: data.moq }),
             ...(data.leadTime !== undefined && { leadTime: data.leadTime }),

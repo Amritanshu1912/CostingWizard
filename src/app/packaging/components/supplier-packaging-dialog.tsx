@@ -160,6 +160,11 @@ export function SupplierPackagingDialog({
     return qty > 0 ? price / qty : 0;
   }, [packaging.bulkPrice, packaging.quantityForBulkPrice]);
 
+  // Update form data with calculated unit price
+  useEffect(() => {
+    setPackaging((prev) => ({ ...prev, unitPrice: calculatedUnitPrice }));
+  }, [calculatedUnitPrice, setPackaging]);
+
   // Handle packaging selection
   const handleSelectPackaging = (selectedPackaging: Packaging) => {
     setPackaging({

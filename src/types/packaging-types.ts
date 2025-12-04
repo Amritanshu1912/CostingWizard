@@ -37,6 +37,7 @@ export interface SupplierPackaging extends BaseEntity {
   packagingId: string;
   bulkPrice: number; // The actual quoted price
   quantityForBulkPrice: number;
+  unitPrice: number;
   unit: CapacityUnit;
   tax: number;
   moq: number;
@@ -121,8 +122,9 @@ export interface SupplierPackagingForComparison {
   supplierId: string;
   supplierName: string;
   supplierRating: number;
-  bulkPrice: number;
+  unitPrice: number;
   priceWithTax: number;
+  bulkPrice: number;
   unit: CapacityUnit;
   moq: number;
   leadTime: number;
@@ -220,6 +222,7 @@ export interface SupplierPackagingFormData {
   buildMaterial?: BuildMaterial;
   bulkPrice: number;
   quantityForBulkPrice: number;
+  unitPrice: number;
   tax: number;
   moq: number;
   leadTime: number;
@@ -242,6 +245,7 @@ export interface PackagingFormErrors {
   packagingType?: string;
   bulkPrice?: string;
   quantityForBulkPrice?: string;
+  unitPrice?: string;
   tax?: string;
   moq?: string;
   leadTime?: string;

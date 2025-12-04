@@ -91,11 +91,7 @@ export function useSupplierPackagingTableRows(
       const packaging = baseData.packagingMap.get(sp.packagingId);
       const supplier = supplierMap.get(sp.supplierId);
       const inventoryItem = inventoryMap.get(sp.id);
-      const unitPrice =
-        sp.quantityForBulkPrice > 1
-          ? sp.bulkPrice / sp.quantityForBulkPrice
-          : sp.bulkPrice;
-      const priceWithTax = unitPrice * (1 + sp.tax / 100);
+      const priceWithTax = sp.unitPrice * (1 + sp.tax / 100);
 
       return {
         id: sp.id,
@@ -109,7 +105,7 @@ export function useSupplierPackagingTableRows(
         supplierName: supplier?.name || "Unknown",
         supplierRating: supplier?.rating || 0,
         bulkPrice: sp.bulkPrice,
-        unitPrice: unitPrice,
+        unitPrice: sp.unitPrice,
         priceWithTax,
         quantityForBulkPrice: sp.quantityForBulkPrice,
         tax: sp.tax,
@@ -193,6 +189,7 @@ export function usePackagingPriceComparison(): PackagingPriceComparison[] {
         supplierName: supplier.name,
         supplierRating: supplier.rating,
         bulkPrice: sp.bulkPrice,
+        unitPrice: sp.unitPrice,
         priceWithTax,
         unit: sp.unit,
         moq: sp.moq,

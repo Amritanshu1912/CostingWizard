@@ -281,6 +281,7 @@ export const SUPPLIER_PACKAGING: SupplierPackaging[] = [
     transportationCost: 5,
     notes: "Standard PET bottle, food-grade quality",
     createdAt: "2024-01-15T00:00:00.000Z",
+    unitPrice: 2.5,
   },
   {
     id: "2",
@@ -299,6 +300,7 @@ export const SUPPLIER_PACKAGING: SupplierPackaging[] = [
     transportationCost: 12,
     notes: "Premium glass jar with screw cap",
     createdAt: "2024-01-15T00:00:00.000Z",
+    unitPrice: 8.5,
   },
   {
     id: "3",
@@ -317,6 +319,7 @@ export const SUPPLIER_PACKAGING: SupplierPackaging[] = [
     transportationCost: 18,
     notes: "Heavy-duty HDPE container for industrial use",
     createdAt: "2024-01-15T00:00:00.000Z",
+    unitPrice: 15.0,
   },
   {
     id: "4",
@@ -335,6 +338,7 @@ export const SUPPLIER_PACKAGING: SupplierPackaging[] = [
     transportationCost: 4,
     notes: "Spray bottle with trigger mechanism",
     createdAt: "2024-01-20T00:00:00.000Z",
+    unitPrice: 1.8,
   },
   {
     id: "5",
@@ -353,6 +357,7 @@ export const SUPPLIER_PACKAGING: SupplierPackaging[] = [
     transportationCost: 3,
     notes: "Plastic tube for creams and gels",
     createdAt: "2024-01-20T00:00:00.000Z",
+    unitPrice: 0.8,
   },
   {
     id: "6",
@@ -371,6 +376,7 @@ export const SUPPLIER_PACKAGING: SupplierPackaging[] = [
     transportationCost: 6,
     notes: "Cardboard box with printing capabilities",
     createdAt: "2024-02-01T00:00:00.000Z",
+    unitPrice: 3.2,
   },
   {
     id: "7",
@@ -389,6 +395,7 @@ export const SUPPLIER_PACKAGING: SupplierPackaging[] = [
     transportationCost: 2,
     notes: "Flexible plastic pouch, resealable",
     createdAt: "2024-02-01T00:00:00.000Z",
+    unitPrice: 0.5,
   },
   {
     id: "8",
@@ -407,5 +414,6 @@ export const SUPPLIER_PACKAGING: SupplierPackaging[] = [
     transportationCost: 20,
     notes: "Metal can with lid, corrosion resistant",
     createdAt: "2024-01-15T00:00:00.000Z",
+    unitPrice: 12.0,
   },
 ];

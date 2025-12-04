@@ -42,6 +42,7 @@ const DEFAULT_SUPPLIER_PACKAGING_FORM: SupplierPackagingFormData = {
   transportationCost: 0,
   bulkDiscounts: [],
   notes: "",
+  unitPrice: 0,
 };
 
 export function PackagingManager() {
@@ -98,6 +99,7 @@ export function PackagingManager() {
         buildMaterial: item.buildMaterial,
         bulkPrice: item.bulkPrice,
         quantityForBulkPrice: item.quantityForBulkPrice,
+        unitPrice: item.unitPrice,
         tax: item.tax,
         moq: item.moq,
         leadTime: item.leadTime,

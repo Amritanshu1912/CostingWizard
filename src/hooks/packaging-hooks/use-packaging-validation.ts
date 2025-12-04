@@ -90,6 +90,10 @@ export function validateSupplierPackagingForm(
     errors.quantityForBulkPrice = "Quantity must be at least 1";
   }
 
+  if (!data.unitPrice || data.unitPrice <= 0) {
+    errors.unitPrice = "Unit price must be greater than 0";
+  }
+
   if (data.tax !== undefined && (data.tax < 0 || data.tax > 100)) {
     errors.tax = "Tax must be between 0 and 100";
   }
