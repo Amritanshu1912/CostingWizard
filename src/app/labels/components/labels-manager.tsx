@@ -6,11 +6,11 @@ import { Button } from "@/components/ui/button";
 import { MetricCard } from "@/components/ui/metric-card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useLabelsMutations } from "@/hooks/label-hooks/use-labels-mutations";
-import { useSupplierLabelRows } from "@/hooks/label-hooks/use-labels-queries";
+import { useSupplierLabelTableRows } from "@/hooks/label-hooks/use-labels-queries";
 import { useDexieTable } from "@/hooks/use-dexie-table";
 import { db } from "@/lib/db";
 import type {
-  SupplierLabelRow,
+  SupplierLabelTableRow,
   SupplierLabelFormData,
 } from "@/types/label-types";
 import { BarChart3, List, Package, TrendingUp } from "lucide-react";
@@ -35,14 +35,12 @@ const DEFAULT_LABEL_FORM: SupplierLabelFormData = {
   tax: 0,
   moq: 0,
   leadTime: 0,
-  currentStock: 0,
-  stockStatus: "in-stock",
 };
 
 export function LabelsManager() {
   const [showAddSupplierLabel, setShowAddSupplierLabel] = useState(false);
   const [editingSupplierLabel, setEditingSupplierLabel] =
-    useState<SupplierLabelRow | null>(null);
+    useState<SupplierLabelTableRow | null>(null);
   const [showLabelsDrawer, setShowLabelsDrawer] = useState(false);
   const [formData, setFormData] =
     useState<SupplierLabelFormData>(DEFAULT_LABEL_FORM);
@@ -53,7 +51,7 @@ export function LabelsManager() {
   const { data: labels } = useDexieTable(db.labels, []);
 
   // Enriched data using optimized hook
-  const enrichedSupplierLabels = useSupplierLabelRows();
+  const enrichedSupplierLabels = useSupplierLabelTableRows();
 
   // Mutation hooks
   const { createSupplierLabel, updateSupplierLabel, deleteSupplierLabel } =
@@ -88,7 +86,7 @@ export function LabelsManager() {
 
   // Handle edit
   const handleEditSupplierLabel = useCallback(
-    async (item: SupplierLabelRow) => {
+    async (item: SupplierLabelTableRow) => {
       setEditingSupplierLabel(item);
       setFormData({
         supplierId: item.supplierId,
@@ -99,7 +97,6 @@ export function LabelsManager() {
         material: item.material,
         shape: item.shape,
         size: item.size,
-        labelFor: item.labelFor,
         bulkPrice: item.bulkPrice || 0,
         quantityForBulkPrice: item.quantityForBulkPrice || 1,
         unit: item.unit,

@@ -2,7 +2,7 @@
 // BASE TYPES
 // ============================================================================
 
-import { SupplierLabelRow } from "./label-types";
+import { SupplierLabelTableRow } from "./label-types";
 import { SupplierPackagingTableRow } from "./packaging-types";
 
 export interface BaseEntity {
@@ -265,9 +265,9 @@ export interface ProductVariantWithDetails extends ProductVariant {
   packagingUnit: CapacityUnit;
 
   // Joined label info
-  frontLabel?: SupplierLabelRow;
+  frontLabel?: SupplierLabelTableRow;
   frontLabelName?: string;
-  backLabel?: SupplierLabelRow;
+  backLabel?: SupplierLabelTableRow;
   backLabelName?: string;
 
   // Display helpers

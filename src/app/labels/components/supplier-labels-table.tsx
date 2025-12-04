@@ -42,12 +42,12 @@ import {
   getShapeTypeLabel,
 } from "./labels-constants";
 
-import type { SupplierLabelRow } from "@/types/label-types";
+import type { SupplierLabelTableRow } from "@/types/label-types";
 
 interface SupplierLabelsTableProps {
-  supplierLabels: SupplierLabelRow[];
+  supplierLabels: SupplierLabelTableRow[];
   suppliers: Supplier[];
-  onEditLabel: (label: SupplierLabelRow) => void;
+  onEditLabel: (label: SupplierLabelTableRow) => void;
   onDeleteLabel: (id: string) => void;
   onAddSupplierLabel: () => void;
 }
@@ -63,9 +63,8 @@ export function SupplierLabelsTable({
   const [selectedType, setSelectedType] = useState("all");
   const [selectedSupplier, setSelectedSupplier] = useState("all");
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
-  const [labelToDelete, setLabelToDelete] = useState<SupplierLabelRow | null>(
-    null
-  );
+  const [labelToDelete, setLabelToDelete] =
+    useState<SupplierLabelTableRow | null>(null);
 
   // Get unique label types from the data
   const labelTypes = Array.from(
@@ -94,7 +93,7 @@ export function SupplierLabelsTable({
   };
 
   // Initiate delete
-  const initiateDelete = (label: SupplierLabelRow) => {
+  const initiateDelete = (label: SupplierLabelTableRow) => {
     setLabelToDelete(label);
     setDeleteConfirmOpen(true);
   };
@@ -209,7 +208,7 @@ export function SupplierLabelsTable({
         key: "unitPrice",
         label: "Price per Unit",
         sortable: true,
-        render: (value: number, row: SupplierLabelRow) => {
+        render: (value: number, row: SupplierLabelTableRow) => {
           const hasBulkPricing =
             row.quantityForBulkPrice && row.quantityForBulkPrice > 1;
 
@@ -293,7 +292,7 @@ export function SupplierLabelsTable({
         key: "actions",
         label: "Actions",
         sortable: false,
-        render: (_: any, row: SupplierLabelRow) => (
+        render: (_: any, row: SupplierLabelTableRow) => (
           <div className="flex space-x-2">
             <Button
               variant="ghost"

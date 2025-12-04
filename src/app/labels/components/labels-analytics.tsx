@@ -17,17 +17,16 @@ import {
 import { Progress } from "@/components/ui/progress";
 import {
   useLabelsAnalytics,
-  useSupplierLabelRows,
+  useSupplierLabelTableRows,
 } from "@/hooks/label-hooks/use-labels-queries";
+import { SupplierLabelTableRow } from "@/types/label-types";
 import { CHART_COLORS } from "@/utils/color-utils";
-import { SupplierLabelRow } from "@/types/label-types";
 import {
   AlertTriangle,
   Clock,
   DollarSign,
   Sparkles,
   Target,
-  TrendingUp,
 } from "lucide-react";
 import { useMemo } from "react";
 import {
@@ -49,21 +48,12 @@ import {
 import { AI_INSIGHTS } from "./labels-constants";
 
 export function LabelsAnalytics() {
-  const supplierLabels = useSupplierLabelRows();
+  const supplierLabels = useSupplierLabelTableRows();
   const analytics = useLabelsAnalytics();
 
   // Calculate key metrics dynamically
   const keyMetrics = useMemo(() => {
     if (!supplierLabels.length) return [];
-
-    // Price Volatility - calculate variance in prices
-    const prices = supplierLabels.map((sl) => sl.unitPrice);
-    const avgPrice =
-      prices.reduce((sum, price) => sum + price, 0) / prices.length;
-    const variance =
-      prices.reduce((sum, price) => sum + Math.pow(price - avgPrice, 2), 0) /
-      prices.length;
-    const volatility = (Math.sqrt(variance) / avgPrice) * 100;
 
     // Stock Alerts - count labels with low-stock or out-of-stock
     const stockAlerts = supplierLabels.filter(
@@ -82,33 +72,41 @@ export function LabelsAnalytics() {
       supplierLabels.reduce((sum, sl) => sum + sl.leadTime, 0) /
       supplierLabels.length;
 
+    const avgTaxRate = analytics.avgTax || 0;
+
     return [
       {
         type: "progress",
-        title: "Price Volatility",
-        value: `+${volatility.toFixed(1)}%`,
-        icon: TrendingUp,
-        iconClassName: "text-accent",
+        title: "Average Unit Price",
+        value: `₹${analytics.avgPrice?.toFixed(2) || "0.00"}`,
+        icon: DollarSign,
+        iconClassName: "text-green-600",
         progress: {
-          current: Math.min(volatility * 2, 100), // Scale for progress bar
+          current: Math.min((analytics.avgPrice || 0) / 2, 100), // Scale for visual
           max: 100,
-          label: volatility > 10 ? "High" : volatility > 5 ? "Moderate" : "Low",
-          color: (volatility > 10 ? "warning" : "success") as
-            | "warning"
-            | "success",
+          label:
+            analytics.avgPrice > 10
+              ? "Premium"
+              : analytics.avgPrice > 5
+                ? "Standard"
+                : "Budget",
+          color: "success" as const,
         },
       },
       {
         type: "progress",
-        title: "Print Quality Score",
-        value: "92%",
+        title: "Tax Efficiency",
+        value: `${avgTaxRate.toFixed(1)}%`,
         icon: Target,
-        iconClassName: "text-primary",
+        iconClassName: "text-blue-600",
         progress: {
-          current: 92,
+          current: Math.min(avgTaxRate * 2, 100),
           max: 100,
-          label: "Excellent",
-          color: "success" as const,
+          label:
+            avgTaxRate > 15 ? "High" : avgTaxRate > 10 ? "Moderate" : "Low",
+          color: (avgTaxRate > 15 ? "warning" : "success") as
+            | "warning"
+            | "success",
         },
       },
       {
@@ -153,9 +151,9 @@ export function LabelsAnalytics() {
         },
       },
     ];
-  }, [supplierLabels]);
+  }, [supplierLabels, analytics]);
 
-  function generatePriceHistory(supplierLabels: SupplierLabelRow[]) {
+  function generatePriceHistory(supplierLabels: SupplierLabelTableRow[]) {
     if (!supplierLabels.length) return [];
 
     const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun"];
@@ -186,7 +184,7 @@ export function LabelsAnalytics() {
   // ---------------------------------------------------------
   // Mock Generator for Labels Usage Data (outside component)
   // ---------------------------------------------------------
-  function generateLabelsUsageData(supplierLabels: SupplierLabelRow[]) {
+  function generateLabelsUsageData(supplierLabels: SupplierLabelTableRow[]) {
     if (!supplierLabels.length) return [];
 
     const typeGroups = supplierLabels.reduce(

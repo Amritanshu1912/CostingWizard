@@ -180,7 +180,6 @@ export function SupplierLabelsDialog({
       material: selectedLabel.material,
       shape: selectedLabel.shape,
       size: selectedLabel.size,
-      labelFor: selectedLabel.labelFor,
     });
     setLabelSearch(selectedLabel.name);
     setLabelAutoFilled(true);

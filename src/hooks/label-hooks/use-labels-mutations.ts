@@ -46,7 +46,6 @@ export function useLabelMutations() {
         material: data.material,
         shape: data.shape,
         size: data.size?.trim(),
-        labelFor: data.labelFor?.trim(),
         notes: data.notes?.trim(),
         createdAt: now,
       });
@@ -80,7 +79,6 @@ export function useLabelMutations() {
         ...(data.material && { material: data.material }),
         ...(data.shape && { shape: data.shape }),
         ...(data.size !== undefined && { size: data.size?.trim() }),
-        ...(data.labelFor !== undefined && { labelFor: data.labelFor?.trim() }),
         ...(data.notes !== undefined && { notes: data.notes?.trim() }),
         updatedAt: now,
       });
@@ -141,8 +139,7 @@ export function useSupplierLabelMutations() {
                 existingLabel.printingType !== data.printingType ||
                 existingLabel.material !== data.material ||
                 existingLabel.shape !== data.shape ||
-                existingLabel.size !== data.size ||
-                existingLabel.labelFor !== data.labelFor;
+                existingLabel.size !== data.size;
 
               if (needsUpdate) {
                 await db.labels.update(labelId, {
@@ -151,7 +148,6 @@ export function useSupplierLabelMutations() {
                   material: data.material,
                   shape: data.shape,
                   size: data.size,
-                  labelFor: data.labelFor,
                   updatedAt: now,
                 });
               }
@@ -166,7 +162,6 @@ export function useSupplierLabelMutations() {
                 material: data.material,
                 shape: data.shape,
                 size: data.size?.trim(),
-                labelFor: data.labelFor?.trim(),
                 notes: data.notes?.trim(),
                 createdAt: now,
               });
@@ -222,8 +217,7 @@ export function useSupplierLabelMutations() {
             data.printingType ||
             data.material ||
             data.shape ||
-            data.size ||
-            data.labelFor
+            data.size
           ) {
             const label = await db.labels.get(supplierLabel.labelId || "");
             if (!label) {
@@ -257,9 +251,6 @@ export function useSupplierLabelMutations() {
               ...(data.material && { material: data.material }),
               ...(data.shape && { shape: data.shape }),
               ...(data.size !== undefined && { size: data.size?.trim() }),
-              ...(data.labelFor !== undefined && {
-                labelFor: data.labelFor?.trim(),
-              }),
               updatedAt: now,
             });
           }

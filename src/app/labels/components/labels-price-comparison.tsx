@@ -11,12 +11,29 @@ import {
 } from "@/components/ui/card";
 import { SortableTable } from "@/components/ui/sortable-table";
 import { useLabelPriceComparison } from "@/hooks/label-hooks/use-labels-queries";
-import type { SupplierLabelCard } from "@/types/label-types";
+import type { SupplierLabelForComparison } from "@/types/label-types";
 import { AlertCircle, Star, TrendingDown } from "lucide-react";
+import { useMemo } from "react";
 
 export function LabelsPriceComparison() {
   // Use the smart hook that groups by label automatically
   const labelGroups = useLabelPriceComparison();
+
+  // Convert data for table compatibility
+  const convertedGroups = useMemo(() => {
+    return labelGroups.map((group) => ({
+      ...group,
+      alternatives: group.alternatives.map((alt) => ({
+        ...alt,
+        labelName: group.labelName, // Add label name for group identification
+        displayName: alt.id, // Not used but for compatibility
+        displayType: group.labelType,
+        supplier: { name: alt.supplierName, rating: alt.supplierRating },
+        priceWithTax: alt.priceWithTax,
+        stockStatus: "in-stock", // Default for comparison
+      })) as any, // Use any for table compatibility
+    }));
+  }, [labelGroups]);
 
   // Table columns
   const columns = [
@@ -24,10 +41,10 @@ export function LabelsPriceComparison() {
       key: "supplierName",
       label: "Supplier",
       sortable: true,
-      render: (value: any, row: SupplierLabelCard) => {
-        const alternatives = labelGroups
-          .find((g) => g.labelName === row.labelName)
-          ?.alternatives.sort((a, b) => a.unitPrice - b.unitPrice);
+      render: (value: any, row: SupplierLabelForComparison) => {
+        const alternatives = convertedGroups
+          .find((g) => g.labelName === (row as any).labelName)
+          ?.alternatives.sort((a: any, b: any) => a.unitPrice - b.unitPrice);
         const isCheapest = alternatives?.[0]?.id === row.id;
 
         return (
@@ -73,7 +90,7 @@ export function LabelsPriceComparison() {
       ),
     },
     {
-      key: "availability",
+      key: "stockStatus",
       label: "Availability",
       sortable: true,
       render: (value: string) => (
@@ -95,7 +112,7 @@ export function LabelsPriceComparison() {
       key: "rating",
       label: "Supplier Rating",
       sortable: true,
-      render: (value: any, row: SupplierLabelCard) => (
+      render: (value: any, row: SupplierLabelForComparison) => (
         <div className="flex items-center gap-1">
           <Star className="h-3 w-3 text-yellow-500 fill-current" />
           <span className="text-sm font-medium">{row.supplierRating}</span>

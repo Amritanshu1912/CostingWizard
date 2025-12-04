@@ -150,11 +150,6 @@ export function useLabelFormValidation<
 >(
   formType: "label" | "supplierLabel",
   existingLabels: Array<{ id: string; name: string }>,
-  existingSupplierLabels?: Array<{
-    id: string;
-    supplierId: string;
-    labelId?: string;
-  }>,
   currentId?: string
 ) {
   const duplicateCheck = useDuplicateCheck(existingLabels, currentId);
@@ -173,24 +168,8 @@ export function useLabelFormValidation<
     [formType]
   );
 
-  // Check for duplicate supplier-label combinations
-  const checkSupplierLabelDuplicate = useCallback(
-    (supplierId: string, labelName: string, excludeId?: string) => {
-      if (!existingSupplierLabels) return false;
-
-      const normalizedName = labelName.toLowerCase().trim();
-      return existingSupplierLabels.some((sl) => {
-        if (excludeId && sl.id === excludeId) return false;
-        // This is a simplified check - in a real app you'd compare against actual label names
-        return sl.supplierId === supplierId && sl.id !== excludeId;
-      });
-    },
-    [existingSupplierLabels]
-  );
-
   return {
     validate,
-    checkSupplierLabelDuplicate,
     ...duplicateCheck,
   };
 }

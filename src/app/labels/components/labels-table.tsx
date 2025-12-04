@@ -18,7 +18,15 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import type { LabelWithSuppliers } from "@/types/label-types";
+import type {
+  LabelFormData,
+  LabelMaterialType,
+  LabelType,
+  LabelWithSuppliers,
+  PrintingType,
+  ShapeType,
+} from "@/types/label-types";
+
 import { format } from "date-fns";
 import { Edit, Loader2, Trash2 } from "lucide-react";
 import { useMemo } from "react";
@@ -36,28 +44,11 @@ import {
 interface LabelsTableDrawerProps {
   data: LabelWithSuppliers[];
   editingLabelId: string | null;
-  editForm: {
-    name: string;
-    type: string;
-    printingType: string;
-    material: string;
-    shape: string;
-    size: string;
-    labelFor: string;
-    notes: string;
-  };
+  editForm: LabelFormData;
+
   loading: boolean;
   shakeFields?: boolean;
-  onEditFormChange: (form: {
-    name: string;
-    type: string;
-    printingType: string;
-    material: string;
-    shape: string;
-    size: string;
-    labelFor: string;
-    notes: string;
-  }) => void;
+  onEditFormChange: (form: LabelFormData) => void;
   onStartEdit: (label: LabelWithSuppliers) => void;
   onSaveEdit: () => void;
   onCancelEdit: () => void;
@@ -110,7 +101,7 @@ export function LabelsTableDrawer({
               <Select
                 value={editForm.type}
                 onValueChange={(value) =>
-                  onEditFormChange({ ...editForm, type: value })
+                  onEditFormChange({ ...editForm, type: value as LabelType })
                 }
               >
                 <SelectTrigger className="h-8 w-full">
@@ -147,7 +138,10 @@ export function LabelsTableDrawer({
               <Select
                 value={editForm.printingType}
                 onValueChange={(value) =>
-                  onEditFormChange({ ...editForm, printingType: value })
+                  onEditFormChange({
+                    ...editForm,
+                    printingType: value as PrintingType,
+                  })
                 }
               >
                 <SelectTrigger className="h-8 w-full">
@@ -185,7 +179,10 @@ export function LabelsTableDrawer({
               <Select
                 value={editForm.material}
                 onValueChange={(value) =>
-                  onEditFormChange({ ...editForm, material: value })
+                  onEditFormChange({
+                    ...editForm,
+                    material: value as LabelMaterialType,
+                  })
                 }
               >
                 <SelectTrigger className="h-8 w-full">
@@ -223,7 +220,7 @@ export function LabelsTableDrawer({
               <Select
                 value={editForm.shape}
                 onValueChange={(value) =>
-                  onEditFormChange({ ...editForm, shape: value })
+                  onEditFormChange({ ...editForm, shape: value as ShapeType })
                 }
               >
                 <SelectTrigger className="h-8 w-full">

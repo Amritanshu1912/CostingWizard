@@ -22,7 +22,8 @@ import {
 } from "@/components/ui/sheet";
 import { useLabelMutations } from "@/hooks/label-hooks/use-labels-mutations";
 import { useLabelsWithSuppliers } from "@/hooks/label-hooks/use-labels-queries";
-import type { LabelWithSuppliers } from "@/types/label-types";
+import type { LabelFormData, LabelWithSuppliers } from "@/types/label-types";
+
 import { AlertCircle, Loader2, Plus, Tag } from "lucide-react";
 import { useMemo, useState } from "react";
 import { toast } from "sonner";
@@ -40,14 +41,13 @@ export function LabelsDrawer({
   onRefresh,
 }: LabelsDrawerProps) {
   const [editingLabelId, setEditingLabelId] = useState<string | null>(null);
-  const [editForm, setEditForm] = useState({
+  const [editForm, setEditForm] = useState<LabelFormData>({
     name: "",
-    type: "",
-    printingType: "",
-    material: "",
-    shape: "",
+    type: "sticker",
+    printingType: "bw",
+    material: "paper",
+    shape: "rectangular",
     size: "",
-    labelFor: "",
     notes: "",
   });
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
@@ -80,7 +80,6 @@ export function LabelsDrawer({
         material: "paper",
         shape: "rectangular",
         size: "",
-        labelFor: "",
         notes: "",
         supplierCount: 0,
         suppliers: [],
@@ -101,7 +100,6 @@ export function LabelsDrawer({
       material: label.material,
       shape: label.shape,
       size: label.size || "",
-      labelFor: label.labelFor || "",
       notes: label.notes || "",
     });
   };
@@ -117,7 +115,6 @@ export function LabelsDrawer({
       material: "paper",
       shape: "rectangular",
       size: "",
-      labelFor: "",
       notes: "",
     });
   };
@@ -129,12 +126,11 @@ export function LabelsDrawer({
     setShakeFields(false);
     setEditForm({
       name: "",
-      type: "",
-      printingType: "",
-      material: "",
-      shape: "",
+      type: "sticker",
+      printingType: "bw",
+      material: "paper",
+      shape: "rectangular",
       size: "",
-      labelFor: "",
       notes: "",
     });
   };
@@ -156,24 +152,22 @@ export function LabelsDrawer({
       if (isAddingNew) {
         await createLabel({
           name: trimmedName,
-          type: editForm.type as any,
-          printingType: editForm.printingType as any,
-          material: editForm.material as any,
-          shape: editForm.shape as any,
-          size: editForm.size.trim() || undefined,
-          labelFor: editForm.labelFor.trim() || undefined,
+          type: editForm.type,
+          printingType: editForm.printingType,
+          material: editForm.material,
+          shape: editForm.shape,
+          size: editForm.size?.trim() || undefined,
           notes: editForm.notes || undefined,
         });
         toast.success("Label added successfully");
       } else {
         await updateLabel(editingLabelId, {
           name: trimmedName,
-          type: editForm.type as any,
-          printingType: editForm.printingType as any,
-          material: editForm.material as any,
-          shape: editForm.shape as any,
-          size: editForm.size.trim() || undefined,
-          labelFor: editForm.labelFor.trim() || undefined,
+          type: editForm.type,
+          printingType: editForm.printingType,
+          material: editForm.material,
+          shape: editForm.shape,
+          size: editForm.size?.trim() || undefined,
           notes: editForm.notes || undefined,
         });
         toast.success("Label updated successfully");

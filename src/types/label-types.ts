@@ -1,12 +1,11 @@
+import type { BaseEntity, BulkDiscount } from "./shared-types";
+
 export type LabelType = "sticker" | "label" | "tag" | "other";
 export type PrintingType = "bw" | "color" | "foil" | "embossed";
 export type LabelMaterialType = "paper" | "vinyl" | "plastic" | "other";
 export type ShapeType = "rectangular" | "custom";
 
-// ============================================================================
-// CORE DATABASE INTERFACES
-// ============================================================================
-
+/** Label table entity */
 export interface Label extends BaseEntity {
   name: string;
   type: LabelType;
@@ -14,20 +13,19 @@ export interface Label extends BaseEntity {
   material: LabelMaterialType;
   shape: ShapeType;
   size?: string; // e.g., "50x30mm"
-  labelFor?: string; // product name
   notes?: string;
 }
 
+/** SupplierLabel table entity */
 export interface SupplierLabel extends BaseEntity {
   supplierId: string;
   labelId?: string;
-
   unit: "pieces" | "sheets" | string;
   unitPrice: number;
-  bulkPrice?: number; // The actual quoted price
+  bulkPrice?: number;
   quantityForBulkPrice?: number;
   moq?: number;
-  tax: number; // TODO: Make required after migration
+  tax: number;
   bulkDiscounts?: BulkDiscount[];
   leadTime: number;
   transportationCost?: number;
@@ -35,63 +33,119 @@ export interface SupplierLabel extends BaseEntity {
 }
 
 // ============================================================================
-// SHARED BASE INTERFACES
+// VIEW MODELS - For displaying data in components (with joins)
 // ============================================================================
 
-// Base for all label-related UI models
-interface BaseLabelInfo {
+/**
+ * Label with basic supplier info for lists/dropdowns
+ * Used in: labels-list-drawer (table), dropdowns
+ */
+export interface LabelWithSupplierCount {
   id: string;
   name: string;
   type: LabelType;
   printingType: PrintingType;
   material: LabelMaterialType;
   shape: ShapeType;
-}
-
-// Base for supplier label UI models
-interface BaseSupplierLabelInfo {
-  id: string;
-  labelName: string;
-  labelType: LabelType;
-  printingType: PrintingType;
-  material: LabelMaterialType;
-  shape: ShapeType;
-  supplierName: string;
-  supplierRating: number;
-  unitPrice: number;
-  priceWithTax: number;
-  unit: string;
-}
-
-// ============================================================================
-// UI MODELS
-// ============================================================================
-
-export interface LabelListItem extends BaseLabelInfo {
   supplierCount: number;
-  updatedAt?: string;
-}
-
-export interface LabelDetails
-  extends BaseLabelInfo,
-    Pick<BaseEntity, "createdAt" | "updatedAt"> {
-  size?: string;
-  labelFor?: string;
-  notes?: string;
   suppliers: Array<{
     id: string;
     name: string;
     rating: number;
   }>;
-  totalStock: number;
-  stockStatus: "in-stock" | "low-stock" | "out-of-stock";
+  createdAt: string;
+  updatedAt?: string;
 }
 
-export interface LabelWithSuppliers
-  extends BaseLabelInfo,
-    Pick<BaseEntity, "createdAt" | "updatedAt"> {
+/**
+ * Supplier label with all joined data for main table
+ * Used in: labels-table (main labels table)
+ */
+export interface SupplierLabelTableRow {
+  // IDs for actions
+  id: string;
+  labelId: string;
+  supplierId: string;
+
+  // Label info
+  labelName: string;
+  labelType: LabelType;
+  printingType: PrintingType;
+  material: LabelMaterialType;
+  shape: ShapeType;
+
+  // Supplier info
+  supplierName: string;
+  supplierRating: number;
+
+  // Pricing
+  unitPrice: number;
+  priceWithTax: number;
+  bulkPrice?: number;
+  quantityForBulkPrice?: number;
+  tax: number;
+  unit: string;
+
+  // Terms
+  moq: number;
+  leadTime: number;
+  currentStock: number;
+  stockStatus: string;
+  transportationCost?: number;
+
+  // Meta
   size?: string;
-  labelFor?: string;
+  notes?: string;
+  createdAt: string;
+  updatedAt?: string;
+}
+
+/**
+ * Supplier label with inventory for price comparison
+ * Used in: labels-price-comparison (comparison cards)
+ */
+export interface SupplierLabelForComparison {
+  id: string;
+  supplierId: string;
+  supplierName: string;
+  supplierRating: number;
+  unitPrice: number;
+  priceWithTax: number;
+  unit: string;
+  moq: number;
+  leadTime: number;
+  currentStock: number;
+}
+
+/**
+ * Label grouped with supplier alternatives for comparison
+ * Used in: labels-price-comparison (grouped by label)
+ */
+export interface LabelPriceComparison {
+  labelId: string;
+  labelName: string;
+  labelType: LabelType;
+  printingType: PrintingType;
+  alternatives: SupplierLabelForComparison[];
+  cheapest: SupplierLabelForComparison;
+  mostExpensive: SupplierLabelForComparison;
+  savings: number;
+  savingsPercentage: number;
+  averagePrice: number;
+}
+
+/**
+ * Label with full supplier details
+ * Used in: labels-drawer (management interface)
+ */
+export interface LabelWithSuppliers {
+  id: string;
+  name: string;
+  type: LabelType;
+  printingType: PrintingType;
+  material: LabelMaterialType;
+  shape: ShapeType;
+  size?: string;
   notes?: string;
   supplierCount: number;
   suppliers: Array<{
@@ -100,108 +154,29 @@ export interface LabelWithSuppliers
     rating: number;
     isActive: boolean;
   }>;
+  createdAt: string;
+  updatedAt?: string;
 }
 
-export interface SupplierLabelRow
-  extends BaseSupplierLabelInfo,
-    Pick<BaseEntity, "createdAt" | "updatedAt"> {
-  labelId: string;
-  supplierId: string;
-  size?: string;
-  labelFor?: string;
-  bulkPrice?: number;
-  quantityForBulkPrice?: number;
-  tax: number;
-  moq: number;
-  leadTime: number;
-  transportationCost?: number;
-  notes?: string;
-  currentStock: number;
-  stockStatus: "in-stock" | "low-stock" | "out-of-stock";
-}
-
-export interface SupplierLabelCard extends BaseSupplierLabelInfo {
-  size?: string;
-  labelFor?: string;
-  isBestPrice?: boolean;
-  savings?: number;
-  currentStock: number;
-  stockStatus: "in-stock" | "low-stock" | "out-of-stock";
-}
-
-export interface SupplierLabelAnalytics
-  extends Omit<BaseSupplierLabelInfo, "leadTime"> {
-  currentStock: number;
-  stockValue: number;
-  stockStatus: "in-stock" | "low-stock" | "out-of-stock" | "overstock";
-}
-
-// ============================================================================
-// FORM TYPES
-// ============================================================================
-
-export interface LabelFormData extends Omit<Label, keyof BaseEntity> {}
-
-export interface SupplierLabelFormData {
-  supplierId: string;
-  labelId?: string;
+/**
+ * Minimal mapping of labels to suppliers for analytics
+ * Used in: labels-analytics (supplier diversity calculations)
+ */
+export interface LabelSupplierMapping {
   labelName: string;
-  labelType: LabelType;
-  printingType: PrintingType;
-  material: LabelMaterialType;
-  shape: ShapeType;
-  size?: string;
-  labelFor?: string;
-  bulkPrice: number;
-  quantityForBulkPrice: number;
-  unit: string;
-  tax: number;
-  moq: number;
-  leadTime: number;
-  transportationCost?: number;
-  bulkDiscounts?: BulkDiscount[];
-  currentStock: number;
-  stockStatus: "in-stock" | "low-stock" | "out-of-stock";
-  notes?: string;
+  supplierId: string;
 }
 
-export interface LabelFormErrors {
-  name?: string;
-  type?: string;
-  printingType?: string;
-  material?: string;
-  shape?: string;
-  supplierId?: string;
-  labelName?: string;
-  bulkPrice?: string;
-  quantityForBulkPrice?: string;
-  unit?: string;
-  tax?: string;
-  moq?: string;
-  leadTime?: string;
-}
-
-// ============================================================================
-// FILTER/ANALYTICS TYPES
-// ============================================================================
-
-export interface LabelFilters {
-  searchTerm?: string;
-  type?: LabelType;
-  printingType?: PrintingType;
-  material?: LabelMaterialType;
-  supplierId?: string;
-  priceRange?: { min?: number; max?: number };
-  stockStatus?: "in-stock" | "low-stock" | "out-of-stock";
-}
-
+/**
+ * Aggregated analytics data
+ * Used in: labels-analytics (dashboard)
+ */
 export interface LabelsAnalytics {
   totalLabels: number;
   avgPrice: number;
   avgTax: number;
   highestPrice: number;
   stockAlerts: number;
-  costEfficiency: number;
   typeDistribution: Array<{
     type: LabelType;
     count: number;
@@ -219,41 +194,96 @@ export interface LabelsAnalytics {
     count: number;
     percentage: number;
   }>;
-  stockStatusDistribution: Array<{
-    status: "in-stock" | "low-stock" | "out-of-stock";
-    count: number;
-    percentage: number;
-  }>;
 }
 
-export interface LabelPriceComparison {
-  labelId: string;
+// ============================================================================
+// FORM MODELS - For create/update operations
+// ============================================================================
+
+/**
+ * Form data for creating/updating labels
+ * Used in: labels-drawer (inline edit)
+ */
+export interface LabelFormData {
+  name: string;
+  type: LabelType;
+  printingType: PrintingType;
+  material: LabelMaterialType;
+  shape: ShapeType;
+  size?: string;
+  notes?: string;
+}
+
+/**
+ * Form data for creating/updating supplier labels
+ * Used in: supplier-labels-dialog (add/edit dialog)
+ */
+export interface SupplierLabelFormData {
+  supplierId: string;
+  labelId?: string; // undefined = create new label
   labelName: string;
   labelType: LabelType;
   printingType: PrintingType;
-  alternatives: SupplierLabelCard[];
-  cheapest: SupplierLabelCard;
-  mostExpensive: SupplierLabelCard;
-  savings: number;
-  savingsPercentage: number;
-  averagePrice: number;
+  material: LabelMaterialType;
+  shape: ShapeType;
+  size?: string;
+  bulkPrice: number;
+  quantityForBulkPrice: number;
+  unit: string;
+  tax: number;
+  moq: number;
+  leadTime: number;
+  transportationCost?: number;
+  bulkDiscounts?: BulkDiscount[];
+  notes?: string;
 }
 
-export interface SupplierLabelPerformance {
-  supplierId: string;
-  supplierName: string;
-  supplierRating: number;
-  labelCount: number;
-  avgPrice: number;
-  avgLeadTime: number;
-  inStockCount: number;
-  limitedCount: number;
-  outOfStockCount: number;
-  availabilityScore: number;
+/**
+ * Form validation errors
+ */
+export interface LabelFormErrors {
+  name?: string;
+  type?: string;
+  printingType?: string;
+  material?: string;
+  shape?: string;
+  supplierId?: string;
+  labelName?: string;
+  bulkPrice?: string;
+  quantityForBulkPrice?: string;
+  unit?: string;
+  tax?: string;
+  moq?: string;
+  leadTime?: string;
 }
 
 // ============================================================================
-// IMPORTS (from shared-types)
+// FILTER MODELS
 // ============================================================================
 
-import type { BaseEntity, BulkDiscount } from "./shared-types";
+export interface LabelFilters {
+  searchTerm?: string;
+  type?: LabelType;
+  printingType?: PrintingType;
+  material?: LabelMaterialType;
+  supplierId?: string;
+  priceRange?: { min?: number; max?: number };
+}
+
+// ============================================================================
+// INTERNAL HOOK DATA - Not exported, used only within hooks
+// ============================================================================
+
+/**
+ * Base data structure for core data hook
+ * Internal use only - components should not import this
+ */
+export interface LabelsBaseData {
+  labels: Label[];
+  supplierLabels: SupplierLabel[];
+  labelMap: Map<string, Label>;
+  supplierLabelMap: Map<string, SupplierLabel>;
+  supplierLabelsByLabel: Map<string, SupplierLabel[]>;
+  supplierLabelsBySupplier: Map<string, SupplierLabel[]>;
+  labelsByType: Map<string, Label[]>;
+}

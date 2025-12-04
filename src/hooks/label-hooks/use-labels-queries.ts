@@ -1,38 +1,48 @@
-// src/hooks/label-hooks/use-labels-queries.ts
-
 import { db } from "@/lib/db";
 import type {
-  LabelDetails,
   LabelFilters,
-  LabelsAnalytics,
   LabelPriceComparison,
+  LabelsAnalytics,
+  LabelWithSupplierCount,
   LabelWithSuppliers,
-  SupplierLabelCard,
-  SupplierLabelRow,
+  SupplierLabelForComparison,
+  SupplierLabelTableRow,
 } from "@/types/label-types";
 import { useLiveQuery } from "dexie-react-hooks";
 import { useMemo } from "react";
-import { useLabelsData } from "./use-labels-data";
+import { useLabelsBaseData } from "./use-labels-data";
 
 // ============================================================================
 // LABEL QUERIES
 // ============================================================================
 
 /**
- * Get lightweight label list for tables/dropdowns
- * Returns only essential fields to minimize memory usage
+ * Get labels with supplier info for lists/dropdowns
+ * Returns: id, name, type, printingType, material, shape, supplierCount, suppliers array
  */
-export function useLabelsList() {
-  const data = useLabelsData();
+export function useLabelsWithSupplierCount(): LabelWithSupplierCount[] {
+  const baseData = useLabelsBaseData();
+  const suppliers = useLiveQuery(() => db.suppliers.toArray(), []);
 
   return useMemo(() => {
-    if (!data) return [];
+    if (!baseData || !suppliers) return [];
 
-    return data.labels.map((label) => {
-      const supplierLabels = data.supplierLabelsByLabel.get(label.id) || [];
-      const uniqueSuppliers = new Set(
-        supplierLabels.map((sl) => sl.supplierId)
-      );
+    const supplierMap = new Map(suppliers.map((s) => [s.id, s]));
+
+    return baseData.labels.map((label) => {
+      const supplierLabels = baseData.supplierLabelsByLabel.get(label.id) || [];
+      const supplierCount = new Set(supplierLabels.map((sl) => sl.supplierId))
+        .size;
+
+      // Build suppliers array with details
+      const suppliers = supplierLabels
+        .map((sl) => {
+          const supplier = supplierMap.get(sl.supplierId);
+          return supplier
+            ? { id: supplier.id, name: supplier.name, rating: supplier.rating }
+            : null;
+        })
+        .filter(Boolean) as Array<{ id: string; name: string; rating: number }>;
 
       return {
         id: label.id,
@@ -41,109 +51,30 @@ export function useLabelsList() {
         printingType: label.printingType,
         material: label.material,
         shape: label.shape,
-        supplierCount: uniqueSuppliers.size,
+        supplierCount,
+        suppliers,
+        createdAt: label.createdAt,
         updatedAt: label.updatedAt,
       };
     });
-  }, [data]);
-}
-
-/**
- * Get single label with full details
- */
-export function useLabelDetails(
-  labelId: string | undefined
-): LabelDetails | null {
-  const data = useLabelsData();
-
-  // Also fetch suppliers and inventory data
-  const suppliers = useLiveQuery(() => db.suppliers.toArray(), []);
-  const inventory = useLiveQuery(
-    () => db.inventoryItems.where("itemType").equals("supplierLabel").toArray(),
-    []
-  );
-
-  return useMemo(() => {
-    if (!data || !labelId || !suppliers || !inventory) return null;
-
-    const label = data.labelMap.get(labelId);
-    if (!label) return null;
-
-    const supplierLabels = data.supplierLabelsByLabel.get(labelId) || [];
-
-    // Get unique suppliers with their info
-    const supplierInfoMap = new Map(suppliers.map((s) => [s.id, s]));
-    const uniqueSupplierIds = new Set(
-      supplierLabels.map((sl) => sl.supplierId)
-    );
-
-    const suppliersList = Array.from(uniqueSupplierIds)
-      .map((supplierId) => {
-        const supplier = supplierInfoMap.get(supplierId);
-        return supplier
-          ? {
-              id: supplier.id,
-              name: supplier.name,
-              rating: supplier.rating,
-            }
-          : null;
-      })
-      .filter((s): s is NonNullable<typeof s> => s !== null);
-
-    // Calculate total stock across all supplier labels
-    const inventoryMap = new Map(inventory.map((i) => [i.itemId, i]));
-    let totalStock = 0;
-    let hasLowStock = false;
-    let hasOutOfStock = false;
-
-    supplierLabels.forEach((sl) => {
-      const inv = inventoryMap.get(sl.id);
-      if (inv) {
-        totalStock += inv.currentStock;
-        if (inv.status === "low-stock") hasLowStock = true;
-        if (inv.status === "out-of-stock") hasOutOfStock = true;
-      }
-    });
-
-    const stockStatus = hasOutOfStock
-      ? "out-of-stock"
-      : hasLowStock
-        ? "low-stock"
-        : "in-stock";
-
-    return {
-      id: label.id,
-      name: label.name,
-      type: label.type,
-      printingType: label.printingType,
-      material: label.material,
-      shape: label.shape,
-      size: label.size,
-      labelFor: label.labelFor,
-      notes: label.notes,
-      suppliers: suppliersList,
-      totalStock,
-      stockStatus,
-      createdAt: label.createdAt,
-      updatedAt: label.updatedAt,
-    };
-  }, [data, labelId, suppliers, inventory]);
+  }, [baseData, suppliers]);
 }
 
 /**
  * Get labels with full supplier list (for management drawer)
+ * Used in: labels-drawer (management interface)
  */
 export function useLabelsWithSuppliers(): LabelWithSuppliers[] {
-  const data = useLabelsData();
+  const baseData = useLabelsBaseData();
   const suppliers = useLiveQuery(() => db.suppliers.toArray(), []);
 
   return useMemo(() => {
-    if (!data || !suppliers) return [];
+    if (!baseData || !suppliers) return [];
 
     const supplierMap = new Map(suppliers.map((s) => [s.id, s]));
 
-    return data.labels.map((label) => {
-      const supplierLabels = data.supplierLabelsByLabel.get(label.id) || [];
+    return baseData.labels.map((label) => {
+      const supplierLabels = baseData.supplierLabelsByLabel.get(label.id) || [];
 
       const uniqueSupplierIds = new Set(
         supplierLabels.map((sl) => sl.supplierId)
@@ -170,7 +101,6 @@ export function useLabelsWithSuppliers(): LabelWithSuppliers[] {
         material: label.material,
         shape: label.shape,
         size: label.size,
-        labelFor: label.labelFor,
         notes: label.notes,
         supplierCount: suppliersList.length,
         suppliers: suppliersList,
@@ -178,7 +108,7 @@ export function useLabelsWithSuppliers(): LabelWithSuppliers[] {
         updatedAt: label.updatedAt,
       };
     });
-  }, [data, suppliers]);
+  }, [baseData, suppliers]);
 }
 
 // ============================================================================
@@ -186,158 +116,94 @@ export function useLabelsWithSuppliers(): LabelWithSuppliers[] {
 // ============================================================================
 
 /**
- * Get supplier labels as table rows with joined data
+ * Get supplier labels as table rows (main table)
+ * Returns: All fields needed for labels-table
  */
-export function useSupplierLabelRows(
+export function useSupplierLabelTableRows(
   filters?: LabelFilters
-): SupplierLabelRow[] {
-  const data = useLabelsData();
+): SupplierLabelTableRow[] {
+  const baseData = useLabelsBaseData();
   const suppliers = useLiveQuery(() => db.suppliers.toArray(), []);
-  const inventory = useLiveQuery(() => db.inventoryItems.toArray(), []);
+  const inventory = useLiveQuery(
+    () => db.inventoryItems.where("itemType").equals("supplierLabel").toArray(),
+    []
+  );
 
   return useMemo(() => {
-    if (!data || !suppliers) return [];
+    if (!baseData || !suppliers || !inventory) return [];
 
     const supplierMap = new Map(suppliers.map((s) => [s.id, s]));
-    const inventoryMap = new Map(inventory?.map((i) => [i.itemId, i]) || []);
+    const inventoryMap = new Map(inventory.map((i) => [i.itemId, i]));
 
-    const rows = data.supplierLabels.map((sl) => {
-      const label = sl.labelId ? data.labelMap.get(sl.labelId) : undefined;
+    let rows = baseData.supplierLabels.map((sl) => {
+      const label = sl.labelId ? baseData.labelMap.get(sl.labelId) : undefined;
       const supplier = supplierMap.get(sl.supplierId);
       const inventoryItem = inventoryMap.get(sl.id);
-
-      const priceWithTax = sl.unitPrice * (1 + (sl.tax || 0) / 100);
+      const priceWithTax = sl.unitPrice * (1 + sl.tax / 100);
 
       return {
         id: sl.id,
         labelId: sl.labelId || "",
+        supplierId: sl.supplierId,
         labelName: label?.name || "Unknown",
         labelType: label?.type || "other",
         printingType: label?.printingType || "bw",
         material: label?.material || "paper",
         shape: label?.shape || "rectangular",
-        supplierId: sl.supplierId,
         supplierName: supplier?.name || "Unknown",
         supplierRating: supplier?.rating || 0,
-        size: label?.size,
-        labelFor: label?.labelFor,
         unitPrice: sl.unitPrice,
         priceWithTax,
         bulkPrice: sl.bulkPrice,
         quantityForBulkPrice: sl.quantityForBulkPrice,
+        tax: sl.tax,
         unit: sl.unit,
-        tax: sl.tax || 0,
         moq: sl.moq || 0,
         leadTime: sl.leadTime,
-        transportationCost: sl.transportationCost,
-        notes: sl.notes,
         currentStock: inventoryItem?.currentStock || 0,
-        stockStatus:
-          (inventoryItem?.status as
-            | "in-stock"
-            | "low-stock"
-            | "out-of-stock") || "out-of-stock",
+        stockStatus: inventoryItem?.status || "Unknown",
+        transportationCost: sl.transportationCost,
+        size: label?.size,
+        notes: sl.notes,
         createdAt: sl.createdAt,
         updatedAt: sl.updatedAt,
       };
     });
 
-    // Apply filters if provided
-    if (!filters) return rows;
-
-    return rows.filter((row) => {
+    // Apply filters
+    if (filters) {
       if (filters.searchTerm) {
         const search = filters.searchTerm.toLowerCase();
-        const matchesSearch =
-          row.labelName.toLowerCase().includes(search) ||
-          row.supplierName.toLowerCase().includes(search);
-        if (!matchesSearch) return false;
+        rows = rows.filter(
+          (r) =>
+            r.labelName.toLowerCase().includes(search) ||
+            r.supplierName.toLowerCase().includes(search)
+        );
       }
-
-      if (filters.type && row.labelType !== filters.type) {
-        return false;
+      if (filters.type) {
+        rows = rows.filter((r) => r.labelType === filters.type);
       }
-
-      if (filters.printingType && row.printingType !== filters.printingType) {
-        return false;
+      if (filters.printingType) {
+        rows = rows.filter((r) => r.printingType === filters.printingType);
       }
-
-      if (filters.material && row.material !== filters.material) {
-        return false;
+      if (filters.material) {
+        rows = rows.filter((r) => r.material === filters.material);
       }
-
-      if (filters.supplierId && row.supplierId !== filters.supplierId) {
-        return false;
+      if (filters.supplierId) {
+        rows = rows.filter((r) => r.supplierId === filters.supplierId);
       }
-
       if (filters.priceRange) {
-        if (filters.priceRange.min && row.unitPrice < filters.priceRange.min) {
-          return false;
+        if (filters.priceRange.min) {
+          rows = rows.filter((r) => r.unitPrice >= filters.priceRange!.min!);
         }
-        if (filters.priceRange.max && row.unitPrice > filters.priceRange.max) {
-          return false;
+        if (filters.priceRange.max) {
+          rows = rows.filter((r) => r.unitPrice <= filters.priceRange!.max!);
         }
       }
+    }
 
-      if (filters.stockStatus && row.stockStatus !== filters.stockStatus) {
-        return false;
-      }
-
-      return true;
-    });
-  }, [data, suppliers, inventory, filters]);
-}
-
-/**
- * Get supplier labels as cards for grid view
- */
-export function useSupplierLabelCards(): SupplierLabelCard[] {
-  const rows = useSupplierLabelRows();
-
-  return useMemo(() => {
-    // Group by label to identify best prices
-    const byLabel = new Map<string, SupplierLabelRow[]>();
-    rows.forEach((row) => {
-      const existing = byLabel.get(row.labelName) || [];
-      existing.push(row);
-      byLabel.set(row.labelName, existing);
-    });
-
-    return rows.map((row) => {
-      const alternatives = byLabel.get(row.labelName) || [];
-      const sorted = [...alternatives].sort(
-        (a, b) => a.unitPrice - b.unitPrice
-      );
-      const cheapest = sorted[0];
-      const mostExpensive = sorted[sorted.length - 1];
-
-      const isBestPrice = row.id === cheapest?.id;
-      const savings =
-        alternatives.length > 1 ? mostExpensive.unitPrice - row.unitPrice : 0;
-
-      return {
-        id: row.id,
-        labelName: row.labelName,
-        labelType: row.labelType,
-        printingType: row.printingType,
-        material: row.material,
-        shape: row.shape,
-        size: row.size,
-        labelFor: row.labelFor,
-        supplierName: row.supplierName,
-        supplierRating: row.supplierRating,
-        unitPrice: row.unitPrice,
-        priceWithTax: row.priceWithTax,
-        unit: row.unit,
-        moq: row.moq,
-        leadTime: row.leadTime,
-        isBestPrice,
-        savings: savings > 0 ? savings : undefined,
-        currentStock: row.currentStock,
-        stockStatus: row.stockStatus,
-      };
-    });
-  }, [rows]);
+    return rows;
+  }, [baseData, suppliers, inventory, filters]);
 }
 
 /**
@@ -345,27 +211,12 @@ export function useSupplierLabelCards(): SupplierLabelCard[] {
  */
 export function useSupplierLabelsBySupplier(
   supplierId: string | undefined
-): SupplierLabelRow[] {
-  const allRows = useSupplierLabelRows();
-
+): SupplierLabelTableRow[] {
+  const allRows = useSupplierLabelTableRows();
   return useMemo(() => {
     if (!supplierId) return [];
     return allRows.filter((row) => row.supplierId === supplierId);
   }, [allRows, supplierId]);
-}
-
-/**
- * Get supplier labels by label ID
- */
-export function useSupplierLabelsByLabel(
-  labelId: string | undefined
-): SupplierLabelRow[] {
-  const allRows = useSupplierLabelRows();
-
-  return useMemo(() => {
-    if (!labelId) return [];
-    return allRows.filter((row) => row.labelId === labelId);
-  }, [allRows, labelId]);
 }
 
 // ============================================================================
@@ -373,36 +224,73 @@ export function useSupplierLabelsByLabel(
 // ============================================================================
 
 /**
- * Calculate price comparison data grouped by label
+ * Get price comparison data grouped by label
+ * Returns: Labels with multiple suppliers for comparison
  */
 export function useLabelPriceComparison(): LabelPriceComparison[] {
-  const cards = useSupplierLabelCards();
+  const baseData = useLabelsBaseData();
+  const suppliers = useLiveQuery(() => db.suppliers.toArray(), []);
+  const inventory = useLiveQuery(
+    () => db.inventoryItems.where("itemType").equals("supplierLabel").toArray(),
+    []
+  );
 
   return useMemo(() => {
-    // Group by label
-    const byLabel = new Map<string, SupplierLabelCard[]>();
-    cards.forEach((card) => {
-      const existing = byLabel.get(card.labelName) || [];
-      existing.push(card);
-      byLabel.set(card.labelName, existing);
+    if (!baseData || !suppliers || !inventory) return [];
+
+    const supplierMap = new Map(suppliers.map((s) => [s.id, s]));
+    const inventoryMap = new Map(inventory.map((i) => [i.itemId, i]));
+
+    // Group supplier labels by label
+    const byLabel = new Map<string, SupplierLabelForComparison[]>();
+
+    baseData.supplierLabels.forEach((sl) => {
+      const label = sl.labelId ? baseData.labelMap.get(sl.labelId) : undefined;
+      const supplier = supplierMap.get(sl.supplierId);
+      if (!label || !supplier) return;
+
+      const inventoryItem = inventoryMap.get(sl.id);
+      const priceWithTax = sl.unitPrice * (1 + sl.tax / 100);
+
+      const comparison: SupplierLabelForComparison = {
+        id: sl.id,
+        supplierId: sl.supplierId,
+        supplierName: supplier.name,
+        supplierRating: supplier.rating,
+        unitPrice: sl.unitPrice,
+        priceWithTax,
+        unit: sl.unit,
+        moq: sl.moq || 0,
+        leadTime: sl.leadTime,
+        currentStock: inventoryItem?.currentStock || 0,
+      };
+
+      const existing = byLabel.get(label.name) || [];
+      existing.push(comparison);
+      byLabel.set(label.name, existing);
     });
 
-    // Only include labels with multiple suppliers
+    // Only include labels with 2+ suppliers
     return Array.from(byLabel.entries())
-      .filter(([, items]) => items.length >= 2)
-      .map(([labelName, items]) => {
-        const sorted = [...items].sort((a, b) => a.unitPrice - b.unitPrice);
+      .filter(([, alternatives]) => alternatives.length >= 2)
+      .map(([labelName, alternatives]) => {
+        const sorted = [...alternatives].sort(
+          (a, b) => a.unitPrice - b.unitPrice
+        );
         const cheapest = sorted[0];
         const mostExpensive = sorted[sorted.length - 1];
         const savings = mostExpensive.unitPrice - cheapest.unitPrice;
         const averagePrice =
-          items.reduce((sum, item) => sum + item.unitPrice, 0) / items.length;
+          alternatives.reduce((sum, a) => sum + a.unitPrice, 0) /
+          alternatives.length;
+
+        const label = baseData.labels.find((l) => l.name === labelName)!;
 
         return {
-          labelId: cheapest.id,
+          labelId: label.id,
           labelName,
-          labelType: cheapest.labelType,
-          printingType: cheapest.printingType,
+          labelType: label.type,
+          printingType: label.printingType,
           alternatives: sorted,
           cheapest,
           mostExpensive,
@@ -412,63 +300,74 @@ export function useLabelPriceComparison(): LabelPriceComparison[] {
         };
       })
       .sort((a, b) => b.savings - a.savings);
-  }, [cards]);
+  }, [baseData, suppliers, inventory]);
 }
 
 /**
- * Calculate labels analytics
+ * Get analytics data for dashboard
  */
 export function useLabelsAnalytics(): LabelsAnalytics {
-  const rows = useSupplierLabelRows();
-  const data = useLabelsData();
+  const baseData = useLabelsBaseData();
+  const inventory = useLiveQuery(
+    () => db.inventoryItems.where("itemType").equals("supplierLabel").toArray(),
+    []
+  );
 
   return useMemo(() => {
-    if (rows.length === 0 || !data) {
+    if (!baseData || !inventory) {
       return {
         totalLabels: 0,
         avgPrice: 0,
         avgTax: 0,
         highestPrice: 0,
         stockAlerts: 0,
-        costEfficiency: 0,
         typeDistribution: [],
         printingTypeDistribution: [],
         priceRanges: [],
-        stockStatusDistribution: [],
       };
     }
 
-    const totalLabels = rows.length;
+    const totalLabels = baseData.supplierLabels.length;
+    if (totalLabels === 0) {
+      return {
+        totalLabels: 0,
+        avgPrice: 0,
+        avgTax: 0,
+        highestPrice: 0,
+        stockAlerts: 0,
+        typeDistribution: [],
+        printingTypeDistribution: [],
+        priceRanges: [],
+      };
+    }
+
     const avgPrice =
-      rows.reduce((sum, r) => sum + r.unitPrice, 0) / totalLabels;
-    const avgTax = rows.reduce((sum, r) => sum + r.tax, 0) / totalLabels;
-    const highestPrice = Math.max(...rows.map((r) => r.unitPrice));
+      baseData.supplierLabels.reduce((sum, sl) => sum + sl.unitPrice, 0) /
+      totalLabels;
+    const avgTax =
+      baseData.supplierLabels.reduce((sum, sl) => sum + sl.tax, 0) /
+      totalLabels;
+    const highestPrice = Math.max(
+      ...baseData.supplierLabels.map((sl) => sl.unitPrice)
+    );
 
-    // Stock alerts - count items with low-stock or out-of-stock status
-    const stockAlerts = rows.filter(
-      (r) => r.stockStatus === "low-stock" || r.stockStatus === "out-of-stock"
+    const stockAlerts = inventory.filter(
+      (item) => item.status === "low-stock" || item.status === "out-of-stock"
     ).length;
-
-    // Cost efficiency (labels with bulk discounts)
-    const withBulkDiscounts = data.supplierLabels.filter(
-      (sl) => sl.bulkDiscounts && sl.bulkDiscounts.length > 0
-    ).length;
-    const costEfficiency =
-      totalLabels > 0 ? (withBulkDiscounts / totalLabels) * 100 : 0;
 
     // Type distribution
-    const typeCount = new Map<string, { count: number; totalPrice: number }>();
-    rows.forEach((r) => {
-      const existing = typeCount.get(r.labelType) || {
-        count: 0,
-        totalPrice: 0,
-      };
-      existing.count++;
-      existing.totalPrice += r.unitPrice;
-      typeCount.set(r.labelType, existing);
+    const typeStats = new Map<string, { count: number; totalPrice: number }>();
+    baseData.supplierLabels.forEach((sl) => {
+      const label = sl.labelId ? baseData.labelMap.get(sl.labelId) : undefined;
+      if (!label) return;
+
+      const stats = typeStats.get(label.type) || { count: 0, totalPrice: 0 };
+      stats.count++;
+      stats.totalPrice += sl.unitPrice;
+      typeStats.set(label.type, stats);
     });
 
-    const typeDistribution = Array.from(typeCount.entries())
+    const typeDistribution = Array.from(typeStats.entries())
       .map(([type, stats]) => ({
         type: type as any,
         count: stats.count,
@@ -478,21 +377,24 @@ export function useLabelsAnalytics(): LabelsAnalytics {
       .sort((a, b) => b.count - a.count);
 
     // Printing type distribution
-    const printingTypeCount = new Map<
+    const printingTypeStats = new Map<
       string,
       { count: number; totalPrice: number }
     >();
-    rows.forEach((r) => {
-      const existing = printingTypeCount.get(r.printingType) || {
+    baseData.supplierLabels.forEach((sl) => {
+      const label = sl.labelId ? baseData.labelMap.get(sl.labelId) : undefined;
+      if (!label) return;
+
+      const stats = printingTypeStats.get(label.printingType) || {
         count: 0,
         totalPrice: 0,
       };
-      existing.count++;
-      existing.totalPrice += r.unitPrice;
-      printingTypeCount.set(r.printingType, existing);
+      stats.count++;
+      stats.totalPrice += sl.unitPrice;
+      printingTypeStats.set(label.printingType, stats);
     });
 
-    const printingTypeDistribution = Array.from(printingTypeCount.entries())
+    const printingTypeDistribution = Array.from(printingTypeStats.entries())
       .map(([printingType, stats]) => ({
         printingType: printingType as any,
         count: stats.count,
@@ -503,45 +405,23 @@ export function useLabelsAnalytics(): LabelsAnalytics {
 
     // Price ranges
     const priceRanges = [
-      {
-        range: "₹0-10",
-        count: rows.filter((r) => r.unitPrice < 10).length,
-        percentage: 0,
-      },
-      {
-        range: "₹10-25",
-        count: rows.filter((r) => r.unitPrice >= 10 && r.unitPrice < 25).length,
-        percentage: 0,
-      },
-      {
-        range: "₹25-50",
-        count: rows.filter((r) => r.unitPrice >= 25 && r.unitPrice < 50).length,
-        percentage: 0,
-      },
-      {
-        range: "₹50+",
-        count: rows.filter((r) => r.unitPrice >= 50).length,
-        percentage: 0,
-      },
-    ].map((range) => ({
+      { range: "₹0-10", count: 0 },
+      { range: "₹10-25", count: 0 },
+      { range: "₹25-50", count: 0 },
+      { range: "₹50+", count: 0 },
+    ];
+
+    baseData.supplierLabels.forEach((sl) => {
+      if (sl.unitPrice < 10) priceRanges[0].count++;
+      else if (sl.unitPrice < 25) priceRanges[1].count++;
+      else if (sl.unitPrice < 50) priceRanges[2].count++;
+      else priceRanges[3].count++;
+    });
+
+    const priceRangesWithPercentage = priceRanges.map((range) => ({
       ...range,
       percentage: (range.count / totalLabels) * 100,
     }));
-
-    // Stock status distribution
-    const stockStatusCount = new Map<string, number>();
-    rows.forEach((r) => {
-      const existing = stockStatusCount.get(r.stockStatus) || 0;
-      stockStatusCount.set(r.stockStatus, existing + 1);
-    });
-
-    const stockStatusDistribution = Array.from(stockStatusCount.entries())
-      .map(([status, count]) => ({
-        status: status as "in-stock" | "low-stock" | "out-of-stock",
-        count,
-        percentage: (count / totalLabels) * 100,
-      }))
-      .sort((a, b) => b.count - a.count);
 
     return {
       totalLabels,
@@ -549,11 +429,9 @@ export function useLabelsAnalytics(): LabelsAnalytics {
       avgTax,
       highestPrice,
       stockAlerts,
-      costEfficiency,
       typeDistribution,
       printingTypeDistribution,
-      priceRanges,
-      stockStatusDistribution,
+      priceRanges: priceRangesWithPercentage,
     };
-  }, [rows, data]);
+  }, [baseData, inventory]);
 }
