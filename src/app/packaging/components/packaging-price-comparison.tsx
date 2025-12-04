@@ -10,13 +10,29 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { SortableTable } from "@/components/ui/sortable-table";
-import { usePackagingPriceComparison } from "@/hooks/use-supplier-packaging";
-import type { SupplierPackagingWithDetails } from "@/types/shared-types";
+import { usePackagingPriceComparison } from "@/hooks/packaging-hooks/use-packaging-queries";
+import type { SupplierPackagingForComparison } from "@/types/packaging-types";
 import { AlertCircle, Star, TrendingDown } from "lucide-react";
+import { useMemo } from "react";
 
 export function PackagingPriceComparison() {
-  // Use the smart hook that groups by packaging automatically
+  // Use the smart hook that includes full supplier data
   const packagingGroups = usePackagingPriceComparison();
+
+  // Convert data for table compatibility
+  const convertedGroups = useMemo(() => {
+    return packagingGroups.map((group) => ({
+      ...group,
+      alternatives: group.alternatives.map((alt) => ({
+        ...alt,
+        displayName: alt.packagingName,
+        displayType: alt.packagingType,
+        displayUnit: "pieces",
+        supplier: { name: alt.supplierName, rating: alt.supplierRating },
+        priceWithTax: alt.priceWithTax,
+      })) as any, // Use any for table compatibility
+    }));
+  }, [packagingGroups]);
 
   // Table columns
   const columns = [
@@ -24,17 +40,19 @@ export function PackagingPriceComparison() {
       key: "supplierName",
       label: "Supplier",
       sortable: true,
-      render: (value: any, row: SupplierPackagingWithDetails) => {
-        const supplier = row.supplier;
-        const alternatives = packagingGroups
-          .find((g) => g.packagingName === row.displayName)
-          ?.alternatives.sort((a, b) => a.unitPrice - b.unitPrice);
+      render: (value: any, row: SupplierPackagingForComparison) => {
+        const alternatives = convertedGroups
+          .find((g) => g.packagingName === row.packagingName)
+          ?.alternatives.sort(
+            (a: { bulkPrice: number }, b: { bulkPrice: number }) =>
+              a.bulkPrice - b.bulkPrice
+          );
         const isCheapest = alternatives?.[0]?.id === row.id;
 
         return (
           <div className="flex items-center gap-2">
             <span className="font-medium text-foreground">
-              {supplier?.name}
+              {row.supplierName}
             </span>
             {isCheapest && (
               <Badge variant="default" className="text-xs">
@@ -47,7 +65,7 @@ export function PackagingPriceComparison() {
       },
     },
     {
-      key: "unitPrice",
+      key: "priceWithTax",
       label: "Price",
       sortable: true,
       render: (value: number) => (
@@ -74,7 +92,7 @@ export function PackagingPriceComparison() {
       ),
     },
     {
-      key: "availability",
+      key: "stockStatus",
       label: "Availability",
       sortable: true,
       render: (value: string) => (
@@ -96,19 +114,18 @@ export function PackagingPriceComparison() {
       key: "rating",
       label: "Supplier Rating",
       sortable: true,
-      render: (value: any, row: SupplierPackagingWithDetails) => {
-        const supplier = row.supplier;
+      render: (value: any, row: SupplierPackagingForComparison) => {
         return (
           <div className="flex items-center gap-1">
             <Star className="h-3 w-3 text-yellow-500 fill-current" />
-            <span className="text-sm font-medium">{supplier?.rating}</span>
+            <span className="text-sm font-medium">{row.supplierRating}</span>
           </div>
         );
       },
     },
   ];
 
-  if (packagingGroups.length === 0) {
+  if (convertedGroups.length === 0) {
     return (
       <Card className="card-enhanced">
         <CardContent className="flex flex-col items-center justify-center py-12">
@@ -133,15 +150,15 @@ export function PackagingPriceComparison() {
       </CardHeader>
       <CardContent>
         <div className="space-y-8">
-          {packagingGroups.map((group) => {
+          {convertedGroups.map((group) => {
             const sortedAlternatives = group.alternatives.sort(
-              (a, b) => a.unitPrice - b.unitPrice
+              (a: any, b: any) => a.bulkPrice - b.bulkPrice
             );
             const cheapest = sortedAlternatives[0];
             const mostExpensive =
               sortedAlternatives[sortedAlternatives.length - 1];
-            const savings = mostExpensive.unitPrice - cheapest.unitPrice;
-            const savingsPercent = (savings / mostExpensive.unitPrice) * 100;
+            const savings = mostExpensive.bulkPrice - cheapest.bulkPrice;
+            const savingsPercent = (savings / mostExpensive.bulkPrice) * 100;
 
             return (
               <div

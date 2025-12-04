@@ -3,6 +3,7 @@
 // ============================================================================
 
 import { SupplierLabelRow } from "./label-types";
+import { SupplierPackagingTableRow } from "./packaging-types";
 
 export interface BaseEntity {
   id: string;
@@ -15,11 +16,11 @@ export interface BulkDiscount {
   discount: number; // percentage
 }
 
+export type CapacityUnit = "kg" | "L" | "ml" | "gm" | "pcs";
+
 // ============================================================================
 // CATEGORIES
 // ============================================================================
-
-export type CapacityUnit = "kg" | "L" | "ml" | "gm" | "pcs";
 
 // ============================================================================
 // SUPPLIERS
@@ -46,66 +47,6 @@ export interface Supplier extends BaseEntity {
     qualityScore: number;
     priceCompetitiveness: number;
   };
-}
-
-// ============================================================================
-// PACKAGING
-// ============================================================================
-export type PackagingType =
-  | "bottle"
-  | "jar"
-  | "can"
-  | "box"
-  | "pouch"
-  | "other";
-export type BuildMaterial =
-  | "PET"
-  | "HDPE"
-  | "Glass"
-  | "Plastic"
-  | "Paper"
-  | "Other";
-
-export interface Packaging extends BaseEntity {
-  name: string;
-  type: PackagingType;
-  capacity: number;
-  unit: CapacityUnit;
-  buildMaterial?: BuildMaterial;
-  notes?: string;
-}
-
-export interface SupplierPackaging extends BaseEntity {
-  supplierId: string;
-  packagingId: string;
-  unitPrice: number;
-  tax?: number;
-  moq?: number;
-  bulkPrice: number; // The actual quoted price
-  quantityForBulkPrice: number;
-  bulkDiscounts?: BulkDiscount[];
-  leadTime?: number;
-  transportationCost?: number;
-  notes?: string;
-}
-
-export interface PackagingWithSuppliers extends Packaging {
-  supplierCount: number;
-  suppliersList: Supplier[];
-}
-
-/**
- * Extended SupplierPackaging with joined data
- */
-export interface SupplierPackagingWithDetails extends SupplierPackaging {
-  packaging?: Packaging;
-  supplier?: Supplier;
-
-  // Computed display fields (always accurate)
-  displayName: string;
-  displayType: string;
-  displayUnit: string;
-  priceWithTax: number;
 }
 
 // ============================================================================
@@ -318,7 +259,7 @@ export interface ProductVariantWithDetails extends ProductVariant {
   recipeVariant?: RecipeVariant;
 
   // Joined packaging info
-  packaging?: SupplierPackagingWithDetails;
+  packaging?: SupplierPackagingTableRow;
   packagingName: string;
   packagingCapacity: number;
   packagingUnit: CapacityUnit;

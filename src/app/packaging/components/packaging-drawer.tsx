@@ -20,18 +20,18 @@ import {
   SheetHeader,
   SheetTitle,
 } from "@/components/ui/sheet";
+import { usePackagingsWithSupplierCount } from "@/hooks/packaging-hooks/use-packaging-queries";
 import { db } from "@/lib/db";
-import { normalizeText } from "@/utils/text-utils";
 import type {
   BuildMaterial,
   CapacityUnit,
   PackagingType,
-  PackagingWithSuppliers,
-} from "@/types/shared-types";
-import { useLiveQuery } from "dexie-react-hooks";
+  PackagingWithSupplierCount,
+} from "@/types/packaging-types";
+import { normalizeText } from "@/utils/text-utils";
 import { AlertCircle, Loader2, Package, Plus } from "lucide-react";
 import { nanoid } from "nanoid";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { toast } from "sonner";
 import { PackagingTable } from "./packaging-table";
 
@@ -58,55 +58,37 @@ export function PackagingDrawer({
   });
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
   const [packagingToDelete, setPackagingToDelete] =
-    useState<PackagingWithSuppliers | null>(null);
+    useState<PackagingWithSupplierCount | null>(null);
   const [loading, setLoading] = useState(false);
   const [isAddingNew, setIsAddingNew] = useState(false);
   const [shakeFields, setShakeFields] = useState(false);
 
   // Fetch packaging with supplier count
-  const packagingWithSuppliers = useLiveQuery(async () => {
-    const [packaging, supplierPackaging, suppliers] = await Promise.all([
-      db.packaging.toArray(),
-      db.supplierPackaging.toArray(),
-      db.suppliers.toArray(),
-    ]);
+  const packagingWithSuppliers = usePackagingsWithSupplierCount();
 
-    const result = packaging.map((pkg) => {
-      const supplierPackList = supplierPackaging.filter(
-        (sp) => sp.packagingId === pkg.id
-      );
-
-      const suppliersList = supplierPackList
-        .map((sm) => suppliers.find((s) => s.id === sm.supplierId))
-        .filter((s): s is (typeof suppliers)[0] => s !== undefined);
-
-      return {
-        ...pkg,
-        supplierCount: supplierPackList.length,
-        suppliersList,
-      };
-    });
-
-    // Add empty row for new packaging if adding
+  // Add placeholder row for new packaging when adding
+  const displayData = useMemo(() => {
     if (isAddingNew) {
-      result.unshift({
+      const newRow: PackagingWithSupplierCount = {
         id: "new",
         name: "",
-        type: "other" as PackagingType,
+        type: "other",
         capacity: 0,
-        unit: "ml" as CapacityUnit,
-        buildMaterial: "Other" as BuildMaterial,
+        unit: "ml",
+        buildMaterial: "Other",
         supplierCount: 0,
-        suppliersList: [],
+        suppliers: [],
         createdAt: new Date().toISOString(),
-      } as PackagingWithSuppliers);
+        updatedAt: undefined,
+      };
+      // Always put the new row at the top
+      return [newRow, ...packagingWithSuppliers];
     }
-
-    return result;
-  }, [isAddingNew]);
+    return packagingWithSuppliers;
+  }, [packagingWithSuppliers, isAddingNew]);
 
   // Start editing
-  const startEdit = (packaging: PackagingWithSuppliers) => {
+  const startEdit = (packaging: PackagingWithSupplierCount) => {
     setEditingPackagingId(packaging.id);
     setEditForm({
       name: packaging.name,
@@ -273,7 +255,7 @@ export function PackagingDrawer({
   };
 
   // Initiate delete
-  const initiateDelete = (packaging: PackagingWithSuppliers) => {
+  const initiateDelete = (packaging: PackagingWithSupplierCount) => {
     setPackagingToDelete(packaging);
     setDeleteConfirmOpen(true);
   };
@@ -406,7 +388,7 @@ export function PackagingDrawer({
 
                 <div className="border rounded-lg overflow-hidden bg-card">
                   <PackagingTable
-                    data={packagingWithSuppliers}
+                    data={displayData}
                     editingPackagingId={editingPackagingId}
                     editForm={editForm}
                     loading={loading}

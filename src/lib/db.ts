@@ -2,8 +2,6 @@
 import Dexie, { Table } from "dexie";
 import type {
   Supplier,
-  Packaging,
-  SupplierPackaging,
   RecipeIngredient,
   Recipe,
   RecipeVariant,
@@ -22,6 +20,7 @@ import type {
   SupplierMaterial,
 } from "@/types/material-types";
 import type { Label, SupplierLabel } from "@/types/label-types";
+import type { Packaging, SupplierPackaging } from "@/types/packaging-types";
 
 import { MATERIAL_CATEGORIES } from "./constants";
 import { SUPPLIERS } from "@/app/suppliers/components/suppliers-constants";

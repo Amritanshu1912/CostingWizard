@@ -13,6 +13,12 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
+import {
   Card,
   CardContent,
   CardDescription,
@@ -28,11 +34,9 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { SortableTable } from "@/components/ui/sortable-table";
-import type {
-  Supplier,
-  SupplierPackagingWithDetails,
-} from "@/types/shared-types";
-import { Edit, Filter, Plus, Search, Trash2 } from "lucide-react";
+import type { SupplierPackagingTableRow } from "@/types/packaging-types";
+import type { Supplier } from "@/types/shared-types";
+import { Edit, Filter, Info, Plus, Search, Trash2 } from "lucide-react";
 import { useMemo, useState } from "react";
 import {
   getBuildMaterialColor,
@@ -41,9 +45,9 @@ import {
 } from "./packaging-constants";
 
 interface SupplierPackagingTableProps {
-  supplierPackaging: SupplierPackagingWithDetails[];
+  supplierPackaging: SupplierPackagingTableRow[];
   suppliers: Supplier[];
-  onEditPackaging: (packaging: SupplierPackagingWithDetails) => void;
+  onEditPackaging: (packaging: SupplierPackagingTableRow) => void;
   onDeletePackaging: (id: string) => void;
   onAddSupplierPackaging: () => void;
 }
@@ -60,25 +64,23 @@ export function SupplierPackagingTable({
   const [selectedSupplier, setSelectedSupplier] = useState("all");
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
   const [packagingToDelete, setPackagingToDelete] =
-    useState<SupplierPackagingWithDetails | null>(null);
+    useState<SupplierPackagingTableRow | null>(null);
 
   // Get unique packaging types from the data
   const packagingTypes = Array.from(
-    new Set(supplierPackaging.map((sp) => sp.displayType))
+    new Set(supplierPackaging.map((sp) => sp.packagingType))
   );
 
   // Filter packaging using enriched data
   const filteredPackaging = useMemo(() => {
     return supplierPackaging.filter((packaging) => {
       const matchesSearch =
-        packaging.displayName
+        packaging.packagingName
           .toLowerCase()
           .includes(searchTerm.toLowerCase()) ||
-        packaging.supplier?.name
-          .toLowerCase()
-          .includes(searchTerm.toLowerCase());
+        packaging.supplierName.toLowerCase().includes(searchTerm.toLowerCase());
       const matchesType =
-        selectedType === "all" || packaging.displayType === selectedType;
+        selectedType === "all" || packaging.packagingType === selectedType;
       const matchesSupplier =
         selectedSupplier === "all" || packaging.supplierId === selectedSupplier;
       return matchesSearch && matchesType && matchesSupplier;
@@ -93,7 +95,7 @@ export function SupplierPackagingTable({
   };
 
   // Initiate delete
-  const initiateDelete = (packaging: SupplierPackagingWithDetails) => {
+  const initiateDelete = (packaging: SupplierPackagingTableRow) => {
     setPackagingToDelete(packaging);
     setDeleteConfirmOpen(true);
   };
@@ -110,7 +112,7 @@ export function SupplierPackagingTable({
   const columns = useMemo(
     () => [
       {
-        key: "displayName",
+        key: "packagingName",
         label: "Packaging Name",
         sortable: true,
         render: (value: string) => (
@@ -118,7 +120,7 @@ export function SupplierPackagingTable({
         ),
       },
       {
-        key: "displayType",
+        key: "packagingType",
         label: "Type",
         sortable: true,
         render: (value: string) => {
@@ -143,9 +145,9 @@ export function SupplierPackagingTable({
         key: "capacity",
         label: "Capacity",
         sortable: true,
-        render: (value: any, row: SupplierPackagingWithDetails) => {
-          const capacity = row.packaging?.capacity;
-          const unit = row.packaging?.unit;
+        render: (value: any, row: SupplierPackagingTableRow) => {
+          const capacity = row.capacity;
+          const unit = row.unit;
           const displayCapacity =
             capacity && unit ? `${capacity} ${unit}` : "—";
           return (
@@ -154,11 +156,11 @@ export function SupplierPackagingTable({
         },
       },
       {
-        key: "packaging.buildMaterial",
+        key: "buildMaterial",
         label: "Build Material",
         sortable: true,
-        render: (value: any, row: SupplierPackagingWithDetails) => {
-          const material = row.packaging?.buildMaterial;
+        render: (value: any, row: SupplierPackagingTableRow) => {
+          const material = row.buildMaterial;
           if (!material)
             return <span className="text-muted-foreground">—</span>;
 
@@ -179,18 +181,18 @@ export function SupplierPackagingTable({
         },
       },
       {
-        key: "supplier.name",
+        key: "supplierName",
         label: "Supplier",
         sortable: true,
-        render: (value: any, row: SupplierPackagingWithDetails) => (
-          <span className="text-foreground">{row.supplier?.name || "—"}</span>
+        render: (value: any, row: SupplierPackagingTableRow) => (
+          <span className="text-foreground">{row.supplierName || "—"}</span>
         ),
       },
       {
         key: "unitPrice",
         label: "Price per Unit",
         sortable: true,
-        render: (value: number, row: SupplierPackagingWithDetails) => {
+        render: (value: number, row: SupplierPackagingTableRow) => {
           const hasBulkPricing =
             row.quantityForBulkPrice && row.quantityForBulkPrice > 1;
 
@@ -229,7 +231,7 @@ export function SupplierPackagingTable({
         key: "priceWithTax",
         label: "Price after Tax",
         sortable: true,
-        render: (value: number, row: SupplierPackagingWithDetails) => {
+        render: (value: number, row: SupplierPackagingTableRow) => {
           return (
             <div className="text-foreground">
               <div className="font-medium">₹{row.priceWithTax.toFixed(2)}</div>
@@ -256,29 +258,41 @@ export function SupplierPackagingTable({
         ),
       },
       {
-        key: "availability",
+        key: "stockStatus",
         label: "Availability",
         sortable: true,
-        render: (value: string) => (
-          <Badge
-            variant={
-              value === "in-stock"
-                ? "default"
-                : value === "limited"
-                  ? "secondary"
-                  : "destructive"
-            }
-            className="text-xs"
-          >
-            {value.replace("-", " ")}
-          </Badge>
+        render: (value: string, row: SupplierPackagingTableRow) => (
+          <div className="flex items-center gap-2">
+            <Badge
+              variant={
+                value === "in-stock"
+                  ? "default"
+                  : value === "limited"
+                    ? "secondary"
+                    : "destructive"
+              }
+              className="text-xs"
+            >
+              {value.replace("-", " ")}
+            </Badge>
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Info className="h-3 w-3 text-muted-foreground hover:text-foreground cursor-help" />
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>Current Stock: {row.currentStock}</p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+          </div>
         ),
       },
       {
         key: "actions",
         label: "Actions",
         sortable: false,
-        render: (_: any, row: SupplierPackagingWithDetails) => (
+        render: (_: any, row: SupplierPackagingTableRow) => (
           <div className="flex space-x-2">
             <Button
               variant="ghost"
@@ -395,8 +409,8 @@ export function SupplierPackagingTable({
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>
-              Delete {packagingToDelete?.displayName} from{" "}
-              {packagingToDelete?.supplier?.name}?
+              Delete {packagingToDelete?.packagingName} from{" "}
+              {packagingToDelete?.supplierName}?
             </AlertDialogTitle>
           </AlertDialogHeader>
           <AlertDialogFooter>

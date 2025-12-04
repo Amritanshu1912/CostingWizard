@@ -29,7 +29,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import type { PackagingWithSuppliers } from "@/types/shared-types";
+import type { PackagingWithSupplierCount } from "@/types/packaging-types";
 import { cn } from "@/utils/shared-utils";
 import { format } from "date-fns";
 import {
@@ -43,7 +43,7 @@ import {
 import { useCallback, useMemo, useState } from "react";
 
 interface PackagingTableProps {
-  data: PackagingWithSuppliers[];
+  data: PackagingWithSupplierCount[];
   editingPackagingId: string | null;
   editForm: {
     name: string;
@@ -55,15 +55,17 @@ interface PackagingTableProps {
   loading: boolean;
   shakeFields?: boolean;
   onEditFormChange: (form: any) => void;
-  onStartEdit: (packaging: PackagingWithSuppliers) => void;
+  onStartEdit: (packaging: PackagingWithSupplierCount) => void;
   onSaveEdit: () => void;
   onCancelEdit: () => void;
-  onInitiateDelete: (packaging: PackagingWithSuppliers) => void;
+  onInitiateDelete: (packaging: PackagingWithSupplierCount) => void;
 }
 
 import {
   BUILD_MATERIAL_LABELS,
   CAPACITY_UNIT_VALUES,
+  getBuildMaterialColor,
+  getPackagingTypeColor,
   getPackagingTypeLabel,
   PACKAGING_TYPE_LABELS,
 } from "./packaging-constants";
@@ -138,7 +140,7 @@ export function PackagingTable({
         key: "name",
         label: "Packaging Name",
         sortable: true,
-        render: (_: any, row: PackagingWithSuppliers) => {
+        render: (_: any, row: PackagingWithSupplierCount) => {
           if (editingPackagingId === row.id) {
             return (
               <Input
@@ -161,7 +163,7 @@ export function PackagingTable({
         key: "type",
         label: "Type",
         sortable: true,
-        render: (_: any, row: PackagingWithSuppliers) => {
+        render: (_: any, row: PackagingWithSupplierCount) => {
           if (editingPackagingId === row.id) {
             return (
               <Popover
@@ -228,9 +230,19 @@ export function PackagingTable({
               </Popover>
             );
           }
+          const displayLabel = getPackagingTypeLabel(row.type);
+          const color = getPackagingTypeColor(row.type);
           return (
-            <Badge variant="secondary" className="text-xs font-medium">
-              {getPackagingTypeLabel(row.type)}
+            <Badge
+              variant="outline"
+              className="text-xs"
+              style={{
+                backgroundColor: color ? color + "30" : undefined,
+                borderColor: color || undefined,
+                color: "#000",
+              }}
+            >
+              {displayLabel}
             </Badge>
           );
         },
@@ -239,7 +251,7 @@ export function PackagingTable({
         key: "buildMaterial",
         label: "Material",
         sortable: true,
-        render: (_: any, row: PackagingWithSuppliers) => {
+        render: (_: any, row: PackagingWithSupplierCount) => {
           if (editingPackagingId === row.id) {
             return (
               <Popover
@@ -322,10 +334,23 @@ export function PackagingTable({
               </Popover>
             );
           }
+          if (!row.buildMaterial) {
+            return <span className="text-muted-foreground">—</span>;
+          }
+
+          const color = getBuildMaterialColor(row.buildMaterial);
           return (
-            <span className="text-sm text-muted-foreground">
-              {row.buildMaterial || "—"}
-            </span>
+            <Badge
+              variant="outline"
+              className="text-xs"
+              style={{
+                backgroundColor: color ? color + "30" : undefined,
+                borderColor: color || undefined,
+                color: "#000",
+              }}
+            >
+              {row.buildMaterial}
+            </Badge>
           );
         },
       },
@@ -333,7 +358,7 @@ export function PackagingTable({
         key: "capacity",
         label: "Capacity",
         sortable: true,
-        render: (_: any, row: PackagingWithSuppliers) => {
+        render: (_: any, row: PackagingWithSupplierCount) => {
           if (editingPackagingId === row.id) {
             return (
               <div className="flex gap-1.5">
@@ -391,7 +416,7 @@ export function PackagingTable({
         key: "supplierCount",
         label: "# Suppliers",
         sortable: true,
-        render: (_: any, row: PackagingWithSuppliers) => {
+        render: (_: any, row: PackagingWithSupplierCount) => {
           if (row.supplierCount === 0) {
             return <span className="text-sm text-muted-foreground">—</span>;
           }
@@ -412,7 +437,7 @@ export function PackagingTable({
                       Linked Suppliers ({row.supplierCount})
                     </div>
                     <div className="space-y-1">
-                      {row.suppliersList.map((s, index) => (
+                      {row.suppliers.map((s, index) => (
                         <div key={`${s.id}-${index}`} className="text-white">
                           • {s.name}
                         </div>
@@ -429,7 +454,7 @@ export function PackagingTable({
         key: "updatedAt",
         label: "Last Updated",
         sortable: true,
-        render: (_: any, row: PackagingWithSuppliers) => {
+        render: (_: any, row: PackagingWithSupplierCount) => {
           const displayDate = row.updatedAt || row.createdAt;
           return (
             <span className="text-sm text-muted-foreground">
@@ -442,7 +467,7 @@ export function PackagingTable({
         key: "actions",
         label: "",
         sortable: false,
-        render: (_: any, row: PackagingWithSuppliers) => {
+        render: (_: any, row: PackagingWithSupplierCount) => {
           if (editingPackagingId === row.id) {
             return (
               <div className="flex gap-2 justify-end">
@@ -537,10 +562,16 @@ export function PackagingTable({
     ]
   );
 
+  // Disable sorting when adding new item to keep it at the top
+  const disableSorting = editingPackagingId === "new";
+
   return (
     <SortableTable
       data={data}
-      columns={columns}
+      columns={columns.map((col) => ({
+        ...col,
+        sortable: disableSorting ? false : col.sortable,
+      }))}
       className="table-enhanced"
       showSerialNumber={true}
     />
