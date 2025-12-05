@@ -126,49 +126,35 @@ export function useSupplierPackagingMutations() {
           // Step 1: Get or create packaging
           let packagingId: string;
 
-          if (data.packagingId) {
-            // Using existing packaging
-            packagingId = data.packagingId;
+          // Check if packaging with exact combination already exists
+          // Business rule: each unique combination of (name + type + material + capacity + unit) is separate
+          const existingPackaging = await db.packaging
+            .filter(
+              (p) =>
+                normalizeText(p.name) === normalizeText(data.packagingName) &&
+                p.type === data.packagingType &&
+                p.capacity === data.capacity &&
+                p.unit === data.unit &&
+                p.buildMaterial === data.buildMaterial
+            )
+            .first();
+
+          if (existingPackaging) {
+            // Use existing packaging with exact match
+            packagingId = existingPackaging.id;
           } else {
-            // Check if packaging with this name already exists
-            const normalized = normalizeText(data.packagingName);
-            const existingPackaging = await db.packaging
-              .filter((p) => normalizeText(p.name) === normalized)
-              .first();
-
-            if (existingPackaging) {
-              packagingId = existingPackaging.id;
-
-              // Update packaging details if they differ
-              const needsUpdate =
-                existingPackaging.type !== data.packagingType ||
-                existingPackaging.capacity !== data.capacity ||
-                existingPackaging.unit !== data.unit ||
-                existingPackaging.buildMaterial !== data.buildMaterial;
-
-              if (needsUpdate) {
-                await db.packaging.update(existingPackaging.id, {
-                  type: data.packagingType!,
-                  capacity: data.capacity,
-                  unit: data.unit,
-                  buildMaterial: data.buildMaterial,
-                  updatedAt: now,
-                });
-              }
-            } else {
-              // Create new packaging
-              packagingId = nanoid();
-              await db.packaging.add({
-                id: packagingId,
-                name: data.packagingName.trim(),
-                type: data.packagingType!,
-                capacity: data.capacity,
-                unit: data.unit,
-                buildMaterial: data.buildMaterial,
-                notes: data.notes?.trim(),
-                createdAt: now,
-              });
-            }
+            // Create new packaging - no exact match found
+            packagingId = nanoid();
+            await db.packaging.add({
+              id: packagingId,
+              name: data.packagingName.trim(),
+              type: data.packagingType!,
+              capacity: data.capacity,
+              unit: data.unit,
+              buildMaterial: data.buildMaterial,
+              notes: data.notes?.trim(),
+              createdAt: now,
+            });
           }
 
           // Step 3: Create supplier packaging
@@ -213,7 +199,7 @@ export function useSupplierPackagingMutations() {
             throw new Error("Supplier packaging not found");
           }
 
-          // Handle packaging updates
+          // Handle packaging changes - use combination logic like createSupplierPackaging
           if (
             data.packagingName ||
             data.packagingType ||
@@ -221,42 +207,56 @@ export function useSupplierPackagingMutations() {
             data.unit ||
             data.buildMaterial
           ) {
-            const packaging = await db.packaging.get(
-              supplierPackaging.packagingId
-            );
-            if (!packaging) {
-              throw new Error("Packaging not found");
+            // Ensure required fields are present for combination check
+            if (
+              !data.packagingName ||
+              !data.packagingType ||
+              data.capacity === undefined ||
+              !data.unit ||
+              data.buildMaterial === undefined
+            ) {
+              throw new Error(
+                "All packaging properties are required for updates"
+              );
             }
 
-            // Update packaging name if changed
-            if (data.packagingName) {
-              const normalized = normalizeText(data.packagingName);
-              const duplicate = await db.packaging
-                .filter(
-                  (p) =>
-                    p.id !== packaging.id &&
-                    normalizeText(p.name) === normalized
-                )
-                .first();
+            // Check if the new packaging combination already exists
+            // Business rule: each unique combination is separate
+            const existingPackaging = await db.packaging
+              .filter(
+                (p) =>
+                  normalizeText(p.name) ===
+                    normalizeText(data.packagingName!) &&
+                  p.type === data.packagingType &&
+                  p.capacity === data.capacity &&
+                  p.unit === data.unit &&
+                  p.buildMaterial === data.buildMaterial
+              )
+              .first();
 
-              if (duplicate) {
-                throw new Error(`Packaging "${duplicate.name}" already exists`);
-              }
+            let newPackagingId: string;
 
-              await db.packaging.update(packaging.id, {
+            if (existingPackaging) {
+              // Use existing packaging with exact match
+              newPackagingId = existingPackaging.id;
+            } else {
+              // Create new packaging - no exact match found
+              newPackagingId = nanoid();
+              await db.packaging.add({
+                id: newPackagingId,
                 name: data.packagingName.trim(),
-                updatedAt: now,
+                type: data.packagingType,
+                capacity: data.capacity,
+                unit: data.unit,
+                buildMaterial: data.buildMaterial,
+                notes: data.notes?.trim(),
+                createdAt: now,
               });
             }
 
-            // Update other packaging properties
-            await db.packaging.update(packaging.id, {
-              ...(data.packagingType && { type: data.packagingType }),
-              ...(data.capacity !== undefined && { capacity: data.capacity }),
-              ...(data.unit && { unit: data.unit }),
-              ...(data.buildMaterial !== undefined && {
-                buildMaterial: data.buildMaterial,
-              }),
+            // Update supplier packaging to reference the new/correct packaging
+            await db.supplierPackaging.update(id, {
+              packagingId: newPackagingId,
               updatedAt: now,
             });
           }

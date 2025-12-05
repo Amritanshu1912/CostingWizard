@@ -199,7 +199,7 @@ export function SupplierPackagingTable({
           return (
             <div className="text-foreground">
               {/* Main unit price */}
-              <div className="font-medium">₹{value.toFixed(2)}</div>
+              <div className="font-medium">₹{(value ?? 0).toFixed(2)}</div>
 
               {/* Bulk pricing info */}
               {hasBulkPricing && row.bulkPrice && (
@@ -259,32 +259,47 @@ export function SupplierPackagingTable({
       },
       {
         key: "stockStatus",
-        label: "Availability",
+        label: "Inventory Status",
         sortable: true,
         render: (value: string, row: SupplierPackagingTableRow) => (
           <div className="flex items-center gap-2">
             <Badge
               variant={
-                value === "in-stock"
+                row.stockStatus === "in-stock" ||
+                row.stockStatus === "overstock"
                   ? "default"
-                  : value === "limited"
+                  : row.stockStatus === "low-stock"
                     ? "secondary"
-                    : "destructive"
+                    : row.stockStatus === "out-of-stock"
+                      ? "destructive"
+                      : "outline"
               }
               className="text-xs"
             >
-              {value.replace("-", " ")}
+              {row.stockStatus === "in-stock"
+                ? "In Stock"
+                : row.stockStatus === "low-stock"
+                  ? "Low Stock"
+                  : row.stockStatus === "out-of-stock"
+                    ? "Out of Stock"
+                    : row.stockStatus === "overstock"
+                      ? "Over Stock"
+                      : "Not Tracked"}
             </Badge>
-            <TooltipProvider>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Info className="h-3 w-3 text-muted-foreground hover:text-foreground cursor-help" />
-                </TooltipTrigger>
-                <TooltipContent>
-                  <p>Current Stock: {row.currentStock}</p>
-                </TooltipContent>
-              </Tooltip>
-            </TooltipProvider>
+            {row.currentStock > 0 && (
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Info className="h-3 w-3 text-muted-foreground hover:text-foreground cursor-help" />
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>
+                      {row.currentStock} {row.packagingType}s in stock
+                    </p>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+            )}
           </div>
         ),
       },

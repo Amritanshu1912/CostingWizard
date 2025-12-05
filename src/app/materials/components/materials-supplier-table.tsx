@@ -31,7 +31,6 @@ import {
 import { SortableTable } from "@/components/ui/sortable-table";
 import { Edit, Filter, Info, Plus, Search, Trash2 } from "lucide-react";
 import { useMemo, useState } from "react";
-import { useInventoryItems } from "@/hooks/use-inventory";
 import {
   Tooltip,
   TooltipContent,
@@ -70,12 +69,6 @@ export function SupplierMaterialsTable({
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
   const [itemToDelete, setItemToDelete] =
     useState<SupplierMaterialTableRow | null>(null);
-
-  const inventoryItems = useInventoryItems();
-  const inventoryMap = useMemo(() => {
-    if (!inventoryItems) return new Map();
-    return new Map(inventoryItems.map((item) => [item.itemId, item]));
-  }, [inventoryItems]);
 
   // ============================================================================
   // COMPUTED VALUES
@@ -244,53 +237,50 @@ export function SupplierMaterialsTable({
         ),
       },
       {
-        key: "availability",
+        key: "stockStatus",
         label: "Inventory Status",
         sortable: true,
-        render: (_: any, row: SupplierMaterialTableRow) => {
-          const inventoryItem = inventoryMap.get(row.id);
-          const status = inventoryItem?.status ?? "not-tracked";
-          const currentStock = inventoryItem?.currentStock ?? 0;
-
-          return (
-            <div className="flex items-center gap-2">
-              <Badge
-                variant={
-                  status === "in-stock"
-                    ? "default"
-                    : status === "low-stock"
-                      ? "secondary"
-                      : status === "out-of-stock"
-                        ? "destructive"
-                        : "outline"
-                }
-                className="text-xs"
-              >
-                {status === "in-stock"
-                  ? "In Stock"
-                  : status === "low-stock"
-                    ? "Low Stock"
-                    : status === "out-of-stock"
-                      ? "Out of Stock"
+        render: (_: any, row: SupplierMaterialTableRow) => (
+          <div className="flex items-center gap-2">
+            <Badge
+              variant={
+                row.stockStatus === "in-stock" ||
+                row.stockStatus === "overstock"
+                  ? "default"
+                  : row.stockStatus === "low-stock"
+                    ? "secondary"
+                    : row.stockStatus === "out-of-stock"
+                      ? "destructive"
+                      : "outline"
+              }
+              className="text-xs"
+            >
+              {row.stockStatus === "in-stock"
+                ? "In Stock"
+                : row.stockStatus === "low-stock"
+                  ? "Low Stock"
+                  : row.stockStatus === "out-of-stock"
+                    ? "Out of Stock"
+                    : row.stockStatus === "overstock"
+                      ? "Over Stock"
                       : "Not Tracked"}
-              </Badge>
-              {inventoryItem && (
-                <TooltipProvider>
-                  <Tooltip>
-                    <TooltipTrigger>
-                      <Info className="h-4 w-4 text-muted-foreground" />
-                    </TooltipTrigger>
-                    <TooltipContent>
-                      <p>
-                        {currentStock} {row.unit} in stock
-                      </p>
-                    </TooltipContent>
-                  </Tooltip>
-                </TooltipProvider>
-              )}
-            </div>
-          );
-        },
+            </Badge>
+            {row.currentStock > 0 && (
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger>
+                    <Info className="h-4 w-4 text-muted-foreground" />
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>
+                      {row.currentStock} {row.unit} in stock
+                    </p>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+            )}
+          </div>
+        ),
       },
       {
         key: "actions",
@@ -320,7 +310,7 @@ export function SupplierMaterialsTable({
         ),
       },
     ],
-    [onEdit, inventoryMap]
+    [onEdit]
   );
 
   // ============================================================================

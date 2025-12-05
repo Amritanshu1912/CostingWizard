@@ -90,6 +90,9 @@ export function SupplierPackagingDialog({
   const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [packagingAutoFilled, setPackagingAutoFilled] = useState(false);
+  const [originalPackaging, setOriginalPackaging] = useState<Packaging | null>(
+    null
+  );
 
   // Duplicate check for packaging
   const {
@@ -165,6 +168,34 @@ export function SupplierPackagingDialog({
     setPackaging((prev) => ({ ...prev, unitPrice: calculatedUnitPrice }));
   }, [calculatedUnitPrice, setPackaging]);
 
+  // Check if key properties changed from original packaging
+  useEffect(() => {
+    if (originalPackaging && packagingAutoFilled) {
+      const hasChanged =
+        packaging.packagingType !== originalPackaging.type ||
+        packaging.capacity !== originalPackaging.capacity ||
+        packaging.unit !== originalPackaging.unit ||
+        packaging.buildMaterial !== originalPackaging.buildMaterial;
+
+      if (hasChanged) {
+        // If key properties changed, clear packagingId to force new packaging creation
+        setPackaging((prev) => ({
+          ...prev,
+          packagingId: "",
+        }));
+      }
+    }
+  }, [
+    packaging.packagingType,
+    packaging.capacity,
+    packaging.unit,
+    packaging.buildMaterial,
+    originalPackaging,
+    packagingAutoFilled,
+    packaging.packagingId,
+    setPackaging,
+  ]);
+
   // Handle packaging selection
   const handleSelectPackaging = (selectedPackaging: Packaging) => {
     setPackaging({
@@ -178,6 +209,7 @@ export function SupplierPackagingDialog({
     });
     setPackagingSearch(selectedPackaging.name);
     setPackagingAutoFilled(true);
+    setOriginalPackaging(selectedPackaging); // Track original packaging for change detection
     clearPackagingWarning();
     setOpenPackagingCombobox(false);
   };
@@ -201,6 +233,7 @@ export function SupplierPackagingDialog({
   const handlePackagingSearchChange = (value: string) => {
     setPackagingSearch(value);
     setPackagingAutoFilled(false);
+    setOriginalPackaging(null); // Clear original packaging when user types manually
     // Reset isNewPackaging when user starts typing manually
     if (isEditing) {
       setIsNewPackaging(false);
@@ -579,7 +612,7 @@ export function SupplierPackagingDialog({
                 <Label className="text-sm font-medium">Capacity</Label>
                 <Input
                   type="number"
-                  step="0.01"
+                  step="1"
                   min="0"
                   value={packaging.capacity || ""}
                   onChange={(e) =>

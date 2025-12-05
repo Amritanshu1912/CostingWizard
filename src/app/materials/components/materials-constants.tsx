@@ -16,7 +16,6 @@ export const DEFAULT_MATERIAL_FORM = {
   tax: 0,
   bulkDiscounts: [],
   leadTime: 7,
-  availability: "in-stock" as const,
   notes: "",
 };
 
