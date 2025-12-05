@@ -100,7 +100,7 @@ export function MaterialsSupplierDialog({
     materialCategory: "",
     bulkPrice: 0,
     quantityForBulkPrice: 1,
-    unit: "kg",
+    capacityUnit: "kg",
     tax: 0,
     moq: 1,
     leadTime: 7,
@@ -139,7 +139,7 @@ export function MaterialsSupplierDialog({
         materialCategory: "",
         bulkPrice: 0,
         quantityForBulkPrice: 1,
-        unit: "kg",
+        capacityUnit: "kg",
         tax: 0,
         moq: 1,
         leadTime: 7,
@@ -722,9 +722,9 @@ export function MaterialsSupplierDialog({
                       Unit <span className="text-destructive">*</span>
                     </Label>
                     <Select
-                      value={formData.unit}
+                      value={formData.capacityUnit}
                       onValueChange={(value) =>
-                        updateField("unit", value as any)
+                        updateField("capacityUnit", value as any)
                       }
                     >
                       <SelectTrigger className="focus-enhanced">
@@ -746,7 +746,7 @@ export function MaterialsSupplierDialog({
                   formData.bulkPrice > 0 && (
                     <div className="text-sm text-muted-foreground bg-muted/50 p-2 rounded">
                       Unit price: ₹{calculatedUnitPrice.toFixed(2)} per{" "}
-                      {formData.unit}
+                      {formData.capacityUnit}
                     </div>
                   )}
               </div>

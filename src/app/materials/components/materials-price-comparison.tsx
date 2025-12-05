@@ -161,7 +161,7 @@ export function MaterialsPriceComparison() {
                                 ₹{supplier.unitPrice.toFixed(2)}
                               </div>
                               <div className="text-xs text-muted-foreground">
-                                per {supplier.unit}
+                                per {supplier.capacityUnit}
                               </div>
                             </td>
 
@@ -175,7 +175,7 @@ export function MaterialsPriceComparison() {
                             {/* MOQ */}
                             <td className="py-4 px-4 text-center">
                               <div className="text-sm text-muted-foreground">
-                                {supplier.moq} {supplier.unit}
+                                {supplier.moq} {supplier.capacityUnit}
                               </div>
                             </td>
 
@@ -193,7 +193,7 @@ export function MaterialsPriceComparison() {
                                 {supplier.currentStock}
                               </div>
                               <div className="text-xs text-muted-foreground">
-                                {supplier.unit}
+                                {supplier.capacityUnit}
                               </div>
                             </td>
 

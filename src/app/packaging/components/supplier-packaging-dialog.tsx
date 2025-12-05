@@ -174,7 +174,7 @@ export function SupplierPackagingDialog({
       const hasChanged =
         packaging.packagingType !== originalPackaging.type ||
         packaging.capacity !== originalPackaging.capacity ||
-        packaging.unit !== originalPackaging.unit ||
+        packaging.capacityUnit !== originalPackaging.capacityUnit ||
         packaging.buildMaterial !== originalPackaging.buildMaterial;
 
       if (hasChanged) {
@@ -188,7 +188,7 @@ export function SupplierPackagingDialog({
   }, [
     packaging.packagingType,
     packaging.capacity,
-    packaging.unit,
+    packaging.capacityUnit,
     packaging.buildMaterial,
     originalPackaging,
     packagingAutoFilled,
@@ -204,7 +204,7 @@ export function SupplierPackagingDialog({
       packagingName: selectedPackaging.name,
       packagingType: selectedPackaging.type,
       capacity: selectedPackaging.capacity,
-      unit: selectedPackaging.unit,
+      capacityUnit: selectedPackaging.capacityUnit,
       buildMaterial: selectedPackaging.buildMaterial,
     });
     setPackagingSearch(selectedPackaging.name);
@@ -275,7 +275,7 @@ export function SupplierPackagingDialog({
       newErrors.capacity = "Capacity must be positive";
     }
 
-    if (packaging.capacity && !packaging.unit) {
+    if (packaging.capacity && !packaging.capacityUnit) {
       newErrors.capacityUnit = "Unit is required when capacity is specified";
     }
 
@@ -491,7 +491,7 @@ export function SupplierPackagingDialog({
                                   <div className="font-medium">{pkg.name}</div>
                                   <div className="text-xs text-muted-foreground">
                                     {pkg.type} • {pkg.capacity}
-                                    {pkg.unit} • {pkg.buildMaterial}
+                                    {pkg.capacityUnit} • {pkg.buildMaterial}
                                   </div>
                                 </div>
                               </CommandItem>
@@ -636,11 +636,11 @@ export function SupplierPackagingDialog({
               <div className="space-y-0">
                 <Label className="text-sm font-medium">Unit</Label>
                 <Select
-                  value={packaging.unit}
+                  value={packaging.capacityUnit}
                   onValueChange={(value) =>
                     setPackaging({
                       ...packaging,
-                      unit: value as CapacityUnit,
+                      capacityUnit: value as CapacityUnit,
                     })
                   }
                 >
@@ -653,9 +653,12 @@ export function SupplierPackagingDialog({
                     <SelectValue placeholder="Select unit" />
                   </SelectTrigger>
                   <SelectContent>
-                    {CAPACITY_UNITS.map((unit) => (
-                      <SelectItem key={unit.value} value={unit.value}>
-                        {unit.label}
+                    {CAPACITY_UNITS.map((capacityUnit) => (
+                      <SelectItem
+                        key={capacityUnit.value}
+                        value={capacityUnit.value}
+                      >
+                        {capacityUnit.label}
                       </SelectItem>
                     ))}
                   </SelectContent>

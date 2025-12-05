@@ -26,7 +26,7 @@ export interface Packaging extends BaseEntity {
   name: string;
   type: PackagingType;
   capacity: number;
-  unit: CapacityUnit;
+  capacityUnit: CapacityUnit;
   buildMaterial?: BuildMaterial;
   notes?: string;
 }
@@ -38,7 +38,7 @@ export interface SupplierPackaging extends BaseEntity {
   bulkPrice: number; // The actual quoted price
   quantityForBulkPrice: number;
   unitPrice: number;
-  unit: CapacityUnit;
+  capacityUnit: CapacityUnit;
   tax: number;
   moq: number;
   bulkDiscounts?: BulkDiscount[];
@@ -60,7 +60,7 @@ export interface PackagingWithSupplierCount {
   name: string;
   type: PackagingType;
   capacity: number;
-  unit: CapacityUnit;
+  capacityUnit: CapacityUnit;
   buildMaterial?: BuildMaterial;
   supplierCount: number;
   suppliers: Array<{
@@ -86,7 +86,7 @@ export interface SupplierPackagingTableRow {
   packagingName: string;
   packagingType: PackagingType;
   capacity: number;
-  unit: CapacityUnit;
+  capacityUnit: CapacityUnit;
   buildMaterial?: BuildMaterial;
 
   // Supplier info
@@ -125,7 +125,7 @@ export interface SupplierPackagingForComparison {
   unitPrice: number;
   priceWithTax: number;
   bulkPrice: number;
-  unit: CapacityUnit;
+  capacityUnit: CapacityUnit;
   moq: number;
   leadTime: number;
   currentStock: number;
@@ -203,7 +203,7 @@ export interface PackagingFormData {
   name: string;
   type: PackagingType;
   capacity: number;
-  unit: CapacityUnit;
+  capacityUnit: CapacityUnit;
   buildMaterial?: BuildMaterial;
   notes?: string;
 }
@@ -218,7 +218,7 @@ export interface SupplierPackagingFormData {
   packagingName: string;
   packagingType: PackagingType;
   capacity: number;
-  unit: CapacityUnit;
+  capacityUnit: CapacityUnit;
   buildMaterial?: BuildMaterial;
   bulkPrice: number;
   quantityForBulkPrice: number;
@@ -238,7 +238,7 @@ export interface PackagingFormErrors {
   name?: string;
   type?: string;
   capacity?: string;
-  unit?: string;
+  capacityUnit?: string;
   buildMaterial?: string;
   supplierId?: string;
   packagingName?: string;

@@ -147,7 +147,7 @@ export function SupplierPackagingTable({
         sortable: true,
         render: (value: any, row: SupplierPackagingTableRow) => {
           const capacity = row.capacity;
-          const unit = row.unit;
+          const unit = row.capacityUnit;
           const displayCapacity =
             capacity && unit ? `${capacity} ${unit}` : "—";
           return (

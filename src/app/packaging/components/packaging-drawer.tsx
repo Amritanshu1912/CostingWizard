@@ -74,7 +74,7 @@ export function PackagingDrawer({
         name: "",
         type: "other",
         capacity: 0,
-        unit: "ml",
+        capacityUnit: "ml",
         buildMaterial: "Other",
         supplierCount: 0,
         suppliers: [],
@@ -94,7 +94,7 @@ export function PackagingDrawer({
       name: packaging.name,
       type: packaging.type,
       capacity: packaging.capacity?.toString() || "",
-      unit: packaging.unit || "",
+      unit: packaging.capacityUnit || "",
       buildMaterial: packaging.buildMaterial || "",
     });
   };
@@ -169,7 +169,7 @@ export function PackagingDrawer({
               normalizeText(existingPackaging.type || "") ===
                 normalizeText(trimmedType) &&
               existingPackaging.capacity === (capacityValue || 0) &&
-              normalizeText(existingPackaging.unit || "") ===
+              normalizeText(existingPackaging.capacityUnit || "") ===
                 normalizeText(trimmedUnit) &&
               normalizeText(existingPackaging.buildMaterial || "") ===
                 normalizeText(trimmedBuildMaterial);
@@ -190,7 +190,7 @@ export function PackagingDrawer({
             name: trimmedName,
             type: trimmedType as PackagingType,
             capacity: capacityValue || 0,
-            unit: (trimmedUnit || "ml") as CapacityUnit,
+            capacityUnit: (trimmedUnit || "ml") as CapacityUnit,
             buildMaterial: (trimmedBuildMaterial || "Other") as BuildMaterial,
             createdAt: now,
           });
@@ -213,7 +213,7 @@ export function PackagingDrawer({
               normalizeText(existingPackaging.type || "") ===
                 normalizeText(trimmedType) &&
               existingPackaging.capacity === (capacityValue || 0) &&
-              normalizeText(existingPackaging.unit || "") ===
+              normalizeText(existingPackaging.capacityUnit || "") ===
                 normalizeText(trimmedUnit) &&
               normalizeText(existingPackaging.buildMaterial || "") ===
                 normalizeText(trimmedBuildMaterial);
@@ -233,7 +233,7 @@ export function PackagingDrawer({
             name: trimmedName,
             type: trimmedType as PackagingType,
             capacity: capacityValue || 0,
-            unit: (trimmedUnit || "ml") as CapacityUnit,
+            capacityUnit: (trimmedUnit || "ml") as CapacityUnit,
             buildMaterial: (trimmedBuildMaterial || "Other") as BuildMaterial,
             updatedAt: now,
           });

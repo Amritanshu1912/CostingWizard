@@ -15,11 +15,14 @@ import { useDuplicateCheck } from "../use-duplicate-check";
  */
 export function validatePackagingForm(data: PackagingFormData): {
   isValid: boolean;
-  errors: Pick<PackagingFormErrors, "name" | "type" | "capacity" | "unit">;
+  errors: Pick<
+    PackagingFormErrors,
+    "name" | "type" | "capacity" | "capacityUnit"
+  >;
 } {
   const errors: Pick<
     PackagingFormErrors,
-    "name" | "type" | "capacity" | "unit"
+    "name" | "type" | "capacity" | "capacityUnit"
   > = {};
 
   if (!data.name?.trim()) {
@@ -36,8 +39,8 @@ export function validatePackagingForm(data: PackagingFormData): {
     errors.capacity = "Capacity must be positive";
   }
 
-  if (data.capacity !== undefined && data.capacity > 0 && !data.unit) {
-    errors.unit = "Unit is required when capacity is specified";
+  if (data.capacity !== undefined && data.capacity > 0 && !data.capacityUnit) {
+    errors.capacityUnit = "Unit is required when capacity is specified";
   }
 
   return {
@@ -75,8 +78,8 @@ export function validateSupplierPackagingForm(
     errors.capacity = "Capacity must be positive";
   }
 
-  if (data.capacity !== undefined && data.capacity > 0 && !data.unit) {
-    errors.unit = "Unit is required when capacity is specified";
+  if (data.capacity !== undefined && data.capacity > 0 && !data.capacityUnit) {
+    errors.capacityUnit = "Unit is required when capacity is specified";
   }
 
   if (!data.bulkPrice || data.bulkPrice <= 0) {

@@ -56,7 +56,7 @@ export function usePackagingsWithSupplierCount(): PackagingWithSupplierCount[] {
         name: packaging.name,
         type: packaging.type,
         capacity: packaging.capacity,
-        unit: packaging.unit,
+        capacityUnit: packaging.capacityUnit,
         buildMaterial: packaging.buildMaterial,
         supplierCount,
         suppliers,
@@ -100,7 +100,7 @@ export function useSupplierPackagingTableRows(
         packagingName: packaging?.name || "Unknown",
         packagingType: packaging?.type || "other",
         capacity: packaging?.capacity || 0,
-        unit: sp.unit,
+        capacityUnit: sp.capacityUnit,
         buildMaterial: packaging?.buildMaterial,
         supplierName: supplier?.name || "Unknown",
         supplierRating: supplier?.rating || 0,
@@ -191,7 +191,7 @@ export function usePackagingPriceComparison(): PackagingPriceComparison[] {
         bulkPrice: sp.bulkPrice,
         unitPrice: sp.unitPrice,
         priceWithTax,
-        unit: sp.unit,
+        capacityUnit: sp.capacityUnit,
         moq: sp.moq,
         leadTime: sp.leadTime,
         currentStock: inventoryItem?.currentStock || 0,
@@ -387,7 +387,7 @@ export function usePackagingAnalytics(): PackagingAnalytics {
  */
 export function usePackagingsForDropdown(): Pick<
   Packaging,
-  "id" | "name" | "type" | "capacity" | "unit"
+  "id" | "name" | "type" | "capacity" | "capacityUnit"
 >[] {
   return (
     useLiveQuery(async () => {
@@ -397,7 +397,7 @@ export function usePackagingsForDropdown(): Pick<
         name: p.name,
         type: p.type,
         capacity: p.capacity,
-        unit: p.unit,
+        capacityUnit: p.capacityUnit,
       }));
     }, []) || []
   );

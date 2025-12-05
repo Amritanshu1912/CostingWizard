@@ -276,7 +276,7 @@ export function useAllItemsWithInventoryStatus() {
             material?.name || "Unknown",
             supplier?.name || "Unknown",
             sm.supplierId,
-            sm.unit,
+            sm.capacityUnit,
             sm.unitPrice,
             sm.tax || 0
           )

@@ -175,7 +175,7 @@ export function useSupplierMaterialMutations() {
             unitPrice,
             bulkPrice: data.bulkPrice,
             quantityForBulkPrice: data.quantityForBulkPrice || 1,
-            unit: data.unit,
+            capacityUnit: data.capacityUnit,
             tax: data.tax,
             moq: data.moq,
             leadTime: data.leadTime,
@@ -277,7 +277,7 @@ export function useSupplierMaterialMutations() {
             ...(data.quantityForBulkPrice !== undefined && {
               quantityForBulkPrice: data.quantityForBulkPrice,
             }),
-            ...(data.unit && { unit: data.unit }),
+            ...(data.capacityUnit && { capacityUnit: data.capacityUnit }),
             ...(data.tax !== undefined && { tax: data.tax }),
             ...(data.moq !== undefined && { moq: data.moq }),
             ...(data.leadTime !== undefined && { leadTime: data.leadTime }),

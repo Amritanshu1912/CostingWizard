@@ -70,8 +70,8 @@ export function validateSupplierMaterialForm(data: SupplierMaterialFormData): {
     errors.quantityForBulkPrice = "Quantity must be at least 1";
   }
 
-  if (!data.unit) {
-    errors.unit = "Unit is required";
+  if (!data.capacityUnit) {
+    errors.capacityUnit = "Unit is required";
   }
 
   if (data.tax < 0 || data.tax > 100) {

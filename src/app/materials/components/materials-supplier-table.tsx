@@ -185,14 +185,14 @@ export function SupplierMaterialsTable({
               {hasBulkPricing && row.bulkPrice && (
                 <div className="text-xs text-muted-foreground mt-1">
                   ₹{row.bulkPrice.toFixed(2)} for {row.quantityForBulkPrice}{" "}
-                  {row.unit}
+                  {row.capacityUnit}
                 </div>
               )}
 
               {/* Unit indicator for non-bulk */}
               {!hasBulkPricing && (
                 <div className="text-xs text-muted-foreground">
-                  per {row.unit}
+                  per {row.capacityUnit}
                 </div>
               )}
             </div>
@@ -214,7 +214,9 @@ export function SupplierMaterialsTable({
         render: (value: number, row: SupplierMaterialTableRow) => (
           <div className="text-foreground">
             <div className="font-medium">₹{value.toFixed(2)}</div>
-            <div className="text-xs text-muted-foreground">per {row.unit}</div>
+            <div className="text-xs text-muted-foreground">
+              per {row.capacityUnit}
+            </div>
           </div>
         ),
       },
@@ -224,7 +226,7 @@ export function SupplierMaterialsTable({
         sortable: true,
         render: (value: number, row: SupplierMaterialTableRow) => (
           <span className="text-muted-foreground">
-            {value} {row.unit}
+            {value} {row.capacityUnit}
           </span>
         ),
       },
@@ -273,7 +275,7 @@ export function SupplierMaterialsTable({
                   </TooltipTrigger>
                   <TooltipContent>
                     <p>
-                      {row.currentStock} {row.unit} in stock
+                      {row.currentStock} {row.capacityUnit} in stock
                     </p>
                   </TooltipContent>
                 </Tooltip>

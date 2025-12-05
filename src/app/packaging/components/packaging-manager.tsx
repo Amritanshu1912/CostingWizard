@@ -14,6 +14,8 @@ import { useDexieTable } from "@/hooks/use-dexie-table";
 
 import { db } from "@/lib/db";
 import type {
+  CapacityUnit,
+  PackagingType,
   SupplierPackagingFormData,
   SupplierPackagingTableRow,
 } from "@/types/packaging-types";
@@ -32,7 +34,7 @@ const DEFAULT_SUPPLIER_PACKAGING_FORM: SupplierPackagingFormData = {
   packagingName: "",
   packagingType: "other",
   capacity: 0,
-  unit: "ml",
+  capacityUnit: "ml",
   buildMaterial: undefined,
   bulkPrice: 0,
   quantityForBulkPrice: 1,
@@ -95,7 +97,7 @@ export function PackagingManager() {
         packagingName: item.packagingName,
         packagingType: item.packagingType,
         capacity: item.capacity,
-        unit: item.unit,
+        capacityUnit: item.capacityUnit,
         buildMaterial: item.buildMaterial,
         bulkPrice: item.bulkPrice,
         quantityForBulkPrice: item.quantityForBulkPrice,
@@ -245,9 +247,9 @@ export function PackagingManager() {
                 id: item.id,
                 packagingId: item.packagingId,
                 packagingName: item.packagingName,
-                packagingType: item.packagingType as any,
+                packagingType: item.packagingType as PackagingType,
                 capacity: item.capacity || 0,
-                unit: item.unit as any,
+                capacityUnit: item.capacityUnit as CapacityUnit,
                 buildMaterial: item.buildMaterial,
                 supplierId: item.supplierId,
                 supplierName: item.supplierName || "Unknown",

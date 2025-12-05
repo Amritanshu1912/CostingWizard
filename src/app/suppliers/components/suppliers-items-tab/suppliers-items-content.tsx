@@ -6,8 +6,8 @@ import { SupplierLabelsDialog } from "@/app/labels/components/supplier-labels-di
 import { DEFAULT_MATERIAL_FORM } from "@/app/materials/components/materials-constants";
 import type { SupplierMaterialFormData } from "@/types/material-types";
 import { MaterialsSupplierDialog } from "@/app/materials/components/materials-supplier-dialog";
-import type { PackagingFormData } from "@/app/packaging/components/supplier-packaging-dialog";
-import { EnhancedSupplierPackagingDialog } from "@/app/packaging/components/supplier-packaging-dialog";
+import type { SupplierPackagingFormData } from "@/types/packaging-types";
+import { SupplierPackagingDialog } from "@/app/packaging/components/supplier-packaging-dialog";
 import { SUPPLIERS } from "@/app/suppliers/components/suppliers-constants";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -24,11 +24,11 @@ import { useCallback, useState } from "react";
 import { toast } from "sonner";
 import { SuppliersItemsTable } from "./suppliers-items-table";
 
-const DEFAULT_PACKAGING_FORM: PackagingFormData = {
+const DEFAULT_PACKAGING_FORM: SupplierPackagingFormData = {
   supplierId: "",
   packagingName: "",
   packagingId: "",
-  packagingType: undefined,
+  packagingType: "bottle",
   capacity: 0,
   capacityUnit: "ml",
   buildMaterial: undefined,
@@ -38,6 +38,7 @@ const DEFAULT_PACKAGING_FORM: PackagingFormData = {
   moq: 1,
   leadTime: 7,
   notes: "",
+  unitPrice: 0,
 };
 
 const DEFAULT_LABEL_FORM: SupplierLabelFormData = {
@@ -49,7 +50,6 @@ const DEFAULT_LABEL_FORM: SupplierLabelFormData = {
   material: "paper",
   shape: "rectangular",
   size: "",
-  labelFor: "",
   bulkPrice: 0,
   quantityForBulkPrice: 1,
   unit: "pieces",
@@ -58,8 +58,6 @@ const DEFAULT_LABEL_FORM: SupplierLabelFormData = {
   leadTime: 7,
   transportationCost: 0,
   bulkDiscounts: [],
-  currentStock: 0,
-  stockStatus: "out-of-stock",
   notes: "",
 };
 
@@ -91,9 +89,8 @@ export function SuppliersItemsContent({
   // Form states
   const [materialFormData, setMaterialFormData] =
     useState<SupplierMaterialFormData>(DEFAULT_MATERIAL_FORM);
-  const [packagingFormData, setPackagingFormData] = useState<PackagingFormData>(
-    DEFAULT_PACKAGING_FORM
-  );
+  const [packagingFormData, setPackagingFormData] =
+    useState<SupplierPackagingFormData>(DEFAULT_PACKAGING_FORM);
   const [labelFormData, setLabelFormData] =
     useState<SupplierLabelFormData>(DEFAULT_LABEL_FORM);
 
@@ -165,7 +162,7 @@ export function SuppliersItemsContent({
         packagingName: packagingDetails?.name,
         packagingType: packagingDetails?.type,
         capacity: packagingDetails?.capacity,
-        capacityUnit: packagingDetails?.unit,
+        capacityUnit: packagingDetails?.capacityUnit,
         buildMaterial: packagingDetails?.buildMaterial,
       });
       setShowPackagingDialog(true);
@@ -186,7 +183,6 @@ export function SuppliersItemsContent({
         material: labelDetails?.material,
         shape: labelDetails?.shape,
         size: labelDetails?.size,
-        labelFor: labelDetails?.labelFor,
       });
       setShowLabelDialog(true);
     },
@@ -275,7 +271,7 @@ export function SuppliersItemsContent({
             bulkPrice: bulkPrice,
             quantityForBulkPrice: quantityForBulkPrice,
             tax: materialFormData.tax || 0,
-            unit: materialFormData.unit || "kg",
+            capacityUnit: materialFormData.capacityUnit || "kg",
             moq: materialFormData.moq || 1,
             bulkDiscounts: materialFormData.bulkDiscounts || [],
             leadTime: materialFormData.leadTime || 7,
@@ -322,7 +318,7 @@ export function SuppliersItemsContent({
                   normalizeText(packagingFormData.packagingName!) &&
                 p.type === packagingFormData.packagingType &&
                 p.capacity === (packagingFormData.capacity || 0) &&
-                p.unit === packagingFormData.capacityUnit &&
+                p.capacityUnit === packagingFormData.capacityUnit &&
                 p.buildMaterial === packagingFormData.buildMaterial
             )
             .first();
@@ -337,7 +333,7 @@ export function SuppliersItemsContent({
               name: packagingFormData.packagingName!.trim(),
               type: packagingFormData.packagingType!,
               capacity: packagingFormData.capacity || 0,
-              unit: packagingFormData.capacityUnit!,
+              capacityUnit: packagingFormData.capacityUnit!,
               buildMaterial: packagingFormData.buildMaterial,
               notes: packagingFormData.notes || "",
               createdAt: now,
@@ -360,6 +356,7 @@ export function SuppliersItemsContent({
             leadTime: packagingFormData.leadTime || 7,
             notes: packagingFormData.notes || "",
             createdAt: now,
+            capacityUnit: "kg",
           });
         }
       );
@@ -400,9 +397,7 @@ export function SuppliersItemsContent({
               l.material === labelFormData.material &&
               l.shape === labelFormData.shape &&
               normalizeText(l.size || "") ===
-                normalizeText(labelFormData.size || "") &&
-              normalizeText(l.labelFor || "") ===
-                normalizeText(labelFormData.labelFor || "")
+                normalizeText(labelFormData.size || "")
           )
           .first();
 
@@ -419,7 +414,6 @@ export function SuppliersItemsContent({
             material: labelFormData.material!,
             shape: labelFormData.shape!,
             size: labelFormData.size || undefined,
-            labelFor: labelFormData.labelFor || undefined,
             notes: labelFormData.notes || "",
             createdAt: now,
           });
@@ -572,7 +566,7 @@ export function SuppliersItemsContent({
         categories={categories}
       />
 
-      <EnhancedSupplierPackagingDialog
+      <SupplierPackagingDialog
         open={showPackagingDialog}
         onOpenChange={(open) => handleDialogClose(open, "packaging")}
         packaging={packagingFormData}

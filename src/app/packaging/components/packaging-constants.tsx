@@ -145,8 +145,8 @@ export const getBuildMaterialLabel = (material: BuildMaterial): string => {
 /**
  * Get label for capacity unit - O(1) lookup
  */
-export const getCapacityUnitLabel = (unit: CapacityUnit): string => {
-  return CAPACITY_UNIT_LABEL_MAP.get(unit) ?? unit;
+export const getCapacityUnitLabel = (capacityUnit: CapacityUnit): string => {
+  return CAPACITY_UNIT_LABEL_MAP.get(capacityUnit) ?? capacityUnit;
 };
 
 // ============================================================================
@@ -175,7 +175,7 @@ export const PACKAGING: Packaging[] = [
     name: "500ml PET Bottle",
     type: "bottle",
     capacity: 500,
-    unit: "ml",
+    capacityUnit: "ml",
     buildMaterial: "PET",
     createdAt: "2024-01-01T00:00:00.000Z",
   },
@@ -184,7 +184,7 @@ export const PACKAGING: Packaging[] = [
     name: "2L Glass Jar",
     type: "jar",
     capacity: 2,
-    unit: "L",
+    capacityUnit: "L",
     buildMaterial: "Glass",
     createdAt: "2024-01-01T00:00:00.000Z",
   },
@@ -193,7 +193,7 @@ export const PACKAGING: Packaging[] = [
     name: "5L HDPE Container",
     type: "can",
     capacity: 5,
-    unit: "L",
+    capacityUnit: "L",
     buildMaterial: "HDPE",
     createdAt: "2024-01-01T00:00:00.000Z",
   },
@@ -202,7 +202,7 @@ export const PACKAGING: Packaging[] = [
     name: "250ml Spray Bottle",
     type: "bottle",
     capacity: 250,
-    unit: "ml",
+    capacityUnit: "ml",
     buildMaterial: "PET",
     createdAt: "2024-01-01T00:00:00.000Z",
   },
@@ -211,7 +211,7 @@ export const PACKAGING: Packaging[] = [
     name: "200ml Plastic Tube",
     type: "other",
     capacity: 200,
-    unit: "ml",
+    capacityUnit: "ml",
     buildMaterial: "Plastic",
     createdAt: "2024-01-01T00:00:00.000Z",
     notes: "Used for gels and creams",
@@ -221,7 +221,7 @@ export const PACKAGING: Packaging[] = [
     name: "1kg Paper Box",
     type: "box",
     capacity: 1,
-    unit: "kg",
+    capacityUnit: "kg",
     buildMaterial: "Paper",
     createdAt: "2024-01-01T00:00:00.000Z",
   },
@@ -230,7 +230,7 @@ export const PACKAGING: Packaging[] = [
     name: "500g Plastic Pouch",
     type: "pouch",
     capacity: 500,
-    unit: "gm",
+    capacityUnit: "gm",
     buildMaterial: "Plastic",
     createdAt: "2024-01-01T00:00:00.000Z",
   },
@@ -239,7 +239,7 @@ export const PACKAGING: Packaging[] = [
     name: "2L Metal Can",
     type: "can",
     capacity: 2,
-    unit: "L",
+    capacityUnit: "L",
     buildMaterial: "Other",
     createdAt: "2024-01-01T00:00:00.000Z",
   },
@@ -248,7 +248,7 @@ export const PACKAGING: Packaging[] = [
     name: "250ml HDPE Bottle",
     type: "bottle",
     capacity: 250,
-    unit: "ml",
+    capacityUnit: "ml",
     buildMaterial: "HDPE",
     createdAt: "2024-01-01T00:00:00.000Z",
   },
@@ -257,7 +257,7 @@ export const PACKAGING: Packaging[] = [
     name: "750ml Glass Bottle",
     type: "bottle",
     capacity: 750,
-    unit: "ml",
+    capacityUnit: "ml",
     buildMaterial: "Glass",
     createdAt: "2024-01-01T00:00:00.000Z",
   },
@@ -270,7 +270,7 @@ export const SUPPLIER_PACKAGING: SupplierPackaging[] = [
     packagingId: "1",
     bulkPrice: 2.5,
     quantityForBulkPrice: 1,
-    unit: "ml",
+    capacityUnit: "ml",
     tax: 5,
     moq: 1000,
     bulkDiscounts: [
@@ -289,7 +289,7 @@ export const SUPPLIER_PACKAGING: SupplierPackaging[] = [
     packagingId: "2",
     bulkPrice: 8.5,
     quantityForBulkPrice: 1,
-    unit: "L",
+    capacityUnit: "L",
     tax: 5,
     moq: 500,
     bulkDiscounts: [
@@ -308,7 +308,7 @@ export const SUPPLIER_PACKAGING: SupplierPackaging[] = [
     packagingId: "3",
     bulkPrice: 15.0,
     quantityForBulkPrice: 1,
-    unit: "L",
+    capacityUnit: "L",
     tax: 5,
     moq: 200,
     bulkDiscounts: [
@@ -327,7 +327,7 @@ export const SUPPLIER_PACKAGING: SupplierPackaging[] = [
     packagingId: "4",
     bulkPrice: 1.8,
     quantityForBulkPrice: 1,
-    unit: "ml",
+    capacityUnit: "ml",
     tax: 5,
     moq: 2000,
     bulkDiscounts: [
@@ -346,7 +346,7 @@ export const SUPPLIER_PACKAGING: SupplierPackaging[] = [
     packagingId: "5",
     bulkPrice: 0.8,
     quantityForBulkPrice: 1,
-    unit: "ml",
+    capacityUnit: "ml",
     tax: 5,
     moq: 5000,
     bulkDiscounts: [
@@ -365,7 +365,7 @@ export const SUPPLIER_PACKAGING: SupplierPackaging[] = [
     packagingId: "6",
     bulkPrice: 3.2,
     quantityForBulkPrice: 1,
-    unit: "kg",
+    capacityUnit: "kg",
     tax: 5,
     moq: 1000,
     bulkDiscounts: [
@@ -384,7 +384,7 @@ export const SUPPLIER_PACKAGING: SupplierPackaging[] = [
     packagingId: "7",
     bulkPrice: 0.5,
     quantityForBulkPrice: 1,
-    unit: "gm",
+    capacityUnit: "gm",
     tax: 5,
     moq: 10000,
     bulkDiscounts: [
@@ -403,7 +403,7 @@ export const SUPPLIER_PACKAGING: SupplierPackaging[] = [
     packagingId: "10",
     bulkPrice: 12.0,
     quantityForBulkPrice: 1,
-    unit: "ml",
+    capacityUnit: "ml",
     tax: 5,
     moq: 300,
     bulkDiscounts: [

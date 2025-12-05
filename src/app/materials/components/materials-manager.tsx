@@ -93,7 +93,7 @@ export function MaterialsManager() {
       materialCategory: row.materialCategory,
       bulkPrice: row.bulkPrice || row.unitPrice,
       quantityForBulkPrice: row.quantityForBulkPrice || 1,
-      unit: row.unit,
+      capacityUnit: row.capacityUnit,
       tax: row.tax,
       moq: row.moq,
       leadTime: row.leadTime,

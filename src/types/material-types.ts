@@ -19,7 +19,7 @@ export interface Material extends BaseEntity {
 export interface SupplierMaterial extends BaseEntity {
   supplierId: string;
   materialId: string;
-  unit: CapacityUnit;
+  capacityUnit: CapacityUnit;
   unitPrice: number;
   tax: number;
   moq: number;
@@ -79,7 +79,7 @@ export interface SupplierMaterialTableRow {
   bulkPrice?: number;
   quantityForBulkPrice?: number;
   tax: number;
-  unit: CapacityUnit;
+  capacityUnit: CapacityUnit;
 
   // Terms
   moq: number;
@@ -105,7 +105,7 @@ export interface SupplierMaterialForComparison {
   supplierRating: number;
   unitPrice: number;
   priceWithTax: number;
-  unit: CapacityUnit;
+  capacityUnit: CapacityUnit;
   moq: number;
   leadTime: number;
   currentStock: number;
@@ -186,7 +186,7 @@ export interface SupplierMaterialFormData {
   materialCategory: string;
   bulkPrice: number;
   quantityForBulkPrice: number;
-  unit: CapacityUnit;
+  capacityUnit: CapacityUnit;
   tax: number;
   moq: number;
   leadTime: number;
@@ -216,7 +216,7 @@ export interface MaterialFormErrors {
   materialCategory?: string;
   bulkPrice?: string;
   quantityForBulkPrice?: string;
-  unit?: string;
+  capacityUnit?: string;
   tax?: string;
   moq?: string;
   leadTime?: string;

@@ -46,27 +46,24 @@ export function useItemsBySupplier(): Record<string, number> {
     const materialsBySupplier = (supplierMaterials || []).reduce<
       Record<string, number>
     >((acc, material) => {
-      if (material.availability !== "out-of-stock") {
-        acc[material.supplierId] = (acc[material.supplierId] || 0) + 1;
-      }
+      acc[material.supplierId] = (acc[material.supplierId] || 0) + 1;
+
       return acc;
     }, {});
 
     const packagingBySupplier = (supplierPackaging || []).reduce<
       Record<string, number>
     >((acc, packaging) => {
-      if (packaging.availability !== "out-of-stock") {
-        acc[packaging.supplierId] = (acc[packaging.supplierId] || 0) + 1;
-      }
+      acc[packaging.supplierId] = (acc[packaging.supplierId] || 0) + 1;
+
       return acc;
     }, {});
 
     const labelsBySupplier = (supplierLabels || []).reduce<
       Record<string, number>
     >((acc, label) => {
-      if (label.availability !== "out-of-stock") {
-        acc[label.supplierId] = (acc[label.supplierId] || 0) + 1;
-      }
+      acc[label.supplierId] = (acc[label.supplierId] || 0) + 1;
+
       return acc;
     }, {});
 

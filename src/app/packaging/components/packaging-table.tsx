@@ -404,7 +404,9 @@ export function PackagingTable({
             );
           }
           const displayCapacity =
-            row.capacity && row.unit ? `${row.capacity} ${row.unit}` : "—";
+            row.capacity && row.capacityUnit
+              ? `${row.capacity} ${row.capacityUnit}`
+              : "—";
           return (
             <span className="text-sm text-muted-foreground font-medium">
               {displayCapacity}

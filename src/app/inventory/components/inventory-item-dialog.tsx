@@ -94,7 +94,7 @@ export function InventoryItemDialog({
                 name: `${material?.name || "Unknown"} (${
                   supplier?.name || "Unknown"
                 })`,
-                unit: sm.unit,
+                unit: sm.capacityUnit,
               };
             }) || []
         );

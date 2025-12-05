@@ -46,7 +46,7 @@ export function useBasePackagingMutations() {
         name: data.name.trim(),
         type: data.type,
         capacity: data.capacity,
-        unit: data.unit,
+        capacityUnit: data.capacityUnit,
         buildMaterial: data.buildMaterial,
         notes: data.notes?.trim(),
         createdAt: now,
@@ -78,7 +78,7 @@ export function useBasePackagingMutations() {
         ...(data.name && { name: data.name.trim() }),
         ...(data.type && { type: data.type }),
         ...(data.capacity !== undefined && { capacity: data.capacity }),
-        ...(data.unit && { unit: data.unit }),
+        ...(data.capacityUnit && { capacityUnit: data.capacityUnit }),
         ...(data.buildMaterial !== undefined && {
           buildMaterial: data.buildMaterial,
         }),
@@ -134,7 +134,7 @@ export function useSupplierPackagingMutations() {
                 normalizeText(p.name) === normalizeText(data.packagingName) &&
                 p.type === data.packagingType &&
                 p.capacity === data.capacity &&
-                p.unit === data.unit &&
+                p.capacityUnit === data.capacityUnit &&
                 p.buildMaterial === data.buildMaterial
             )
             .first();
@@ -150,7 +150,7 @@ export function useSupplierPackagingMutations() {
               name: data.packagingName.trim(),
               type: data.packagingType!,
               capacity: data.capacity,
-              unit: data.unit,
+              capacityUnit: data.capacityUnit,
               buildMaterial: data.buildMaterial,
               notes: data.notes?.trim(),
               createdAt: now,
@@ -165,7 +165,7 @@ export function useSupplierPackagingMutations() {
             packagingId,
             bulkPrice: data.bulkPrice,
             quantityForBulkPrice: data.quantityForBulkPrice || 1,
-            unit: data.unit,
+            capacityUnit: data.capacityUnit,
             tax: data.tax,
             moq: data.moq,
             leadTime: data.leadTime,
@@ -204,7 +204,7 @@ export function useSupplierPackagingMutations() {
             data.packagingName ||
             data.packagingType ||
             data.capacity ||
-            data.unit ||
+            data.capacityUnit ||
             data.buildMaterial
           ) {
             // Ensure required fields are present for combination check
@@ -212,7 +212,7 @@ export function useSupplierPackagingMutations() {
               !data.packagingName ||
               !data.packagingType ||
               data.capacity === undefined ||
-              !data.unit ||
+              !data.capacityUnit ||
               data.buildMaterial === undefined
             ) {
               throw new Error(
@@ -229,7 +229,7 @@ export function useSupplierPackagingMutations() {
                     normalizeText(data.packagingName!) &&
                   p.type === data.packagingType &&
                   p.capacity === data.capacity &&
-                  p.unit === data.unit &&
+                  p.capacityUnit === data.capacityUnit &&
                   p.buildMaterial === data.buildMaterial
               )
               .first();
@@ -247,7 +247,7 @@ export function useSupplierPackagingMutations() {
                 name: data.packagingName.trim(),
                 type: data.packagingType,
                 capacity: data.capacity,
-                unit: data.unit,
+                capacityUnit: data.capacityUnit,
                 buildMaterial: data.buildMaterial,
                 notes: data.notes?.trim(),
                 createdAt: now,
