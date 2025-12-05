@@ -17,10 +17,10 @@ import {
 // ============================================================================
 
 export const CAPACITY_UNITS = [
-  { value: "kg" as const, label: "Kilograms (kg)", factor: 1 },
-  { value: "L" as const, label: "Liters (L)", factor: 1 }, // Assuming 1L = 1kg for liquids
-  { value: "ml" as const, label: "Milliliters (ml)", factor: 0.001 },
   { value: "gm" as const, label: "Grams (gm)", factor: 0.001 },
+  { value: "kg" as const, label: "Kilograms (kg)", factor: 1 },
+  { value: "ml" as const, label: "Milliliters (ml)", factor: 0.001 },
+  { value: "L" as const, label: "Liters (L)", factor: 1 }, // Assuming 1L = 1kg for liquids
   { value: "pcs" as const, label: "Pieces (pcs)", factor: 1 }, // Assuming pieces are treated as kg
 ] as const;
 

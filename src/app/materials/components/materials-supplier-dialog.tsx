@@ -52,6 +52,7 @@ import { useDuplicateCheck } from "@/hooks/use-duplicate-check";
 // Utils
 import { CAPACITY_UNITS } from "@/lib/constants";
 import { calculateUnitPrice } from "@/utils/unit-conversion-utils";
+import { normalizeText } from "@/utils/text-utils";
 
 // Types
 import type {
@@ -181,11 +182,16 @@ export function MaterialsSupplierDialog({
     );
   }, [categorySearch, categories]);
 
-  // Check if we're creating new material/category
-  const isNewMaterial =
-    filteredMaterials.length === 0 && materialSearch.length > 0;
-  const isNewCategory =
-    filteredCategories.length === 0 && categorySearch.length > 0;
+  // Check if we're creating new material/category (only prevent if exact match exists)
+  const hasExactMaterialMatch = materials.some(
+    (m) => normalizeText(m.name) === normalizeText(materialSearch)
+  );
+  const isNewMaterial = !hasExactMaterialMatch && materialSearch.length > 0;
+
+  const hasExactCategoryMatch = categories.some(
+    (c) => normalizeText(c.name) === normalizeText(categorySearch)
+  );
+  const isNewCategory = !hasExactCategoryMatch && categorySearch.length > 0;
 
   // Calculate unit price from bulk price
   const calculatedUnitPrice = useMemo(() => {
@@ -442,23 +448,13 @@ export function MaterialsSupplierDialog({
               Material Details
             </div>
             <div className="gap-4 pl-6">
-              <div className="grid grid-cols-2 gap-4 mb-4">
+              <div className="grid grid-cols-2 gap-4 mb-2">
                 {/* Material Name */}
                 <div className="space-y-2 ">
                   <Label htmlFor="materialName">
                     Material Name <span className="text-destructive">*</span>
                   </Label>
-                  {materialDuplicateCheck.warning && (
-                    <Alert
-                      variant="default"
-                      className="mb-2 border-yellow-500 bg-yellow-50"
-                    >
-                      <AlertTriangle className="h-4 w-4 text-yellow-600" />
-                      <AlertDescription className="text-yellow-800">
-                        {materialDuplicateCheck.warning}
-                      </AlertDescription>
-                    </Alert>
-                  )}
+
                   <Popover
                     open={openMaterialCombobox}
                     onOpenChange={setOpenMaterialCombobox}
@@ -643,6 +639,17 @@ export function MaterialsSupplierDialog({
                   )}
                 </div>
               </div>
+              {materialDuplicateCheck.warning && (
+                <Alert
+                  variant="default"
+                  className="mb-2 border-yellow-500 bg-yellow-50"
+                >
+                  <AlertTriangle className="h-4 w-4 text-yellow-600" />
+                  <AlertDescription className="text-yellow-800">
+                    {materialDuplicateCheck.warning}
+                  </AlertDescription>
+                </Alert>
+              )}
 
               {/* Pricing Section */}
               <div className="space-y-2 md:col-span-2">
@@ -726,7 +733,7 @@ export function MaterialsSupplierDialog({
                       <SelectContent>
                         {CAPACITY_UNITS.map((unit) => (
                           <SelectItem key={unit.value} value={unit.value}>
-                            {unit.label}
+                            {unit.value}
                           </SelectItem>
                         ))}
                       </SelectContent>

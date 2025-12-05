@@ -330,7 +330,7 @@ export function useCategoryMutations() {
         id,
         name: data.name.trim(),
         description: data.description?.trim(),
-        color: assignCategoryColor(data.name),
+        color: data.color || assignCategoryColor(data.name),
         createdAt: now,
       });
 
@@ -360,6 +360,7 @@ export function useCategoryMutations() {
         ...(data.description !== undefined && {
           description: data.description?.trim(),
         }),
+        ...(data.color && { color: data.color }),
         updatedAt: now,
       });
     },

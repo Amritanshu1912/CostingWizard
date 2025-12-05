@@ -202,6 +202,7 @@ export interface SupplierMaterialFormData {
 export interface CategoryFormData {
   name: string;
   description?: string;
+  color?: string;
 }
 
 /**
