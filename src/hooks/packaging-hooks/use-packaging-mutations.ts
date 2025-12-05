@@ -37,7 +37,7 @@ export function useBasePackagingMutations() {
         .first();
 
       if (duplicate) {
-        throw new Error(`Packaging "${duplicate.name}" already exists`);
+        throw new Error(`Packaging with these specifications already exists`);
       }
 
       // Create packaging
@@ -69,7 +69,7 @@ export function useBasePackagingMutations() {
           .first();
 
         if (duplicate) {
-          throw new Error(`Packaging "${duplicate.name}" already exists`);
+          throw new Error(`Packaging with these specifications already exists`);
         }
       }
 

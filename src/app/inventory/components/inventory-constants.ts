@@ -54,7 +54,7 @@ export const MOCK_INVENTORY_ITEMS: InventoryItem[] = [
     minStockLevel: 500,
     maxStockLevel: 10000,
     lastUpdated: new Date().toISOString(),
-    status: "out-of-stock" as const,
+    status: "in-stock" as const,
     notes: "Color printed labels for branding",
     createdAt: new Date().toISOString(),
   },

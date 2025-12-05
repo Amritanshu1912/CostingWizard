@@ -101,6 +101,7 @@ export function SupplierLabelsDialog({
   const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [labelAutoFilled, setLabelAutoFilled] = useState(false);
+  const [originalLabel, setOriginalLabel] = useState<Labels | null>(null);
 
   // Duplicate check for labels
   const {
@@ -169,6 +170,36 @@ export function SupplierLabelsDialog({
     return qty > 0 ? price / qty : 0;
   }, [label.bulkPrice, label.quantityForBulkPrice]);
 
+  // Check if key properties changed from original label
+  useEffect(() => {
+    if (originalLabel && labelAutoFilled) {
+      const hasChanged =
+        label.labelType !== originalLabel.type ||
+        label.printingType !== originalLabel.printingType ||
+        label.material !== originalLabel.material ||
+        label.shape !== originalLabel.shape ||
+        label.size !== originalLabel.size;
+
+      if (hasChanged) {
+        // If key properties changed, clear labelId to force new label creation
+        setLabel((prev) => ({
+          ...prev,
+          labelId: "",
+        }));
+      }
+    }
+  }, [
+    label.labelType,
+    label.printingType,
+    label.material,
+    label.shape,
+    label.size,
+    originalLabel,
+    labelAutoFilled,
+    label.labelId,
+    setLabel,
+  ]);
+
   // Handle label selection
   const handleSelectLabel = (selectedLabel: Labels) => {
     setLabel({
@@ -183,6 +214,7 @@ export function SupplierLabelsDialog({
     });
     setLabelSearch(selectedLabel.name);
     setLabelAutoFilled(true);
+    setOriginalLabel(selectedLabel); // Track original label for change detection
     clearLabelWarning();
     setOpenLabelCombobox(false);
   };

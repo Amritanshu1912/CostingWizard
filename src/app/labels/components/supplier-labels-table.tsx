@@ -29,7 +29,7 @@ import {
 } from "@/components/ui/select";
 import { SortableTable } from "@/components/ui/sortable-table";
 import type { Supplier } from "@/types/shared-types";
-import { Edit, Filter, Plus, Search, Trash2 } from "lucide-react";
+import { Edit, Filter, Info, Plus, Search, Trash2 } from "lucide-react";
 import { useMemo, useState } from "react";
 import {
   getLabelTypeColor,
@@ -43,6 +43,12 @@ import {
 } from "./labels-constants";
 
 import type { SupplierLabelTableRow } from "@/types/label-types";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 interface SupplierLabelsTableProps {
   supplierLabels: SupplierLabelTableRow[];
@@ -273,19 +279,46 @@ export function SupplierLabelsTable({
         key: "stockStatus",
         label: "Stock Status",
         sortable: true,
-        render: (value: string) => (
-          <Badge
-            variant={
-              value === "in-stock"
-                ? "default"
-                : value === "low-stock"
-                  ? "secondary"
-                  : "destructive"
-            }
-            className="text-xs"
-          >
-            {value.replace("-", " ")}
-          </Badge>
+        render: (value: string, row: SupplierLabelTableRow) => (
+          <div className="flex items-center gap-2">
+            <Badge
+              variant={
+                row.stockStatus === "in-stock" ||
+                row.stockStatus === "overstock"
+                  ? "default"
+                  : row.stockStatus === "low-stock"
+                    ? "secondary"
+                    : row.stockStatus === "out-of-stock"
+                      ? "destructive"
+                      : "outline"
+              }
+              className="text-xs"
+            >
+              {row.stockStatus === "in-stock"
+                ? "In Stock"
+                : row.stockStatus === "low-stock"
+                  ? "Low Stock"
+                  : row.stockStatus === "out-of-stock"
+                    ? "Out of Stock"
+                    : row.stockStatus === "overstock"
+                      ? "Over Stock"
+                      : "Not Tracked"}
+            </Badge>
+            {row.currentStock > 0 && (
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Info className="h-3 w-3 text-muted-foreground hover:text-foreground cursor-help" />
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>
+                      {row.currentStock} {row.unit}s in stock
+                    </p>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+            )}
+          </div>
         ),
       },
       {

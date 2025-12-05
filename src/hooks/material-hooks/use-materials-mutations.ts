@@ -30,7 +30,7 @@ export function useMaterialMutations() {
         .first();
 
       if (duplicate) {
-        throw new Error(`Material "${duplicate.name}" already exists`);
+        throw new Error(`Material with these specifications already exists`);
       }
 
       // Ensure category exists
@@ -62,7 +62,7 @@ export function useMaterialMutations() {
           .first();
 
         if (duplicate) {
-          throw new Error(`Material "${duplicate.name}" already exists`);
+          throw new Error(`Material with these specifications already exists`);
         }
       }
 
@@ -243,7 +243,9 @@ export function useSupplierMaterialMutations() {
                 .first();
 
               if (duplicate) {
-                throw new Error(`Material "${duplicate.name}" already exists`);
+                throw new Error(
+                  `Material with these specifications already exists`
+                );
               }
 
               await db.materials.update(material.id, {
@@ -323,7 +325,7 @@ export function useCategoryMutations() {
         .first();
 
       if (duplicate) {
-        throw new Error(`Category "${duplicate.name}" already exists`);
+        throw new Error(`Category with these specifications already exists`);
       }
 
       await db.categories.add({
@@ -351,7 +353,7 @@ export function useCategoryMutations() {
           .first();
 
         if (duplicate) {
-          throw new Error(`Category "${duplicate.name}" already exists`);
+          throw new Error(`Category with these specifications already exists`);
         }
       }
 
