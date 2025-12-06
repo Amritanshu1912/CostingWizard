@@ -1,3 +1,5 @@
+// src/hooks/label-hooks/use-labels-queries.ts
+
 import { db } from "@/lib/db";
 import type {
   LabelFilters,
@@ -12,13 +14,13 @@ import { useLiveQuery } from "dexie-react-hooks";
 import { useMemo } from "react";
 import { useLabelsBaseData } from "./use-labels-data";
 
-// ============================================================================
-// LABEL QUERIES
-// ============================================================================
+// Hooks for querying label data in various formats for different UI components
 
 /**
- * Get labels with supplier info for lists/dropdowns
- * Returns: id, name, type, printingType, material, shape, supplierCount, suppliers array
+ * Hook that returns labels with basic supplier information.
+ * Useful for dropdowns and lists where you need to show which suppliers offer each label.
+ *
+ * @returns {LabelWithSupplierCount[]} Array of labels with supplier count and basic supplier details
  */
 export function useLabelsWithSupplierCount(): LabelWithSupplierCount[] {
   const baseData = useLabelsBaseData();
@@ -61,8 +63,10 @@ export function useLabelsWithSupplierCount(): LabelWithSupplierCount[] {
 }
 
 /**
- * Get labels with full supplier list (for management drawer)
- * Used in: labels-drawer (management interface)
+ * Hook that returns labels with full supplier list for management interfaces.
+ * Used in label management drawers where detailed supplier information is needed.
+ *
+ * @returns {LabelWithSuppliers[]} Array of labels with complete supplier details and metadata
  */
 export function useLabelsWithSuppliers(): LabelWithSuppliers[] {
   const baseData = useLabelsBaseData();
@@ -111,13 +115,14 @@ export function useLabelsWithSuppliers(): LabelWithSuppliers[] {
   }, [baseData, suppliers]);
 }
 
-// ============================================================================
-// SUPPLIER LABEL QUERIES
-// ============================================================================
+// Hooks for querying supplier label data with filtering and formatting for UI components
 
 /**
- * Get supplier labels as table rows (main table)
- * Returns: All fields needed for labels-table
+ * Main hook for displaying supplier labels in table format.
+ * Combines label, supplier, and inventory data with optional filtering capabilities.
+ *
+ * @param {LabelFilters} [filters] - Optional filters to apply to the results
+ * @returns {SupplierLabelTableRow[]} Array of supplier label rows formatted for table display
  */
 export function useSupplierLabelTableRows(
   filters?: LabelFilters
@@ -207,7 +212,11 @@ export function useSupplierLabelTableRows(
 }
 
 /**
- * Get supplier labels by supplier ID
+ * Hook that returns supplier labels filtered by a specific supplier ID.
+ * Useful for supplier-specific views and filtering.
+ *
+ * @param {string | undefined} supplierId - The supplier ID to filter by, or undefined to return empty array
+ * @returns {SupplierLabelTableRow[]} Array of supplier label rows for the specified supplier
  */
 export function useSupplierLabelsBySupplier(
   supplierId: string | undefined
@@ -224,8 +233,11 @@ export function useSupplierLabelsBySupplier(
 // ============================================================================
 
 /**
- * Get price comparison data grouped by label
- * Returns: Labels with multiple suppliers for comparison
+ * Hook that provides price comparison data for labels with multiple suppliers.
+ * Shows potential savings by comparing prices across different suppliers for the same label.
+ * Only includes labels that have 2 or more suppliers for meaningful comparison.
+ *
+ * @returns {LabelPriceComparison[]} Array of price comparison data sorted by potential savings
  */
 export function useLabelPriceComparison(): LabelPriceComparison[] {
   const baseData = useLabelsBaseData();
@@ -304,7 +316,11 @@ export function useLabelPriceComparison(): LabelPriceComparison[] {
 }
 
 /**
- * Get analytics data for dashboard
+ * Hook that provides comprehensive analytics data for labels.
+ * Calculates statistics including pricing, distribution by type/material, and stock alerts.
+ * Used for dashboard widgets and reporting features.
+ *
+ * @returns {LabelsAnalytics} Analytics object with pricing stats, distributions, and alerts
  */
 export function useLabelsAnalytics(): LabelsAnalytics {
   const baseData = useLabelsBaseData();

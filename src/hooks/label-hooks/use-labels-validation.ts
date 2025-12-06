@@ -6,12 +6,14 @@ import type {
 import { useCallback } from "react";
 import { useDuplicateCheck } from "../use-duplicate-check";
 
-// ============================================================================
-// FORM VALIDATION
-// ============================================================================
+// Validation functions for label forms
+// Checks required fields, data types, and business rules for label creation/editing
 
 /**
- * Validate label form data
+ * Validates basic label form data including required fields and constraints.
+ *
+ * @param {LabelFormData} data - The label form data to validate
+ * @returns {Object} Validation result with isValid boolean and error object
  */
 export function validateLabelForm(data: LabelFormData): {
   isValid: boolean;
@@ -70,7 +72,10 @@ export function validateLabelForm(data: LabelFormData): {
 }
 
 /**
- * Validate supplier label form data
+ * Validates complete supplier label form data including supplier and pricing information.
+ *
+ * @param {SupplierLabelFormData} data - The supplier label form data to validate
+ * @returns {Object} Validation result with isValid boolean and error object
  */
 export function validateSupplierLabelForm(data: SupplierLabelFormData): {
   isValid: boolean;
@@ -137,13 +142,15 @@ export function validateSupplierLabelForm(data: SupplierLabelFormData): {
   };
 }
 
-// ============================================================================
-// VALIDATION HOOK
-// ============================================================================
-
 /**
- * Combined validation hook for forms
- * Provides both validation and duplicate checking
+ * Hook providing comprehensive form validation combining field validation and duplicate checking.
+ * Supports both basic label forms and supplier label forms with different validation rules.
+ *
+ * @template T - Either LabelFormData or SupplierLabelFormData
+ * @param {string} formType - Type of form being validated ("label" or "supplierLabel")
+ * @param {Array<{id: string, name: string}>} existingLabels - Array of existing labels for duplicate checking
+ * @param {string} [currentId] - ID of current item being edited (excluded from duplicate check)
+ * @returns {Object} Validation functions and duplicate checking utilities
  */
 export function useLabelFormValidation<
   T extends LabelFormData | SupplierLabelFormData,

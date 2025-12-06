@@ -1,50 +1,126 @@
-/**
- * Mutation hooks - All database write operations
- *
- * Encapsulates all CRUD operations for labels, supplier labels,
- * and related entities. Components should never import db directly.
- *
- * Benefits:
- * - Single source for all mutations
- * - Consistent error handling
- * - Automatic timestamp management
- * - Transaction support for complex operations
- */
+// src/hooks/label-hooks/use-labels-mutations.ts
 
 import { db } from "@/lib/db";
-import type { LabelFormData, SupplierLabelFormData } from "@/types/label-types";
+import type {
+  Label,
+  LabelFormData,
+  SupplierLabelFormData,
+} from "@/types/label-types";
 import { normalizeText } from "@/utils/text-utils";
 import { nanoid } from "nanoid";
 import { useCallback } from "react";
 
-// ============================================================================
-// LABEL MUTATIONS
-// ============================================================================
+// Helper function to check if a label with exact specifications already exists
+async function findExactLabelMatch(
+  name: string,
+  type: string,
+  printingType: string,
+  material: string,
+  shape: string,
+  size: string | undefined,
+  excludeId?: string
+): Promise<{ id: string } | null> {
+  // Query database for labels matching all specifications exactly
+  const matches = await db.labels
+    .filter((l) => {
+      // Skip the label being updated if excludeId is provided
+      if (excludeId && l.id === excludeId) return false;
 
+      return (
+        normalizeText(l.name) === normalizeText(name) &&
+        l.type === type &&
+        l.printingType === printingType &&
+        l.material === material &&
+        l.shape === shape &&
+        (l.size || "") === (size?.trim() || "")
+      );
+    })
+    .toArray();
+
+  // Return the first match's ID, or null if no matches found
+  return matches.length > 0 ? { id: matches[0].id } : null;
+}
+
+/**
+ * Get or create label with exact specifications.
+ *
+ * This helper function checks if a label with the exact same specifications
+ * already exists, and if so returns its ID. Otherwise, creates a new label
+ * and returns the new ID.
+ *
+ * @param {Omit<Label, "id" | "createdAt">} data - Label data without ID and timestamp
+ * @param {string} timestamp - ISO timestamp for creation
+ * @returns {Promise<string>} The ID of the existing or newly created label
+ */
+async function getOrCreateLabel(
+  data: Omit<Label, "id" | "createdAt">,
+  timestamp: string
+): Promise<string> {
+  // First attempt to find an existing label with identical specifications
+  const existing = await findExactLabelMatch(
+    data.name,
+    data.type,
+    data.printingType,
+    data.material,
+    data.shape,
+    data.size
+  );
+
+  // If exact match found, return existing label ID to avoid duplication
+  if (existing) {
+    return existing.id;
+  }
+
+  // No existing match found, create a new label with unique ID
+  const id = nanoid();
+
+  // Insert new label into database with cleaned/truncated data
+  await db.labels.add({
+    id,
+    name: data.name.trim(),
+    type: data.type as any,
+    printingType: data.printingType as any,
+    material: data.material as any,
+    shape: data.shape as any,
+    size: data.size?.trim(),
+    notes: data.notes?.trim(),
+    createdAt: timestamp,
+  });
+
+  // Return the newly created label's ID
+  return id;
+}
+
+// Hook providing functions to create, update, and delete labels.
+// Includes duplicate checking to prevent identical label specifications.
+/**
+ * @returns {Object} Object containing createLabel, updateLabel, and deleteLabel functions
+ */
 export function useLabelMutations() {
   const createLabel = useCallback(
     async (data: LabelFormData): Promise<string> => {
       const now = new Date().toISOString();
-      const id = nanoid();
 
-      // Check for exact combination duplicates (same name + all properties)
-      const duplicate = await db.labels
-        .filter(
-          (l) =>
-            normalizeText(l.name) === normalizeText(data.name) &&
-            l.type === data.type &&
-            l.printingType === data.printingType &&
-            l.material === data.material &&
-            l.shape === data.shape &&
-            (l.size || "") === (data.size?.trim() || "")
-        )
-        .first();
+      // Prevent duplicate labels by checking for exact specification matches
+      const existing = await findExactLabelMatch(
+        data.name,
+        data.type,
+        data.printingType,
+        data.material,
+        data.shape,
+        data.size
+      );
 
-      if (duplicate) {
-        throw new Error(`Label with these exact specifications already exists`);
+      // If duplicate found, reject creation with clear error message
+      if (existing) {
+        throw new Error(
+          "A label with identical specifications already exists. Please modify at least one property to create a new entry."
+        );
       }
 
-      // Create label
+      const id = nanoid();
+
+      // Insert new label into database with sanitized data
       await db.labels.add({
         id,
         name: data.name.trim(),
@@ -66,40 +142,46 @@ export function useLabelMutations() {
     async (id: string, data: Partial<LabelFormData>): Promise<void> => {
       const now = new Date().toISOString();
 
-      // Check for exact combination duplicates (same name + all properties)
-      // This prevents creating duplicate combinations when editing
-      if (
-        data.name !== undefined &&
-        data.type !== undefined &&
-        data.printingType !== undefined &&
-        data.material !== undefined &&
-        data.shape !== undefined
-      ) {
-        const duplicate = await db.labels
-          .filter(
-            (l) =>
-              l.id !== id && // exclude current label
-              normalizeText(l.name) === normalizeText(data.name!) &&
-              l.type === data.type &&
-              l.printingType === data.printingType &&
-              l.material === data.material &&
-              l.shape === data.shape &&
-              (l.size || "") === (data.size?.trim() || "")
-          )
-          .first();
-
-        if (duplicate) {
-          throw new Error(`Label with these specifications already exists`);
-        }
+      // Get current label for merged validation
+      const current = await db.labels.get(id);
+      if (!current) {
+        throw new Error("Label not found");
       }
 
-      // Update label
+      // Merge with current values
+      const merged = {
+        name: data.name ?? current.name,
+        type: data.type ?? current.type,
+        printingType: data.printingType ?? current.printingType,
+        material: data.material ?? current.material,
+        shape: data.shape ?? current.shape,
+        size: data.size ?? current.size,
+      };
+
+      // Check for duplicate (excluding current)
+      const existing = await findExactLabelMatch(
+        merged.name,
+        merged.type,
+        merged.printingType,
+        merged.material,
+        merged.shape,
+        merged.size,
+        id // exclude current
+      );
+
+      if (existing) {
+        throw new Error(
+          "A label with identical specifications already exists. Please modify at least one property."
+        );
+      }
+
+      // Update
       await db.labels.update(id, {
         ...(data.name && { name: data.name.trim() }),
-        ...(data.type && { type: data.type }),
-        ...(data.printingType && { printingType: data.printingType }),
-        ...(data.material && { material: data.material }),
-        ...(data.shape && { shape: data.shape }),
+        ...(data.type && { type: data.type as any }),
+        ...(data.printingType && { printingType: data.printingType as any }),
+        ...(data.material && { material: data.material as any }),
+        ...(data.shape && { shape: data.shape as any }),
         ...(data.size !== undefined && { size: data.size?.trim() }),
         ...(data.notes !== undefined && { notes: data.notes?.trim() }),
         updatedAt: now,
@@ -109,7 +191,7 @@ export function useLabelMutations() {
   );
 
   const deleteLabel = useCallback(async (id: string): Promise<void> => {
-    // Check if label is in use by any supplier labels
+    // Check if in use
     const inUse = await db.supplierLabels.where("labelId").equals(id).count();
 
     if (inUse > 0) {
@@ -126,10 +208,11 @@ export function useLabelMutations() {
   };
 }
 
-// ============================================================================
-// SUPPLIER LABEL MUTATIONS
-// ============================================================================
-
+// Hook providing functions to create, update, and delete supplier labels.
+// Handles the relationship between suppliers and labels with pricing information.
+/**
+ * @returns {Object} Object containing createSupplierLabel, updateSupplierLabel, and deleteSupplierLabel functions
+ */
 export function useSupplierLabelMutations() {
   const createSupplierLabel = useCallback(
     async (data: SupplierLabelFormData): Promise<string> => {
@@ -139,49 +222,27 @@ export function useSupplierLabelMutations() {
         "rw",
         [db.labels, db.supplierLabels],
         async () => {
-          // Step 1: Get or create label
-          let labelId: string;
-
-          // Check if label with exact combination already exists
-          // Business rule: each unique combination of (name + type + printing + material + shape + size) is separate
-          const existingLabel = await db.labels
-            .filter(
-              (l) =>
-                normalizeText(l.name) === normalizeText(data.labelName) &&
-                l.type === data.labelType &&
-                l.printingType === data.printingType &&
-                l.material === data.material &&
-                l.shape === data.shape &&
-                (l.size || "") === (data.size?.trim() || "")
-            )
-            .first();
-
-          if (existingLabel) {
-            // Use existing label with exact match
-            labelId = existingLabel.id;
-          } else {
-            // Create new label - no exact match found
-            labelId = nanoid();
-            await db.labels.add({
-              id: labelId,
-              name: data.labelName.trim(),
+          // Get or create label with exact specifications
+          const labelId = await getOrCreateLabel(
+            {
+              name: data.labelName,
               type: data.labelType,
               printingType: data.printingType,
               material: data.material,
               shape: data.shape,
-              size: data.size?.trim(),
-              notes: data.notes?.trim(),
-              createdAt: now,
-            });
-          }
+              size: data.size,
+              notes: data.notes,
+            },
+            now
+          );
 
-          // Step 2: Calculate unit price
+          // Calculate unit price
           const unitPrice = data.bulkPrice / (data.quantityForBulkPrice || 1);
 
-          // Step 3: Create supplier label
-          const supplierLabelId = nanoid();
+          // Create supplier label
+          const id = nanoid();
           await db.supplierLabels.add({
-            id: supplierLabelId,
+            id,
             supplierId: data.supplierId,
             labelId,
             unit: data.unit,
@@ -197,7 +258,7 @@ export function useSupplierLabelMutations() {
             createdAt: now,
           });
 
-          return supplierLabelId;
+          return id;
         }
       );
     },
@@ -212,91 +273,63 @@ export function useSupplierLabelMutations() {
         "rw",
         [db.labels, db.supplierLabels],
         async () => {
-          const supplierLabel = await db.supplierLabels.get(id);
-          if (!supplierLabel) {
+          const current = await db.supplierLabels.get(id);
+          if (!current) {
             throw new Error("Supplier label not found");
           }
 
-          // Handle label changes - use combination logic like createSupplierLabel
-          if (
+          // Handle label changes if any label property is updated
+          const hasLabelChanges =
             data.labelName ||
             data.labelType ||
             data.printingType ||
             data.material ||
             data.shape ||
-            data.size
-          ) {
-            // Ensure required fields are present for combination check
-            if (
-              !data.labelName ||
-              !data.labelType ||
-              !data.printingType ||
-              !data.material ||
-              !data.shape
-            ) {
-              throw new Error("All label properties are required for updates");
+            data.size !== undefined;
+
+          if (hasLabelChanges) {
+            // Get current label for fallback values
+            const currentLabel = await db.labels.get(current.labelId);
+            if (!currentLabel) {
+              throw new Error("Current label not found");
             }
 
-            // Check if the new label combination already exists
-            // Business rule: each unique combination is separate
-            const existingLabel = await db.labels
-              .filter(
-                (l) =>
-                  normalizeText(l.name) === normalizeText(data.labelName!) &&
-                  l.type === data.labelType &&
-                  l.printingType === data.printingType &&
-                  l.material === data.material &&
-                  l.shape === data.shape &&
-                  (l.size || "") === (data.size?.trim() || "")
-              )
-              .first();
+            // Get or create label with new specifications
+            const newLabelId = await getOrCreateLabel(
+              {
+                name: data.labelName || currentLabel.name,
+                type: data.labelType || currentLabel.type,
+                printingType: data.printingType || currentLabel.printingType,
+                material: data.material || currentLabel.material,
+                shape: data.shape || currentLabel.shape,
+                size: data.size ?? currentLabel.size,
+                notes: data.notes,
+              },
+              now
+            );
 
-            let newLabelId: string;
-
-            if (existingLabel) {
-              // Use existing label with exact match
-              newLabelId = existingLabel.id;
-            } else {
-              // Create new label - no exact match found
-              newLabelId = nanoid();
-              await db.labels.add({
-                id: newLabelId,
-                name: data.labelName.trim(),
-                type: data.labelType,
-                printingType: data.printingType,
-                material: data.material,
-                shape: data.shape,
-                size: data.size?.trim(),
-                notes: data.notes?.trim(),
-                createdAt: now,
-              });
-            }
-
-            // Update supplier label to reference the new/correct label
+            // Update supplier label to reference new/correct label
             await db.supplierLabels.update(id, {
               labelId: newLabelId,
-              updatedAt: now,
             });
           }
 
           // Calculate unit price if bulk pricing changed
-          let unitPrice = supplierLabel.unitPrice;
+          let unitPrice = current.unitPrice;
           if (
             data.bulkPrice !== undefined ||
             data.quantityForBulkPrice !== undefined
           ) {
-            const bulkPrice = data.bulkPrice ?? supplierLabel.bulkPrice ?? 0;
+            const bulkPrice = data.bulkPrice ?? current.bulkPrice ?? 0;
             const quantity =
-              data.quantityForBulkPrice ??
-              supplierLabel.quantityForBulkPrice ??
-              1;
+              data.quantityForBulkPrice ?? current.quantityForBulkPrice ?? 1;
             unitPrice = bulkPrice / quantity;
           }
 
-          // Update supplier label
+          // Update supplier label fields
           await db.supplierLabels.update(id, {
             ...(data.supplierId && { supplierId: data.supplierId }),
-            ...(unitPrice !== supplierLabel.unitPrice && { unitPrice }),
+            ...(unitPrice !== current.unitPrice && { unitPrice }),
             ...(data.bulkPrice !== undefined && { bulkPrice: data.bulkPrice }),
             ...(data.quantityForBulkPrice !== undefined && {
               quantityForBulkPrice: data.quantityForBulkPrice,
@@ -329,15 +362,12 @@ export function useSupplierLabelMutations() {
   };
 }
 
-// ============================================================================
-// COMBINED MUTATIONS HOOK
-// ============================================================================
-
+// Convenience hook that combines all label mutation functions.
+// Provides a single interface to access all CRUD operations for labels and supplier labels.
 /**
- * Get all mutation hooks in one place
- * Convenient for components that need multiple mutation types
+ * @returns {Object} Combined object with all label and supplier label mutation functions
  */
-export function useLabelsMutations() {
+export function useAllLabelMutations() {
   const labelMutations = useLabelMutations();
   const supplierLabelMutations = useSupplierLabelMutations();
 
