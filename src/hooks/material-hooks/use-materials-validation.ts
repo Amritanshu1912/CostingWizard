@@ -1,3 +1,4 @@
+// src/hooks/material-hooks/use-materials-validation.ts
 import type {
   CategoryFormData,
   MaterialFormData,
@@ -7,12 +8,10 @@ import type {
 import { useCallback } from "react";
 import { useDuplicateCheck } from "../use-duplicate-check";
 
-// ============================================================================
-// FORM VALIDATION
-// ============================================================================
-
 /**
- * Validate material form data
+ * Validates material form data.
+ * @param data - The form data to validate
+ * @returns Validation result with errors
  */
 export function validateMaterialForm(data: MaterialFormData): {
   isValid: boolean;
@@ -37,7 +36,9 @@ export function validateMaterialForm(data: MaterialFormData): {
 }
 
 /**
- * Validate supplier material form data
+ * Validates supplier material form data.
+ * @param data - The form data to validate
+ * @returns Validation result with errors
  */
 export function validateSupplierMaterialForm(data: SupplierMaterialFormData): {
   isValid: boolean;
@@ -93,7 +94,9 @@ export function validateSupplierMaterialForm(data: SupplierMaterialFormData): {
 }
 
 /**
- * Validate category form data
+ * Validates category form data.
+ * @param data - The form data to validate
+ * @returns Validation result with errors
  */
 export function validateCategoryForm(data: CategoryFormData): {
   isValid: boolean;
@@ -113,13 +116,12 @@ export function validateCategoryForm(data: CategoryFormData): {
   };
 }
 
-// ============================================================================
-// VALIDATION HOOK
-// ============================================================================
-
 /**
- * Combined validation hook for forms
- * Provides both validation and duplicate checking
+ * Combined validation hook for material forms.
+ * @param formType - Type of form being validated
+ * @param existingItems - Items to check for duplicates
+ * @param currentId - Current item ID for updates
+ * @returns Validation function and duplicate checking utilities
  */
 export function useMaterialFormValidation<
   T extends MaterialFormData | SupplierMaterialFormData | CategoryFormData,

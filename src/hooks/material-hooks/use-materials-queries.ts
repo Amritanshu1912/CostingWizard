@@ -1,5 +1,4 @@
 // src/hooks/material-hooks/use-materials-queries.ts
-
 import { db } from "@/lib/db";
 import type {
   MaterialWithSupplierCount,
@@ -17,13 +16,9 @@ import { useMemo } from "react";
 import { getCategoryColor, useMaterialsBaseData } from "./use-materials-data";
 import { Supplier } from "@/types/shared-types";
 
-// ============================================================================
-// MATERIAL QUERIES
-// ============================================================================
-
 /**
- * Get materials with category info and supplier details for lists/dropdowns
- * Returns: id, name, category, categoryColor, supplierCount, suppliers array
+ * Returns materials with supplier count and details.
+ * @returns Array of materials with supplier information
  */
 export function useMaterialsWithSupplierCount(): MaterialWithSupplierCount[] {
   const baseData = useMaterialsBaseData();
@@ -70,8 +65,9 @@ export function useMaterialsWithSupplierCount(): MaterialWithSupplierCount[] {
 }
 
 /**
- * Get supplier materials as table rows (main table)
- * Returns: All fields needed for materials-supplier-table
+ * Returns supplier materials formatted as table rows.
+ * @param filters - Optional filters to apply
+ * @returns Array of table rows with supplier material data
  */
 export function useSupplierMaterialTableRows(
   filters?: MaterialFilters
@@ -89,6 +85,7 @@ export function useSupplierMaterialTableRows(
     const supplierMap = new Map(suppliers.map((s) => [s.id, s]));
     const inventoryMap = new Map(inventory.map((i) => [i.itemId, i]));
 
+    // Transform supplier materials to table row format
     let rows = baseData.supplierMaterials.map((sm) => {
       const material = baseData.materialMap.get(sm.materialId);
       const supplier = supplierMap.get(sm.supplierId);
@@ -124,7 +121,7 @@ export function useSupplierMaterialTableRows(
       };
     });
 
-    // Apply filters
+    // Apply filters if provided
     if (filters) {
       if (filters.searchTerm) {
         const search = filters.searchTerm.toLowerCase();
@@ -155,8 +152,8 @@ export function useSupplierMaterialTableRows(
 }
 
 /**
- * Get price comparison data grouped by material
- * Returns: Materials with multiple suppliers for comparison
+ * Returns price comparison data for materials with multiple suppliers.
+ * @returns Array of materials with supplier alternatives sorted by price
  */
 export function useMaterialPriceComparison(): MaterialPriceComparison[] {
   const baseData = useMaterialsBaseData();
@@ -206,6 +203,7 @@ export function useMaterialPriceComparison(): MaterialPriceComparison[] {
     return Array.from(byMaterial.entries())
       .filter(([, alternatives]) => alternatives.length >= 2)
       .map(([materialName, alternatives]) => {
+        // Sort alternatives by price ascending
         const sorted = [...alternatives].sort(
           (a, b) => a.unitPrice - b.unitPrice
         );
@@ -242,7 +240,8 @@ export function useMaterialPriceComparison(): MaterialPriceComparison[] {
 }
 
 /**
- * Get analytics data for dashboard
+ * Returns analytics data for materials dashboard.
+ * @returns Analytics object with totals, averages, and distributions
  */
 export function useMaterialsAnalytics(): MaterialsAnalytics {
   const baseData = useMaterialsBaseData();
@@ -320,7 +319,6 @@ export function useMaterialsAnalytics(): MaterialsAnalytics {
       }))
       .sort((a, b) => b.count - a.count);
 
-    // Price ranges
     const priceRanges = [
       { range: "₹0-50", count: 0 },
       { range: "₹50-100", count: 0 },
@@ -352,12 +350,9 @@ export function useMaterialsAnalytics(): MaterialsAnalytics {
   }, [baseData, inventory]);
 }
 
-// ============================================================================
-// Lightweight hooks for specific needs
-// ============================================================================
-
 /**
- * Get raw materials array for dropdowns (minimal data)
+ * Returns materials data for dropdown selections.
+ * @returns Array of materials with id, name, category
  */
 export function useMaterialsForDropdown(): Pick<
   Material,
@@ -376,7 +371,8 @@ export function useMaterialsForDropdown(): Pick<
 }
 
 /**
- * Get raw categories array for dropdowns
+ * Returns categories data for dropdown selections.
+ * @returns Array of categories with id, name, color
  */
 export function useCategoriesForDropdown(): Pick<
   Category,
@@ -393,26 +389,35 @@ export function useCategoriesForDropdown(): Pick<
     }, []) || []
   );
 }
+
 /**
- * Get all categories (for category manager)
+ * Returns all materials.
+ * @returns Array of all materials
  */
 export function useAllMaterials(): Material[] {
   return useLiveQuery(() => db.materials.toArray(), []) || [];
-} /**
- * Get all categories (for category manager)
+}
+
+/**
+ * Returns all suppliers.
+ * @returns Array of all suppliers
  */
 export function useAllSuppliers(): Supplier[] {
   return useLiveQuery(() => db.suppliers.toArray(), []) || [];
 }
+
 /**
- * Get all categories (for category manager)
+ * Returns all categories.
+ * @returns Array of all categories
  */
 export function useAllCategories(): Category[] {
   return useLiveQuery(() => db.categories.toArray(), []) || [];
 }
 
 /**
- * Get supplier materials by supplier ID
+ * Returns supplier materials for a specific supplier.
+ * @param supplierId - The supplier ID to filter by
+ * @returns Array of supplier material rows for the supplier
  */
 export function useSupplierMaterialsBySupplier(
   supplierId: string | undefined
@@ -425,8 +430,8 @@ export function useSupplierMaterialsBySupplier(
 }
 
 /**
- * Get minimal material-supplier mappings for analytics calculations
- * Returns: materialName and supplierId for supplier diversity analysis
+ * Returns minimal mappings of materials to suppliers.
+ * @returns Array of material-supplier mappings
  */
 export function useMaterialSupplierMappings(): MaterialSupplierMapping[] {
   const baseData = useMaterialsBaseData();

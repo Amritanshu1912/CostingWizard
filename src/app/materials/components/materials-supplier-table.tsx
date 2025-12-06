@@ -49,8 +49,8 @@ interface SupplierMaterialsTableProps {
 }
 
 /**
- * Table displaying supplier materials with filtering and actions
- * Optimized to use SupplierMaterialTableRow type (already has joined data)
+ * SupplierMaterialsTable displays a sortable table of supplier materials with filtering capabilities.
+ * Shows material details, pricing, inventory status, and provides edit/delete actions.
  */
 export function SupplierMaterialsTable({
   items,
@@ -59,10 +59,7 @@ export function SupplierMaterialsTable({
   onDelete,
   onAddMaterial,
 }: SupplierMaterialsTableProps) {
-  // ============================================================================
-  // STATE
-  // ============================================================================
-
+  // State for managing search, filters, and delete confirmation
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("all");
   const [selectedSupplier, setSelectedSupplier] = useState("all");
@@ -70,11 +67,7 @@ export function SupplierMaterialsTable({
   const [itemToDelete, setItemToDelete] =
     useState<SupplierMaterialTableRow | null>(null);
 
-  // ============================================================================
-  // COMPUTED VALUES
-  // ============================================================================
-
-  // Extract unique categories from items
+  // Extract unique categories from the items for filtering
   const categories = useMemo(() => {
     const uniqueCategories = new Set(
       items.map((item) => item.materialCategory)
@@ -82,7 +75,7 @@ export function SupplierMaterialsTable({
     return Array.from(uniqueCategories).sort();
   }, [items]);
 
-  // Filter items based on search and filters
+  // Filter items based on search term and selected filters
   const filteredItems = useMemo(() => {
     return items.filter((item) => {
       // Search filter
@@ -104,21 +97,20 @@ export function SupplierMaterialsTable({
     });
   }, [items, searchTerm, selectedCategory, selectedSupplier]);
 
-  // ============================================================================
-  // HANDLERS
-  // ============================================================================
-
+  // Reset all filters to their default values
   const clearFilters = () => {
     setSearchTerm("");
     setSelectedCategory("all");
     setSelectedSupplier("all");
   };
 
+  // Open delete confirmation dialog for an item
   const initiateDelete = (item: SupplierMaterialTableRow) => {
     setItemToDelete(item);
     setDeleteConfirmOpen(true);
   };
 
+  // Execute deletion after confirmation
   const confirmDelete = () => {
     if (itemToDelete) {
       onDelete(itemToDelete.id);
@@ -126,10 +118,6 @@ export function SupplierMaterialsTable({
       setItemToDelete(null);
     }
   };
-
-  // ============================================================================
-  // TABLE COLUMNS
-  // ============================================================================
 
   const columns = useMemo(
     () => [
@@ -314,10 +302,6 @@ export function SupplierMaterialsTable({
     ],
     [onEdit]
   );
-
-  // ============================================================================
-  // RENDER
-  // ============================================================================
 
   return (
     <>

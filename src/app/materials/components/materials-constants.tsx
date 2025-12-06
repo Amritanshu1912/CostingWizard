@@ -1,16 +1,27 @@
 // src/app/materials/components/materials-constants.tsx
-import { Material, SupplierMaterial } from "@/types/material-types";
+import {
+  CategoryFormData,
+  Material,
+  MaterialFormData,
+  SupplierMaterial,
+  SupplierMaterialFormData,
+} from "@/types/material-types";
 
-// Default Forms
-export const DEFAULT_MATERIAL_FORM = {
+// Default form values for creating new materials
+export const DEFAULT_MATERIAL_FORM: MaterialFormData = {
+  name: "",
+  category: "",
+  notes: "",
+};
+
+// Default form values for linking materials to suppliers
+export const DEFAULT_SUPPLIER_MATERIAL_FORM: SupplierMaterialFormData = {
   supplierId: "",
   materialName: "",
   materialCategory: "",
   materialId: "",
-  unitPrice: 0,
-  bulkPrice: 0, // NEW
-  quantityForBulkPrice: 1, // NEW
-  currency: "INR" as const,
+  bulkPrice: 0,
+  quantityForBulkPrice: 1,
   moq: 1,
   capacityUnit: "kg" as const,
   tax: 0,
@@ -19,10 +30,14 @@ export const DEFAULT_MATERIAL_FORM = {
   notes: "",
 };
 
-// ============================================================================
-// MATERIALS & SUPPLIER_MATERIALS
-// ============================================================================
+// Default form values for creating new categories
+export const DEFAULT_CATEGORY_FORM: CategoryFormData = {
+  name: "",
+  description: "",
+  color: "#6366f1",
+};
 
+// Sample material data for development and testing
 export const MATERIALS: Material[] = [
   {
     id: "1",
@@ -80,6 +95,7 @@ export const MATERIALS: Material[] = [
   },
 ];
 
+// Sample supplier-material relationships for development and testing
 export const SUPPLIER_MATERIALS: SupplierMaterial[] = [
   {
     id: "1",
@@ -216,8 +232,7 @@ export const SUPPLIER_MATERIALS: SupplierMaterial[] = [
   },
 ];
 
-// Analytics Data
-
+// Sample AI-generated insights for analytics demonstration
 export const AI_INSIGHTS = [
   {
     type: "cost-optimization",

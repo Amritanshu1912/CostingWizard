@@ -55,8 +55,8 @@ interface MaterialsListTableProps {
 }
 
 /**
- * Table component for displaying and editing materials list
- * Supports inline editing with category combobox
+ * MaterialsListTable component renders a sortable table for displaying materials.
+ * Supports inline editing of material names and categories, with a searchable category combobox.
  */
 export function MaterialsListTable({
   data,
@@ -70,18 +70,11 @@ export function MaterialsListTable({
   onCancelEdit,
   onInitiateDelete,
 }: MaterialsListTableProps) {
-  // ============================================================================
-  // STATE
-  // ============================================================================
-
+  // State for managing category search and combobox visibility
   const [categorySearch, setCategorySearch] = useState("");
   const [openCategoryCombobox, setOpenCategoryCombobox] = useState(false);
 
-  // ============================================================================
-  // COMPUTED VALUES
-  // ============================================================================
-
-  // Filter categories based on search
+  // Filter available categories based on the current search term
   const filteredCategories = useMemo(() => {
     if (!categorySearch) return categories;
     return categories.filter((c) =>
@@ -89,7 +82,7 @@ export function MaterialsListTable({
     );
   }, [categories, categorySearch]);
 
-  // Check if user is creating a new category
+  // Determine if the search term represents a new category that doesn't exist yet
   const isNewCategory = useMemo(() => {
     if (!categorySearch) return false;
     return !categories.some(
@@ -97,10 +90,7 @@ export function MaterialsListTable({
     );
   }, [categorySearch, categories]);
 
-  // ============================================================================
-  // HANDLERS
-  // ============================================================================
-
+  // Handle selection of an existing category from the dropdown
   const handleSelectCategory = useCallback(
     (category: Category) => {
       onEditFormChange({ ...editForm, category: category.name });
@@ -110,14 +100,11 @@ export function MaterialsListTable({
     [editForm, onEditFormChange]
   );
 
+  // Handle creation of a new category when user types a non-existing name
   const handleNewCategory = useCallback(() => {
     onEditFormChange({ ...editForm, category: categorySearch });
     setOpenCategoryCombobox(false);
   }, [editForm, categorySearch, onEditFormChange]);
-
-  // ============================================================================
-  // TABLE COLUMNS
-  // ============================================================================
 
   const columns = useMemo(
     () => [
@@ -372,10 +359,6 @@ export function MaterialsListTable({
       onInitiateDelete,
     ]
   );
-
-  // ============================================================================
-  // RENDER
-  // ============================================================================
 
   return (
     <div className="border rounded-lg overflow-hidden bg-card">

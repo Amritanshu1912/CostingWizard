@@ -45,16 +45,15 @@ import {
 } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 
-// Hooks
 import { validateSupplierMaterialForm } from "@/hooks/material-hooks/use-materials-validation";
 import { useDuplicateCheck } from "@/hooks/use-duplicate-check";
 
-// Utils
 import { CAPACITY_UNITS } from "@/lib/constants";
-import { calculateUnitPrice } from "@/utils/unit-conversion-utils";
 import { normalizeText } from "@/utils/text-utils";
+import { calculateUnitPrice } from "@/utils/unit-conversion-utils";
 
-// Types
+import { DEFAULT_SUPPLIER_MATERIAL_FORM } from "./materials-constants";
+
 import type {
   Category,
   Material,
@@ -76,8 +75,8 @@ interface MaterialsSupplierDialogProps {
 }
 
 /**
- * Dialog for creating/editing supplier materials
- * Handles material creation inline with smart duplicate detection
+ * MaterialsSupplierDialog provides a comprehensive form dialog for adding or editing supplier materials.
+ * Supports inline creation of new materials and categories, with duplicate detection and validation.
  */
 export function MaterialsSupplierDialog({
   open,
@@ -89,24 +88,12 @@ export function MaterialsSupplierDialog({
   materials,
   categories,
 }: MaterialsSupplierDialogProps) {
-  // ============================================================================
-  // STATE
-  // ============================================================================
+  // Form data state
+  const [formData, setFormData] = useState<SupplierMaterialFormData>(
+    DEFAULT_SUPPLIER_MATERIAL_FORM
+  );
 
-  // Form data
-  const [formData, setFormData] = useState<SupplierMaterialFormData>({
-    supplierId: "",
-    materialName: "",
-    materialCategory: "",
-    bulkPrice: 0,
-    quantityForBulkPrice: 1,
-    capacityUnit: "kg",
-    tax: 0,
-    moq: 1,
-    leadTime: 7,
-  });
-
-  // UI state
+  // UI state for form controls and validation
   const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState<MaterialFormErrors>({});
   const [materialSearch, setMaterialSearch] = useState("");
@@ -114,16 +101,12 @@ export function MaterialsSupplierDialog({
   const [openMaterialCombobox, setOpenMaterialCombobox] = useState(false);
   const [openCategoryCombobox, setOpenCategoryCombobox] = useState(false);
 
-  // Duplicate checking
+  // Hooks for duplicate checking on materials and categories
   const materialDuplicateCheck = useDuplicateCheck(
     materials,
     formData.materialId
   );
   const categoryDuplicateCheck = useDuplicateCheck(categories, undefined);
-
-  // ============================================================================
-  // EFFECTS
-  // ============================================================================
 
   // Initialize form when dialog opens or data changes
   useEffect(() => {
@@ -133,17 +116,7 @@ export function MaterialsSupplierDialog({
       setCategorySearch(supplierMaterial.materialCategory || "");
     } else if (open && !supplierMaterial) {
       // Reset to defaults
-      setFormData({
-        supplierId: "",
-        materialName: "",
-        materialCategory: "",
-        bulkPrice: 0,
-        quantityForBulkPrice: 1,
-        capacityUnit: "kg",
-        tax: 0,
-        moq: 1,
-        leadTime: 7,
-      });
+      setFormData(DEFAULT_SUPPLIER_MATERIAL_FORM);
       setMaterialSearch("");
       setCategorySearch("");
       setErrors({});
@@ -162,9 +135,7 @@ export function MaterialsSupplierDialog({
     }
   }, [categorySearch, categoryDuplicateCheck]);
 
-  // ============================================================================
   // COMPUTED VALUES
-  // ============================================================================
 
   // Filtered materials based on search
   const filteredMaterials = useMemo(() => {
@@ -212,9 +183,7 @@ export function MaterialsSupplierDialog({
     );
   }, [formData]);
 
-  // ============================================================================
   // HANDLERS
-  // ============================================================================
 
   /**
    * Update form field
@@ -334,9 +303,7 @@ export function MaterialsSupplierDialog({
     }
   };
 
-  // ============================================================================
   // RENDER
-  // ============================================================================
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>

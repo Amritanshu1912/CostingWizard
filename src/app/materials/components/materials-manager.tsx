@@ -8,7 +8,6 @@ import { BarChart3, List, Package, TrendingUp } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 
-// New hooks
 import { useMaterialsMutations } from "@/hooks/material-hooks/use-materials-mutations";
 import {
   useAllCategories,
@@ -18,10 +17,8 @@ import {
   useSupplierMaterialTableRows,
 } from "@/hooks/material-hooks/use-materials-queries";
 
-// Types
 import type { SupplierMaterialFormData } from "@/types/material-types";
 
-// Components
 import { MaterialsAnalytics } from "./materials-analytics";
 import { CategoryManager } from "./materials-category-manager";
 import { MaterialsListDrawer } from "./materials-list-drawer";
@@ -34,7 +31,7 @@ import { SupplierMaterialsTable } from "./materials-supplier-table";
  * Orchestrates all material-related operations and views
  */
 export function MaterialsManager() {
-  // Dialog state
+  // State for managing dialog visibility and editing mode
   const [showSupplierMaterialDialog, setShowSupplierMaterialDialog] =
     useState(false);
   const [showMaterialsListDrawer, setShowMaterialsListDrawer] = useState(false);
@@ -45,16 +42,16 @@ export function MaterialsManager() {
     null
   );
 
-  // Data hooks - only fetch what we need for dropdowns
+  // Fetch data for dropdowns and displays
   const suppliers = useAllSuppliers();
   const materials = useAllMaterials();
   const categories = useAllCategories();
 
-  // Query hooks - get transformed data for display
+  // Get transformed data for table display and analytics
   const supplierMaterialRows = useSupplierMaterialTableRows();
   const analytics = useMaterialsAnalytics();
 
-  // Mutation hooks - all CRUD operations
+  // Get mutation functions for all CRUD operations
   const {
     createSupplierMaterial,
     updateSupplierMaterial,
@@ -64,28 +61,20 @@ export function MaterialsManager() {
     deleteCategory,
   } = useMaterialsMutations();
 
-  // ============================================================================
-  // EVENT HANDLERS
-  // ============================================================================
-
-  /**
-   * Open dialog to add new supplier material
-   */
+  // Initialize dialog for adding a new supplier material
   const handleAddSupplierMaterial = () => {
     setEditingSupplierMaterialId(null);
     setFormData(null);
     setShowSupplierMaterialDialog(true);
   };
 
-  /**
-   * Open dialog to edit existing supplier material
-   */
+  // Initialize dialog for editing an existing supplier material
   const handleEditSupplierMaterial = (
     row: (typeof supplierMaterialRows)[0]
   ) => {
     setEditingSupplierMaterialId(row.id);
 
-    // Map row data to form data
+    // Map table row data to form structure
     setFormData({
       supplierId: row.supplierId,
       materialId: row.materialId,
@@ -104,9 +93,7 @@ export function MaterialsManager() {
     setShowSupplierMaterialDialog(true);
   };
 
-  /**
-   * Save supplier material (create or update)
-   */
+  // Save supplier material data (create or update based on editing state)
   const handleSaveSupplierMaterial = async (data: SupplierMaterialFormData) => {
     try {
       if (editingSupplierMaterialId) {
@@ -128,9 +115,7 @@ export function MaterialsManager() {
     }
   };
 
-  /**
-   * Delete supplier material
-   */
+  // Delete a supplier material entry
   const handleDeleteSupplierMaterial = async (id: string) => {
     try {
       await deleteSupplierMaterial(id);
@@ -143,19 +128,14 @@ export function MaterialsManager() {
     }
   };
 
-  /**
-   * Close dialog and reset state
-   */
+  // Close the supplier material dialog and reset editing state
   const handleCloseDialog = () => {
     setShowSupplierMaterialDialog(false);
     setEditingSupplierMaterialId(null);
     setFormData(null);
   };
 
-  // ============================================================================
-  // CATEGORY HANDLERS (passed to CategoryManager)
-  // ============================================================================
-
+  // Create a new material category
   const handleAddCategory = async (data: {
     name: string;
     description?: string;
@@ -197,10 +177,6 @@ export function MaterialsManager() {
       );
     }
   };
-
-  // ============================================================================
-  // RENDER
-  // ============================================================================
 
   return (
     <div className="space-y-6 animate-fade-in">

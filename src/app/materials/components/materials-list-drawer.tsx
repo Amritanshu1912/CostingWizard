@@ -24,17 +24,14 @@ import { AlertCircle, Loader2, Package, Plus } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 
-// Hooks
 import { useMaterialMutations } from "@/hooks/material-hooks/use-materials-mutations";
 import {
   useAllCategories,
   useMaterialsWithSupplierCount,
 } from "@/hooks/material-hooks/use-materials-queries";
 
-// Types
 import type { MaterialWithSupplierCount } from "@/types/material-types";
 
-// Components
 import { MaterialsListTable } from "./materials-list-table";
 
 interface MaterialsListDrawerProps {
@@ -43,18 +40,14 @@ interface MaterialsListDrawerProps {
 }
 
 /**
- * Drawer for managing the master materials list
- * Shows all materials with their supplier counts
- * Allows inline editing and deletion
+ * MaterialsListDrawer component provides a slide-out drawer for managing the master materials list.
+ * It displays all materials with their supplier counts and supports inline editing and deletion.
  */
 export function MaterialsListDrawer({
   open,
   onOpenChange,
 }: MaterialsListDrawerProps) {
-  // ============================================================================
-  // STATE
-  // ============================================================================
-
+  // State for managing editing mode and form data
   const [editingMaterialId, setEditingMaterialId] = useState<string | null>(
     null
   );
@@ -65,25 +58,14 @@ export function MaterialsListDrawer({
   const [loading, setLoading] = useState(false);
   const [isAddingNew, setIsAddingNew] = useState(false);
 
-  // ============================================================================
-  // DATA HOOKS
-  // ============================================================================
-
-  // Fetch materials with supplier info
   const materials = useMaterialsWithSupplierCount();
 
-  // Fetch categories for combobox
   const categories = useAllCategories();
 
-  // Mutation hooks
   const { createMaterial, updateMaterial, deleteMaterial } =
     useMaterialMutations();
 
-  // ============================================================================
-  // COMPUTED VALUES
-  // ============================================================================
-
-  // Add empty row for new material if adding
+  // Prepare display data, adding an empty row at the top when adding a new material
   const displayMaterials = isAddingNew
     ? [
         {
@@ -102,39 +84,27 @@ export function MaterialsListDrawer({
 
   const activeMaterialsCount = materials.length;
 
-  // ============================================================================
-  // HANDLERS
-  // ============================================================================
-
-  /**
-   * Start editing a material
-   */
+  // Initialize editing mode for an existing material
   const startEdit = (material: MaterialWithSupplierCount) => {
     setEditingMaterialId(material.id);
     setEditForm({ name: material.name, category: material.category });
   };
 
-  /**
-   * Start adding a new material
-   */
+  // Enable adding a new material by setting up the editing state
   const startAddingNew = () => {
     setIsAddingNew(true);
     setEditingMaterialId("new");
     setEditForm({ name: "", category: "" });
   };
 
-  /**
-   * Cancel editing or adding
-   */
+  // Reset editing state and form data
   const cancelEdit = () => {
     setEditingMaterialId(null);
     setIsAddingNew(false);
     setEditForm({ name: "", category: "" });
   };
 
-  /**
-   * Save material (create or update)
-   */
+  // Validate and save the material (either create new or update existing)
   const saveEdit = async () => {
     if (!editingMaterialId) return;
 
@@ -149,14 +119,12 @@ export function MaterialsListDrawer({
     setLoading(true);
     try {
       if (isAddingNew) {
-        // Create new material
         await createMaterial({
           name: trimmedName,
           category: trimmedCategory,
         });
         toast.success("Material added successfully");
       } else {
-        // Update existing material
         await updateMaterial(editingMaterialId, {
           name: trimmedName,
           category: trimmedCategory,
@@ -175,17 +143,13 @@ export function MaterialsListDrawer({
     }
   };
 
-  /**
-   * Initiate delete (show confirmation dialog)
-   */
+  // Open delete confirmation dialog for a material
   const initiateDelete = (material: MaterialWithSupplierCount) => {
     setMaterialToDelete(material);
     setDeleteConfirmOpen(true);
   };
 
-  /**
-   * Confirm and execute delete
-   */
+  // Execute material deletion after confirmation
   const confirmDelete = async () => {
     if (!materialToDelete) return;
 
@@ -204,10 +168,6 @@ export function MaterialsListDrawer({
       setLoading(false);
     }
   };
-
-  // ============================================================================
-  // RENDER
-  // ============================================================================
 
   return (
     <>

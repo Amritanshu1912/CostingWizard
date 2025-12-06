@@ -1,7 +1,4 @@
-// ============================================================================
-// use-materials-mutations.ts - All database write operations
-// ============================================================================
-
+// src/hooks/material-hooks/use-materials-mutations.ts
 import { db } from "@/lib/db";
 import type {
   MaterialFormData,
@@ -13,10 +10,10 @@ import { normalizeText } from "@/utils/text-utils";
 import { nanoid } from "nanoid";
 import { useCallback } from "react";
 
-// ============================================================================
-// MATERIAL MUTATIONS
-// ============================================================================
-
+/**
+ * Provides functions to create, update, and delete materials.
+ * @returns Object with createMaterial, updateMaterial, deleteMaterial
+ */
 export function useMaterialMutations() {
   const createMaterial = useCallback(
     async (data: MaterialFormData): Promise<string> => {
@@ -99,30 +96,28 @@ export function useMaterialMutations() {
   return { createMaterial, updateMaterial, deleteMaterial };
 }
 
-// ============================================================================
-// SUPPLIER MATERIAL MUTATIONS
-// ============================================================================
-
+/**
+ * Provides functions to create, update, and delete supplier materials.
+ * @returns Object with createSupplierMaterial, updateSupplierMaterial, deleteSupplierMaterial
+ */
 export function useSupplierMaterialMutations() {
   const createSupplierMaterial = useCallback(
     async (data: SupplierMaterialFormData): Promise<string> => {
       const now = new Date().toISOString();
 
+      // Use database transaction for atomic operations
       return await db.transaction(
         "rw",
         [db.materials, db.supplierMaterials, db.categories],
         async () => {
-          // Step 1: Ensure category exists
           await ensureCategoryExists(data.materialCategory, now);
 
-          // Step 2: Get or create material
           let materialId: string;
 
           if (data.materialId) {
             // Using existing material
             materialId = data.materialId;
 
-            // Update category if changed
             const material = await db.materials.get(materialId);
             if (
               material &&
@@ -151,7 +146,6 @@ export function useSupplierMaterialMutations() {
                 });
               }
             } else {
-              // Create new material
               materialId = nanoid();
               await db.materials.add({
                 id: materialId,
@@ -163,10 +157,8 @@ export function useSupplierMaterialMutations() {
             }
           }
 
-          // Step 3: Calculate unit price
           const unitPrice = data.bulkPrice / (data.quantityForBulkPrice || 1);
 
-          // Step 4: Create supplier material
           const supplierMaterialId = nanoid();
           await db.supplierMaterials.add({
             id: supplierMaterialId,
@@ -308,10 +300,10 @@ export function useSupplierMaterialMutations() {
   };
 }
 
-// ============================================================================
-// CATEGORY MUTATIONS
-// ============================================================================
-
+/**
+ * Provides functions to create, update, and delete categories.
+ * @returns Object with createCategory, updateCategory, deleteCategory
+ */
 export function useCategoryMutations() {
   const createCategory = useCallback(
     async (data: CategoryFormData): Promise<string> => {
@@ -390,10 +382,10 @@ export function useCategoryMutations() {
   return { createCategory, updateCategory, deleteCategory };
 }
 
-// ============================================================================
-// COMBINED HOOK
-// ============================================================================
-
+/**
+ * Combined hook for all material mutations.
+ * @returns Object with all mutation functions
+ */
 export function useMaterialsMutations() {
   const materialMutations = useMaterialMutations();
   const supplierMaterialMutations = useSupplierMaterialMutations();
@@ -406,9 +398,7 @@ export function useMaterialsMutations() {
   };
 }
 
-// ============================================================================
-// HELPER FUNCTIONS
-// ============================================================================
+// HELPER FUNCTION
 
 /**
  * Ensure category exists, create if not

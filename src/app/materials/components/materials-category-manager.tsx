@@ -47,7 +47,8 @@ interface EditingCategory {
 }
 
 /**
- * Dialog for managing material categories with inline editing
+ * CategoryManager provides a dialog interface for managing material categories.
+ * Supports adding, editing, and deleting categories with inline form validation.
  */
 export function CategoryManager({
   categories,
@@ -55,10 +56,7 @@ export function CategoryManager({
   onUpdate,
   onDelete,
 }: CategoryManagerProps) {
-  // ============================================================================
-  // STATE
-  // ============================================================================
-
+  // State for managing dialog visibility and editing modes
   const [isOpen, setIsOpen] = useState(false);
   const [isAddingNew, setIsAddingNew] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -71,37 +69,25 @@ export function CategoryManager({
 
   const nameInputRef = useRef<HTMLInputElement>(null);
 
-  // ============================================================================
-  // EFFECTS
-  // ============================================================================
-
-  // Focus name input when adding new or editing
+  // Auto-focus the name input when starting to add or edit a category
   useEffect(() => {
     if ((isAddingNew || editingId) && nameInputRef.current) {
       nameInputRef.current.focus();
     }
   }, [isAddingNew, editingId]);
 
-  // ============================================================================
-  // HANDLERS
-  // ============================================================================
-
-  /**
-   * Start adding new category
-   */
+  // Initialize form data for adding a new category
   const handleStartAdd = () => {
     setIsAddingNew(true);
     setEditForm({
       id: "new",
       name: "",
       description: "",
-      color: "#6366f1", // Default indigo
+      color: "#6366f1", // Default indigo color
     });
   };
 
-  /**
-   * Start editing existing category
-   */
+  // Initialize form data for editing an existing category
   const handleStartEdit = (category: Category) => {
     setEditingId(category.id);
     setEditForm({
@@ -112,25 +98,21 @@ export function CategoryManager({
     });
   };
 
-  /**
-   * Cancel add/edit
-   */
+  // Reset editing state and form data
   const handleCancel = () => {
     setIsAddingNew(false);
     setEditingId(null);
     setEditForm(null);
   };
 
-  /**
-   * Save (create or update)
-   */
+  // Validate and save the category (create or update)
   const handleSave = async () => {
     if (!editForm || !editForm.name.trim()) {
       toast.error("Category name is required");
       return;
     }
 
-    // Check for duplicates
+    // Prevent duplicate category names (case-insensitive)
     const normalized = editForm.name.trim().toLowerCase();
     const isDuplicate = categories.some(
       (cat) => cat.id !== editForm.id && cat.name.toLowerCase() === normalized
@@ -168,16 +150,12 @@ export function CategoryManager({
     }
   };
 
-  /**
-   * Initiate delete
-   */
+  // Open delete confirmation dialog for a category
   const handleInitiateDelete = (category: Category) => {
     setDeleteConfirm({ open: true, category });
   };
 
-  /**
-   * Confirm delete
-   */
+  // Execute category deletion after confirmation
   const handleConfirmDelete = async () => {
     if (!deleteConfirm.category) return;
 
@@ -195,29 +173,20 @@ export function CategoryManager({
     }
   };
 
-  /**
-   * Update form field
-   */
+  // Update a specific field in the edit form
   const updateField = (field: keyof EditingCategory, value: string) => {
     if (editForm) {
       setEditForm({ ...editForm, [field]: value });
     }
   };
 
-  // ============================================================================
-  // RENDER HELPERS
-  // ============================================================================
-
-  /**
-   * Render edit form row
-   */
+  // Render the inline editing form when adding or editing a category
   const renderEditRow = () => {
     if (!editForm) return null;
 
     return (
       <div className="border-2 border-primary/30 rounded-lg p-4 bg-primary/5 animate-in fade-in-0 slide-in-from-top-2 duration-200">
         <div className="grid grid-cols-12 gap-3 mb-3">
-          {/* Name - 4 cols */}
           <div className="col-span-4">
             <label className="text-xs font-medium text-muted-foreground mb-1.5 block">
               Name <span className="text-destructive">*</span>
@@ -239,7 +208,6 @@ export function CategoryManager({
             />
           </div>
 
-          {/* Color - 2 cols */}
           <div className="col-span-2">
             <label className="text-xs font-medium text-muted-foreground mb-1.5 block">
               Color
@@ -254,7 +222,6 @@ export function CategoryManager({
             </div>
           </div>
 
-          {/* Description - 6 cols */}
           <div className="col-span-6">
             <label className="text-xs font-medium text-muted-foreground mb-1.5 block">
               Description
@@ -324,9 +291,7 @@ export function CategoryManager({
     );
   };
 
-  /**
-   * Render category item row
-   */
+  // Render a single category row in the list
   const renderCategoryRow = (category: Category) => {
     return (
       <div
@@ -334,7 +299,6 @@ export function CategoryManager({
         className="group border rounded-lg p-3 hover:border-primary/30 hover:bg-accent/5 transition-all duration-150"
       >
         <div className="grid grid-cols-12 gap-3 items-center">
-          {/* Color indicator - 1 col */}
           <div className="col-span-1 flex justify-center">
             <div
               className="w-8 h-8 rounded-full border-2 border-border shadow-sm"
@@ -343,12 +307,10 @@ export function CategoryManager({
             />
           </div>
 
-          {/* Name - 3 cols */}
           <div className="col-span-3">
             <div className="font-medium text-foreground">{category.name}</div>
           </div>
 
-          {/* Description - 6 cols */}
           <div className="col-span-6">
             {category.description ? (
               <div className="text-sm text-muted-foreground">
@@ -388,10 +350,6 @@ export function CategoryManager({
       </div>
     );
   };
-
-  // ============================================================================
-  // MAIN RENDER
-  // ============================================================================
 
   return (
     <>

@@ -13,15 +13,11 @@ import { useMaterialPriceComparison } from "@/hooks/material-hooks/use-materials
 import { AlertCircle, Clock, Star, TrendingDown } from "lucide-react";
 
 /**
- * Price comparison view using material cards with embedded mini-tables
- * Shows all supplier options for materials with multiple sources
+ * MaterialsPriceComparison displays a comparison of prices across different suppliers for materials.
+ * Shows materials that have multiple supplier options with detailed pricing, lead times, and potential savings.
  */
 export function MaterialsPriceComparison() {
   const priceComparisons = useMaterialPriceComparison();
-
-  // ============================================================================
-  // RENDER
-  // ============================================================================
 
   if (priceComparisons.length === 0) {
     return (

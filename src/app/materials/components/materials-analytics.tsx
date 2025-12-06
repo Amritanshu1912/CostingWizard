@@ -31,45 +31,45 @@ import {
 } from "recharts";
 
 /**
- * Materials analytics dashboard
- * Shows real-time metrics and insights from database
+ * MaterialsAnalytics component shows key metrics, charts, and insights
+ * derived from materials data including
+ * supplier diversity, stock alerts, price distributions, and category breakdowns.
  */
 export function MaterialsAnalytics() {
-  // Get analytics data
+  // Fetch analytics data and supplier mappings from custom hooks
   const analytics = useMaterialsAnalytics();
   const supplierMaterials = useMaterialSupplierMappings();
 
-  // ============================================================================
-  // COMPUTED METRICS
-  // ============================================================================
-
-  // Calculate materials with multiple suppliers
+  // Compute metrics for materials that have multiple supplier options
   const materialsWithMultipleSuppliers = useMemo(() => {
     const materialSupplierCount = new Map<string, Set<string>>();
 
+    // Build a map of materials to their unique suppliers
     supplierMaterials.forEach((sm) => {
       const suppliers = materialSupplierCount.get(sm.materialName) || new Set();
       suppliers.add(sm.supplierId);
       materialSupplierCount.set(sm.materialName, suppliers);
     });
 
+    // Count materials with more than one supplier
     const count = Array.from(materialSupplierCount.values()).filter(
       (suppliers) => suppliers.size > 1
     ).length;
 
-    return {
-      count,
-      percentage:
-        materialSupplierCount.size > 0
-          ? (count / materialSupplierCount.size) * 100
-          : 0,
-    };
+    // Calculate percentage of materials with multiple suppliers
+    const percentage =
+      materialSupplierCount.size > 0
+        ? (count / materialSupplierCount.size) * 100
+        : 0;
+
+    return { count, percentage };
   }, [supplierMaterials]);
 
-  // Calculate average suppliers per material
+  // Calculate the average number of suppliers per material
   const avgSuppliersPerMaterial = useMemo(() => {
     const materialSupplierCount = new Map<string, Set<string>>();
 
+    // Aggregate suppliers for each material
     supplierMaterials.forEach((sm) => {
       const suppliers = materialSupplierCount.get(sm.materialName) || new Set();
       suppliers.add(sm.supplierId);
@@ -78,6 +78,7 @@ export function MaterialsAnalytics() {
 
     if (materialSupplierCount.size === 0) return 0;
 
+    // Sum up all suppliers across materials
     const totalSuppliers = Array.from(materialSupplierCount.values()).reduce(
       (sum, suppliers) => sum + suppliers.size,
       0
@@ -86,7 +87,7 @@ export function MaterialsAnalytics() {
     return totalSuppliers / materialSupplierCount.size;
   }, [supplierMaterials]);
 
-  // Key metrics for display
+  // Prepare key metrics data for display in metric cards
   const keyMetrics = useMemo(() => {
     return [
       {
@@ -145,11 +146,7 @@ export function MaterialsAnalytics() {
     ];
   }, [analytics, materialsWithMultipleSuppliers]);
 
-  // ============================================================================
-  // CHART DATA
-  // ============================================================================
-
-  // Category distribution data for pie chart
+  // Prepare data for the category distribution pie chart
   const categoryChartData = useMemo(() => {
     return analytics.categoryDistribution.map((item) => ({
       name: item.category,
@@ -159,7 +156,7 @@ export function MaterialsAnalytics() {
     }));
   }, [analytics.categoryDistribution]);
 
-  // Price range data for bar chart
+  // Prepare data for the price range bar chart
   const priceRangeChartData = useMemo(() => {
     return analytics.priceRanges.map((range) => ({
       range: range.range,
@@ -168,6 +165,7 @@ export function MaterialsAnalytics() {
     }));
   }, [analytics.priceRanges]);
 
+  // Calculate maximum values for chart axes scaling
   const maxValues = useMemo(() => {
     const maxCount = Math.max(...categoryChartData.map((d) => d.value), 0);
     const maxPrice = Math.max(...categoryChartData.map((d) => d.avgPrice), 0);
@@ -176,10 +174,6 @@ export function MaterialsAnalytics() {
       maxPrice: Math.ceil(maxPrice * 1.2) || 1,
     };
   }, [categoryChartData]);
-
-  // ============================================================================
-  // RENDER
-  // ============================================================================
 
   return (
     <div className="space-y-6">
