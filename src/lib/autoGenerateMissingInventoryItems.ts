@@ -1,5 +1,5 @@
 import { CostingWizardDB } from "./db";
-import { InventoryItem } from "./types";
+import { InventoryItem } from "../types/shared-types";
 
 /**
  * Auto-generate inventory items for supplier materials/packaging/labels
@@ -27,7 +27,7 @@ export async function autoGenerateMissingInventoryItems(db: CostingWizardDB) {
         itemId: sm.id,
         itemName: material?.name || "Unknown Material",
         currentStock: 0,
-        unit: sm.unit,
+        unit: sm.capacityUnit,
         minStockLevel: 50, // Default minimum
         maxStockLevel: 500, // Default maximum
         lastUpdated: new Date().toISOString(),

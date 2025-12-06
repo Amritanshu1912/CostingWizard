@@ -5,9 +5,12 @@ import {
   ChartTooltip,
   ChartTooltipContent,
 } from "@/components/ui/chart";
-import { convertToBaseUnit, formatQuantity } from "@/hooks/use-unit-conversion";
-import { CHART_COLORS } from "@/lib/color-utils";
-import type { RecipeIngredientDisplay } from "@/lib/types";
+import {
+  convertToBaseUnit,
+  formatQuantity,
+} from "@/utils/unit-conversion-utils";
+import { CHART_COLORS } from "@/utils/color-utils";
+import type { RecipeIngredientDisplay } from "@/types/shared-types";
 import { Package } from "lucide-react";
 import { useMemo } from "react";
 import { Cell, Pie, PieChart } from "recharts";

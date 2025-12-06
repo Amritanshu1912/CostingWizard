@@ -1,5 +1,5 @@
 // components/batches/batch-requirements/requirements-overview.tsx
-import type { BatchRequirementsAnalysis } from "@/lib/types";
+import type { BatchRequirementsAnalysis } from "@/types/shared-types";
 import {
   AlertCircle,
   Building2,

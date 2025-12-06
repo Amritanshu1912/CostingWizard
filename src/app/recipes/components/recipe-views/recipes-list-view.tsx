@@ -4,8 +4,8 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import type { RecipeDisplay } from "@/lib/types";
-import { formatDate } from "@/lib/utils";
+import type { RecipeDisplay } from "@/types/shared-types";
+import { formatDate } from "@/utils/shared-utils";
 import {
   FileText,
   Package,

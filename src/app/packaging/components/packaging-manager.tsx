@@ -5,71 +5,57 @@ import { SUPPLIERS } from "@/app/suppliers/components/suppliers-constants";
 import { Button } from "@/components/ui/button";
 import { MetricCard } from "@/components/ui/metric-card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { useAllPackagingMutations } from "@/hooks/packaging-hooks/use-packaging-mutations";
+import {
+  usePackagingAnalytics,
+  useSupplierPackagingTableRows,
+} from "@/hooks/packaging-hooks/use-packaging-queries";
 import { useDexieTable } from "@/hooks/use-dexie-table";
-import { useSupplierPackagingWithDetails } from "@/hooks/use-supplier-packaging";
+
+import { DEFAULT_SUPPLIER_PACKAGING_FORM } from "@/app/packaging/components/packaging-constants";
 import { db } from "@/lib/db";
-import { normalizeText } from "@/lib/text-utils";
-import type { SupplierPackaging } from "@/lib/types";
+import type {
+  CapacityUnit,
+  PackagingType,
+  SupplierPackagingFormData,
+  SupplierPackagingTableRow,
+} from "@/types/packaging-types";
 import { BarChart3, List, Package, TrendingUp } from "lucide-react";
-import { nanoid } from "nanoid";
 import { useCallback, useState } from "react";
 import { toast } from "sonner";
 import { PackagingAnalytics } from "./packaging-analytics";
 import { PackagingDrawer } from "./packaging-drawer";
 import { PackagingPriceComparison } from "./packaging-price-comparison";
-import type { PackagingFormData } from "./supplier-packaging-dialog";
-import { EnhancedSupplierPackagingDialog } from "./supplier-packaging-dialog";
+import { SupplierPackagingDialog } from "./supplier-packaging-dialog";
 import { SupplierPackagingTable } from "./supplier-packaging-table";
 
-const DEFAULT_PACKAGING_FORM: PackagingFormData = {
-  supplierId: "",
-  packagingName: "",
-  packagingId: "",
-  packagingType: undefined,
-  capacity: 0,
-  capacityUnit: "ml",
-  buildMaterial: undefined,
-  bulkPrice: 0,
-  quantityForBulkPrice: 1,
-  tax: 0,
-  moq: 1,
-  leadTime: 7,
-  availability: "in-stock",
-  notes: "",
-};
-
+/**
+ * PackagingManager component provides the main interface for managing packaging inventory
+ * and supplier relationships. It includes tabs for supplier packaging, price comparison,
+ * and analytics, with full CRUD operations for supplier packaging entries.
+ */
 export function PackagingManager() {
+  // State for controlling the add/edit supplier packaging dialog
   const [showAddSupplierPackaging, setShowAddSupplierPackaging] =
     useState(false);
   const [editingSupplierPackaging, setEditingSupplierPackaging] =
-    useState<SupplierPackaging | null>(null);
+    useState<SupplierPackagingTableRow | null>(null);
   const [showPackagingDrawer, setShowPackagingDrawer] = useState(false);
-  const [formData, setFormData] = useState<PackagingFormData>(
-    DEFAULT_PACKAGING_FORM
+  const [formData, setFormData] = useState<SupplierPackagingFormData>(
+    DEFAULT_SUPPLIER_PACKAGING_FORM
   );
+
+  // Trigger for refreshing dialog data when packaging changes
   const [refreshTrigger, setRefreshTrigger] = useState(0);
 
-  // Database hooks
+  // Fetch data using hooks
   const { data: suppliers } = useDexieTable(db.suppliers, SUPPLIERS);
   const { data: packaging } = useDexieTable(db.packaging, []);
+  const supplierPackagingTableData = useSupplierPackagingTableRows();
+  const analytics = usePackagingAnalytics();
+  const mutations = useAllPackagingMutations();
 
-  // Enriched data
-  const enrichedSupplierPackaging = useSupplierPackagingWithDetails();
-
-  // Calculate metrics
-  const totalPackaging = enrichedSupplierPackaging.length;
-  const avgPrice =
-    enrichedSupplierPackaging.reduce((sum, sp) => sum + sp.unitPrice, 0) /
-    (enrichedSupplierPackaging.length || 1);
-  const highestPrice =
-    enrichedSupplierPackaging.length > 0
-      ? Math.max(...enrichedSupplierPackaging.map((sp) => sp.unitPrice))
-      : 0;
-  const avgTax =
-    enrichedSupplierPackaging.reduce((sum, sp) => sum + (sp.tax || 0), 0) /
-    (enrichedSupplierPackaging.length || 1);
-
-  // Handle add with transaction
+  // Handle adding new supplier packaging with validation
   const handleAddSupplierPackaging = useCallback(async () => {
     if (
       !formData.supplierId ||
@@ -81,221 +67,93 @@ export function PackagingManager() {
     }
 
     try {
-      await db.transaction(
-        "rw",
-        [db.packaging, db.supplierPackaging],
-        async () => {
-          const now = new Date().toISOString();
-
-          // Step 1: Check if exact packaging combination already exists
-          const existingPackaging = await db.packaging
-            .filter(
-              (p) =>
-                normalizeText(p.name) ===
-                  normalizeText(formData.packagingName!) &&
-                p.type === formData.packagingType &&
-                p.capacity === (formData.capacity || 0) &&
-                p.unit === formData.capacityUnit &&
-                p.buildMaterial === formData.buildMaterial
-            )
-            .first();
-
-          // Step 2: Create new packaging (since no exact match exists)
-          let packagingId: string;
-          if (existingPackaging) {
-            packagingId = existingPackaging.id;
-          } else {
-            packagingId = nanoid();
-            await db.packaging.add({
-              id: packagingId,
-              name: formData.packagingName!.trim(),
-              type: formData.packagingType!,
-              capacity: formData.capacity || 0,
-              unit: formData.capacityUnit!,
-              buildMaterial: formData.buildMaterial,
-              notes: formData.notes || "",
-              createdAt: now,
-            });
-          }
-
-          // Step 3: Calculate unit price
-          const bulkQuantity = formData.quantityForBulkPrice || 1;
-          const bulkPrice = formData.bulkPrice!;
-          const unitPrice = bulkPrice / bulkQuantity;
-
-          // Step 4: Create supplier packaging
-
-          await db.supplierPackaging.add({
-            id: nanoid(),
-            supplierId: formData.supplierId!,
-            packagingId: packagingId,
-            unitPrice: unitPrice,
-            bulkPrice: bulkPrice,
-            quantityForBulkPrice: bulkQuantity,
-            tax: formData.tax || 0,
-            moq: formData.moq || 1,
-            leadTime: formData.leadTime || 7,
-            availability: formData.availability || "in-stock",
-            notes: formData.notes || "",
-            createdAt: now,
-          });
-        }
-      );
-
-      setFormData(DEFAULT_PACKAGING_FORM);
+      await mutations.createSupplierPackaging(formData);
+      setFormData(DEFAULT_SUPPLIER_PACKAGING_FORM);
       setShowAddSupplierPackaging(false);
       toast.success("Supplier packaging added successfully");
     } catch (error: any) {
       console.error("Error adding supplier packaging:", error);
-      if (error.message === "DUPLICATE_PACKAGING") {
-        toast.error("This exact packaging combination already exists");
-      } else {
-        toast.error("Failed to add supplier packaging");
-      }
+      toast.error(error.message || "Failed to add supplier packaging");
     }
-  }, [formData]);
+  }, [formData, mutations]);
 
-  // Handle edit
+  // Prepare form data for editing an existing supplier packaging entry
   const handleEditSupplierPackaging = useCallback(
-    async (item: SupplierPackaging) => {
-      const pkg = packaging.find((p) => p.id === item.packagingId);
+    (item: SupplierPackagingTableRow) => {
       setEditingSupplierPackaging(item);
       setFormData({
-        ...item,
-        packagingName: pkg?.name,
-        packagingType: pkg?.type,
-        capacity: pkg?.capacity,
-        capacityUnit: pkg?.unit,
-        buildMaterial: pkg?.buildMaterial,
-      } as PackagingFormData);
+        supplierId: item.supplierId,
+        packagingId: item.packagingId,
+        packagingName: item.packagingName,
+        packagingType: item.packagingType,
+        capacity: item.capacity,
+        capacityUnit: item.capacityUnit,
+        buildMaterial: item.buildMaterial,
+        bulkPrice: item.bulkPrice,
+        quantityForBulkPrice: item.quantityForBulkPrice,
+        unitPrice: item.unitPrice,
+        tax: item.tax,
+        moq: item.moq,
+        leadTime: item.leadTime,
+        transportationCost: 0,
+        bulkDiscounts: [],
+        notes: item.notes,
+      });
       setShowAddSupplierPackaging(true);
     },
-    [packaging]
+    []
   );
 
-  // Handle update with transaction
+  // Handle updating existing supplier packaging entry
   const handleUpdateSupplierPackaging = useCallback(async () => {
     if (!editingSupplierPackaging) return;
 
     try {
-      await db.transaction(
-        "rw",
-        [db.packaging, db.supplierPackaging],
-        async () => {
-          const now = new Date().toISOString();
-
-          // Get original packaging data
-          const originalPackaging = packaging.find(
-            (p) => p.id === editingSupplierPackaging.packagingId
-          );
-
-          // Check if any packaging properties changed
-          const packagingChanged =
-            !originalPackaging ||
-            normalizeText(originalPackaging.name) !==
-              normalizeText(formData.packagingName!) ||
-            originalPackaging.type !== formData.packagingType ||
-            originalPackaging.capacity !== (formData.capacity || 0) ||
-            originalPackaging.unit !== formData.capacityUnit ||
-            originalPackaging.buildMaterial !== formData.buildMaterial;
-
-          let packagingId = editingSupplierPackaging.packagingId;
-
-          if (packagingChanged) {
-            const existingPackaging = await db.packaging
-              .filter(
-                (p) =>
-                  normalizeText(p.name) ===
-                    normalizeText(formData.packagingName!) &&
-                  p.type === formData.packagingType &&
-                  p.capacity === (formData.capacity || 0) &&
-                  p.unit === formData.capacityUnit &&
-                  p.buildMaterial === formData.buildMaterial
-              )
-              .first();
-
-            if (existingPackaging) {
-              // Use existing packaging (exact duplicate)
-              packagingId = existingPackaging.id;
-            } else {
-              // Create new packaging (always, since no exact match exists)
-              packagingId = nanoid();
-              await db.packaging.add({
-                id: packagingId,
-                name: formData.packagingName!.trim(),
-                type: formData.packagingType!,
-                capacity: formData.capacity || 0,
-                unit: formData.capacityUnit!,
-                buildMaterial: formData.buildMaterial,
-                notes: formData.notes || "",
-                createdAt: now,
-              });
-            }
-          }
-
-          // Always update supplier packaging record
-          const bulkQuantity = formData.quantityForBulkPrice || 1;
-          const bulkPrice = formData.bulkPrice || 0;
-          const unitPrice = bulkPrice / bulkQuantity;
-
-          await db.supplierPackaging.update(editingSupplierPackaging.id, {
-            supplierId: formData.supplierId,
-            packagingId: packagingId,
-            unitPrice: unitPrice,
-            bulkPrice: bulkPrice,
-            quantityForBulkPrice: bulkQuantity,
-            tax: formData.tax,
-            moq: formData.moq,
-            leadTime: formData.leadTime,
-            availability: formData.availability,
-            notes: formData.notes,
-            updatedAt: now,
-          });
-        }
+      await mutations.updateSupplierPackaging(
+        editingSupplierPackaging.id,
+        formData
       );
-
-      setFormData(DEFAULT_PACKAGING_FORM);
+      setFormData(DEFAULT_SUPPLIER_PACKAGING_FORM);
       setEditingSupplierPackaging(null);
       setShowAddSupplierPackaging(false);
       toast.success("Supplier packaging updated successfully");
     } catch (error: any) {
       console.error("Error updating supplier packaging:", error);
-      if (error.message === "DUPLICATE_PACKAGING") {
-        toast.error("This exact packaging combination already exists");
-      } else {
-        toast.error("Failed to update supplier packaging");
+      toast.error(error.message || "Failed to update supplier packaging");
+    }
+  }, [editingSupplierPackaging, formData, mutations]);
+
+  // Handle deleting a supplier packaging entry
+  const handleDeleteSupplierPackaging = useCallback(
+    async (id: string) => {
+      try {
+        await mutations.deleteSupplierPackaging(id);
+        toast.success("Supplier packaging deleted successfully");
+      } catch (error) {
+        console.error("Error deleting supplier packaging:", error);
+        toast.error("Failed to delete supplier packaging");
       }
-    }
-  }, [editingSupplierPackaging, formData, packaging]);
+    },
+    [mutations]
+  );
 
-  // Handle delete
-  const handleDeleteSupplierPackaging = useCallback(async (id: string) => {
-    try {
-      await db.supplierPackaging.delete(id);
-      toast.success("Supplier packaging deleted successfully");
-    } catch (error) {
-      console.error("Error deleting supplier packaging:", error);
-      toast.error("Failed to delete supplier packaging");
-    }
-  }, []);
-
-  // Reset dialog
+  // Reset dialog state when closed
   const handleDialogClose = useCallback((open: boolean) => {
     if (!open) {
       setShowAddSupplierPackaging(false);
       setEditingSupplierPackaging(null);
-      setFormData(DEFAULT_PACKAGING_FORM);
+      setFormData(DEFAULT_SUPPLIER_PACKAGING_FORM);
     }
   }, []);
 
-  // Handle refresh from drawer
+  // Trigger refresh when drawer operations complete
   const handleDrawerRefresh = useCallback(() => {
     setRefreshTrigger((prev) => prev + 1);
   }, []);
 
   return (
     <div className="space-y-6 animate-fade-in">
-      {/* Header */}
+      {/* Page Header with title and action buttons */}
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div className="min-w-0 flex-1">
           <h1 className="text-2xl sm:text-3xl font-bold text-foreground truncate">
@@ -327,11 +185,11 @@ export function PackagingManager() {
         </TabsList>
 
         <TabsContent value="supplier-packaging" className="space-y-6">
-          {/* Quick Stats */}
+          {/* Quick overview metrics for supplier packaging */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
             <MetricCard
               title="Total Packaging"
-              value={totalPackaging}
+              value={analytics?.totalPackaging || 0}
               icon={Package}
               iconClassName="text-primary"
               trend={{
@@ -343,7 +201,7 @@ export function PackagingManager() {
 
             <MetricCard
               title="Avg Price (with tax)"
-              value={`₹${avgPrice.toFixed(2)}`}
+              value={`₹${(analytics?.avgPrice || 0).toFixed(2)}`}
               icon={BarChart3}
               iconClassName="text-primary"
               trend={{
@@ -355,7 +213,7 @@ export function PackagingManager() {
 
             <MetricCard
               title="Highest Price"
-              value={`₹${highestPrice.toFixed(2)}`}
+              value={`₹${(analytics?.highestPrice || 0).toFixed(2)}`}
               icon={TrendingUp}
               iconClassName="text-primary"
               description="per piece"
@@ -363,7 +221,7 @@ export function PackagingManager() {
 
             <MetricCard
               title="Avg Tax Rate"
-              value={`${avgTax.toFixed(1)}%`}
+              value={`${(analytics?.avgTax || 0).toFixed(1)}%`}
               icon={BarChart3}
               iconClassName="text-primary"
               description="average across all packaging"
@@ -371,9 +229,37 @@ export function PackagingManager() {
           </div>
 
           <SupplierPackagingTable
-            supplierPackaging={enrichedSupplierPackaging}
-            suppliers={suppliers}
-            onEditPackaging={handleEditSupplierPackaging}
+            supplierPackaging={supplierPackagingTableData}
+            suppliers={[]}
+            onEditPackaging={(item) => {
+              // Convert table item back to row format for editing dialog
+              const row: SupplierPackagingTableRow = {
+                id: item.id,
+                packagingId: item.packagingId,
+                packagingName: item.packagingName,
+                packagingType: item.packagingType as PackagingType,
+                capacity: item.capacity || 0,
+                capacityUnit: item.capacityUnit as CapacityUnit,
+                buildMaterial: item.buildMaterial,
+                supplierId: item.supplierId,
+                supplierName: item.supplierName || "Unknown",
+                supplierRating: item.supplierRating || 0,
+                priceWithTax: item.priceWithTax,
+                bulkPrice: item.bulkPrice || 0,
+                quantityForBulkPrice: item.quantityForBulkPrice || 1,
+                tax: item.tax || 0,
+                moq: item.moq || 1,
+                leadTime: item.leadTime || 7,
+                transportationCost: item.transportationCost || 0,
+                notes: item.notes,
+                createdAt: item.createdAt,
+                updatedAt: item.updatedAt,
+                currentStock: item.currentStock || 0,
+                stockStatus: item.stockStatus || "in-stock",
+                unitPrice: item.unitPrice || 0,
+              };
+              handleEditSupplierPackaging(row);
+            }}
             onDeletePackaging={handleDeleteSupplierPackaging}
             onAddSupplierPackaging={() => setShowAddSupplierPackaging(true)}
           />
@@ -388,13 +274,13 @@ export function PackagingManager() {
         </TabsContent>
       </Tabs>
 
-      {/* Enhanced Supplier Packaging Dialog with refresh trigger */}
-      <EnhancedSupplierPackagingDialog
+      {/* Dialog for adding/editing supplier packaging with key-based refresh */}
+      <SupplierPackagingDialog
         key={refreshTrigger}
         open={showAddSupplierPackaging}
         onOpenChange={handleDialogClose}
         packaging={formData}
-        setPackaging={setFormData}
+        setPackaging={setFormData} // Temporary type assertion for compatibility
         onSave={
           editingSupplierPackaging
             ? handleUpdateSupplierPackaging
@@ -405,7 +291,7 @@ export function PackagingManager() {
         isEditing={!!editingSupplierPackaging}
       />
 
-      {/* Packaging Management Drawer */}
+      {/* Drawer for managing base packaging inventory */}
       <PackagingDrawer
         open={showPackagingDrawer}
         onOpenChange={setShowPackagingDrawer}

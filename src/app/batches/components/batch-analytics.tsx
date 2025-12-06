@@ -3,8 +3,8 @@
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
-import { CHART_COLORS } from "@/lib/color-utils";
-import type { BatchCostAnalysis } from "@/lib/types";
+import { CHART_COLORS } from "@/utils/color-utils";
+import type { BatchCostAnalysis } from "@/types/shared-types";
 import { AlertCircle, DollarSign, Package, TrendingUp } from "lucide-react";
 import {
   Bar,

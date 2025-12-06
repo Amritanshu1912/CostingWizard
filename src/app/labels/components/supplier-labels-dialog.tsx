@@ -46,18 +46,17 @@ import {
 import { useEffect, useMemo, useState } from "react";
 
 import { useDuplicateCheck } from "@/hooks/use-duplicate-check";
-import { AVAILABILITY_MAP } from "@/lib/constants";
-import { normalizeText } from "@/lib/text-utils";
 import type {
   LabelMaterialType,
   Label as Labels,
   LabelType,
   PrintingType,
   ShapeType,
-  Supplier,
-  SupplierLabel,
-} from "@/lib/types";
-import { cn } from "@/lib/utils";
+  SupplierLabelFormData,
+} from "@/types/label-types";
+import type { Supplier } from "@/types/shared-types";
+import { cn } from "@/utils/shared-utils";
+import { normalizeText } from "@/utils/text-utils";
 import {
   getLabelTypeColor,
   getLabelTypeLabel,
@@ -73,31 +72,23 @@ import {
   SHAPE_TYPES,
 } from "./labels-constants";
 
-// Form-specific type
-export interface LabelFormData extends Partial<SupplierLabel> {
-  labelName?: string;
-  labelType?: LabelType;
-  printingType?: PrintingType;
-  material?: LabelMaterialType;
-  shape?: ShapeType;
-  size?: string;
-  labelFor?: string;
-  bulkPrice?: number;
-  quantityForBulkPrice?: number;
-}
-
-interface EnhancedSupplierLabelsDialogProps {
+interface SupplierLabelsDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  label: LabelFormData;
-  setLabel: React.Dispatch<React.SetStateAction<LabelFormData>>;
+  label: SupplierLabelFormData;
+  setLabel: React.Dispatch<React.SetStateAction<SupplierLabelFormData>>;
   onSave: () => Promise<void>;
   suppliers: Supplier[];
   labelsList: Labels[];
   isEditing?: boolean;
 }
 
-export function EnhancedSupplierLabelsDialog({
+/**
+ * SupplierLabelsDialog component provides a comprehensive form for adding or editing
+ * supplier label relationships. It includes label selection with auto-fill,
+ * duplicate detection, validation, and automatic unit price calculation.
+ */
+export function SupplierLabelsDialog({
   open,
   onOpenChange,
   label,
@@ -106,34 +97,36 @@ export function EnhancedSupplierLabelsDialog({
   suppliers,
   labelsList,
   isEditing = false,
-}: EnhancedSupplierLabelsDialogProps) {
+}: SupplierLabelsDialogProps) {
+  // State for searchable label selection combobox
   const [labelSearch, setLabelSearch] = useState("");
   const [openLabelCombobox, setOpenLabelCombobox] = useState(false);
   const [filteredLabels, setFilteredLabels] = useState<Labels[]>([]);
   const [isNewLabel, setIsNewLabel] = useState(false);
 
+  // UI state for loading, errors, and form behavior
   const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [labelAutoFilled, setLabelAutoFilled] = useState(false);
+  const [originalLabel, setOriginalLabel] = useState<Labels | null>(null);
 
-  // Duplicate check for labels
+  // Hook for checking duplicate label names
   const {
     warning: labelWarning,
     checkDuplicate: checkLabelDuplicate,
-    clearWarning: clearLabelWarning,
+    clearCheck: clearLabelWarning,
   } = useDuplicateCheck(labelsList, label.labelId);
 
-  // Reset state when dialog opens/closes
+  // Reset dialog state when opened or closed
   useEffect(() => {
     if (open) {
       setLabelSearch("");
       setIsNewLabel(false);
-      // setErrors({});
       clearLabelWarning();
     }
   }, [open, clearLabelWarning]);
 
-  // Check for duplicates when typing
+  // Filter labels and check for duplicates as user types
   useEffect(() => {
     if (labelSearch) {
       const filtered = labelsList.filter((m) =>
@@ -141,7 +134,7 @@ export function EnhancedSupplierLabelsDialog({
       );
       setFilteredLabels(filtered);
 
-      // Check if normalized labelSearch exactly matches any existing label name
+      // Determine if this is a new label or existing one
       const normalizedSearch = normalizeText(labelSearch);
       const exactMatchExists = labelsList.some(
         (p) => normalizeText(p.name) === normalizedSearch
@@ -163,27 +156,56 @@ export function EnhancedSupplierLabelsDialog({
     checkLabelDuplicate,
   ]);
 
-  // Initialize when editing
+  // Initialize form when editing existing supplier label
   useEffect(() => {
     if (isEditing && label.labelId) {
       const existingLabel = labelsList.find((p) => p.id === label.labelId);
       if (existingLabel) {
         setLabelSearch(existingLabel.name);
         setLabelAutoFilled(true);
-        // When editing, "Create New" should not show for the current label name
         setIsNewLabel(false);
       }
     }
   }, [isEditing, label.labelId, labelsList]);
 
-  // Calculate unit price
+  // Calculate unit price based on bulk price and quantity
   const calculatedUnitPrice = useMemo(() => {
     const qty = label.quantityForBulkPrice || 1;
     const price = label.bulkPrice || 0;
     return qty > 0 ? price / qty : 0;
   }, [label.bulkPrice, label.quantityForBulkPrice]);
 
-  // Handle label selection
+  // Detect if key label properties changed from original (for editing)
+  useEffect(() => {
+    if (originalLabel && labelAutoFilled) {
+      const hasChanged =
+        label.labelType !== originalLabel.type ||
+        label.printingType !== originalLabel.printingType ||
+        label.material !== originalLabel.material ||
+        label.shape !== originalLabel.shape ||
+        label.size !== originalLabel.size;
+
+      if (hasChanged) {
+        // Clear labelId to force creation of new label entry
+        setLabel((prev) => ({
+          ...prev,
+          labelId: "",
+        }));
+      }
+    }
+  }, [
+    label.labelType,
+    label.printingType,
+    label.material,
+    label.shape,
+    label.size,
+    originalLabel,
+    labelAutoFilled,
+    label.labelId,
+    setLabel,
+  ]);
+
+  // Handle selection of existing label from combobox
   const handleSelectLabel = (selectedLabel: Labels) => {
     setLabel({
       ...label,
@@ -194,15 +216,15 @@ export function EnhancedSupplierLabelsDialog({
       material: selectedLabel.material,
       shape: selectedLabel.shape,
       size: selectedLabel.size,
-      labelFor: selectedLabel.labelFor,
     });
     setLabelSearch(selectedLabel.name);
     setLabelAutoFilled(true);
+    setOriginalLabel(selectedLabel);
     clearLabelWarning();
     setOpenLabelCombobox(false);
   };
 
-  // Handle new label
+  // Handle creation of new label when user types a new name
   const handleNewLabel = () => {
     setLabel({
       ...label,
@@ -215,21 +237,20 @@ export function EnhancedSupplierLabelsDialog({
     });
     setLabelAutoFilled(false);
     setOpenLabelCombobox(false);
-    // Ensure "Create New" stays visible after selection
     setIsNewLabel(true);
   };
 
-  // Handle manual typing
+  // Handle manual input changes in label search field
   const handleLabelSearchChange = (value: string) => {
     setLabelSearch(value);
     setLabelAutoFilled(false);
-    // Reset isNewLabel when user starts typing manually
+    setOriginalLabel(null);
     if (isEditing) {
       setIsNewLabel(false);
     }
   };
 
-  // Validate form
+  // Comprehensive form validation
   const validateForm = (): boolean => {
     const newErrors: Record<string, string> = {};
 
@@ -261,7 +282,7 @@ export function EnhancedSupplierLabelsDialog({
     return Object.keys(newErrors).length === 0;
   };
 
-  // Handle save
+  // Handle form submission with loading state
   const handleSave = async () => {
     if (!validateForm()) return;
 
@@ -273,6 +294,7 @@ export function EnhancedSupplierLabelsDialog({
     }
   };
 
+  // Check if form has minimum required fields filled
   const isValid =
     label.supplierId &&
     label.labelName &&
@@ -301,14 +323,14 @@ export function EnhancedSupplierLabelsDialog({
         </DialogHeader>
 
         <div className="space-y-6 py-4">
-          {/* Supplier Selection */}
+          {/* Supplier Information Section */}
           <div className="dialog-section">
             <div className="section-header">
               <Tag className="h-4 w-4" />
               Supplier Information
             </div>
             <div className="space-y-4 pl-6">
-              {/* Row 1: Supplier and MOQ (2:1 ratio) */}
+              {/* Supplier selection and MOQ in responsive grid */}
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div className="space-y-0 md:col-span-2">
                   <Label htmlFor="supplier">
@@ -373,7 +395,7 @@ export function EnhancedSupplierLabelsDialog({
                 </div>
               </div>
 
-              {/* Row 2: Lead Time and Availability (1:1 ratio) */}
+              {/* Lead time input with icon */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-0 relative">
                   <Label htmlFor="leadTime">Lead Time (days)</Label>
@@ -395,43 +417,11 @@ export function EnhancedSupplierLabelsDialog({
                     />
                   </div>
                 </div>
-
-                <div className="space-y-0">
-                  <Label htmlFor="availability">Availability</Label>
-                  <Select
-                    value={label.availability}
-                    onValueChange={(value) =>
-                      setLabel({ ...label, availability: value as any })
-                    }
-                  >
-                    <SelectTrigger id="availability" className="focus-enhanced">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {Object.keys(AVAILABILITY_MAP).map((option) => (
-                        <SelectItem key={option} value={option}>
-                          <div className="flex items-center gap-2">
-                            <div
-                              className={`w-2 h-2 rounded-full ${
-                                option === "in-stock"
-                                  ? "bg-green-500"
-                                  : option === "limited"
-                                    ? "bg-yellow-500"
-                                    : "bg-red-500"
-                              }`}
-                            />
-                            {option.replace("-", " ")}
-                          </div>
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
               </div>
             </div>
           </div>
 
-          {/* Label Selection */}
+          {/* Label Details Section */}
           <div className="dialog-section">
             <div className="section-header">
               <Tag className="h-4 w-4" />
@@ -537,7 +527,7 @@ export function EnhancedSupplierLabelsDialog({
                 )}
               </div>
 
-              {/* Type */}
+              {/* Label type selection */}
               <div className="space-y-0">
                 <Label htmlFor="type">
                   Type <span className="text-destructive">*</span>
@@ -580,7 +570,7 @@ export function EnhancedSupplierLabelsDialog({
                 )}
               </div>
 
-              {/* Printing Type */}
+              {/* Printing type selection */}
               <div className="space-y-0">
                 <Label className="translate-y-[3px]" htmlFor="printingType">
                   Printing Type
@@ -617,7 +607,7 @@ export function EnhancedSupplierLabelsDialog({
                 </Select>
               </div>
 
-              {/* Material */}
+              {/* Material selection */}
               <div className="space-y-0">
                 <Label className="text-sm font-medium">Material</Label>
                 <Select
@@ -652,7 +642,7 @@ export function EnhancedSupplierLabelsDialog({
                 </Select>
               </div>
 
-              {/* Shape */}
+              {/* Shape selection */}
               <div className="space-y-0">
                 <Label className="text-sm font-medium">Shape</Label>
                 <Select
@@ -685,7 +675,7 @@ export function EnhancedSupplierLabelsDialog({
                 </Select>
               </div>
 
-              {/* Size */}
+              {/* Size input */}
               <div className="space-y-0">
                 <Label className="text-sm font-medium">Size</Label>
                 <Input
@@ -702,7 +692,7 @@ export function EnhancedSupplierLabelsDialog({
                 />
               </div>
 
-              {/* Pricing Section */}
+              {/* Pricing section with tax, bulk price, quantity, and calculated unit price */}
               <div className="space-y-2 md:col-span-3">
                 <div className="grid grid-cols-4 gap-2">
                   <div className="space-y-0">
@@ -788,7 +778,7 @@ export function EnhancedSupplierLabelsDialog({
             </div>
           </div>
 
-          {/* Notes */}
+          {/* Additional notes textarea */}
           <div className="space-y-2">
             <Label htmlFor="notes">Additional Notes</Label>
             <Textarea
@@ -801,7 +791,7 @@ export function EnhancedSupplierLabelsDialog({
           </div>
         </div>
 
-        {/* Footer */}
+        {/* Dialog footer with validation status and action buttons */}
         <div className="flex items-center justify-between pt-4 border-t">
           <div className="text-xs text-muted-foreground">
             <span className="text-destructive">*</span> Required fields

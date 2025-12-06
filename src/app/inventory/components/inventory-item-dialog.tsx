@@ -21,7 +21,10 @@ import {
 import { Textarea } from "@/components/ui/textarea";
 import { useAdjustStock, useCreateInventoryItem } from "@/hooks/use-inventory";
 import { db } from "@/lib/db";
-import type { InventoryItem, InventoryItemWithDetails } from "@/lib/types";
+import type {
+  InventoryItem,
+  InventoryItemWithDetails,
+} from "@/types/shared-types";
 import { useLiveQuery } from "dexie-react-hooks";
 import { Beaker, Box, Minus, Plus, Tag } from "lucide-react";
 import { useEffect, useState } from "react";
@@ -91,7 +94,7 @@ export function InventoryItemDialog({
                 name: `${material?.name || "Unknown"} (${
                   supplier?.name || "Unknown"
                 })`,
-                unit: sm.unit,
+                unit: sm.capacityUnit,
               };
             }) || []
         );

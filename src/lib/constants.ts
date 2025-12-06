@@ -1,13 +1,14 @@
 // src/lib/constants.ts
-import type { Category, PurchaseOrder } from "@/lib/types";
+import type { Category } from "@/types/material-types";
+import type { PurchaseOrder } from "@/types/shared-types";
 import {
+  AlertTriangle,
   Calendar,
+  CheckCircle,
   DollarSign,
+  FlaskConical as Flask,
   Package,
   ShoppingCart,
-  FlaskConical as Flask,
-  AlertTriangle,
-  CheckCircle,
   XCircle,
 } from "lucide-react";
 
@@ -16,55 +17,69 @@ import {
 // ============================================================================
 
 export const CAPACITY_UNITS = [
-  { value: "kg" as const, label: "Kilograms (kg)", factor: 1 },
-  { value: "L" as const, label: "Liters (L)", factor: 1 }, // Assuming 1L = 1kg for liquids
-  { value: "ml" as const, label: "Milliliters (ml)", factor: 0.001 },
   { value: "gm" as const, label: "Grams (gm)", factor: 0.001 },
+  { value: "kg" as const, label: "Kilograms (kg)", factor: 1 },
+  { value: "ml" as const, label: "Milliliters (ml)", factor: 0.001 },
+  { value: "L" as const, label: "Liters (L)", factor: 1 }, // Assuming 1L = 1kg for liquids
   { value: "pcs" as const, label: "Pieces (pcs)", factor: 1 }, // Assuming pieces are treated as kg
 ] as const;
 
-export const CATEGORIES: Category[] = [
+export const MATERIAL_CATEGORIES: Category[] = [
   {
     id: "1",
     name: "Acids",
-    description: "Acidic compounds and solutions",
-    createdAt: "2024-01-01T00:00:00.000Z",
+    description: "Acidic materials used in formulations",
+    color: "#ef4444", // red-500
+    createdAt: "2024-01-01",
   },
   {
     id: "2",
     name: "Bases",
-    description: "Basic compounds and alkalis",
-    createdAt: "2024-01-01T00:00:00.000Z",
+    description: "Basic materials for pH balancing",
+    color: "#3b82f6", // blue-500
+    createdAt: "2024-01-01",
   },
   {
     id: "3",
     name: "Colors",
-    description: "Dyes and coloring agents",
-    createdAt: "2024-01-01T00:00:00.000Z",
+    description: "Coloring agents and dyes",
+    color: "#8b5cf6", // violet-500
+    createdAt: "2024-01-01",
   },
   {
     id: "4",
-    name: "Thickeners",
-    description: "Viscosity modifiers",
-    createdAt: "2024-01-01T00:00:00.000Z",
+    name: "Salts",
+    description: "Salt compounds and minerals",
+    color: "#06b6d4", // cyan-500
+    createdAt: "2024-01-01",
   },
   {
     id: "5",
-    name: "Salts",
-    description: "Salt compounds",
-    createdAt: "2024-01-01T00:00:00.000Z",
+    name: "Thickeners",
+    description: "Viscosity modifiers and thickeners",
+    color: "#10b981", // emerald-500
+    createdAt: "2024-01-01",
   },
   {
     id: "6",
-    name: "Oils",
-    description: "Oil-based materials",
-    createdAt: "2024-01-01T00:00:00.000Z",
+    name: "Bottles",
+    description: "Packaging bottles and containers",
+    color: "#f59e0b", // amber-500
+    createdAt: "2024-01-01",
   },
   {
     id: "7",
+    name: "Labels",
+    description: "Product labels and stickers",
+    color: "#ec4899", // pink-500
+    createdAt: "2024-01-01",
+  },
+  {
+    id: "8",
     name: "Other",
     description: "Miscellaneous materials",
-    createdAt: "2024-01-01T00:00:00.000Z",
+    color: "#6b7280", // gray-500
+    createdAt: "2024-01-01",
   },
 ];
 

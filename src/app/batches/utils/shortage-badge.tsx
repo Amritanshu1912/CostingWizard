@@ -1,7 +1,7 @@
 // components/batches/shared/shortage-badge.tsx
 import { Badge } from "@/components/ui/badge";
 import { AlertCircle, AlertTriangle, CheckCircle } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { cn } from "@/utils/shared-utils";
 
 interface ShortageBadgeProps {
   required: number;

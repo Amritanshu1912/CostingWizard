@@ -16,7 +16,7 @@ import {
   useRecipeVariants,
 } from "@/hooks/use-recipes";
 import { db } from "@/lib/db";
-import type { Recipe, RecipeIngredient } from "@/lib/types";
+import type { Recipe, RecipeIngredient } from "@/types/shared-types";
 import { useCallback, useEffect, useState } from "react";
 import { toast } from "sonner";
 import { RecipeDetailView } from "./recipes-detail-view";

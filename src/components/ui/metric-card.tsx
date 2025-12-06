@@ -1,7 +1,7 @@
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
-import { cn } from "@/lib/utils";
+import { cn } from "@/utils/shared-utils";
 import { LucideIcon, TrendingDown, TrendingUp } from "lucide-react";
 import React from "react";
 

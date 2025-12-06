@@ -18,7 +18,11 @@ import {
   getPackagingDetails,
 } from "@/hooks/use-products";
 import { useEnrichedRecipes, useRecipeVariants } from "@/hooks/use-recipes";
-import type { CapacityUnit, Product, ProductVariant } from "@/lib/types";
+import type {
+  CapacityUnit,
+  Product,
+  ProductVariant,
+} from "@/types/shared-types";
 import { Check, Package, Tag, X } from "lucide-react";
 import { useEffect, useState } from "react";
 import { ValidationErrorDialog } from "./products-dialogs";

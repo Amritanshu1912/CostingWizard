@@ -1,5 +1,9 @@
 // src/app/recipes/components/recipes-constants.tsx
-import type { Recipe, RecipeIngredient, RecipeVariant } from "@/lib/types";
+import type {
+  Recipe,
+  RecipeIngredient,
+  RecipeVariant,
+} from "@/types/shared-types";
 
 // ============================================================================
 // MOCK RECIPES

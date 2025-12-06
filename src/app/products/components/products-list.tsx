@@ -12,10 +12,10 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { useDebounce } from "@/hooks/use-duplicate-check";
+import { useDebounce } from "@/hooks/use-debounce";
 import { useVariantCountMap } from "@/hooks/use-products";
-import type { Product } from "@/lib/types";
-import { cn } from "@/lib/utils";
+import type { Product } from "@/types/shared-types";
+import { cn } from "@/utils/shared-utils";
 import { Package2, Plus, Search } from "lucide-react";
 import { useMemo, useState } from "react";
 

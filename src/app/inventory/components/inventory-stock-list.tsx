@@ -21,7 +21,7 @@ import {
   useAllItemsWithInventoryStatus,
   useInventoryFilters,
 } from "@/hooks/use-inventory";
-import type { InventoryItemWithDetails } from "@/lib/types";
+import type { InventoryItemWithDetails } from "@/types/shared-types";
 import { format } from "date-fns";
 import { Beaker, Box, Edit, Filter, History, Search, Tag } from "lucide-react";
 import { useState } from "react";

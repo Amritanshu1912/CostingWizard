@@ -17,7 +17,7 @@ import {
   useInventoryItemsWithDetails,
   useInventoryTransactions,
 } from "@/hooks/use-inventory";
-import type { InventoryTransaction } from "@/lib/types";
+import type { InventoryTransaction } from "@/types/shared-types";
 import { format } from "date-fns";
 import { AlertTriangle, CheckCircle, Clock } from "lucide-react";
 

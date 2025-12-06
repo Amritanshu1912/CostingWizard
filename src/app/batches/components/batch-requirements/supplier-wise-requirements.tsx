@@ -7,7 +7,7 @@ import {
   CollapsibleContent,
   CollapsibleTrigger,
 } from "@/components/ui/collapsible";
-import type { SupplierRequirement } from "@/lib/types";
+import type { SupplierRequirement } from "@/types/shared-types";
 import {
   Building2,
   ChevronDown,

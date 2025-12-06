@@ -8,7 +8,7 @@ import {
   useInventoryItemsWithDetails,
   useInventoryTransactions,
 } from "@/hooks/use-inventory";
-import type { InventoryTransaction } from "@/lib/types";
+import type { InventoryTransaction } from "@/types/shared-types";
 import { AlertTriangle, CheckCircle, ClockIcon } from "lucide-react";
 import TransactionsDialog from "./inventory-txn-dialog";
 

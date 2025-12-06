@@ -1,61 +1,53 @@
 // src/app/labels/components/labels-manager.tsx
 "use client";
 
+import { SUPPLIERS } from "@/app/suppliers/components/suppliers-constants";
 import { Button } from "@/components/ui/button";
 import { MetricCard } from "@/components/ui/metric-card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { useAllLabelMutations } from "@/hooks/label-hooks/use-labels-mutations";
+import { useSupplierLabelTableRows } from "@/hooks/label-hooks/use-labels-queries";
+import { useDexieTable } from "@/hooks/use-dexie-table";
+import { db } from "@/lib/db";
+import type {
+  SupplierLabelFormData,
+  SupplierLabelTableRow,
+} from "@/types/label-types";
 import { BarChart3, List, Package, TrendingUp } from "lucide-react";
-import { nanoid } from "nanoid";
 import { useCallback, useState } from "react";
 import { toast } from "sonner";
-import { SUPPLIERS } from "@/app/suppliers/components/suppliers-constants";
-import { useDexieTable } from "@/hooks/use-dexie-table";
-import { useSupplierLabelsWithDetails } from "@/hooks/use-supplier-labels";
-import { db } from "@/lib/db";
-import { normalizeText } from "@/lib/text-utils";
-import type { SupplierLabel } from "@/lib/types";
 import { LabelsAnalytics } from "./labels-analytics";
+import { DEFAULT_SUPPLIER_LABEL_FORM } from "./labels-constants";
 import { LabelsDrawer } from "./labels-drawer";
 import { LabelsPriceComparison } from "./labels-price-comparison";
-import type { LabelFormData } from "./supplier-labels-dialog";
-import { EnhancedSupplierLabelsDialog } from "./supplier-labels-dialog";
+import { SupplierLabelsDialog } from "./supplier-labels-dialog";
 import { SupplierLabelsTable } from "./supplier-labels-table";
 
-const DEFAULT_LABEL_FORM: LabelFormData = {
-  supplierId: "",
-  labelName: "",
-  labelId: "",
-  labelType: undefined,
-  printingType: undefined,
-  material: undefined,
-  shape: undefined,
-  size: "",
-  labelFor: "",
-  bulkPrice: 0,
-  quantityForBulkPrice: 1,
-  tax: 0,
-  moq: 1,
-  leadTime: 7,
-  availability: "in-stock",
-  notes: "",
-};
-
+/**
+ * LabelsManager component provides the main interface for managing labels inventory
+ * and supplier relationships. It includes tabs for supplier labels, price comparison,
+ * and analytics, with full CRUD operations for supplier label entries.
+ */
 export function LabelsManager() {
   const [showAddSupplierLabel, setShowAddSupplierLabel] = useState(false);
   const [editingSupplierLabel, setEditingSupplierLabel] =
-    useState<SupplierLabel | null>(null);
+    useState<SupplierLabelTableRow | null>(null);
   const [showLabelsDrawer, setShowLabelsDrawer] = useState(false);
-  const [formData, setFormData] = useState<LabelFormData>(DEFAULT_LABEL_FORM);
+  const [formData, setFormData] = useState<SupplierLabelFormData>(
+    DEFAULT_SUPPLIER_LABEL_FORM
+  );
   const [refreshTrigger, setRefreshTrigger] = useState(0);
 
-  // Database hooks
+  // Database hooks - needed for dialog
   const { data: suppliers } = useDexieTable(db.suppliers, SUPPLIERS);
   const { data: labels } = useDexieTable(db.labels, []);
 
-  // Enriched data using optimized hook
-  const enrichedSupplierLabels = useSupplierLabelsWithDetails();
+  const enrichedSupplierLabels = useSupplierLabelTableRows();
 
-  // Calculate metrics
+  const { createSupplierLabel, updateSupplierLabel, deleteSupplierLabel } =
+    useAllLabelMutations();
+
+  // Calculate key metrics from supplier label data for overview display
   const totalLabels = enrichedSupplierLabels.length;
   const avgPrice =
     enrichedSupplierLabels.reduce((sum, sl) => sum + sl.unitPrice, 0) /
@@ -68,230 +60,85 @@ export function LabelsManager() {
     enrichedSupplierLabels.reduce((sum, sl) => sum + (sl.tax || 0), 0) /
     (enrichedSupplierLabels.length || 1);
 
-  // Handle add with transaction
   const handleAddSupplierLabel = useCallback(async () => {
-    if (!formData.supplierId || !formData.labelName || !formData.bulkPrice) {
-      toast.error("Please fill in all required fields");
-      return;
-    }
-
     try {
-      await db.transaction("rw", [db.labels, db.supplierLabels], async () => {
-        const now = new Date().toISOString();
+      await createSupplierLabel(formData as any);
 
-        // Step 1: Check if exact label combination already exists using normalized comparison
-        const normalizedName = normalizeText(formData.labelName!);
-        const existingLabel = await db.labels
-          .filter(
-            (l) =>
-              normalizeText(l.name) === normalizedName &&
-              l.type === formData.labelType &&
-              l.printingType === formData.printingType &&
-              l.material === formData.material &&
-              l.shape === formData.shape &&
-              normalizeText(l.size || "") ===
-                normalizeText(formData.size || "") &&
-              normalizeText(l.labelFor || "") ===
-                normalizeText(formData.labelFor || "")
-          )
-          .first();
-
-        // Step 2: Create new label if no exact match exists
-        let labelId: string;
-        if (existingLabel) {
-          labelId = existingLabel.id;
-        } else {
-          labelId = nanoid();
-          await db.labels.add({
-            id: labelId,
-            name: formData.labelName!.trim(),
-            type: formData.labelType!,
-            printingType: formData.printingType!,
-            material: formData.material!,
-            shape: formData.shape!,
-            size: formData.size || undefined,
-            labelFor: formData.labelFor || undefined,
-            notes: formData.notes || "",
-            createdAt: now,
-          });
-        }
-
-        // Step 3: Calculate unit price
-        const bulkQuantity = formData.quantityForBulkPrice || 1;
-        const bulkPrice = formData.bulkPrice!;
-        const unitPrice = bulkPrice / bulkQuantity;
-
-        // Step 4: Create supplier label
-        await db.supplierLabels.add({
-          id: nanoid(),
-          supplierId: formData.supplierId!,
-          labelId: labelId,
-          unit: formData.unit || "pieces",
-          unitPrice: unitPrice,
-          bulkPrice: bulkPrice,
-          quantityForBulkPrice: bulkQuantity,
-          moq: formData.moq || 1,
-          leadTime: formData.leadTime || 7,
-          availability: formData.availability || "in-stock",
-          tax: formData.tax || 0,
-          notes: formData.notes || "",
-          createdAt: now,
-        });
-      });
-
-      setFormData(DEFAULT_LABEL_FORM);
+      setFormData(DEFAULT_SUPPLIER_LABEL_FORM);
       setShowAddSupplierLabel(false);
       toast.success("Supplier label added successfully");
     } catch (error: any) {
       console.error("Error adding supplier label:", error);
-      if (error.message === "DUPLICATE_LABEL") {
-        toast.error("This exact label combination already exists");
-      } else {
-        toast.error("Failed to add supplier label");
-      }
+      toast.error(error.message || "Failed to add supplier label");
     }
-  }, [formData]);
+  }, [formData, createSupplierLabel]);
 
-  // Handle edit
+  // Map table row data back to form format for editing dialog
   const handleEditSupplierLabel = useCallback(
-    async (item: SupplierLabel) => {
-      const lbl = labels.find((l) => l.id === item.labelId);
+    async (item: SupplierLabelTableRow) => {
       setEditingSupplierLabel(item);
       setFormData({
-        ...item,
-        labelName: lbl?.name,
-        labelType: lbl?.type,
-        printingType: lbl?.printingType,
-        material: lbl?.material,
-        shape: lbl?.shape,
-        size: lbl?.size,
-        labelFor: lbl?.labelFor,
+        supplierId: item.supplierId,
+        labelId: item.labelId,
+        labelName: item.labelName,
+        labelType: item.labelType,
+        printingType: item.printingType,
+        material: item.material,
+        shape: item.shape,
+        size: item.size,
+        bulkPrice: item.bulkPrice || 0,
+        quantityForBulkPrice: item.quantityForBulkPrice || 1,
+        unit: item.unit,
         tax: item.tax,
-      } as LabelFormData);
+        moq: item.moq,
+        leadTime: item.leadTime,
+        transportationCost: 0, // Default value
+        currentStock: item.currentStock,
+        stockStatus: item.stockStatus,
+        notes: "",
+      } as any);
       setShowAddSupplierLabel(true);
     },
-    [labels]
+    []
   );
 
-  // Handle update with transaction
+  // Handle update using mutation hook
   const handleUpdateSupplierLabel = useCallback(async () => {
     if (!editingSupplierLabel) return;
 
     try {
-      await db.transaction("rw", [db.labels, db.supplierLabels], async () => {
-        const now = new Date().toISOString();
+      await updateSupplierLabel(editingSupplierLabel.id, formData as any);
 
-        // Get original label data
-        const originalLabel = labels.find(
-          (l) => l.id === editingSupplierLabel.labelId
-        );
-
-        // Check if any label properties changed using normalized comparison
-        const labelChanged =
-          !originalLabel ||
-          normalizeText(originalLabel.name) !==
-            normalizeText(formData.labelName!) ||
-          originalLabel.type !== formData.labelType ||
-          originalLabel.printingType !== formData.printingType ||
-          originalLabel.material !== formData.material ||
-          originalLabel.shape !== formData.shape ||
-          normalizeText(originalLabel.size || "") !==
-            normalizeText(formData.size || "") ||
-          normalizeText(originalLabel.labelFor || "") !==
-            normalizeText(formData.labelFor || "");
-
-        let labelId = editingSupplierLabel.labelId;
-
-        if (labelChanged) {
-          const normalizedName = normalizeText(formData.labelName!);
-          const existingLabel = await db.labels
-            .filter(
-              (l) =>
-                normalizeText(l.name) === normalizedName &&
-                l.type === formData.labelType &&
-                l.printingType === formData.printingType &&
-                l.material === formData.material &&
-                l.shape === formData.shape &&
-                normalizeText(l.size || "") ===
-                  normalizeText(formData.size || "") &&
-                normalizeText(l.labelFor || "") ===
-                  normalizeText(formData.labelFor || "")
-            )
-            .first();
-
-          if (existingLabel) {
-            // Use existing label (exact duplicate)
-            labelId = existingLabel.id;
-          } else {
-            // Create new label (always, since no exact match exists)
-            labelId = nanoid();
-            await db.labels.add({
-              id: labelId,
-              name: formData.labelName!.trim(),
-              type: formData.labelType!,
-              printingType: formData.printingType!,
-              material: formData.material!,
-              shape: formData.shape!,
-              size: formData.size || undefined,
-              labelFor: formData.labelFor || undefined,
-              notes: formData.notes || "",
-              createdAt: now,
-            });
-          }
-        }
-
-        // Always update supplier label record
-        const bulkQuantity = formData.quantityForBulkPrice || 1;
-        const bulkPrice = formData.bulkPrice || 0;
-        const unitPrice = bulkPrice / bulkQuantity;
-
-        await db.supplierLabels.update(editingSupplierLabel.id, {
-          supplierId: formData.supplierId,
-          labelId: labelId,
-          unit: formData.unit || "pieces",
-          unitPrice: unitPrice,
-          bulkPrice: bulkPrice,
-          quantityForBulkPrice: bulkQuantity,
-          moq: formData.moq,
-          leadTime: formData.leadTime,
-          availability: formData.availability,
-          tax: formData.tax || 0,
-          notes: formData.notes,
-          updatedAt: now,
-        });
-      });
-
-      setFormData(DEFAULT_LABEL_FORM);
+      setFormData(DEFAULT_SUPPLIER_LABEL_FORM);
       setEditingSupplierLabel(null);
       setShowAddSupplierLabel(false);
       toast.success("Supplier label updated successfully");
     } catch (error: any) {
       console.error("Error updating supplier label:", error);
-      if (error.message === "DUPLICATE_LABEL") {
-        toast.error("This exact label combination already exists");
-      } else {
-        toast.error("Failed to update supplier label");
-      }
+      toast.error("Failed to update supplier label");
     }
-  }, [editingSupplierLabel, formData, labels]);
+  }, [editingSupplierLabel, formData, updateSupplierLabel]);
 
-  // Handle delete
-  const handleDeleteSupplierLabel = useCallback(async (id: string) => {
-    try {
-      await db.supplierLabels.delete(id);
-      toast.success("Supplier label deleted successfully");
-    } catch (error) {
-      console.error("Error deleting supplier label:", error);
-      toast.error("Failed to delete supplier label");
-    }
-  }, []);
+  // Handle delete using mutation hook
+  const handleDeleteSupplierLabel = useCallback(
+    async (id: string) => {
+      try {
+        await deleteSupplierLabel(id);
+        toast.success("Supplier label deleted successfully");
+      } catch (error) {
+        console.error("Error deleting supplier label:", error);
+        toast.error("Failed to delete supplier label");
+      }
+    },
+    [deleteSupplierLabel]
+  );
 
   // Reset dialog
   const handleDialogClose = useCallback((open: boolean) => {
     if (!open) {
       setShowAddSupplierLabel(false);
       setEditingSupplierLabel(null);
-      setFormData(DEFAULT_LABEL_FORM);
+      setFormData(DEFAULT_SUPPLIER_LABEL_FORM);
     }
   }, []);
 
@@ -393,7 +240,7 @@ export function LabelsManager() {
       </Tabs>
 
       {/* Enhanced Supplier Labels Dialog with refresh trigger */}
-      <EnhancedSupplierLabelsDialog
+      <SupplierLabelsDialog
         key={refreshTrigger}
         open={showAddSupplierLabel}
         onOpenChange={handleDialogClose}

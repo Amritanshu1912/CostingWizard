@@ -10,31 +10,51 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { SortableTable } from "@/components/ui/sortable-table";
-import { useLabelPriceComparison } from "@/hooks/use-supplier-labels";
-import type { SupplierLabelWithDetails } from "@/lib/types";
+import { useLabelPriceComparison } from "@/hooks/label-hooks/use-labels-queries";
+import type { SupplierLabelForComparison } from "@/types/label-types";
 import { AlertCircle, Star, TrendingDown } from "lucide-react";
+import { useMemo } from "react";
 
+/**
+ * LabelsPriceComparison component displays price comparison data for label
+ * items that have multiple suppliers. It shows potential savings and helps users
+ * make informed purchasing decisions by comparing pricing, lead times, and ratings.
+ */
 export function LabelsPriceComparison() {
-  // Use the smart hook that groups by label automatically
   const labelGroups = useLabelPriceComparison();
 
-  // Table columns
+  // Transform data to match the table component's expected format
+  const convertedGroups = useMemo(() => {
+    return labelGroups.map((group) => ({
+      ...group,
+      alternatives: group.alternatives.map((alt) => ({
+        ...alt,
+        labelName: group.labelName,
+        displayName: alt.id,
+        displayType: group.labelType,
+        supplier: { name: alt.supplierName, rating: alt.supplierRating },
+        priceWithTax: alt.priceWithTax,
+        stockStatus: "in-stock",
+      })) as any,
+    }));
+  }, [labelGroups]);
+
+  // Define table columns with custom rendering for each data point
   const columns = [
     {
       key: "supplierName",
       label: "Supplier",
       sortable: true,
-      render: (value: any, row: SupplierLabelWithDetails) => {
-        const supplier = row.supplier;
-        const alternatives = labelGroups
-          .find((g) => g.labelName === row.displayName)
-          ?.alternatives.sort((a, b) => a.unitPrice - b.unitPrice);
+      render: (value: any, row: SupplierLabelForComparison) => {
+        const alternatives = convertedGroups
+          .find((g) => g.labelName === (row as any).labelName)
+          ?.alternatives.sort((a: any, b: any) => a.unitPrice - b.unitPrice);
         const isCheapest = alternatives?.[0]?.id === row.id;
 
         return (
           <div className="flex items-center gap-2">
             <span className="font-medium text-foreground">
-              {supplier?.name}
+              {row.supplierName}
             </span>
             {isCheapest && (
               <Badge variant="default" className="text-xs">
@@ -74,7 +94,7 @@ export function LabelsPriceComparison() {
       ),
     },
     {
-      key: "availability",
+      key: "stockStatus",
       label: "Availability",
       sortable: true,
       render: (value: string) => (
@@ -96,15 +116,12 @@ export function LabelsPriceComparison() {
       key: "rating",
       label: "Supplier Rating",
       sortable: true,
-      render: (value: any, row: SupplierLabelWithDetails) => {
-        const supplier = row.supplier;
-        return (
-          <div className="flex items-center gap-1">
-            <Star className="h-3 w-3 text-yellow-500 fill-current" />
-            <span className="text-sm font-medium">{supplier?.rating}</span>
-          </div>
-        );
-      },
+      render: (value: any, row: SupplierLabelForComparison) => (
+        <div className="flex items-center gap-1">
+          <Star className="h-3 w-3 text-yellow-500 fill-current" />
+          <span className="text-sm font-medium">{row.supplierRating}</span>
+        </div>
+      ),
     },
   ];
 
@@ -134,12 +151,14 @@ export function LabelsPriceComparison() {
       <CardContent>
         <div className="space-y-8">
           {labelGroups.map((group) => {
+            // Sort alternatives by price to find cheapest and most expensive
             const sortedAlternatives = group.alternatives.sort(
               (a, b) => a.unitPrice - b.unitPrice
             );
             const cheapest = sortedAlternatives[0];
             const mostExpensive =
               sortedAlternatives[sortedAlternatives.length - 1];
+            // Calculate potential savings from choosing the cheapest option
             const savings = mostExpensive.unitPrice - cheapest.unitPrice;
             const savingsPercent = (savings / mostExpensive.unitPrice) * 100;
 
@@ -148,7 +167,7 @@ export function LabelsPriceComparison() {
                 key={group.labelName}
                 className="border border-border/50 rounded-xl p-6 bg-gradient-to-br from-card/50 to-muted/20"
               >
-                {/* Header */}
+                {/* Label header with name and supplier count */}
                 <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-6 gap-4">
                   <div>
                     <h4 className="text-lg font-semibold text-foreground mb-1">
@@ -158,6 +177,7 @@ export function LabelsPriceComparison() {
                       {group.alternatives.length} suppliers available
                     </p>
                   </div>
+                  {/* Savings display showing potential cost reduction */}
                   <div className="flex items-center gap-4 bg-accent/10 px-4 py-3 rounded-lg border border-accent/20">
                     <div>
                       <div className="text-xs text-muted-foreground mb-1">
@@ -179,7 +199,7 @@ export function LabelsPriceComparison() {
                   </div>
                 </div>
 
-                {/* Comparison Table */}
+                {/* Sortable table showing supplier comparison data */}
                 <SortableTable
                   data={sortedAlternatives}
                   columns={columns}

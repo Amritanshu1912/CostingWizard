@@ -1,4 +1,4 @@
-import { Supplier } from "@/lib/types";
+import { Supplier } from "@/types/shared-types";
 import {
   DollarSign,
   Clock,
@@ -357,17 +357,6 @@ export const AI_INSIGHTS = [
     confidence: 95,
   },
 ];
-
-export const MATERIAL_CATEGORIES = [
-  "Acids",
-  "Bases",
-  "Colors",
-  "Salts",
-  "Thickeners",
-  "Bottles",
-  "Labels",
-  "Other",
-] as const;
 
 export const DEFAULT_SUPPLIER_FORM = {
   name: "",

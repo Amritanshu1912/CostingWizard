@@ -2,6 +2,9 @@
 // BASE TYPES
 // ============================================================================
 
+import { SupplierLabelTableRow } from "./label-types";
+import { SupplierPackagingTableRow } from "./packaging-types";
+
 export interface BaseEntity {
   id: string;
   createdAt: string;
@@ -13,24 +16,11 @@ export interface BulkDiscount {
   discount: number; // percentage
 }
 
+export type CapacityUnit = "kg" | "L" | "ml" | "gm" | "pcs";
+
 // ============================================================================
 // CATEGORIES
 // ============================================================================
-
-export interface Category extends BaseEntity {
-  name: string;
-  description?: string;
-  color?: string;
-}
-
-export interface CategoryManagerProps {
-  categories: Category[];
-  addCategory: (category: Omit<Category, "id">) => void;
-  updateCategory: (category: Category) => void;
-  deleteCategory: (id: string) => void;
-}
-
-export type CapacityUnit = "kg" | "L" | "ml" | "gm" | "pcs";
 
 // ============================================================================
 // SUPPLIERS
@@ -57,173 +47,6 @@ export interface Supplier extends BaseEntity {
     qualityScore: number;
     priceCompetitiveness: number;
   };
-}
-
-// ============================================================================
-// MATERIALS
-// ============================================================================
-
-export interface Material extends BaseEntity {
-  name: string;
-  category: string;
-  notes?: string;
-}
-
-export interface SupplierMaterial extends BaseEntity {
-  supplierId: string;
-  materialId: string;
-
-  unit: CapacityUnit;
-  unitPrice: number;
-  tax: number;
-  moq?: number;
-
-  bulkPrice?: number; // The actual quoted price
-  quantityForBulkPrice?: number;
-
-  bulkDiscounts?: BulkDiscount[];
-  leadTime?: number;
-  availability?: "in-stock" | "limited" | "out-of-stock";
-  transportationCost?: number;
-  notes?: string;
-}
-
-// Helper type for material with supplier count
-export interface MaterialWithSuppliers extends Material {
-  supplierCount: number;
-  suppliersList: Supplier[];
-}
-
-/**
- * Extended SupplierMaterial with joined data
- */
-export interface SupplierMaterialWithDetails extends SupplierMaterial {
-  material?: Material;
-  supplier?: Supplier;
-
-  // Computed display fields (always accurate)
-  displayName: string;
-  displayCategory: string;
-  displayUnit: string;
-  priceWithTax: number;
-}
-
-// ============================================================================
-// PACKAGING
-// ============================================================================
-export type PackagingType =
-  | "bottle"
-  | "jar"
-  | "can"
-  | "box"
-  | "pouch"
-  | "other";
-export type BuildMaterial =
-  | "PET"
-  | "HDPE"
-  | "Glass"
-  | "Plastic"
-  | "Paper"
-  | "Other";
-
-export interface Packaging extends BaseEntity {
-  name: string;
-  type: PackagingType;
-  capacity: number;
-  unit: CapacityUnit;
-  buildMaterial?: BuildMaterial;
-  notes?: string;
-}
-
-export interface SupplierPackaging extends BaseEntity {
-  supplierId: string;
-  packagingId: string;
-  unitPrice: number;
-  tax?: number;
-  moq?: number;
-  bulkPrice: number; // The actual quoted price
-  quantityForBulkPrice: number;
-  bulkDiscounts?: BulkDiscount[];
-  leadTime?: number;
-  availability?: "in-stock" | "limited" | "out-of-stock";
-  transportationCost?: number;
-  notes?: string;
-}
-
-export interface PackagingWithSuppliers extends Packaging {
-  supplierCount: number;
-  suppliersList: Supplier[];
-}
-
-/**
- * Extended SupplierPackaging with joined data
- */
-export interface SupplierPackagingWithDetails extends SupplierPackaging {
-  packaging?: Packaging;
-  supplier?: Supplier;
-
-  // Computed display fields (always accurate)
-  displayName: string;
-  displayType: string;
-  displayUnit: string;
-  priceWithTax: number;
-}
-
-// ============================================================================
-// LABELS
-// ============================================================================
-
-export type LabelType = "sticker" | "label" | "tag" | "other";
-export type PrintingType = "bw" | "color" | "foil" | "embossed";
-export type LabelMaterialType = "paper" | "vinyl" | "plastic" | "other";
-export type ShapeType = "rectangular" | "custom";
-
-export interface Label extends BaseEntity {
-  name: string;
-  type: LabelType;
-  printingType: PrintingType;
-  material: LabelMaterialType;
-  shape: ShapeType;
-  size?: string; // e.g., "50x30mm"
-  labelFor?: string; //product name
-  notes?: string;
-}
-
-export interface SupplierLabel extends BaseEntity {
-  supplierId: string;
-  labelId?: string;
-
-  unit: "pieces" | "sheets" | string;
-  unitPrice: number;
-  bulkPrice?: number; // The actual quoted price
-  quantityForBulkPrice?: number;
-  moq: number;
-  tax?: number;
-  bulkDiscounts?: BulkDiscount[];
-  leadTime: number;
-  availability: "in-stock" | "limited" | "out-of-stock";
-  transportationCost?: number;
-  notes?: string;
-}
-
-export interface LabelsWithSuppliers extends Label {
-  supplierCount: number;
-  suppliersList: Supplier[];
-}
-
-// Extended SupplierLabel with joined data
-
-export interface SupplierLabelWithDetails extends SupplierLabel {
-  label?: Label;
-  supplier?: Supplier;
-
-  // Computed display fields (always accurate)
-  displayName: string;
-  displayType: string;
-  displayPrintingType: string;
-  displayMaterial: string;
-  displayShape: string;
-  priceWithTax: number;
 }
 
 // ============================================================================
@@ -436,15 +259,15 @@ export interface ProductVariantWithDetails extends ProductVariant {
   recipeVariant?: RecipeVariant;
 
   // Joined packaging info
-  packaging?: SupplierPackagingWithDetails;
+  packaging?: SupplierPackagingTableRow;
   packagingName: string;
   packagingCapacity: number;
   packagingUnit: CapacityUnit;
 
   // Joined label info
-  frontLabel?: SupplierLabelWithDetails;
+  frontLabel?: SupplierLabelTableRow;
   frontLabelName?: string;
-  backLabel?: SupplierLabelWithDetails;
+  backLabel?: SupplierLabelTableRow;
   backLabelName?: string;
 
   // Display helpers

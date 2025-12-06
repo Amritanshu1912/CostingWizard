@@ -2,7 +2,7 @@
 "use client";
 
 import { Skeleton } from "@/components/ui/skeleton";
-import type { ProductionBatch } from "@/lib/types";
+import type { ProductionBatch } from "@/types/shared-types";
 import { AlertCircle } from "lucide-react";
 import { useBatchRequirements } from "@/hooks/use-batches";
 import { InventoryWarningsAlert } from "./inventory-warnings-alert";

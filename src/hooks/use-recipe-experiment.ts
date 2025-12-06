@@ -1,10 +1,14 @@
 // hooks/use-recipe-experiment.ts
 import { db } from "@/lib/db";
-import type { RecipeDisplay, RecipeIngredient } from "@/lib/types";
+import type { RecipeDisplay, RecipeIngredient } from "@/types/shared-types";
 import { useCallback, useMemo, useState } from "react";
 import { toast } from "sonner";
-import { useSupplierMaterialsWithDetails } from "./use-supplier-materials";
-import { convertToBaseUnit, normalizeToKg } from "./use-unit-conversion";
+import { useSupplierMaterialRows } from "@/hooks/material-hooks/use-materials-queries";
+
+import {
+  convertToBaseUnit,
+  normalizeToKg,
+} from "../utils/unit-conversion-utils";
 
 export interface ExperimentIngredient extends RecipeIngredient {
   _changed?: boolean;
@@ -31,7 +35,7 @@ export interface ExperimentMetrics {
 }
 
 export function useRecipeExperiment(recipe: RecipeDisplay | null) {
-  const supplierMaterials = useSupplierMaterialsWithDetails();
+  const supplierMaterials = useSupplierMaterialRows();
 
   const [experimentIngredients, setExperimentIngredients] = useState<
     ExperimentIngredient[]

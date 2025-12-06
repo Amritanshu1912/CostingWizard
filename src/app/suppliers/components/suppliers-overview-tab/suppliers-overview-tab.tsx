@@ -3,7 +3,7 @@
 
 import { Button } from "@/components/ui/button";
 import { db } from "@/lib/db";
-import type { Supplier } from "@/lib/types";
+import type { Supplier } from "@/types/shared-types";
 import { Plus } from "lucide-react";
 import { useEffect, useState } from "react";
 import { SuppliersDetailsCard } from "./suppliers-details-card";

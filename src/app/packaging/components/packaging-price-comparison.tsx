@@ -10,31 +10,55 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { SortableTable } from "@/components/ui/sortable-table";
-import { usePackagingPriceComparison } from "@/hooks/use-supplier-packaging";
-import type { SupplierPackagingWithDetails } from "@/lib/types";
+import { usePackagingPriceComparison } from "@/hooks/packaging-hooks/use-packaging-queries";
+import type { SupplierPackagingForComparison } from "@/types/packaging-types";
 import { AlertCircle, Star, TrendingDown } from "lucide-react";
+import { useMemo } from "react";
 
+/**
+ * PackagingPriceComparison component displays price comparison data for packaging
+ * items that have multiple suppliers. It shows potential savings and helps users
+ * make informed purchasing decisions by comparing pricing, lead times, and ratings.
+ */
 export function PackagingPriceComparison() {
-  // Use the smart hook that groups by packaging automatically
+  // Fetch packaging groups with supplier alternatives from the API
   const packagingGroups = usePackagingPriceComparison();
 
-  // Table columns
+  // Transform data to match the table component's expected format
+  const convertedGroups = useMemo(() => {
+    return packagingGroups.map((group) => ({
+      ...group,
+      alternatives: group.alternatives.map((alt) => ({
+        ...alt,
+        displayName: alt.packagingName,
+        displayType: alt.packagingType,
+        displayUnit: "pieces",
+        supplier: { name: alt.supplierName, rating: alt.supplierRating },
+        priceWithTax: alt.priceWithTax,
+      })) as any, // Type assertion for table compatibility
+    }));
+  }, [packagingGroups]);
+
+  // Define table columns with custom rendering for each data point
   const columns = [
     {
       key: "supplierName",
       label: "Supplier",
       sortable: true,
-      render: (value: any, row: SupplierPackagingWithDetails) => {
-        const supplier = row.supplier;
-        const alternatives = packagingGroups
-          .find((g) => g.packagingName === row.displayName)
-          ?.alternatives.sort((a, b) => a.unitPrice - b.unitPrice);
+      render: (value: any, row: SupplierPackagingForComparison) => {
+        // Find the cheapest alternative to highlight with a badge
+        const alternatives = convertedGroups
+          .find((g) => g.packagingName === row.packagingName)
+          ?.alternatives.sort(
+            (a: { bulkPrice: number }, b: { bulkPrice: number }) =>
+              a.bulkPrice - b.bulkPrice
+          );
         const isCheapest = alternatives?.[0]?.id === row.id;
 
         return (
           <div className="flex items-center gap-2">
             <span className="font-medium text-foreground">
-              {supplier?.name}
+              {row.supplierName}
             </span>
             {isCheapest && (
               <Badge variant="default" className="text-xs">
@@ -47,7 +71,7 @@ export function PackagingPriceComparison() {
       },
     },
     {
-      key: "unitPrice",
+      key: "priceWithTax",
       label: "Price",
       sortable: true,
       render: (value: number) => (
@@ -74,7 +98,7 @@ export function PackagingPriceComparison() {
       ),
     },
     {
-      key: "availability",
+      key: "stockStatus",
       label: "Availability",
       sortable: true,
       render: (value: string) => (
@@ -96,19 +120,19 @@ export function PackagingPriceComparison() {
       key: "rating",
       label: "Supplier Rating",
       sortable: true,
-      render: (value: any, row: SupplierPackagingWithDetails) => {
-        const supplier = row.supplier;
+      render: (value: any, row: SupplierPackagingForComparison) => {
         return (
           <div className="flex items-center gap-1">
             <Star className="h-3 w-3 text-yellow-500 fill-current" />
-            <span className="text-sm font-medium">{supplier?.rating}</span>
+            <span className="text-sm font-medium">{row.supplierRating}</span>
           </div>
         );
       },
     },
   ];
 
-  if (packagingGroups.length === 0) {
+  // Show empty state when no comparable packaging exists
+  if (convertedGroups.length === 0) {
     return (
       <Card className="card-enhanced">
         <CardContent className="flex flex-col items-center justify-center py-12">
@@ -133,22 +157,24 @@ export function PackagingPriceComparison() {
       </CardHeader>
       <CardContent>
         <div className="space-y-8">
-          {packagingGroups.map((group) => {
+          {convertedGroups.map((group) => {
+            // Sort alternatives by price to find cheapest and most expensive
             const sortedAlternatives = group.alternatives.sort(
-              (a, b) => a.unitPrice - b.unitPrice
+              (a: any, b: any) => a.bulkPrice - b.bulkPrice
             );
             const cheapest = sortedAlternatives[0];
             const mostExpensive =
               sortedAlternatives[sortedAlternatives.length - 1];
-            const savings = mostExpensive.unitPrice - cheapest.unitPrice;
-            const savingsPercent = (savings / mostExpensive.unitPrice) * 100;
+            // Calculate potential savings from choosing the cheapest option
+            const savings = mostExpensive.bulkPrice - cheapest.bulkPrice;
+            const savingsPercent = (savings / mostExpensive.bulkPrice) * 100;
 
             return (
               <div
                 key={group.packagingName}
                 className="border border-border/50 rounded-xl p-6 bg-gradient-to-br from-card/50 to-muted/20"
               >
-                {/* Header */}
+                {/* Packaging header with name and supplier count */}
                 <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-6 gap-4">
                   <div>
                     <h4 className="text-lg font-semibold text-foreground mb-1">
@@ -158,6 +184,7 @@ export function PackagingPriceComparison() {
                       {group.alternatives.length} suppliers available
                     </p>
                   </div>
+                  {/* Savings display showing potential cost reduction */}
                   <div className="flex items-center gap-4 bg-accent/10 px-4 py-3 rounded-lg border border-accent/20">
                     <div>
                       <div className="text-xs text-muted-foreground mb-1">
@@ -179,7 +206,7 @@ export function PackagingPriceComparison() {
                   </div>
                 </div>
 
-                {/* Comparison Table */}
+                {/* Sortable table showing supplier comparison data */}
                 <SortableTable
                   data={sortedAlternatives}
                   columns={columns}

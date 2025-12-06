@@ -46,42 +46,36 @@ import {
 import { useEffect, useMemo, useState } from "react";
 
 import { useDuplicateCheck } from "@/hooks/use-duplicate-check";
-import { AVAILABILITY_MAP, CAPACITY_UNITS } from "@/lib/constants";
-import { normalizeText } from "@/lib/text-utils";
+import { CAPACITY_UNITS } from "@/lib/constants";
 import type {
   BuildMaterial,
   CapacityUnit,
   Packaging,
   PackagingType,
-  Supplier,
-  SupplierPackaging,
-} from "@/lib/types";
-import { cn } from "@/lib/utils";
+  SupplierPackagingFormData,
+} from "@/types/packaging-types";
+import type { Supplier } from "@/types/shared-types";
+import { cn } from "@/utils/shared-utils";
+import { normalizeText } from "@/utils/text-utils";
 import { BUILD_MATERIALS, PACKAGING_TYPES } from "./packaging-constants";
 
-// Form-specific type
-export interface PackagingFormData extends Partial<SupplierPackaging> {
-  packagingName?: string;
-  packagingType?: PackagingType;
-  capacity?: number;
-  capacityUnit?: CapacityUnit;
-  buildMaterial?: BuildMaterial;
-  bulkPrice?: number;
-  quantityForBulkPrice?: number;
-}
-
-interface EnhancedSupplierPackagingDialogProps {
+interface SupplierPackagingDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  packaging: PackagingFormData;
-  setPackaging: React.Dispatch<React.SetStateAction<PackagingFormData>>;
+  packaging: SupplierPackagingFormData;
+  setPackaging: React.Dispatch<React.SetStateAction<SupplierPackagingFormData>>;
   onSave: () => Promise<void>;
   suppliers: Supplier[];
   packagingList: Packaging[];
   isEditing?: boolean;
 }
 
-export function EnhancedSupplierPackagingDialog({
+/**
+ * SupplierPackagingDialog component provides a comprehensive form for adding or editing
+ * supplier packaging relationships. It includes packaging selection with auto-fill,
+ * duplicate detection, validation, and automatic unit price calculation.
+ */
+export function SupplierPackagingDialog({
   open,
   onOpenChange,
   packaging,
@@ -90,34 +84,38 @@ export function EnhancedSupplierPackagingDialog({
   suppliers,
   packagingList,
   isEditing = false,
-}: EnhancedSupplierPackagingDialogProps) {
+}: SupplierPackagingDialogProps) {
+  // State for searchable packaging selection combobox
   const [packagingSearch, setPackagingSearch] = useState("");
   const [openPackagingCombobox, setOpenPackagingCombobox] = useState(false);
   const [filteredPackaging, setFilteredPackaging] = useState<Packaging[]>([]);
   const [isNewPackaging, setIsNewPackaging] = useState(false);
 
+  // UI state for loading, errors, and form behavior
   const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [packagingAutoFilled, setPackagingAutoFilled] = useState(false);
+  const [originalPackaging, setOriginalPackaging] = useState<Packaging | null>(
+    null
+  );
 
-  // Duplicate check for packaging
+  // Hook for checking duplicate packaging names
   const {
     warning: packagingWarning,
     checkDuplicate: checkPackagingDuplicate,
-    clearWarning: clearPackagingWarning,
+    clearCheck: clearPackagingWarning,
   } = useDuplicateCheck(packagingList, packaging.packagingId);
 
-  // Reset state when dialog opens/closes
+  // Reset dialog state when opened or closed
   useEffect(() => {
     if (open) {
       setPackagingSearch("");
       setIsNewPackaging(false);
-      // setErrors({});
       clearPackagingWarning();
     }
   }, [open, clearPackagingWarning]);
 
-  // Check for duplicates when typing
+  // Filter packaging options and check for duplicates as user types
   useEffect(() => {
     if (packagingSearch) {
       const filtered = packagingList.filter((m) =>
@@ -125,7 +123,7 @@ export function EnhancedSupplierPackagingDialog({
       );
       setFilteredPackaging(filtered);
 
-      // Check if normalized packagingSearch exactly matches any existing packaging name
+      // Determine if this is a new packaging or existing one
       const normalizedSearch = normalizeText(packagingSearch);
       const exactMatchExists = packagingList.some(
         (p) => normalizeText(p.name) === normalizedSearch
@@ -147,7 +145,7 @@ export function EnhancedSupplierPackagingDialog({
     checkPackagingDuplicate,
   ]);
 
-  // Initialize when editing
+  // Initialize form when editing existing supplier packaging
   useEffect(() => {
     if (isEditing && packaging.packagingId) {
       const existingPackaging = packagingList.find(
@@ -156,20 +154,52 @@ export function EnhancedSupplierPackagingDialog({
       if (existingPackaging) {
         setPackagingSearch(existingPackaging.name);
         setPackagingAutoFilled(true);
-        // When editing, "Create New" should not show for the current packaging name
         setIsNewPackaging(false);
       }
     }
   }, [isEditing, packaging.packagingId, packagingList]);
 
-  // Calculate unit price
+  // Calculate unit price based on bulk price and quantity
   const calculatedUnitPrice = useMemo(() => {
     const qty = packaging.quantityForBulkPrice || 1;
     const price = packaging.bulkPrice || 0;
     return qty > 0 ? price / qty : 0;
   }, [packaging.bulkPrice, packaging.quantityForBulkPrice]);
 
-  // Handle packaging selection
+  // Auto-update the unit price field when calculation changes
+  useEffect(() => {
+    setPackaging((prev) => ({ ...prev, unitPrice: calculatedUnitPrice }));
+  }, [calculatedUnitPrice, setPackaging]);
+
+  // Detect if key packaging properties changed from original (for editing)
+  useEffect(() => {
+    if (originalPackaging && packagingAutoFilled) {
+      const hasChanged =
+        packaging.packagingType !== originalPackaging.type ||
+        packaging.capacity !== originalPackaging.capacity ||
+        packaging.capacityUnit !== originalPackaging.capacityUnit ||
+        packaging.buildMaterial !== originalPackaging.buildMaterial;
+
+      if (hasChanged) {
+        // Clear packagingId to force creation of new packaging entry
+        setPackaging((prev) => ({
+          ...prev,
+          packagingId: "",
+        }));
+      }
+    }
+  }, [
+    packaging.packagingType,
+    packaging.capacity,
+    packaging.capacityUnit,
+    packaging.buildMaterial,
+    originalPackaging,
+    packagingAutoFilled,
+    packaging.packagingId,
+    setPackaging,
+  ]);
+
+  // Handle selection of existing packaging from combobox
   const handleSelectPackaging = (selectedPackaging: Packaging) => {
     setPackaging({
       ...packaging,
@@ -177,16 +207,17 @@ export function EnhancedSupplierPackagingDialog({
       packagingName: selectedPackaging.name,
       packagingType: selectedPackaging.type,
       capacity: selectedPackaging.capacity,
-      capacityUnit: selectedPackaging.unit,
+      capacityUnit: selectedPackaging.capacityUnit,
       buildMaterial: selectedPackaging.buildMaterial,
     });
     setPackagingSearch(selectedPackaging.name);
     setPackagingAutoFilled(true);
+    setOriginalPackaging(selectedPackaging);
     clearPackagingWarning();
     setOpenPackagingCombobox(false);
   };
 
-  // Handle new packaging
+  // Handle creation of new packaging when user types a new name
   const handleNewPackaging = () => {
     setPackaging({
       ...packaging,
@@ -197,21 +228,20 @@ export function EnhancedSupplierPackagingDialog({
     });
     setPackagingAutoFilled(false);
     setOpenPackagingCombobox(false);
-    // Ensure "Create New" stays visible after selection
     setIsNewPackaging(true);
   };
 
-  // Handle manual typing
+  // Handle manual input changes in packaging search field
   const handlePackagingSearchChange = (value: string) => {
     setPackagingSearch(value);
     setPackagingAutoFilled(false);
-    // Reset isNewPackaging when user starts typing manually
+    setOriginalPackaging(null);
     if (isEditing) {
       setIsNewPackaging(false);
     }
   };
 
-  // Validate form
+  // Comprehensive form validation
   const validateForm = (): boolean => {
     const newErrors: Record<string, string> = {};
 
@@ -254,7 +284,7 @@ export function EnhancedSupplierPackagingDialog({
     return Object.keys(newErrors).length === 0;
   };
 
-  // Handle save
+  // Handle form submission with loading state
   const handleSave = async () => {
     if (!validateForm()) return;
 
@@ -266,6 +296,7 @@ export function EnhancedSupplierPackagingDialog({
     }
   };
 
+  // Check if form has minimum required fields filled
   const isValid =
     packaging.supplierId &&
     packaging.packagingName &&
@@ -296,14 +327,14 @@ export function EnhancedSupplierPackagingDialog({
         </DialogHeader>
 
         <div className="space-y-6 py-4">
-          {/* Supplier Selection */}
+          {/* Supplier Information Section */}
           <div className="dialog-section">
             <div className="section-header">
               <Package className="h-4 w-4" />
               Supplier Information
             </div>
             <div className="space-y-4 pl-6">
-              {/* Row 1: Supplier and MOQ (2:1 ratio) */}
+              {/* Supplier selection and MOQ in responsive grid */}
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div className="space-y-0 md:col-span-2">
                   <Label htmlFor="supplier">
@@ -368,7 +399,7 @@ export function EnhancedSupplierPackagingDialog({
                 </div>
               </div>
 
-              {/* Row 2: Lead Time and Availability (1:1 ratio) */}
+              {/* Lead time input with icon */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-0 relative">
                   <Label htmlFor="leadTime">Lead Time (days)</Label>
@@ -390,43 +421,11 @@ export function EnhancedSupplierPackagingDialog({
                     />
                   </div>
                 </div>
-
-                <div className="space-y-0">
-                  <Label htmlFor="availability">Availability</Label>
-                  <Select
-                    value={packaging.availability}
-                    onValueChange={(value) =>
-                      setPackaging({ ...packaging, availability: value as any })
-                    }
-                  >
-                    <SelectTrigger id="availability" className="focus-enhanced">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {Object.keys(AVAILABILITY_MAP).map((option) => (
-                        <SelectItem key={option} value={option}>
-                          <div className="flex items-center gap-2">
-                            <div
-                              className={`w-2 h-2 rounded-full ${
-                                option === "in-stock"
-                                  ? "bg-green-500"
-                                  : option === "limited"
-                                    ? "bg-yellow-500"
-                                    : "bg-red-500"
-                              }`}
-                            />
-                            {option}
-                          </div>
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
               </div>
             </div>
           </div>
 
-          {/* Packaging Selection */}
+          {/* Packaging Details Section */}
           <div className="dialog-section">
             <div className="section-header">
               <Package className="h-4 w-4" />
@@ -494,7 +493,7 @@ export function EnhancedSupplierPackagingDialog({
                                   <div className="font-medium">{pkg.name}</div>
                                   <div className="text-xs text-muted-foreground">
                                     {pkg.type} • {pkg.capacity}
-                                    {pkg.unit} • {pkg.buildMaterial}
+                                    {pkg.capacityUnit} • {pkg.buildMaterial}
                                   </div>
                                 </div>
                               </CommandItem>
@@ -534,7 +533,7 @@ export function EnhancedSupplierPackagingDialog({
                 )}
               </div>
 
-              {/* Type */}
+              {/* Packaging type selection */}
               <div className="space-y-0">
                 <Label htmlFor="type">
                   Type <span className="text-destructive">*</span>
@@ -577,7 +576,7 @@ export function EnhancedSupplierPackagingDialog({
                 )}
               </div>
 
-              {/* Build Material */}
+              {/* Build material selection */}
               <div className="space-y-0">
                 <Label className="translate-y-[3px]" htmlFor="buildMaterial">
                   Build Material
@@ -610,12 +609,12 @@ export function EnhancedSupplierPackagingDialog({
                 </Select>
               </div>
 
-              {/* Capacity */}
+              {/* Capacity input */}
               <div className="space-y-0">
                 <Label className="text-sm font-medium">Capacity</Label>
                 <Input
                   type="number"
-                  step="0.01"
+                  step="1"
                   min="0"
                   value={packaging.capacity || ""}
                   onChange={(e) =>
@@ -635,7 +634,7 @@ export function EnhancedSupplierPackagingDialog({
                 )}
               </div>
 
-              {/* Unit */}
+              {/* Capacity unit selection */}
               <div className="space-y-0">
                 <Label className="text-sm font-medium">Unit</Label>
                 <Select
@@ -656,9 +655,12 @@ export function EnhancedSupplierPackagingDialog({
                     <SelectValue placeholder="Select unit" />
                   </SelectTrigger>
                   <SelectContent>
-                    {CAPACITY_UNITS.map((unit) => (
-                      <SelectItem key={unit.value} value={unit.value}>
-                        {unit.label}
+                    {CAPACITY_UNITS.map((capacityUnit) => (
+                      <SelectItem
+                        key={capacityUnit.value}
+                        value={capacityUnit.value}
+                      >
+                        {capacityUnit.label}
                       </SelectItem>
                     ))}
                   </SelectContent>
@@ -670,7 +672,7 @@ export function EnhancedSupplierPackagingDialog({
                 )}
               </div>
 
-              {/* Pricing Section */}
+              {/* Pricing section with tax, bulk price, quantity, and calculated unit price */}
               <div className="space-y-2 md:col-span-3">
                 <div className="grid grid-cols-4 gap-2">
                   <div className="space-y-0">
@@ -756,7 +758,7 @@ export function EnhancedSupplierPackagingDialog({
             </div>
           </div>
 
-          {/* Notes */}
+          {/* Additional notes textarea */}
           <div className="space-y-2">
             <Label htmlFor="notes">Additional Notes</Label>
             <Textarea
@@ -771,7 +773,7 @@ export function EnhancedSupplierPackagingDialog({
           </div>
         </div>
 
-        {/* Footer */}
+        {/* Dialog footer with validation status and action buttons */}
         <div className="flex items-center justify-between pt-4 border-t">
           <div className="text-xs text-muted-foreground">
             <span className="text-destructive">*</span> Required fields

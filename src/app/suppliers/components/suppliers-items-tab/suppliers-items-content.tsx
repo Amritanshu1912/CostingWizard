@@ -1,34 +1,34 @@
 // src/app/suppliers/components/suppliers-items-tab/suppliers-items-content.tsx
 "use client";
 
-import type { LabelFormData } from "@/app/labels/components/supplier-labels-dialog";
-import { EnhancedSupplierLabelsDialog } from "@/app/labels/components/supplier-labels-dialog";
+import type { SupplierLabelFormData } from "@/types/label-types";
+import { SupplierLabelsDialog } from "@/app/labels/components/supplier-labels-dialog";
 import { DEFAULT_MATERIAL_FORM } from "@/app/materials/components/materials-constants";
-import type { MaterialFormData } from "@/app/materials/components/supplier-materials-dialog";
-import { EnhancedMaterialDialog } from "@/app/materials/components/supplier-materials-dialog";
-import type { PackagingFormData } from "@/app/packaging/components/supplier-packaging-dialog";
-import { EnhancedSupplierPackagingDialog } from "@/app/packaging/components/supplier-packaging-dialog";
+import type { SupplierMaterialFormData } from "@/types/material-types";
+import { MaterialsSupplierDialog } from "@/app/materials/components/materials-supplier-dialog";
+import type { SupplierPackagingFormData } from "@/types/packaging-types";
+import { SupplierPackagingDialog } from "@/app/packaging/components/supplier-packaging-dialog";
 import { SUPPLIERS } from "@/app/suppliers/components/suppliers-constants";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useDexieTable } from "@/hooks/use-dexie-table";
-import { assignCategoryColor } from "@/lib/color-utils";
+import { assignCategoryColor } from "@/utils/color-utils";
 import { db } from "@/lib/db";
-import { normalizeText } from "@/lib/text-utils";
-import type { Supplier } from "@/lib/types";
+import { normalizeText } from "@/utils/text-utils";
+import type { Supplier } from "@/types/shared-types";
 import { Box, Package, Plus, Tag } from "lucide-react";
 import { nanoid } from "nanoid";
 import { useCallback, useState } from "react";
 import { toast } from "sonner";
 import { SuppliersItemsTable } from "./suppliers-items-table";
 
-const DEFAULT_PACKAGING_FORM: PackagingFormData = {
+const DEFAULT_PACKAGING_FORM: SupplierPackagingFormData = {
   supplierId: "",
   packagingName: "",
   packagingId: "",
-  packagingType: undefined,
+  packagingType: "bottle",
   capacity: 0,
   capacityUnit: "ml",
   buildMaterial: undefined,
@@ -37,26 +37,27 @@ const DEFAULT_PACKAGING_FORM: PackagingFormData = {
   tax: 0,
   moq: 1,
   leadTime: 7,
-  availability: "in-stock",
   notes: "",
+  unitPrice: 0,
 };
 
-const DEFAULT_LABEL_FORM: LabelFormData = {
+const DEFAULT_LABEL_FORM: SupplierLabelFormData = {
   supplierId: "",
   labelName: "",
   labelId: "",
-  labelType: undefined,
-  printingType: undefined,
-  material: undefined,
-  shape: undefined,
+  labelType: "sticker",
+  printingType: "bw",
+  material: "paper",
+  shape: "rectangular",
   size: "",
-  labelFor: "",
   bulkPrice: 0,
   quantityForBulkPrice: 1,
+  unit: "pieces",
   tax: 0,
   moq: 1,
   leadTime: 7,
-  availability: "in-stock",
+  transportationCost: 0,
+  bulkDiscounts: [],
   notes: "",
 };
 
@@ -86,14 +87,12 @@ export function SuppliersItemsContent({
   const [editingLabel, setEditingLabel] = useState<any>(null);
 
   // Form states
-  const [materialFormData, setMaterialFormData] = useState<MaterialFormData>(
-    DEFAULT_MATERIAL_FORM
-  );
-  const [packagingFormData, setPackagingFormData] = useState<PackagingFormData>(
-    DEFAULT_PACKAGING_FORM
-  );
+  const [materialFormData, setMaterialFormData] =
+    useState<SupplierMaterialFormData>(DEFAULT_MATERIAL_FORM);
+  const [packagingFormData, setPackagingFormData] =
+    useState<SupplierPackagingFormData>(DEFAULT_PACKAGING_FORM);
   const [labelFormData, setLabelFormData] =
-    useState<LabelFormData>(DEFAULT_LABEL_FORM);
+    useState<SupplierLabelFormData>(DEFAULT_LABEL_FORM);
 
   // Database hooks - useLiveQuery automatically refreshes when data changes
   const { data: suppliersData } = useDexieTable(db.suppliers, SUPPLIERS);
@@ -163,7 +162,7 @@ export function SuppliersItemsContent({
         packagingName: packagingDetails?.name,
         packagingType: packagingDetails?.type,
         capacity: packagingDetails?.capacity,
-        capacityUnit: packagingDetails?.unit,
+        capacityUnit: packagingDetails?.capacityUnit,
         buildMaterial: packagingDetails?.buildMaterial,
       });
       setShowPackagingDialog(true);
@@ -184,7 +183,6 @@ export function SuppliersItemsContent({
         material: labelDetails?.material,
         shape: labelDetails?.shape,
         size: labelDetails?.size,
-        labelFor: labelDetails?.labelFor,
       });
       setShowLabelDialog(true);
     },
@@ -273,11 +271,10 @@ export function SuppliersItemsContent({
             bulkPrice: bulkPrice,
             quantityForBulkPrice: quantityForBulkPrice,
             tax: materialFormData.tax || 0,
-            unit: materialFormData.unit || "kg",
+            capacityUnit: materialFormData.capacityUnit || "kg",
             moq: materialFormData.moq || 1,
             bulkDiscounts: materialFormData.bulkDiscounts || [],
             leadTime: materialFormData.leadTime || 7,
-            availability: materialFormData.availability || "in-stock",
             transportationCost: materialFormData.transportationCost,
             notes: materialFormData.notes || "",
             createdAt: now,
@@ -321,7 +318,7 @@ export function SuppliersItemsContent({
                   normalizeText(packagingFormData.packagingName!) &&
                 p.type === packagingFormData.packagingType &&
                 p.capacity === (packagingFormData.capacity || 0) &&
-                p.unit === packagingFormData.capacityUnit &&
+                p.capacityUnit === packagingFormData.capacityUnit &&
                 p.buildMaterial === packagingFormData.buildMaterial
             )
             .first();
@@ -336,7 +333,7 @@ export function SuppliersItemsContent({
               name: packagingFormData.packagingName!.trim(),
               type: packagingFormData.packagingType!,
               capacity: packagingFormData.capacity || 0,
-              unit: packagingFormData.capacityUnit!,
+              capacityUnit: packagingFormData.capacityUnit!,
               buildMaterial: packagingFormData.buildMaterial,
               notes: packagingFormData.notes || "",
               createdAt: now,
@@ -357,9 +354,9 @@ export function SuppliersItemsContent({
             tax: packagingFormData.tax || 0,
             moq: packagingFormData.moq || 1,
             leadTime: packagingFormData.leadTime || 7,
-            availability: packagingFormData.availability || "in-stock",
             notes: packagingFormData.notes || "",
             createdAt: now,
+            capacityUnit: "kg",
           });
         }
       );
@@ -400,9 +397,7 @@ export function SuppliersItemsContent({
               l.material === labelFormData.material &&
               l.shape === labelFormData.shape &&
               normalizeText(l.size || "") ===
-                normalizeText(labelFormData.size || "") &&
-              normalizeText(l.labelFor || "") ===
-                normalizeText(labelFormData.labelFor || "")
+                normalizeText(labelFormData.size || "")
           )
           .first();
 
@@ -419,7 +414,6 @@ export function SuppliersItemsContent({
             material: labelFormData.material!,
             shape: labelFormData.shape!,
             size: labelFormData.size || undefined,
-            labelFor: labelFormData.labelFor || undefined,
             notes: labelFormData.notes || "",
             createdAt: now,
           });
@@ -439,7 +433,6 @@ export function SuppliersItemsContent({
           quantityForBulkPrice: bulkQuantity,
           moq: labelFormData.moq || 1,
           leadTime: labelFormData.leadTime || 7,
-          availability: labelFormData.availability || "in-stock",
           tax: labelFormData.tax || 0,
           notes: labelFormData.notes || "",
           createdAt: now,
@@ -562,19 +555,18 @@ export function SuppliersItemsContent({
       </Card>
 
       {/* Dialogs */}
-      <EnhancedMaterialDialog
+      <MaterialsSupplierDialog
         open={showMaterialDialog}
         onOpenChange={(open) => handleDialogClose(open, "material")}
-        material={materialFormData}
-        setMaterial={setMaterialFormData}
+        supplierMaterial={materialFormData || undefined}
+        isEditing={!!editingMaterial}
         onSave={handleSaveMaterial}
         suppliers={suppliersData}
         materials={materials}
         categories={categories}
-        isEditing={!!editingMaterial}
       />
 
-      <EnhancedSupplierPackagingDialog
+      <SupplierPackagingDialog
         open={showPackagingDialog}
         onOpenChange={(open) => handleDialogClose(open, "packaging")}
         packaging={packagingFormData}
@@ -585,7 +577,7 @@ export function SuppliersItemsContent({
         isEditing={!!editingPackaging}
       />
 
-      <EnhancedSupplierLabelsDialog
+      <SupplierLabelsDialog
         open={showLabelDialog}
         onOpenChange={(open) => handleDialogClose(open, "label")}
         label={labelFormData}

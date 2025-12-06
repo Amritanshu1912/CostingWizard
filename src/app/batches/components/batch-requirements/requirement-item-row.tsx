@@ -7,8 +7,8 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import type { RequirementItem } from "@/lib/types";
-import { cn } from "@/lib/utils";
+import type { RequirementItem } from "@/types/shared-types";
+import { cn } from "@/utils/shared-utils";
 import { Building2, MoreVertical, ShoppingCart } from "lucide-react";
 import { PriceDisplay } from "../../utils/price-display";
 import { ShortageBadge } from "../../utils/shortage-badge";

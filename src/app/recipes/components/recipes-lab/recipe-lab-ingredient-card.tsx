@@ -10,11 +10,10 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { normalizeToKg } from "@/hooks/use-unit-conversion";
-import type {
-  RecipeIngredient,
-  SupplierMaterialWithDetails,
-} from "@/lib/types";
+import { normalizeToKg } from "@/utils/unit-conversion-utils";
+import type { RecipeIngredient } from "@/types/shared-types";
+import type { SupplierMaterialRow } from "@/types/material-types";
+
 import { Lock, RotateCcw, Trash2, Unlock } from "lucide-react";
 
 interface ExperimentIngredient extends RecipeIngredient {
@@ -27,8 +26,8 @@ interface ExperimentIngredient extends RecipeIngredient {
 interface RecipeLabIngredientCardProps {
   ingredient: ExperimentIngredient;
   index: number;
-  supplierMaterial: SupplierMaterialWithDetails | undefined;
-  alternatives: SupplierMaterialWithDetails[];
+  supplierMaterial: SupplierMaterialRow | undefined;
+  alternatives: SupplierMaterialRow[];
   isExpanded: boolean;
   onQuantityChange: (index: number, quantity: number) => void;
   onSupplierChange: (index: number, supplierId: string) => void;
@@ -79,7 +78,7 @@ export function RecipeLabIngredientCard({
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 flex-wrap">
             <h4 className="font-semibold text-sm truncate">
-              {sm?.material?.name || sm?.displayName || "Unknown Material"}
+              {sm?.materialName || "Unknown Material"}
             </h4>
             {hasAlternatives && (
               <Badge
@@ -123,7 +122,7 @@ export function RecipeLabIngredientCard({
               <SelectValue>
                 <div className="flex items-center justify-between w-full">
                   <span className="font-medium truncate">
-                    {sm?.supplier?.name || "Select"}
+                    {sm?.supplierName || "Select"}
                   </span>
                   <span className="text-muted-foreground text-xs ml-2">
                     ₹{sm?.unitPrice.toFixed(2)}/{sm?.unit}
@@ -136,7 +135,7 @@ export function RecipeLabIngredientCard({
               <SelectItem value={ing.supplierMaterialId}>
                 <div className="flex items-center justify-between w-full min-w-[280px]">
                   <div>
-                    <p className="font-medium">{sm?.supplier?.name}</p>
+                    <p className="font-medium">{sm?.supplierName}</p>
                     <p className="text-xs text-muted-foreground">Current</p>
                   </div>
                   <div className="text-right ml-4">
@@ -167,7 +166,7 @@ export function RecipeLabIngredientCard({
                         <div className="flex items-center justify-between w-full min-w-[280px]">
                           <div className="flex-1 min-w-0">
                             <p className="font-medium truncate">
-                              {alt.supplier?.name}
+                              {alt.supplierName}
                             </p>
                             {alt.availability !== "in-stock" && (
                               <p className="text-xs text-red-600">

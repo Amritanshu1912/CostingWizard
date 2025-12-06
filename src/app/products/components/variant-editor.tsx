@@ -13,7 +13,7 @@ import {
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { db } from "@/lib/db";
-import type { CapacityUnit, ProductVariant } from "@/lib/types";
+import type { CapacityUnit, ProductVariant } from "@/types/shared-types";
 import { useLiveQuery } from "dexie-react-hooks";
 import { Check, Package, Tag, X } from "lucide-react";
 import { useEffect, useState } from "react";

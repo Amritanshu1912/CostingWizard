@@ -1,4 +1,4 @@
-// src/app/materials/components/materials-table.tsx
+// src/app/materials/components/materials-list-table.tsx
 "use client";
 
 import { Badge } from "@/components/ui/badge";
@@ -18,80 +18,101 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import { SortableTable } from "@/components/ui/sortable-table";
-import type { Category, MaterialWithSuppliers } from "@/lib/types";
-import { cn } from "@/lib/utils";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
+import type {
+  Category,
+  MaterialWithSupplierCount,
+} from "@/types/material-types";
+import { cn } from "@/utils/shared-utils";
 import { format } from "date-fns";
 import {
   Check,
   ChevronsUpDown,
   Edit,
+  Info,
   Loader2,
   Plus,
   Trash2,
 } from "lucide-react";
-import { useMemo } from "react";
+import { useCallback, useMemo, useState } from "react";
 
-interface MaterialsTableDrawerProps {
-  data: (MaterialWithSuppliers & { categoryColor: string })[];
+interface MaterialsListTableProps {
+  data: MaterialWithSupplierCount[];
   editingMaterialId: string | null;
   editForm: { name: string; category: string };
   loading: boolean;
-  categories: Category[] | undefined;
-  categorySearch: string;
-  openCategoryCombobox: boolean;
+  categories: Category[];
   onEditFormChange: (form: { name: string; category: string }) => void;
-  onStartEdit: (material: MaterialWithSuppliers) => void;
+  onStartEdit: (material: MaterialWithSupplierCount) => void;
   onSaveEdit: () => void;
   onCancelEdit: () => void;
-  onInitiateDelete: (material: MaterialWithSuppliers) => void;
-  onCategorySearchChange: (search: string) => void;
-  onSelectCategory: (category: Category) => void;
-  onNewCategory: () => void;
-  onOpenCategoryComboboxChange: (open: boolean) => void;
+  onInitiateDelete: (material: MaterialWithSupplierCount) => void;
 }
 
-export function MaterialsTableDrawer({
+/**
+ * MaterialsListTable component renders a sortable table for displaying materials.
+ * Supports inline editing of material names and categories, with a searchable category combobox.
+ */
+export function MaterialsListTable({
   data,
   editingMaterialId,
   editForm,
   loading,
   categories,
-  categorySearch,
-  openCategoryCombobox,
   onEditFormChange,
   onStartEdit,
   onSaveEdit,
   onCancelEdit,
   onInitiateDelete,
-  onCategorySearchChange,
-  onSelectCategory,
-  onNewCategory,
-  onOpenCategoryComboboxChange,
-}: MaterialsTableDrawerProps) {
-  // Filter categories based on search
+}: MaterialsListTableProps) {
+  // State for managing category search and combobox visibility
+  const [categorySearch, setCategorySearch] = useState("");
+  const [openCategoryCombobox, setOpenCategoryCombobox] = useState(false);
+
+  // Filter available categories based on the current search term
   const filteredCategories = useMemo(() => {
-    if (!categories) return [];
     if (!categorySearch) return categories;
     return categories.filter((c) =>
       c.name.toLowerCase().includes(categorySearch.toLowerCase())
     );
   }, [categories, categorySearch]);
 
+  // Determine if the search term represents a new category that doesn't exist yet
   const isNewCategory = useMemo(() => {
-    if (!categorySearch || !categories) return false;
+    if (!categorySearch) return false;
     return !categories.some(
       (c) => c.name.toLowerCase() === categorySearch.toLowerCase()
     );
   }, [categorySearch, categories]);
 
-  // Table columns
+  // Handle selection of an existing category from the dropdown
+  const handleSelectCategory = useCallback(
+    (category: Category) => {
+      onEditFormChange({ ...editForm, category: category.name });
+      setCategorySearch(category.name);
+      setOpenCategoryCombobox(false);
+    },
+    [editForm, onEditFormChange]
+  );
+
+  // Handle creation of a new category when user types a non-existing name
+  const handleNewCategory = useCallback(() => {
+    onEditFormChange({ ...editForm, category: categorySearch });
+    setOpenCategoryCombobox(false);
+  }, [editForm, categorySearch, onEditFormChange]);
+
   const columns = useMemo(
     () => [
       {
         key: "name",
         label: "Material Name",
         sortable: true,
-        render: (_: any, row: MaterialWithSuppliers) => {
+        render: (_: any, row: MaterialWithSupplierCount) => {
           if (editingMaterialId === row.id) {
             return (
               <Input
@@ -100,6 +121,7 @@ export function MaterialsTableDrawer({
                   onEditFormChange({ ...editForm, name: e.target.value })
                 }
                 className="h-8"
+                placeholder="Enter material name"
                 autoFocus
               />
             );
@@ -113,15 +135,12 @@ export function MaterialsTableDrawer({
         key: "category",
         label: "Category",
         sortable: true,
-        render: (
-          _: any,
-          row: MaterialWithSuppliers & { categoryColor: string }
-        ) => {
+        render: (_: any, row: MaterialWithSupplierCount) => {
           if (editingMaterialId === row.id) {
             return (
               <Popover
                 open={openCategoryCombobox}
-                onOpenChange={onOpenCategoryComboboxChange}
+                onOpenChange={setOpenCategoryCombobox}
               >
                 <PopoverTrigger asChild>
                   <Button
@@ -139,7 +158,7 @@ export function MaterialsTableDrawer({
                     <CommandInput
                       placeholder="Search..."
                       value={categorySearch}
-                      onValueChange={onCategorySearchChange}
+                      onValueChange={setCategorySearch}
                     />
                     <CommandList>
                       {filteredCategories.length > 0 && (
@@ -147,7 +166,7 @@ export function MaterialsTableDrawer({
                           {filteredCategories.map((cat) => (
                             <CommandItem
                               key={cat.id}
-                              onSelect={() => onSelectCategory(cat)}
+                              onSelect={() => handleSelectCategory(cat)}
                             >
                               <Check
                                 className={cn(
@@ -170,7 +189,7 @@ export function MaterialsTableDrawer({
                       )}
                       {isNewCategory && categorySearch && (
                         <CommandGroup>
-                          <CommandItem onSelect={onNewCategory}>
+                          <CommandItem onSelect={handleNewCategory}>
                             <Plus className="mr-2 h-4 w-4" />
                             Create &quot;{categorySearch}&quot;
                           </CommandItem>
@@ -203,19 +222,51 @@ export function MaterialsTableDrawer({
         key: "supplierCount",
         label: "# Suppliers",
         sortable: true,
-        render: (_: any, row: MaterialWithSuppliers) => {
-          if (row.supplierCount === 0) {
-            return <span className="text-muted-foreground">0</span>;
+        render: (_: any, row: MaterialWithSupplierCount) => {
+          if (editingMaterialId === row.id) {
+            return <span className="text-muted-foreground">—</span>;
           }
 
-          return <span className="font-medium">{row.supplierCount}</span>;
+          if (row.supplierCount === 0) {
+            return (
+              <span className="text-muted-foreground text-sm">
+                No suppliers
+              </span>
+            );
+          }
+
+          return (
+            <div className="flex items-center gap-2">
+              <span className="font-medium">{row.supplierCount}</span>
+              {row.suppliers && row.suppliers.length > 0 && (
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger>
+                      <Info className="h-4 w-4 text-muted-foreground" />
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <ul>
+                        {row.suppliers.map((supplier) => (
+                          <li key={supplier.id}>{supplier.name}</li>
+                        ))}
+                      </ul>
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
+              )}
+            </div>
+          );
         },
       },
       {
         key: "updatedAt",
-        label: "Updated At",
+        label: "Last Updated",
         sortable: true,
-        render: (_: any, row: MaterialWithSuppliers) => {
+        render: (_: any, row: MaterialWithSupplierCount) => {
+          if (editingMaterialId === row.id) {
+            return <span className="text-muted-foreground">—</span>;
+          }
+
           const displayDate = row.updatedAt || row.createdAt;
           return (
             <span className="text-sm text-muted-foreground">
@@ -228,14 +279,18 @@ export function MaterialsTableDrawer({
         key: "actions",
         label: "Actions",
         sortable: false,
-        render: (_: any, row: MaterialWithSuppliers) => {
+        render: (_: any, row: MaterialWithSupplierCount) => {
           if (editingMaterialId === row.id) {
             return (
               <div className="flex gap-2">
                 <Button
                   size="sm"
                   onClick={onSaveEdit}
-                  disabled={loading}
+                  disabled={
+                    loading ||
+                    !editForm.name.trim() ||
+                    !editForm.category.trim()
+                  }
                   className="h-7 text-xs"
                 >
                   {loading ? (
@@ -264,6 +319,7 @@ export function MaterialsTableDrawer({
                 size="sm"
                 onClick={() => onStartEdit(row)}
                 className="h-8 w-8 p-0 hover:bg-primary/10 hover:text-primary"
+                title="Edit material"
               >
                 <Edit className="h-4 w-4" />
               </Button>
@@ -289,20 +345,18 @@ export function MaterialsTableDrawer({
     [
       editingMaterialId,
       editForm,
-      loading,
+      onEditFormChange,
       openCategoryCombobox,
       categorySearch,
       filteredCategories,
       isNewCategory,
-      onEditFormChange,
-      onStartEdit,
+      handleNewCategory,
+      handleSelectCategory,
       onSaveEdit,
+      loading,
       onCancelEdit,
+      onStartEdit,
       onInitiateDelete,
-      onCategorySearchChange,
-      onSelectCategory,
-      onNewCategory,
-      onOpenCategoryComboboxChange,
     ]
   );
 

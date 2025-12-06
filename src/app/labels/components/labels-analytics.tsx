@@ -15,16 +15,18 @@ import {
   MetricCardWithProgress,
 } from "@/components/ui/metric-card";
 import { Progress } from "@/components/ui/progress";
-import { useSupplierLabelsWithDetails } from "@/hooks/use-supplier-labels";
-import { CHART_COLORS } from "@/lib/color-utils";
-import { SupplierLabel, SupplierLabelWithDetails } from "@/lib/types";
+import {
+  useLabelsAnalytics,
+  useSupplierLabelTableRows,
+} from "@/hooks/label-hooks/use-labels-queries";
+import { SupplierLabelTableRow } from "@/types/label-types";
+import { CHART_COLORS } from "@/utils/color-utils";
 import {
   AlertTriangle,
   Clock,
   DollarSign,
   Sparkles,
   Target,
-  TrendingUp,
 } from "lucide-react";
 import { useMemo } from "react";
 import {
@@ -45,26 +47,21 @@ import {
 } from "recharts";
 import { AI_INSIGHTS } from "./labels-constants";
 
+/**
+ * LabelsAnalytics component provides comprehensive analytics for labels data
+ * including key metrics, trend charts, usage analysis, and AI-powered insights.
+ * It visualizes supplier performance, pricing trends, and inventory status for labels.
+ */
 export function LabelsAnalytics() {
-  const supplierLabels = useSupplierLabelsWithDetails();
+  const supplierLabels = useSupplierLabelTableRows();
+  const analytics = useLabelsAnalytics();
 
-  // Calculate key metrics dynamically
   const keyMetrics = useMemo(() => {
     if (!supplierLabels.length) return [];
 
-    // Price Volatility - calculate variance in prices
-    const prices = supplierLabels.map((sl) => sl.unitPrice);
-    const avgPrice =
-      prices.reduce((sum, price) => sum + price, 0) / prices.length;
-    const variance =
-      prices.reduce((sum, price) => sum + Math.pow(price - avgPrice, 2), 0) /
-      prices.length;
-    const volatility = (Math.sqrt(variance) / avgPrice) * 100;
-
-    // Stock Alerts - count labels with limited or out-of-stock
     const stockAlerts = supplierLabels.filter(
       (sl) =>
-        sl.availability === "limited" || sl.availability === "out-of-stock"
+        sl.stockStatus === "low-stock" || sl.stockStatus === "out-of-stock"
     ).length;
 
     // Total Value - sum of unitPrice * quantityForBulkPrice for all labels
@@ -78,33 +75,41 @@ export function LabelsAnalytics() {
       supplierLabels.reduce((sum, sl) => sum + sl.leadTime, 0) /
       supplierLabels.length;
 
+    const avgTaxRate = analytics.avgTax || 0;
+
     return [
       {
         type: "progress",
-        title: "Price Volatility",
-        value: `+${volatility.toFixed(1)}%`,
-        icon: TrendingUp,
-        iconClassName: "text-accent",
+        title: "Average Unit Price",
+        value: `₹${analytics.avgPrice?.toFixed(2) || "0.00"}`,
+        icon: DollarSign,
+        iconClassName: "text-green-600",
         progress: {
-          current: Math.min(volatility * 2, 100), // Scale for progress bar
+          current: Math.min((analytics.avgPrice || 0) / 2, 100), // Scale for visual
           max: 100,
-          label: volatility > 10 ? "High" : volatility > 5 ? "Moderate" : "Low",
-          color: (volatility > 10 ? "warning" : "success") as
-            | "warning"
-            | "success",
+          label:
+            analytics.avgPrice > 10
+              ? "Premium"
+              : analytics.avgPrice > 5
+                ? "Standard"
+                : "Budget",
+          color: "success" as const,
         },
       },
       {
         type: "progress",
-        title: "Print Quality Score",
-        value: "92%",
+        title: "Tax Efficiency",
+        value: `${avgTaxRate.toFixed(1)}%`,
         icon: Target,
-        iconClassName: "text-primary",
+        iconClassName: "text-blue-600",
         progress: {
-          current: 92,
+          current: Math.min(avgTaxRate * 2, 100),
           max: 100,
-          label: "Excellent",
-          color: "success" as const,
+          label:
+            avgTaxRate > 15 ? "High" : avgTaxRate > 10 ? "Moderate" : "Low",
+          color: (avgTaxRate > 15 ? "warning" : "success") as
+            | "warning"
+            | "success",
         },
       },
       {
@@ -149,9 +154,10 @@ export function LabelsAnalytics() {
         },
       },
     ];
-  }, [supplierLabels]);
+  }, [supplierLabels, analytics]);
 
-  function generatePriceHistory(supplierLabels: SupplierLabel[]) {
+  // Generate mock price history data based on current pricing
+  function generatePriceHistory(supplierLabels: SupplierLabelTableRow[]) {
     if (!supplierLabels.length) return [];
 
     const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun"];
@@ -173,21 +179,19 @@ export function LabelsAnalytics() {
     });
   }
 
-  // Price History Data - create mock trend data based on current prices
+  // Generate mock price history data based on current pricing
   const priceHistoryData = useMemo(
     () => generatePriceHistory(supplierLabels),
     [supplierLabels]
   );
 
-  // ---------------------------------------------------------
-  // Mock Generator for Labels Usage Data (outside component)
-  // ---------------------------------------------------------
-  function generateLabelsUsageData(supplierLabels: SupplierLabelWithDetails[]) {
+  // Generate labels usage data by grouping items by type
+  function generateLabelsUsageData(supplierLabels: SupplierLabelTableRow[]) {
     if (!supplierLabels.length) return [];
 
     const typeGroups = supplierLabels.reduce(
       (acc, sl) => {
-        const type = sl.displayType || "Unknown";
+        const type = sl.labelType || "Unknown";
         if (!acc[type]) {
           acc[type] = { count: 0, totalCost: 0 };
         }
@@ -216,13 +220,21 @@ export function LabelsAnalytics() {
     return generateLabelsUsageData(supplierLabels);
   }, [supplierLabels]);
 
-  // Label Type Distribution
+  // Label Type Distribution - use analytics data if available, otherwise calculate
   const labelTypeDistribution = useMemo(() => {
+    if (analytics?.typeDistribution) {
+      return analytics.typeDistribution.map((item) => ({
+        name: item.type,
+        value: item.percentage,
+        color: CHART_COLORS.light.chart1, // Default color
+      }));
+    }
+
     if (!supplierLabels.length) return [];
 
     const typeCounts = supplierLabels.reduce(
       (acc, sl) => {
-        const type = sl.displayType || "Other";
+        const type = sl.labelType || "Other";
         acc[type] = (acc[type] || 0) + 1;
         return acc;
       },
@@ -236,15 +248,23 @@ export function LabelsAnalytics() {
       value: Math.round((count / total) * 100),
       color: chartColors[index % chartColors.length],
     }));
-  }, [supplierLabels]);
+  }, [supplierLabels, analytics]);
 
-  // Printing Type Distribution
+  // Calculate distribution of printing types for pie chart
   const printingTypeDistribution = useMemo(() => {
+    if (analytics?.printingTypeDistribution) {
+      return analytics.printingTypeDistribution.map((item) => ({
+        name: item.printingType,
+        value: item.percentage,
+        color: CHART_COLORS.light.chart2, // Default color
+      }));
+    }
+
     if (!supplierLabels.length) return [];
 
     const printingCounts = supplierLabels.reduce(
       (acc, sl) => {
-        const printing = sl.displayPrintingType || "Other";
+        const printing = sl.printingType || "Other";
         acc[printing] = (acc[printing] || 0) + 1;
         return acc;
       },
@@ -258,10 +278,11 @@ export function LabelsAnalytics() {
       value: Math.round((count / total) * 100),
       color: chartColors[index % chartColors.length],
     }));
-  }, [supplierLabels]);
+  }, [supplierLabels, analytics]);
+
   return (
     <div className="space-y-6">
-      {/* Key Metrics */}
+      {/* Display key performance metrics in a responsive grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
         {keyMetrics.map((metric) => {
           const Icon = metric.icon;
@@ -302,9 +323,9 @@ export function LabelsAnalytics() {
         })}
       </div>
 
-      {/* Charts */}
+      {/* First row of charts: price trends and usage analysis */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Price Trends */}
+        {/* Price Trends Chart */}
         <Card className="card-enhanced">
           <CardHeader>
             <CardTitle className="text-foreground">Price Trends</CardTitle>
@@ -361,7 +382,7 @@ export function LabelsAnalytics() {
           </CardContent>
         </Card>
 
-        {/* Labels Usage */}
+        {/* Labels Usage Analysis Chart */}
         <Card className="card-enhanced">
           <CardHeader>
             <CardTitle className="text-foreground">
@@ -414,9 +435,9 @@ export function LabelsAnalytics() {
         </Card>
       </div>
 
-      {/* Additional Charts */}
+      {/* Second row of charts: type distribution and printing distribution */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Label Type Distribution */}
+        {/* Label Type Distribution Pie Chart */}
         <Card className="card-enhanced">
           <CardHeader>
             <CardTitle className="text-foreground">
@@ -458,7 +479,7 @@ export function LabelsAnalytics() {
           </CardContent>
         </Card>
 
-        {/* Printing Type Distribution */}
+        {/* Printing Type Distribution Pie Chart */}
         <Card className="card-enhanced">
           <CardHeader>
             <CardTitle className="text-foreground">
@@ -501,7 +522,7 @@ export function LabelsAnalytics() {
         </Card>
       </div>
 
-      {/* AI Insights */}
+      {/* AI Insights section with hardcoded sample data */}
       <Card className="card-enhanced border-2 border-primary/20 shadow-lg">
         <CardHeader>
           <div className="flex items-center gap-3">

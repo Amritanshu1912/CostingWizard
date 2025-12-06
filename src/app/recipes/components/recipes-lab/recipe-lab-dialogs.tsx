@@ -20,10 +20,8 @@ import {
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import type { ExperimentIngredient } from "@/hooks/use-recipe-experiment";
-import type {
-  OptimizationGoalType,
-  SupplierMaterialWithDetails,
-} from "@/lib/types";
+import type { OptimizationGoalType } from "@/types/shared-types";
+import type { SupplierMaterialRow } from "@/types/material-types";
 import { Edit3, GitBranch, TrendingDown } from "lucide-react";
 
 interface RecipeLabDialogsProps {
@@ -35,7 +33,7 @@ interface RecipeLabDialogsProps {
   variantDescription: string;
   optimizationGoal: OptimizationGoalType;
   experimentIngredients: ExperimentIngredient[];
-  supplierMaterials: SupplierMaterialWithDetails[];
+  supplierMaterials: SupplierMaterialRow[];
   savings: number;
   savingsPercent: number;
   onSaveDialogOpenChange: (open: boolean) => void;
@@ -54,7 +52,7 @@ function ChangeSummary({
   savingsPercent,
 }: {
   experimentIngredients: ExperimentIngredient[];
-  supplierMaterials: SupplierMaterialWithDetails[];
+  supplierMaterials: SupplierMaterialRow[];
   savings: number;
   savingsPercent: number;
 }) {
@@ -77,7 +75,7 @@ function ChangeSummary({
                 <span className="text-slate-400">•</span>
                 <div>
                   <span className="font-medium">
-                    {sm?.displayName || "Unknown"}:
+                    {sm?.materialName || "Unknown"}:
                   </span>{" "}
                   {changeTypes.includes("quantity") && (
                     <span>

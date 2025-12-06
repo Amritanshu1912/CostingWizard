@@ -5,8 +5,8 @@ import {
   ChartTooltip,
   ChartTooltipContent,
 } from "@/components/ui/chart";
-import { CHART_COLORS } from "@/lib/color-utils";
-import type { RecipeIngredientDisplay } from "@/lib/types";
+import { CHART_COLORS } from "@/utils/color-utils";
+import type { RecipeIngredientDisplay } from "@/types/shared-types";
 import { DollarSign } from "lucide-react";
 import { useMemo } from "react";
 import { Cell, Pie, PieChart } from "recharts";

@@ -2,13 +2,6 @@
 import Dexie, { Table } from "dexie";
 import type {
   Supplier,
-  Category,
-  Material,
-  SupplierMaterial,
-  Packaging,
-  SupplierPackaging,
-  Label,
-  SupplierLabel,
   RecipeIngredient,
   Recipe,
   RecipeVariant,
@@ -20,8 +13,16 @@ import type {
   InventoryTransaction,
   InventoryAlert,
   TransportationCost,
-} from "./types";
-import { CATEGORIES } from "./constants";
+} from "@/types/shared-types";
+import type {
+  Category,
+  Material,
+  SupplierMaterial,
+} from "@/types/material-types";
+import type { Label, SupplierLabel } from "@/types/label-types";
+import type { Packaging, SupplierPackaging } from "@/types/packaging-types";
+
+import { MATERIAL_CATEGORIES } from "./constants";
 import { SUPPLIERS } from "@/app/suppliers/components/suppliers-constants";
 import {
   MATERIALS,
@@ -49,7 +50,7 @@ import {
   MOCK_INVENTORY_ITEMS,
   MOCK_TRANSACTIONS,
 } from "@/app/inventory/components/inventory-constants";
-import { sweepAndGenerateAlerts } from "./alerts";
+import { sweepAndGenerateAlerts } from "../utils/inventory-alerts";
 import { autoGenerateMissingInventoryItems } from "./autoGenerateMissingInventoryItems";
 
 export class CostingWizardDB extends Dexie {
@@ -129,7 +130,7 @@ export class CostingWizardDB extends Dexie {
       // Check if data exists
       const hasCategories = (await db.categories.count()) > 0;
       if (!hasCategories) {
-        await db.categories.bulkAdd(CATEGORIES);
+        await db.categories.bulkAdd(MATERIAL_CATEGORIES);
       }
 
       const hasMaterials = (await db.materials.count()) > 0;

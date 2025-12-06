@@ -20,19 +20,16 @@ import {
   SheetHeader,
   SheetTitle,
 } from "@/components/ui/sheet";
-import { db } from "@/lib/db";
-import { normalizeText } from "@/lib/text-utils";
+import { usePackagingMutations } from "@/hooks/packaging-hooks/use-packaging-mutations";
+import { usePackagingsWithSupplierCount } from "@/hooks/packaging-hooks/use-packaging-queries";
 import type {
-  BuildMaterial,
-  CapacityUnit,
-  PackagingType,
-  PackagingWithSuppliers,
-} from "@/lib/types";
-import { useLiveQuery } from "dexie-react-hooks";
+  PackagingFormData,
+  PackagingWithSupplierCount,
+} from "@/types/packaging-types";
 import { AlertCircle, Loader2, Package, Plus } from "lucide-react";
-import { nanoid } from "nanoid";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { toast } from "sonner";
+import { DEFAULT_PACKAGING_FORM } from "./packaging-constants";
 import { PackagingTable } from "./packaging-table";
 
 interface PackagingDrawerProps {
@@ -41,6 +38,10 @@ interface PackagingDrawerProps {
   onRefresh?: () => void;
 }
 
+/**
+ * PackagingDrawer component manages the side panel for packaging inventory
+ * Provides CRUD operations for packaging items with inline editing capabilities
+ */
 export function PackagingDrawer({
   open,
   onOpenChange,
@@ -49,270 +50,132 @@ export function PackagingDrawer({
   const [editingPackagingId, setEditingPackagingId] = useState<string | null>(
     null
   );
-  const [editForm, setEditForm] = useState({
-    name: "",
-    type: "",
-    capacity: "",
-    unit: "",
-    buildMaterial: "",
-  });
+
+  const [editForm, setEditForm] = useState<PackagingFormData>(
+    DEFAULT_PACKAGING_FORM
+  );
+
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
   const [packagingToDelete, setPackagingToDelete] =
-    useState<PackagingWithSuppliers | null>(null);
+    useState<PackagingWithSupplierCount | null>(null);
   const [loading, setLoading] = useState(false);
   const [isAddingNew, setIsAddingNew] = useState(false);
   const [shakeFields, setShakeFields] = useState(false);
 
-  // Fetch packaging with supplier count
-  const packagingWithSuppliers = useLiveQuery(async () => {
-    const [packaging, supplierPackaging, suppliers] = await Promise.all([
-      db.packaging.toArray(),
-      db.supplierPackaging.toArray(),
-      db.suppliers.toArray(),
-    ]);
+  const packagingWithSuppliers = usePackagingsWithSupplierCount();
 
-    const result = packaging.map((pkg) => {
-      const supplierPackList = supplierPackaging.filter(
-        (sp) => sp.packagingId === pkg.id
-      );
+  const { createPackaging, updatePackaging, deletePackaging } =
+    usePackagingMutations();
 
-      const suppliersList = supplierPackList
-        .map((sm) => suppliers.find((s) => s.id === sm.supplierId))
-        .filter((s): s is (typeof suppliers)[0] => s !== undefined);
-
-      return {
-        ...pkg,
-        supplierCount: supplierPackList.length,
-        suppliersList,
-      };
-    });
-
-    // Add empty row for new packaging if adding
+  // Prepare display data, adding a placeholder row when creating new items
+  const displayData = useMemo(() => {
     if (isAddingNew) {
-      result.unshift({
+      const newRow: PackagingWithSupplierCount = {
         id: "new",
         name: "",
-        type: "other" as PackagingType,
+        type: "other",
         capacity: 0,
-        unit: "ml" as CapacityUnit,
-        buildMaterial: "Other" as BuildMaterial,
+        capacityUnit: "ml",
+        buildMaterial: "Other",
         supplierCount: 0,
-        suppliersList: [],
+        suppliers: [],
         createdAt: new Date().toISOString(),
-      } as PackagingWithSuppliers);
+        updatedAt: undefined,
+      };
+      // Always put the new row at the top for immediate editing
+      return [newRow, ...packagingWithSuppliers];
     }
+    return packagingWithSuppliers;
+  }, [packagingWithSuppliers, isAddingNew]);
 
-    return result;
-  }, [isAddingNew]);
-
-  // Start editing
-  const startEdit = (packaging: PackagingWithSuppliers) => {
+  // Initialize editing mode for an existing packaging item
+  const startEdit = (packaging: PackagingWithSupplierCount) => {
     setEditingPackagingId(packaging.id);
     setEditForm({
       name: packaging.name,
       type: packaging.type,
-      capacity: packaging.capacity?.toString() || "",
-      unit: packaging.unit || "",
-      buildMaterial: packaging.buildMaterial || "",
+      capacity: packaging.capacity,
+      capacityUnit: packaging.capacityUnit,
+      buildMaterial: packaging.buildMaterial,
     });
   };
 
-  // Start adding new packaging
+  // Initialize adding mode for a new packaging item
   const startAddingNew = () => {
     setIsAddingNew(true);
     setEditingPackagingId("new");
-    setEditForm({
-      name: "",
-      type: "",
-      capacity: "",
-      unit: "",
-      buildMaterial: "",
-    });
+    setEditForm(DEFAULT_PACKAGING_FORM);
   };
 
-  // Cancel editing
+  // Cancel current editing operation and reset form state
   const cancelEdit = () => {
     setEditingPackagingId(null);
     setIsAddingNew(false);
     setShakeFields(false);
-    setEditForm({
-      name: "",
-      type: "",
-      capacity: "",
-      unit: "",
-      buildMaterial: "",
-    });
+    setEditForm(DEFAULT_PACKAGING_FORM);
   };
 
-  // Save edit with transaction
+  // Save the current edit, either creating new or updating existing
   const saveEdit = async () => {
     if (!editingPackagingId) return;
 
-    const trimmedName = editForm.name.trim();
-    const trimmedType = editForm.type.trim();
-    const capacityValue = parseFloat(editForm.capacity);
-    const trimmedUnit = editForm.unit.trim();
-    const trimmedBuildMaterial = editForm.buildMaterial.trim();
-
-    if (!trimmedName || !trimmedType) {
-      toast.error("Name and type are required");
-      return;
-    }
-
-    if (editForm.capacity && (isNaN(capacityValue) || capacityValue <= 0)) {
-      toast.error("Capacity must be a positive number");
-      return;
-    }
-
-    if (editForm.capacity && !trimmedUnit) {
-      toast.error("Unit is required when capacity is specified");
-      return;
-    }
-
     setLoading(true);
     try {
-      await db.transaction("rw", [db.packaging], async () => {
-        const now = new Date().toISOString();
+      if (isAddingNew) {
+        await createPackaging(editForm);
+        toast.success("Packaging added successfully");
+      } else {
+        await updatePackaging(editingPackagingId, editForm);
+        toast.success("Packaging updated successfully");
+      }
 
-        if (isAddingNew) {
-          // Check for duplicate packaging with same properties
-          const normalized = normalizeText(trimmedName);
-          const existingPackaging = await db.packaging
-            .filter((p) => normalizeText(p.name) === normalized)
-            .first();
+      cancelEdit();
 
-          if (existingPackaging) {
-            // Check if all key properties are identical (normalize string comparisons)
-            const isExactDuplicate =
-              normalizeText(existingPackaging.type || "") ===
-                normalizeText(trimmedType) &&
-              existingPackaging.capacity === (capacityValue || 0) &&
-              normalizeText(existingPackaging.unit || "") ===
-                normalizeText(trimmedUnit) &&
-              normalizeText(existingPackaging.buildMaterial || "") ===
-                normalizeText(trimmedBuildMaterial);
-
-            if (isExactDuplicate) {
-              setShakeFields(true);
-              setTimeout(() => setShakeFields(false), 500);
-              toast.error(
-                "A packaging with this name and identical properties already exists. Please modify at least one property (type, material, or capacity) to create a new entry."
-              );
-              return;
-            }
-          }
-
-          // Add new packaging
-          await db.packaging.add({
-            id: nanoid(),
-            name: trimmedName,
-            type: trimmedType as PackagingType,
-            capacity: capacityValue || 0,
-            unit: (trimmedUnit || "ml") as CapacityUnit,
-            buildMaterial: (trimmedBuildMaterial || "Other") as BuildMaterial,
-            createdAt: now,
-          });
-
-          toast.success("Packaging added successfully");
-        } else {
-          // Check for duplicate packaging with same properties (excluding current packaging)
-          const normalized = normalizeText(trimmedName);
-          const existingPackaging = await db.packaging
-            .filter(
-              (p) =>
-                p.id !== editingPackagingId &&
-                normalizeText(p.name) === normalized
-            )
-            .first();
-
-          if (existingPackaging) {
-            // Check if all key properties are identical (normalize string comparisons)
-            const isExactDuplicate =
-              normalizeText(existingPackaging.type || "") ===
-                normalizeText(trimmedType) &&
-              existingPackaging.capacity === (capacityValue || 0) &&
-              normalizeText(existingPackaging.unit || "") ===
-                normalizeText(trimmedUnit) &&
-              normalizeText(existingPackaging.buildMaterial || "") ===
-                normalizeText(trimmedBuildMaterial);
-
-            if (isExactDuplicate) {
-              setShakeFields(true);
-              setTimeout(() => setShakeFields(false), 500);
-              toast.error(
-                "A packaging with this name and identical properties already exists. Please modify at least one property (type, material, or capacity) to create a new entry."
-              );
-              return;
-            }
-          }
-
-          // Update packaging
-          await db.packaging.update(editingPackagingId, {
-            name: trimmedName,
-            type: trimmedType as PackagingType,
-            capacity: capacityValue || 0,
-            unit: (trimmedUnit || "ml") as CapacityUnit,
-            buildMaterial: (trimmedBuildMaterial || "Other") as BuildMaterial,
-            updatedAt: now,
-          });
-
-          toast.success("Packaging updated successfully");
-        }
-
-        cancelEdit();
-
-        // Trigger refresh of other components
-        if (onRefresh) onRefresh();
-      });
+      // Trigger refresh of parent components
+      if (onRefresh) onRefresh();
     } catch (error) {
       console.error("Error saving packaging:", error);
-      toast.error("Failed to save packaging");
+      toast.error(
+        error instanceof Error ? error.message : "Failed to save packaging"
+      );
+
+      // Handle duplicate name error with visual feedback
+      if (error instanceof Error && error.message.includes("already exists")) {
+        setShakeFields(true);
+        setTimeout(() => setShakeFields(false), 500);
+      }
     } finally {
       setLoading(false);
     }
   };
 
-  // Initiate delete
-  const initiateDelete = (packaging: PackagingWithSuppliers) => {
+  // Open delete confirmation dialog for a packaging item
+  const initiateDelete = (packaging: PackagingWithSupplierCount) => {
     setPackagingToDelete(packaging);
     setDeleteConfirmOpen(true);
   };
 
-  // Confirm delete with transaction
+  // Execute the delete operation after confirmation
   const confirmDelete = async () => {
     if (!packagingToDelete) return;
 
     setLoading(true);
     try {
-      await db.transaction(
-        "rw",
-        [db.packaging, db.supplierPackaging],
-        async () => {
-          // Double-check no supplier packaging reference it
-          const supplierPackCount = await db.supplierPackaging
-            .where("packagingId")
-            .equals(packagingToDelete.id)
-            .count();
-
-          if (supplierPackCount > 0) {
-            toast.error("Cannot delete packaging that is used by suppliers");
-            return;
-          }
-
-          await db.packaging.delete(packagingToDelete.id);
-          toast.success("Packaging deleted successfully");
-          setDeleteConfirmOpen(false);
-          setPackagingToDelete(null);
-        }
-      );
+      await deletePackaging(packagingToDelete.id);
+      toast.success("Packaging deleted successfully");
+      setDeleteConfirmOpen(false);
+      setPackagingToDelete(null);
     } catch (error) {
       console.error("Error deleting packaging:", error);
-      toast.error("Failed to delete packaging");
+      toast.error(
+        error instanceof Error ? error.message : "Failed to delete packaging"
+      );
     } finally {
       setLoading(false);
     }
   };
 
+  // Calculate the count of active packaging items (excluding placeholder)
   const activePackaging =
     packagingWithSuppliers?.filter((p) => p.id !== "new").length || 0;
 
@@ -406,7 +269,7 @@ export function PackagingDrawer({
 
                 <div className="border rounded-lg overflow-hidden bg-card">
                   <PackagingTable
-                    data={packagingWithSuppliers}
+                    data={displayData}
                     editingPackagingId={editingPackagingId}
                     editForm={editForm}
                     loading={loading}

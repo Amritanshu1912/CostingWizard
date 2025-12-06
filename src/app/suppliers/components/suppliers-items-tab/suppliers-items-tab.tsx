@@ -10,10 +10,10 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { useSupplierLabelsWithDetails } from "@/hooks/use-supplier-labels";
-import { useSupplierMaterialsWithDetails } from "@/hooks/use-supplier-materials";
-import { useSupplierPackagingWithDetails } from "@/hooks/use-supplier-packaging";
-import type { Supplier } from "@/lib/types";
+import { useSupplierMaterialTableRows } from "@/hooks/material-hooks/use-materials-queries";
+import { useLabelsWithSuppliers } from "@/hooks/label-hooks/use-labels-queries";
+import { useSupplierPackagingTableRows } from "@/hooks/packaging-hooks/use-packaging-queries";
+import type { Supplier } from "@/types/shared-types";
 import { Package } from "lucide-react";
 import { useMemo, useState } from "react";
 import { SuppliersItemsContent } from "./suppliers-items-content";
@@ -34,9 +34,9 @@ export function SuppliersItemsTab({ suppliers }: SuppliersItemsTabProps) {
   );
 
   // Fetch all data using hooks
-  const allSupplierMaterials = useSupplierMaterialsWithDetails();
-  const allSupplierPackaging = useSupplierPackagingWithDetails();
-  const allSupplierLabels = useSupplierLabelsWithDetails();
+  const allSupplierMaterials = useSupplierMaterialTableRows();
+  const allSupplierPackaging = useSupplierPackagingTableRows();
+  const allSupplierLabels = useLabelsWithSuppliers();
 
   const selectedSupplier = activeSuppliers.find(
     (s) => s.id === selectedSupplierId
@@ -57,7 +57,9 @@ export function SuppliersItemsTab({ suppliers }: SuppliersItemsTabProps) {
 
   const supplierLabels = useMemo(
     () =>
-      allSupplierLabels.filter((sl) => sl.supplierId === selectedSupplierId),
+      allSupplierLabels.filter((sl) =>
+        sl.suppliers.some((s) => s.id === selectedSupplierId)
+      ),
     [allSupplierLabels, selectedSupplierId]
   );
 

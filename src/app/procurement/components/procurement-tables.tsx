@@ -5,7 +5,7 @@ import { Progress } from "@/components/ui/progress";
 import { SortableTable } from "@/components/ui/sortable-table";
 import { Star, Edit, Trash2 } from "lucide-react";
 import { SUPPLIER_MATERIALS } from "../../materials/components/materials-constants";
-import type { Supplier, PurchaseOrder } from "@/lib/types";
+import type { Supplier, PurchaseOrder } from "@/types/shared-types";
 import {
   ORDER_STATUS_MAP,
   SUPPLIER_COLUMNS,

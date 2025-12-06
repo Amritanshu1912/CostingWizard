@@ -1,7 +1,6 @@
 // src/app/materials/components/materials-analytics.tsx
 "use client";
 
-import { Badge } from "@/components/ui/badge";
 import {
   Card,
   CardContent,
@@ -9,235 +8,172 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { MetricCard, MetricCardWithBadge } from "@/components/ui/metric-card";
 import {
-  MetricCard,
-  MetricCardWithBadge,
-  MetricCardWithProgress,
-} from "@/components/ui/metric-card";
-import { Progress } from "@/components/ui/progress";
-import { useEnrichedRecipes } from "@/hooks/use-recipes";
-import { useSupplierMaterialsWithDetails } from "@/hooks/use-supplier-materials";
-import { CHART_COLORS } from "@/lib/color-utils";
-import {
-  AlertTriangle,
-  DollarSign,
-  Sparkles,
-  Target,
-  TrendingUp,
-} from "lucide-react";
+  useMaterialsAnalytics,
+  useMaterialSupplierMappings,
+} from "@/hooks/material-hooks/use-materials-queries";
+import { CHART_COLORS } from "@/utils/color-utils";
+import { AlertTriangle, DollarSign, Package, Users } from "lucide-react";
 import { useMemo } from "react";
 import {
   Bar,
   BarChart,
   CartesianGrid,
+  Cell,
   Legend,
+  Pie,
+  PieChart,
   ResponsiveContainer,
   Tooltip,
   XAxis,
   YAxis,
 } from "recharts";
-import { AI_INSIGHTS } from "./materials-constants";
 
+/**
+ * MaterialsAnalytics component shows key metrics, charts, and insights
+ * derived from materials data including
+ * supplier diversity, stock alerts, price distributions, and category breakdowns.
+ */
 export function MaterialsAnalytics() {
-  const supplierMaterials = useSupplierMaterialsWithDetails();
-  const recipes = useEnrichedRecipes();
+  // Fetch analytics data and supplier mappings from custom hooks
+  const analytics = useMaterialsAnalytics();
+  const supplierMaterials = useMaterialSupplierMappings();
 
-  // Calculate real metrics using utility function
-  const keyMetrics = useMemo(() => {
-    if (!supplierMaterials.length) return [];
+  // Compute metrics for materials that have multiple supplier options
+  const materialsWithMultipleSuppliers = useMemo(() => {
+    const materialSupplierCount = new Map<string, Set<string>>();
 
-    // Price Volatility: Calculate coefficient of variation across materials with multiple suppliers
-    const materialGroups = supplierMaterials.reduce(
-      (acc, sm) => {
-        const materialId = sm.materialId;
-        if (!materialId) return acc;
-        if (!acc[materialId]) acc[materialId] = [];
-        acc[materialId].push(sm.unitPrice);
-        return acc;
-      },
-      {} as Record<string, number[]>
-    );
+    // Build a map of materials to their unique suppliers
+    supplierMaterials.forEach((sm) => {
+      const suppliers = materialSupplierCount.get(sm.materialName) || new Set();
+      suppliers.add(sm.supplierId);
+      materialSupplierCount.set(sm.materialName, suppliers);
+    });
 
-    const volatilities = Object.values(materialGroups)
-      .filter((prices) => prices.length > 1)
-      .map((prices) => {
-        const mean = prices.reduce((a, b) => a + b, 0) / prices.length;
-        const variance =
-          prices.reduce((a, b) => a + Math.pow(b - mean, 2), 0) / prices.length;
-        return (Math.sqrt(variance) / mean) * 100;
-      });
+    // Count materials with more than one supplier
+    const count = Array.from(materialSupplierCount.values()).filter(
+      (suppliers) => suppliers.size > 1
+    ).length;
 
-    const avgVolatility =
-      volatilities.length > 0
-        ? volatilities.reduce((a, b) => a + b, 0) / volatilities.length
+    // Calculate percentage of materials with multiple suppliers
+    const percentage =
+      materialSupplierCount.size > 0
+        ? (count / materialSupplierCount.size) * 100
         : 0;
 
-    // Cost Efficiency: Calculate average discount utilization
-    const totalMaterials = supplierMaterials.length;
-    const materialsWithDiscounts = supplierMaterials.filter(
-      (sm) => sm.bulkDiscounts && sm.bulkDiscounts.length > 0
-    ).length;
-    const costEfficiency =
-      totalMaterials > 0 ? (materialsWithDiscounts / totalMaterials) * 100 : 0;
+    return { count, percentage };
+  }, [supplierMaterials]);
 
-    // Stock Alerts: Count materials with limited or out-of-stock
-    const stockAlerts = supplierMaterials.filter(
-      (sm) =>
-        sm.availability === "limited" || sm.availability === "out-of-stock"
-    ).length;
+  // Calculate the average number of suppliers per material
+  const avgSuppliersPerMaterial = useMemo(() => {
+    const materialSupplierCount = new Map<string, Set<string>>();
 
-    // Total Value: Sum of all supplier material values (unitPrice * MOQ)
-    const totalValue = supplierMaterials.reduce((sum, sm) => {
-      const moq = sm.moq || 1;
-      return sum + sm.unitPrice * moq;
-    }, 0);
+    // Aggregate suppliers for each material
+    supplierMaterials.forEach((sm) => {
+      const suppliers = materialSupplierCount.get(sm.materialName) || new Set();
+      suppliers.add(sm.supplierId);
+      materialSupplierCount.set(sm.materialName, suppliers);
+    });
 
-    const color: "default" | "success" | "warning" | "error" =
-      costEfficiency > 75
-        ? "success"
-        : costEfficiency > 50
-          ? "warning"
-          : "error";
+    if (materialSupplierCount.size === 0) return 0;
 
+    // Sum up all suppliers across materials
+    const totalSuppliers = Array.from(materialSupplierCount.values()).reduce(
+      (sum, suppliers) => sum + suppliers.size,
+      0
+    );
+
+    return totalSuppliers / materialSupplierCount.size;
+  }, [supplierMaterials]);
+
+  // Prepare key metrics data for display in metric cards
+  const keyMetrics = useMemo(() => {
     return [
       {
-        type: "progress",
-        title: "Price Volatility",
-        value: `${avgVolatility.toFixed(1)}%`,
-        icon: TrendingUp,
-        iconClassName: "text-accent",
-        progress: {
-          current: Math.min(avgVolatility, 100),
-          max: 100,
-          label: avgVolatility > 50 ? "High volatility" : "Stable",
-          color:
-            avgVolatility > 50 ? ("warning" as const) : ("success" as const),
-        },
-      },
-      {
-        type: "progress",
-        title: "Cost Efficiency",
-        value: `${costEfficiency.toFixed(0)}%`,
-        icon: Target,
+        type: "standard",
+        title: "Total Materials",
+        value: analytics.totalMaterials,
+        icon: Package,
         iconClassName: "text-primary",
-        progress: {
-          current: costEfficiency,
-          max: 100,
-          label:
-            costEfficiency > 75
-              ? "Excellent"
-              : costEfficiency > 50
-                ? "Good"
-                : "Needs improvement",
-          color,
+        trend: {
+          value: "+12%",
+          isPositive: true,
+          label: "from last month",
         },
       },
       {
         type: "badge",
         title: "Stock Alerts",
-        value: stockAlerts,
+        value: analytics.stockAlerts,
         icon: AlertTriangle,
         iconClassName: "text-destructive",
         badges:
-          stockAlerts > 0
+          analytics.stockAlerts > 0
             ? [
                 {
-                  text: `${stockAlerts} items`,
+                  text: `${analytics.stockAlerts} items`,
                   variant: "destructive" as const,
                 },
               ]
-            : [],
+            : [
+                {
+                  text: "All good",
+                  variant: "default" as const,
+                },
+              ],
       },
       {
         type: "standard",
-        title: "Total Value",
-        value: `₹${(totalValue / 100000).toFixed(1)}L`,
+        title: "Avg Price (with tax)",
+        value: `₹${analytics.avgPrice.toFixed(2)}`,
         icon: DollarSign,
         iconClassName: "text-accent",
         trend: {
-          value: "+8.5%",
+          value: "+5.2%",
           isPositive: true,
-          label: "this month",
+          label: "from last month",
         },
       },
-    ];
-  }, [supplierMaterials]);
-
-  // Calculate price trends data
-  const priceTrendsData = useMemo(() => {
-    if (!supplierMaterials.length) return [];
-
-    // Group by material category
-    const categoryData = supplierMaterials.reduce(
-      (acc, sm) => {
-        const category = sm.material?.category || "Uncategorized";
-        if (!acc[category]) {
-          acc[category] = { total: 0, count: 0, min: Infinity, max: -Infinity };
-        }
-        acc[category].total += sm.unitPrice;
-        acc[category].count += 1;
-        acc[category].min = Math.min(acc[category].min, sm.unitPrice);
-        acc[category].max = Math.max(acc[category].max, sm.unitPrice);
-        return acc;
+      {
+        type: "standard",
+        title: "Materials with Options",
+        value: materialsWithMultipleSuppliers.count,
+        icon: Users,
+        iconClassName: "text-primary",
+        description: `${materialsWithMultipleSuppliers.percentage.toFixed(0)}% have multiple suppliers`,
       },
-      {} as Record<
-        string,
-        { total: number; count: number; min: number; max: number }
-      >
-    );
+    ];
+  }, [analytics, materialsWithMultipleSuppliers]);
 
-    return Object.entries(categoryData).map(([category, data]) => ({
-      category,
-      avgPrice: (data.total / data.count).toFixed(2),
-      minPrice: data.min,
-      maxPrice: data.max,
-      materialCount: data.count,
+  // Prepare data for the category distribution pie chart
+  const categoryChartData = useMemo(() => {
+    return analytics.categoryDistribution.map((item) => ({
+      name: item.category,
+      color: item.categoryColor,
+      value: item.count,
+      avgPrice: item.avgPrice,
     }));
-  }, [supplierMaterials]);
+  }, [analytics.categoryDistribution]);
 
-  // Calculate material usage data
-  const materialUsageData = useMemo(() => {
-    if (!recipes.length || !supplierMaterials.length) return [];
+  // Prepare data for the price range bar chart
+  const priceRangeChartData = useMemo(() => {
+    return analytics.priceRanges.map((range) => ({
+      range: range.range,
+      count: range.count,
+      percentage: range.percentage,
+    }));
+  }, [analytics.priceRanges]);
 
-    // Aggregate usage from recipes
-    const usageMap = new Map<
-      string,
-      { totalUsage: number; totalCost: number; recipeCount: number }
-    >();
-
-    recipes.forEach((recipe) => {
-      recipe.ingredients.forEach((ingredient) => {
-        const supplierMaterial = supplierMaterials.find(
-          (sm) => sm.id === ingredient.supplierMaterialId
-        );
-        if (supplierMaterial && supplierMaterial.material) {
-          const materialName = supplierMaterial.material.name;
-          const existing = usageMap.get(materialName) || {
-            totalUsage: 0,
-            totalCost: 0,
-            recipeCount: 0,
-          };
-
-          existing.totalUsage += ingredient.quantity;
-          existing.totalCost +=
-            supplierMaterial.unitPrice * ingredient.quantity;
-          existing.recipeCount += 1;
-
-          usageMap.set(materialName, existing);
-        }
-      });
-    });
-
-    return Array.from(usageMap.entries())
-      .map(([material, data]) => ({
-        material,
-        usage: data.totalUsage,
-        cost: data.totalCost,
-        recipes: data.recipeCount,
-      }))
-      .sort((a, b) => b.usage - a.usage)
-      .slice(0, 8); // Top 8 materials
-  }, [recipes, supplierMaterials]);
+  // Calculate maximum values for chart axes scaling
+  const maxValues = useMemo(() => {
+    const maxCount = Math.max(...categoryChartData.map((d) => d.value), 0);
+    const maxPrice = Math.max(...categoryChartData.map((d) => d.avgPrice), 0);
+    return {
+      maxCount: Math.ceil(maxCount * 1.2) || 1,
+      maxPrice: Math.ceil(maxPrice * 1.2) || 1,
+    };
+  }, [categoryChartData]);
 
   return (
     <div className="space-y-6">
@@ -245,18 +181,7 @@ export function MaterialsAnalytics() {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         {keyMetrics.map((metric) => {
           const Icon = metric.icon;
-          if (metric.type === "progress") {
-            return (
-              <MetricCardWithProgress
-                key={metric.title}
-                title={metric.title}
-                value={metric.value}
-                icon={Icon}
-                iconClassName={metric.iconClassName}
-                progress={metric.progress!}
-              />
-            );
-          } else if (metric.type === "badge") {
+          if (metric.type === "badge") {
             return (
               <MetricCardWithBadge
                 key={metric.title}
@@ -276,6 +201,7 @@ export function MaterialsAnalytics() {
                 icon={Icon}
                 iconClassName={metric.iconClassName}
                 trend={metric.trend}
+                description={metric.description}
               />
             );
           }
@@ -284,32 +210,35 @@ export function MaterialsAnalytics() {
 
       {/* Charts */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Price Trends */}
+        {/* Category Distribution */}
         <Card className="card-enhanced">
           <CardHeader>
             <CardTitle className="text-foreground">
-              Price Trends by Category
+              Materials by Category
             </CardTitle>
             <CardDescription>
-              Average material prices across categories
+              Distribution of materials across categories
             </CardDescription>
           </CardHeader>
           <CardContent>
             <ResponsiveContainer width="100%" height={300}>
-              <BarChart data={priceTrendsData}>
-                <CartesianGrid
-                  strokeDasharray="3 3"
-                  className="stroke-border"
-                />
-                <XAxis
-                  dataKey="category"
-                  className="stroke-muted-foreground"
-                  tick={{ fill: "hsl(var(--muted-foreground))" }}
-                />
-                <YAxis
-                  className="stroke-muted-foreground"
-                  tick={{ fill: "hsl(var(--muted-foreground))" }}
-                />
+              <PieChart>
+                <Pie
+                  data={categoryChartData}
+                  cx="50%"
+                  cy="50%"
+                  labelLine={false}
+                  label={({ name, percent }) =>
+                    `${name}: ${((percent ?? 0) * 100).toFixed(0)}%`
+                  }
+                  outerRadius={100}
+                  fill="#8884d8"
+                  dataKey="value"
+                >
+                  {categoryChartData.map((entry, index) => (
+                    <Cell key={`cell-${index}`} fill={entry.color} />
+                  ))}
+                </Pie>
                 <Tooltip
                   contentStyle={{
                     backgroundColor: "hsl(var(--card))",
@@ -317,50 +246,33 @@ export function MaterialsAnalytics() {
                     borderRadius: "8px",
                     color: "hsl(var(--foreground))",
                   }}
-                  formatter={(value) =>
-                    typeof value === "number" ? value.toFixed(2) : value
-                  }
+                  formatter={(value, name, props) => [
+                    `${value} materials`,
+                    props.payload.name,
+                  ]}
                 />
-                <Legend />
-                <Bar
-                  dataKey="avgPrice"
-                  fill={CHART_COLORS.light.chart1}
-                  name="Avg Price (₹)"
-                  radius={[4, 4, 0, 0]}
-                />
-                <Bar
-                  dataKey="materialCount"
-                  fill={CHART_COLORS.light.chart2}
-                  name="Material Count"
-                  radius={[4, 4, 0, 0]}
-                />
-              </BarChart>
+              </PieChart>
             </ResponsiveContainer>
           </CardContent>
         </Card>
 
-        {/* Material Usage */}
+        {/* Price Range Distribution */}
         <Card className="card-enhanced">
           <CardHeader>
             <CardTitle className="text-foreground">
-              Material Usage Analysis
+              Price Range Distribution
             </CardTitle>
-            <CardDescription>
-              Usage patterns and efficiency metrics
-            </CardDescription>
+            <CardDescription>Materials grouped by price ranges</CardDescription>
           </CardHeader>
           <CardContent>
             <ResponsiveContainer width="100%" height={300}>
-              <BarChart
-                data={materialUsageData}
-                margin={{ top: 20, right: 30, left: 20, bottom: 5 }}
-              >
+              <BarChart data={priceRangeChartData}>
                 <CartesianGrid
                   strokeDasharray="3 3"
                   className="stroke-border"
                 />
                 <XAxis
-                  dataKey="material"
+                  dataKey="range"
                   className="stroke-muted-foreground"
                   tick={{ fill: "hsl(var(--muted-foreground))" }}
                 />
@@ -375,15 +287,16 @@ export function MaterialsAnalytics() {
                     borderRadius: "8px",
                     color: "hsl(var(--foreground))",
                   }}
-                  formatter={(value) =>
-                    typeof value === "number" ? value.toFixed(2) : value
-                  }
+                  formatter={(value, name) => [
+                    `${value} materials`,
+                    name === "count" ? "Count" : name,
+                  ]}
                 />
                 <Legend />
                 <Bar
-                  dataKey="usage"
+                  dataKey="count"
                   fill={CHART_COLORS.light.chart1}
-                  name="Usage (kg)"
+                  name="Material Count"
                   radius={[4, 4, 0, 0]}
                 />
               </BarChart>
@@ -392,64 +305,185 @@ export function MaterialsAnalytics() {
         </Card>
       </div>
 
-      {/* AI Insights */}
-      <Card className="card-enhanced border-2 border-primary/20 shadow-lg">
+      {/* Category Breakdown */}
+      <Card className="card-enhanced">
         <CardHeader>
-          <div className="flex items-center gap-3">
-            <div className="p-2 rounded-lg bg-gradient-to-br from-primary/20 to-accent/20">
-              <Sparkles className="h-5 w-5 text-primary" />
-            </div>
-            <div>
-              <CardTitle className="text-foreground">
-                AI-Powered Insights
-              </CardTitle>
-              <CardDescription>
-                Automated recommendations and predictions
-              </CardDescription>
-            </div>
-          </div>
+          <CardTitle className="text-foreground">Category Breakdown</CardTitle>
+          <CardDescription>Detailed metrics for each category</CardDescription>
         </CardHeader>
         <CardContent>
-          <p className="mb-6 text-sm text-muted-foreground italic bg-muted/50 p-3 rounded-lg border border-border/50">
-            Note: The AI-Powered Insights shown here are currently hardcoded
-            sample data for demonstration purposes only.
-          </p>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {AI_INSIGHTS.map((insight, index) => (
-              <div
-                key={index}
-                className="group p-5 rounded-xl bg-gradient-to-br from-card to-muted/30 border border-border/50 hover:border-primary/30 hover:shadow-md transition-all duration-300"
+          <ResponsiveContainer width="100%" height={400}>
+            <BarChart
+              data={categoryChartData}
+              margin={{ top: 20, right: 40, left: 40, bottom: 5 }}
+              barCategoryGap="20%" // space between groups
+              barGap={6}
+            >
+              <CartesianGrid strokeDasharray="3 3" className="stroke-border" />
+              {/* X axis: categories */}
+              <XAxis
+                dataKey="name"
+                interval={0}
+                angle={-20}
+                textAnchor="end"
+                height={60}
+                tick={{ fill: "hsl(var(--muted-foreground))", fontSize: 12 }}
+              />
+
+              {/* LEFT Y axis: Count (materials) */}
+              <YAxis
+                yAxisId="count"
+                orientation="left"
+                tick={{ fill: "hsl(var(--muted-foreground))", fontSize: 12 }}
+                domain={[0, maxValues.maxCount]}
+                allowDecimals={false}
+                label={{
+                  value: "Count",
+                  angle: -90,
+                  position: "insideLeft",
+                  offset: 8,
+                }}
+              />
+
+              {/* RIGHT Y axis: Avg Price (₹) */}
+              <YAxis
+                yAxisId="price"
+                orientation="right"
+                tick={{ fill: "hsl(var(--muted-foreground))", fontSize: 12 }}
+                domain={[0, maxValues.maxPrice]}
+                tickFormatter={(v) => `₹${v}`}
+                label={{
+                  value: "Avg Price (₹)",
+                  angle: 90,
+                  position: "insideRight",
+                  offset: 8,
+                }}
+              />
+              <Tooltip
+                contentStyle={{
+                  backgroundColor: "hsl(var(--card))",
+                  border: "1px solid hsl(var(--border))",
+                  borderRadius: "8px",
+                  color: "hsl(var(--foreground))",
+                }}
+                formatter={(value, key) => {
+                  if (key === "value") return [`${value} materials`, "Count"];
+                  if (key === "avgPrice") return [`₹${value}`, "Avg Price"];
+                  return value;
+                }}
+                labelFormatter={(label) => `${label}`}
+              />
+
+              <Legend verticalAlign="top" />
+
+              {/* BAR: Count (uses left axis) */}
+              <Bar
+                yAxisId="count"
+                dataKey="value"
+                name="Count"
+                radius={[4, 4, 0, 0]}
+                barSize={18}
               >
-                <div className="flex items-start justify-between mb-3">
-                  <div className="flex-1">
-                    <h4 className="font-semibold text-foreground mb-2 group-hover:text-primary transition-colors">
-                      {insight.title}
-                    </h4>
-                    <p className="text-sm text-muted-foreground leading-relaxed">
-                      {insight.description}
-                    </p>
-                  </div>
-                </div>
-                <div className="flex items-center justify-between mt-4 pt-4 border-t border-border/50">
-                  <div className="flex items-center gap-2">
-                    <Badge
-                      variant={
-                        insight.impact === "High" ? "default" : "secondary"
-                      }
-                      className="text-xs font-medium"
-                    >
-                      {insight.impact} Impact
-                    </Badge>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <div className="text-xs font-medium text-muted-foreground">
-                      {insight.confidence}% confidence
-                    </div>
-                    <Progress value={insight.confidence} className="h-1 w-16" />
-                  </div>
+                {categoryChartData.map((entry, idx) => (
+                  <Cell key={`cell-count-${idx}`} fill={entry.color} />
+                ))}
+              </Bar>
+
+              {/* BAR: Avg Price (uses right axis) */}
+              <Bar
+                yAxisId="price"
+                dataKey="avgPrice"
+                name="Avg Price"
+                radius={[4, 4, 0, 0]}
+                barSize={18}
+                // make it visually distinct (lighter / semi-transparent)
+                fill="var(--primary)"
+                opacity={0.75}
+              />
+            </BarChart>
+          </ResponsiveContainer>
+        </CardContent>
+      </Card>
+
+      {/* Additional Insights */}
+      <Card className="card-enhanced border-2 border-primary/20">
+        <CardHeader>
+          <CardTitle className="text-foreground">Key Insights</CardTitle>
+          <CardDescription>
+            Data-driven observations from your materials
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="p-4 rounded-lg bg-gradient-to-br from-primary/10 to-accent/10 border border-primary/20">
+              <div className="flex items-start gap-3">
+                <Package className="h-5 w-5 text-primary mt-1" />
+                <div>
+                  <h4 className="font-semibold text-foreground mb-1">
+                    Supplier Diversity
+                  </h4>
+                  <p className="text-sm text-muted-foreground">
+                    {materialsWithMultipleSuppliers.count} materials have
+                    multiple supplier options, giving you{" "}
+                    {materialsWithMultipleSuppliers.percentage.toFixed(0)}%
+                    flexibility in sourcing.
+                  </p>
                 </div>
               </div>
-            ))}
+            </div>
+
+            <div className="p-4 rounded-lg bg-gradient-to-br from-accent/10 to-primary/10 border border-accent/20">
+              <div className="flex items-start gap-3">
+                <Users className="h-5 w-5 text-accent mt-1" />
+                <div>
+                  <h4 className="font-semibold text-foreground mb-1">
+                    Average Suppliers
+                  </h4>
+                  <p className="text-sm text-muted-foreground">
+                    Each material has an average of{" "}
+                    {avgSuppliersPerMaterial.toFixed(1)} suppliers, providing
+                    good market coverage.
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            <div className="p-4 rounded-lg bg-gradient-to-br from-yellow-500/10 to-orange-500/10 border border-yellow-500/20">
+              <div className="flex items-start gap-3">
+                <AlertTriangle className="h-5 w-5 text-yellow-600 mt-1" />
+                <div>
+                  <h4 className="font-semibold text-foreground mb-1">
+                    Stock Situation
+                  </h4>
+                  <p className="text-sm text-muted-foreground">
+                    {analytics.stockAlerts === 0
+                      ? "All materials are in good stock. No alerts at this time."
+                      : `${analytics.stockAlerts} materials need attention due to limited or out-of-stock status.`}
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            <div className="p-4 rounded-lg bg-gradient-to-br from-green-500/10 to-blue-500/10 border border-green-500/20">
+              <div className="flex items-start gap-3">
+                <DollarSign className="h-5 w-5 text-green-600 mt-1" />
+                <div>
+                  <h4 className="font-semibold text-foreground mb-1">
+                    Price Range
+                  </h4>
+                  <p className="text-sm text-muted-foreground">
+                    Most materials (
+                    {priceRangeChartData.length > 0
+                      ? priceRangeChartData.reduce(
+                          (max, item) => (item.count > max.count ? item : max),
+                          { count: 0, range: "N/A" }
+                        ).range
+                      : "N/A"}
+                    ) fall in the mid-price range, showing balanced sourcing.
+                  </p>
+                </div>
+              </div>
+            </div>
           </div>
         </CardContent>
       </Card>

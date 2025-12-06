@@ -15,7 +15,7 @@ import {
 } from "@/components/ui/dialog";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useGroupedTransactions } from "@/hooks/use-inventory";
-import type { InventoryItemWithDetails } from "@/lib/types";
+import type { InventoryItemWithDetails } from "@/types/shared-types";
 import { format } from "date-fns";
 import { Calendar } from "lucide-react";
 

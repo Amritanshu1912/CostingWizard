@@ -18,7 +18,7 @@ import type {
   ProductVariant,
   ProductVariantCostAnalysis,
   ProductVariantWithDetails,
-} from "@/lib/types";
+} from "@/types/shared-types";
 import { ArrowLeft, Edit2, Package, Plus, Trash2 } from "lucide-react";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { DeleteProductDialog, DeleteVariantDialog } from "./products-dialogs";

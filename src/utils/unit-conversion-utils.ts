@@ -1,5 +1,5 @@
-// src/hooks/use-unit-conversion.ts
-import type { CapacityUnit } from "@/lib/types";
+// src/utils/unit-conversion-utils.ts
+import type { CapacityUnit } from "@/types/shared-types";
 
 // ============================================================================
 // Centralized Unit Configuration
