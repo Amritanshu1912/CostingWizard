@@ -1,65 +1,37 @@
 // src/app/suppliers/components/suppliers-items-tab/suppliers-items-content.tsx
 "use client";
 
-import type { SupplierLabelFormData } from "@/types/label-types";
-import { SupplierLabelsDialog } from "@/app/labels/components/supplier-labels-dialog";
-import { DEFAULT_MATERIAL_FORM } from "@/app/materials/components/materials-constants";
-import type { SupplierMaterialFormData } from "@/types/material-types";
-import { MaterialsSupplierDialog } from "@/app/materials/components/materials-supplier-dialog";
-import type { SupplierPackagingFormData } from "@/types/packaging-types";
-import { SupplierPackagingDialog } from "@/app/packaging/components/supplier-packaging-dialog";
-import { SUPPLIERS } from "@/app/suppliers/components/suppliers-constants";
+import { useCallback, useState } from "react";
+import { toast } from "sonner";
+import { Box, Package, Plus, Tag } from "lucide-react";
+
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+
+import { MaterialsSupplierDialog } from "@/app/materials/components/materials-supplier-dialog";
+import { SupplierLabelsDialog } from "@/app/labels/components/supplier-labels-dialog";
+import { SupplierPackagingDialog } from "@/app/packaging/components/supplier-packaging-dialog";
+
 import { useDexieTable } from "@/hooks/use-dexie-table";
-import { assignCategoryColor } from "@/utils/color-utils";
-import { db } from "@/lib/db";
-import { normalizeText } from "@/utils/text-utils";
+import { useSupplierLabelMutations } from "@/hooks/label-hooks/use-labels-mutations";
+import { useSupplierMaterialMutations } from "@/hooks/material-hooks/use-materials-mutations";
+import { useSupplierPackagingMutations } from "@/hooks/packaging-hooks/use-packaging-mutations";
+
+import type { SupplierLabelFormData } from "@/types/label-types";
+import type { SupplierMaterialFormData } from "@/types/material-types";
+import type { SupplierPackagingFormData } from "@/types/packaging-types";
 import type { Supplier } from "@/types/shared-types";
-import { Box, Package, Plus, Tag } from "lucide-react";
-import { nanoid } from "nanoid";
-import { useCallback, useState } from "react";
-import { toast } from "sonner";
+
+import { DEFAULT_SUPPLIER_LABEL_FORM } from "@/app/labels/components/labels-constants";
+import { DEFAULT_SUPPLIER_MATERIAL_FORM } from "@/app/materials/components/materials-constants";
+import { DEFAULT_SUPPLIER_PACKAGING_FORM } from "@/app/packaging/components/packaging-constants";
+import { SUPPLIERS } from "@/app/suppliers/components/suppliers-constants";
+
+import { db } from "@/lib/db";
+
 import { SuppliersItemsTable } from "./suppliers-items-table";
-
-const DEFAULT_PACKAGING_FORM: SupplierPackagingFormData = {
-  supplierId: "",
-  packagingName: "",
-  packagingId: "",
-  packagingType: "bottle",
-  capacity: 0,
-  capacityUnit: "ml",
-  buildMaterial: undefined,
-  bulkPrice: 0,
-  quantityForBulkPrice: 1,
-  tax: 0,
-  moq: 1,
-  leadTime: 7,
-  notes: "",
-  unitPrice: 0,
-};
-
-const DEFAULT_LABEL_FORM: SupplierLabelFormData = {
-  supplierId: "",
-  labelName: "",
-  labelId: "",
-  labelType: "sticker",
-  printingType: "bw",
-  material: "paper",
-  shape: "rectangular",
-  size: "",
-  bulkPrice: 0,
-  quantityForBulkPrice: 1,
-  unit: "pieces",
-  tax: 0,
-  moq: 1,
-  leadTime: 7,
-  transportationCost: 0,
-  bulkDiscounts: [],
-  notes: "",
-};
 
 interface SuppliersItemsContentProps {
   selectedSupplierId: string;
@@ -78,6 +50,11 @@ export function SuppliersItemsContent({
 }: SuppliersItemsContentProps) {
   const [activeTab, setActiveTab] = useState("materials");
 
+  // Mutation hooks
+  const { createSupplierMaterial } = useSupplierMaterialMutations();
+  const { createSupplierPackaging } = useSupplierPackagingMutations();
+  const { createSupplierLabel } = useSupplierLabelMutations();
+
   // Dialog states
   const [showMaterialDialog, setShowMaterialDialog] = useState(false);
   const [showPackagingDialog, setShowPackagingDialog] = useState(false);
@@ -88,11 +65,12 @@ export function SuppliersItemsContent({
 
   // Form states
   const [materialFormData, setMaterialFormData] =
-    useState<SupplierMaterialFormData>(DEFAULT_MATERIAL_FORM);
+    useState<SupplierMaterialFormData>(DEFAULT_SUPPLIER_MATERIAL_FORM);
   const [packagingFormData, setPackagingFormData] =
-    useState<SupplierPackagingFormData>(DEFAULT_PACKAGING_FORM);
-  const [labelFormData, setLabelFormData] =
-    useState<SupplierLabelFormData>(DEFAULT_LABEL_FORM);
+    useState<SupplierPackagingFormData>(DEFAULT_SUPPLIER_PACKAGING_FORM);
+  const [labelFormData, setLabelFormData] = useState<SupplierLabelFormData>(
+    DEFAULT_SUPPLIER_LABEL_FORM
+  );
 
   // Database hooks - useLiveQuery automatically refreshes when data changes
   const { data: suppliersData } = useDexieTable(db.suppliers, SUPPLIERS);
@@ -108,7 +86,7 @@ export function SuppliersItemsContent({
     switch (activeTab) {
       case "materials":
         setMaterialFormData({
-          ...DEFAULT_MATERIAL_FORM,
+          ...DEFAULT_SUPPLIER_MATERIAL_FORM,
           supplierId: selectedSupplierId,
         });
         setEditingMaterial(null);
@@ -116,7 +94,7 @@ export function SuppliersItemsContent({
         break;
       case "packaging":
         setPackagingFormData({
-          ...DEFAULT_PACKAGING_FORM,
+          ...DEFAULT_SUPPLIER_PACKAGING_FORM,
           supplierId: selectedSupplierId,
         });
         setEditingPackaging(null);
@@ -124,7 +102,7 @@ export function SuppliersItemsContent({
         break;
       case "labels":
         setLabelFormData({
-          ...DEFAULT_LABEL_FORM,
+          ...DEFAULT_SUPPLIER_LABEL_FORM,
           supplierId: selectedSupplierId,
         });
         setEditingLabel(null);
@@ -201,97 +179,16 @@ export function SuppliersItemsContent({
     }
 
     try {
-      await db.transaction(
-        "rw",
-        [db.materials, db.supplierMaterials, db.categories],
-        async () => {
-          const now = new Date().toISOString();
-
-          // Step 1: Create/get category
-          let categoryToUse = materialFormData.materialCategory || "Other";
-          const normalizedCatName = normalizeText(categoryToUse);
-
-          const existingCategory = await db.categories
-            .filter((c) => normalizeText(c.name) === normalizedCatName)
-            .first();
-
-          if (!existingCategory) {
-            await db.categories.add({
-              id: nanoid(),
-              name: categoryToUse,
-              color: assignCategoryColor(categoryToUse),
-              createdAt: now,
-            });
-          }
-
-          // Step 2: Get or create material
-          let materialId = materialFormData.materialId;
-
-          if (!materialId || materialId === "") {
-            const normalizedName = normalizeText(
-              materialFormData.materialName || ""
-            );
-            const existingMaterial = await db.materials
-              .filter((m) => normalizeText(m.name) === normalizedName)
-              .first();
-
-            if (existingMaterial) {
-              materialId = existingMaterial.id;
-
-              if (existingMaterial.category !== categoryToUse) {
-                await db.materials.update(existingMaterial.id, {
-                  category: categoryToUse,
-                  updatedAt: now,
-                });
-              }
-            } else {
-              materialId = nanoid();
-              await db.materials.add({
-                id: materialId,
-                name: (materialFormData.materialName || "").trim(),
-                category: categoryToUse,
-                notes: materialFormData.notes || "",
-                createdAt: now,
-              });
-            }
-          }
-
-          // Step 3: Calculate unit price
-          const quantityForBulkPrice =
-            materialFormData.quantityForBulkPrice || 1;
-          const bulkPrice = materialFormData.bulkPrice || 0;
-          const unitPrice = bulkPrice / quantityForBulkPrice;
-
-          // Step 4: Create supplier material
-          await db.supplierMaterials.add({
-            id: nanoid(),
-            supplierId: materialFormData.supplierId || "",
-            materialId,
-            unitPrice: unitPrice,
-            bulkPrice: bulkPrice,
-            quantityForBulkPrice: quantityForBulkPrice,
-            tax: materialFormData.tax || 0,
-            capacityUnit: materialFormData.capacityUnit || "kg",
-            moq: materialFormData.moq || 1,
-            bulkDiscounts: materialFormData.bulkDiscounts || [],
-            leadTime: materialFormData.leadTime || 7,
-            transportationCost: materialFormData.transportationCost,
-            notes: materialFormData.notes || "",
-            createdAt: now,
-          });
-        }
-      );
-
-      setMaterialFormData(DEFAULT_MATERIAL_FORM);
+      await createSupplierMaterial(materialFormData);
+      setMaterialFormData(DEFAULT_SUPPLIER_MATERIAL_FORM);
       setShowMaterialDialog(false);
       setEditingMaterial(null);
       toast.success("Material added successfully");
-      // No need to refresh - useLiveQuery automatically updates
     } catch (error) {
       console.error("Error adding material:", error);
       toast.error("Failed to add material");
     }
-  }, [materialFormData]);
+  }, [materialFormData, createSupplierMaterial]);
 
   // Handle save packaging
   const handleSavePackaging = useCallback(async () => {
@@ -305,72 +202,16 @@ export function SuppliersItemsContent({
     }
 
     try {
-      await db.transaction(
-        "rw",
-        [db.packaging, db.supplierPackaging],
-        async () => {
-          const now = new Date().toISOString();
-
-          const existingPackaging = await db.packaging
-            .filter(
-              (p) =>
-                normalizeText(p.name) ===
-                  normalizeText(packagingFormData.packagingName!) &&
-                p.type === packagingFormData.packagingType &&
-                p.capacity === (packagingFormData.capacity || 0) &&
-                p.capacityUnit === packagingFormData.capacityUnit &&
-                p.buildMaterial === packagingFormData.buildMaterial
-            )
-            .first();
-
-          let packagingId: string;
-          if (existingPackaging) {
-            packagingId = existingPackaging.id;
-          } else {
-            packagingId = nanoid();
-            await db.packaging.add({
-              id: packagingId,
-              name: packagingFormData.packagingName!.trim(),
-              type: packagingFormData.packagingType!,
-              capacity: packagingFormData.capacity || 0,
-              capacityUnit: packagingFormData.capacityUnit!,
-              buildMaterial: packagingFormData.buildMaterial,
-              notes: packagingFormData.notes || "",
-              createdAt: now,
-            });
-          }
-
-          const bulkQuantity = packagingFormData.quantityForBulkPrice || 1;
-          const bulkPrice = packagingFormData.bulkPrice!;
-          const unitPrice = bulkPrice / bulkQuantity;
-
-          await db.supplierPackaging.add({
-            id: nanoid(),
-            supplierId: packagingFormData.supplierId!,
-            packagingId: packagingId,
-            unitPrice: unitPrice,
-            bulkPrice: bulkPrice,
-            quantityForBulkPrice: bulkQuantity,
-            tax: packagingFormData.tax || 0,
-            moq: packagingFormData.moq || 1,
-            leadTime: packagingFormData.leadTime || 7,
-            notes: packagingFormData.notes || "",
-            createdAt: now,
-            capacityUnit: "kg",
-          });
-        }
-      );
-
-      setPackagingFormData(DEFAULT_PACKAGING_FORM);
+      await createSupplierPackaging(packagingFormData);
+      setPackagingFormData(DEFAULT_SUPPLIER_PACKAGING_FORM);
       setShowPackagingDialog(false);
       setEditingPackaging(null);
       toast.success("Packaging added successfully");
-      // No need to refresh - useLiveQuery automatically updates
     } catch (error) {
       console.error("Error adding packaging:", error);
       toast.error("Failed to add packaging");
     }
-  }, [packagingFormData]);
+  }, [packagingFormData, createSupplierPackaging]);
 
   // Handle save label
   const handleSaveLabel = useCallback(async () => {
@@ -384,71 +225,16 @@ export function SuppliersItemsContent({
     }
 
     try {
-      await db.transaction("rw", [db.labels, db.supplierLabels], async () => {
-        const now = new Date().toISOString();
-
-        const normalizedName = normalizeText(labelFormData.labelName!);
-        const existingLabel = await db.labels
-          .filter(
-            (l) =>
-              normalizeText(l.name) === normalizedName &&
-              l.type === labelFormData.labelType &&
-              l.printingType === labelFormData.printingType &&
-              l.material === labelFormData.material &&
-              l.shape === labelFormData.shape &&
-              normalizeText(l.size || "") ===
-                normalizeText(labelFormData.size || "")
-          )
-          .first();
-
-        let labelId: string;
-        if (existingLabel) {
-          labelId = existingLabel.id;
-        } else {
-          labelId = nanoid();
-          await db.labels.add({
-            id: labelId,
-            name: labelFormData.labelName!.trim(),
-            type: labelFormData.labelType!,
-            printingType: labelFormData.printingType!,
-            material: labelFormData.material!,
-            shape: labelFormData.shape!,
-            size: labelFormData.size || undefined,
-            notes: labelFormData.notes || "",
-            createdAt: now,
-          });
-        }
-
-        const bulkQuantity = labelFormData.quantityForBulkPrice || 1;
-        const bulkPrice = labelFormData.bulkPrice!;
-        const unitPrice = bulkPrice / bulkQuantity;
-
-        await db.supplierLabels.add({
-          id: nanoid(),
-          supplierId: labelFormData.supplierId!,
-          labelId: labelId,
-          unit: labelFormData.unit || "pieces",
-          unitPrice: unitPrice,
-          bulkPrice: bulkPrice,
-          quantityForBulkPrice: bulkQuantity,
-          moq: labelFormData.moq || 1,
-          leadTime: labelFormData.leadTime || 7,
-          tax: labelFormData.tax || 0,
-          notes: labelFormData.notes || "",
-          createdAt: now,
-        });
-      });
-
-      setLabelFormData(DEFAULT_LABEL_FORM);
+      await createSupplierLabel(labelFormData);
+      setLabelFormData(DEFAULT_SUPPLIER_LABEL_FORM);
       setShowLabelDialog(false);
       setEditingLabel(null);
       toast.success("Label added successfully");
-      // No need to refresh - useLiveQuery automatically updates
     } catch (error) {
       console.error("Error adding label:", error);
       toast.error("Failed to add label");
     }
-  }, [labelFormData]);
+  }, [labelFormData, createSupplierLabel]);
 
   // Handle dialog close
   const handleDialogClose = useCallback(
@@ -458,17 +244,17 @@ export function SuppliersItemsContent({
           case "material":
             setShowMaterialDialog(false);
             setEditingMaterial(null);
-            setMaterialFormData(DEFAULT_MATERIAL_FORM);
+            setMaterialFormData(DEFAULT_SUPPLIER_MATERIAL_FORM);
             break;
           case "packaging":
             setShowPackagingDialog(false);
             setEditingPackaging(null);
-            setPackagingFormData(DEFAULT_PACKAGING_FORM);
+            setPackagingFormData(DEFAULT_SUPPLIER_PACKAGING_FORM);
             break;
           case "label":
             setShowLabelDialog(false);
             setEditingLabel(null);
-            setLabelFormData(DEFAULT_LABEL_FORM);
+            setLabelFormData(DEFAULT_SUPPLIER_LABEL_FORM);
             break;
         }
       }
