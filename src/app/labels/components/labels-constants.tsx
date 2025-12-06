@@ -1,17 +1,57 @@
 // src/app/labels/components/labels-constants.tsx
 import {
   Label,
+  LabelFormData,
   LabelMaterialType,
   LabelType,
   PrintingType,
   ShapeType,
   SupplierLabel,
+  SupplierLabelFormData,
 } from "@/types/label-types";
 
-// ============================================================================
-// ANALYTICS DATA
-// ============================================================================
+/**
+ * Default form data structure for creating new labels
+ * Provides empty initial values for all required fields
+ */
+export const DEFAULT_LABEL_FORM: LabelFormData = {
+  name: "",
+  type: "sticker",
+  printingType: "bw",
+  material: "paper",
+  shape: "rectangular",
+  size: "",
+  notes: "",
+};
 
+/**
+ * Default form data structure for creating new supplier label relationships
+ * Provides sensible defaults for label specifications and pricing
+ */
+export const DEFAULT_SUPPLIER_LABEL_FORM: SupplierLabelFormData = {
+  supplierId: "",
+  labelName: "",
+  labelId: "",
+  labelType: "sticker",
+  printingType: "bw",
+  material: "paper",
+  shape: "rectangular",
+  size: "",
+  bulkPrice: 0,
+  quantityForBulkPrice: 1,
+  unit: "pieces",
+  tax: 0,
+  moq: 1,
+  leadTime: 7,
+  transportationCost: 0,
+  bulkDiscounts: [],
+  notes: "",
+};
+
+/**
+ * Sample AI insights data for labels analytics demonstration
+ * These represent typical recommendations and alerts for label management
+ */
 export const AI_INSIGHTS = [
   {
     type: "cost-optimization",
@@ -47,10 +87,10 @@ export const AI_INSIGHTS = [
   },
 ];
 
-// ============================================================================
-// CORE DATA - Single source of truth with labels and colors
-// ============================================================================
-
+/**
+ * Core label type definitions with associated colors for UI consistency
+ * Used throughout the application for dropdowns, filters, and visualizations
+ */
 export const LABEL_TYPES = [
   { value: "sticker" as const, label: "Sticker", color: "#2563EB" },
   { value: "label" as const, label: "Label", color: "#7C3AED" },
@@ -58,6 +98,10 @@ export const LABEL_TYPES = [
   { value: "other" as const, label: "Other", color: "#9CA3AF" },
 ] as const;
 
+/**
+ * Printing technology options with color coding
+ * Represents different printing methods available for labels
+ */
 export const PRINTING_TYPES = [
   { value: "bw" as const, label: "Black & White", color: "#424c5cff" },
   { value: "color" as const, label: "Color", color: "#43bf36ff" },
@@ -65,6 +109,10 @@ export const PRINTING_TYPES = [
   { value: "embossed" as const, label: "Embossed", color: "#dd486dff" },
 ] as const;
 
+/**
+ * Material options for labels with consistent color coding
+ * Covers common materials used in label production
+ */
 export const MATERIAL_TYPES = [
   { value: "paper" as const, label: "Paper", color: "#4cce00ff" },
   { value: "vinyl" as const, label: "Vinyl", color: "#00a0bcff" },
@@ -72,28 +120,34 @@ export const MATERIAL_TYPES = [
   { value: "other" as const, label: "Other", color: "#BE123C" },
 ] as const;
 
+/**
+ * Shape options for labels
+ * Currently supports rectangular and custom shapes
+ */
 export const SHAPE_TYPES = [
   { value: "rectangular" as const, label: "Rectangular", color: "#10B981" },
   { value: "custom" as const, label: "Custom", color: "#8B5CF6" },
 ] as const;
 
-// ============================================================================
-// DERIVED CONSTANTS - Computed once, reused everywhere
-// ============================================================================
-
-// Simple arrays for when you just need the values
+/**
+ * Derived arrays for just values, used in validation and form options
+ */
 export const LABEL_TYPE_VALUES = LABEL_TYPES.map((t) => t.value);
 export const PRINTING_TYPE_VALUES = PRINTING_TYPES.map((t) => t.value);
 export const MATERIAL_TYPE_VALUES = MATERIAL_TYPES.map((m) => m.value);
 export const SHAPE_TYPE_VALUES = SHAPE_TYPES.map((s) => s.value);
 
-// Simple arrays for when you just need the labels (for UI display)
+/**
+ * Derived arrays for labels, used in UI display components
+ */
 export const LABEL_TYPE_LABELS = LABEL_TYPES.map((t) => t.label);
 export const PRINTING_TYPE_LABELS = PRINTING_TYPES.map((t) => t.label);
 export const MATERIAL_TYPE_LABELS = MATERIAL_TYPES.map((m) => m.label);
 export const SHAPE_TYPE_LABELS = SHAPE_TYPES.map((s) => s.label);
 
-// O(1) lookup maps for colors - Performance optimized
+/**
+ * Optimized lookup maps for O(1) color retrieval by value
+ */
 const LABEL_TYPE_COLOR_MAP = new Map(
   LABEL_TYPES.map((t) => [t.value, t.color])
 );
@@ -110,7 +164,9 @@ const SHAPE_TYPE_COLOR_MAP = new Map(
   SHAPE_TYPES.map((s) => [s.value, s.color])
 );
 
-// O(1) lookup maps for labels
+/**
+ * Optimized lookup maps for O(1) label retrieval by value
+ */
 const LABEL_TYPE_LABEL_MAP = new Map(
   LABEL_TYPES.map((t) => [t.value, t.label])
 );
@@ -127,72 +183,70 @@ const SHAPE_TYPE_LABEL_MAP = new Map(
   SHAPE_TYPES.map((s) => [s.value, s.label])
 );
 
-// ============================================================================
-// HELPER FUNCTIONS - O(1) lookups using Maps
-// ============================================================================
-
-const DEFAULT_COLOR = "#6b7280"; // Gray fallback
+/**
+ * Utility functions for retrieving display properties with fallback defaults
+ */
+const DEFAULT_COLOR = "#6b7280";
 
 /**
- * Get color for label type - O(1) lookup
+ * Get the associated color for a label type
  */
 export const getLabelTypeColor = (type: LabelType): string => {
   return LABEL_TYPE_COLOR_MAP.get(type) ?? DEFAULT_COLOR;
 };
 
 /**
- * Get color for printing type - O(1) lookup
+ * Get the associated color for a printing type
  */
 export const getPrintingTypeColor = (printingType: PrintingType): string => {
   return PRINTING_TYPE_COLOR_MAP.get(printingType) ?? DEFAULT_COLOR;
 };
 
 /**
- * Get color for material type - O(1) lookup
+ * Get the associated color for a material type
  */
 export const getMaterialTypeColor = (material: LabelMaterialType): string => {
   return MATERIAL_TYPE_COLOR_MAP.get(material) ?? DEFAULT_COLOR;
 };
 
 /**
- * Get color for shape type - O(1) lookup
+ * Get the associated color for a shape type
  */
 export const getShapeTypeColor = (shape: ShapeType): string => {
   return SHAPE_TYPE_COLOR_MAP.get(shape) ?? DEFAULT_COLOR;
 };
 
 /**
- * Get label for label type - O(1) lookup
+ * Get the human-readable label for a label type
  */
 export const getLabelTypeLabel = (type: LabelType): string => {
   return LABEL_TYPE_LABEL_MAP.get(type) ?? type;
 };
 
 /**
- * Get label for printing type - O(1) lookup
+ * Get the human-readable label for a printing type
  */
 export const getPrintingTypeLabel = (printingType: PrintingType): string => {
   return PRINTING_TYPE_LABEL_MAP.get(printingType) ?? printingType;
 };
 
 /**
- * Get label for material type - O(1) lookup
+ * Get the human-readable label for a material type
  */
 export const getMaterialTypeLabel = (material: LabelMaterialType): string => {
   return MATERIAL_TYPE_LABEL_MAP.get(material) ?? material;
 };
 
 /**
- * Get label for shape type - O(1) lookup
+ * Get the human-readable label for a shape type
  */
 export const getShapeTypeLabel = (shape: ShapeType): string => {
   return SHAPE_TYPE_LABEL_MAP.get(shape) ?? shape;
 };
 
-// ============================================================================
-// TYPE GUARDS - Type-safe validation
-// ============================================================================
-
+/**
+ * Type guard functions for runtime type validation
+ */
 export const isValidLabelType = (value: string): value is LabelType => {
   return LABEL_TYPE_VALUES.includes(value as LabelType);
 };
@@ -211,10 +265,10 @@ export const isValidShapeType = (value: string): value is ShapeType => {
   return SHAPE_TYPE_VALUES.includes(value as ShapeType);
 };
 
-// ============================================================================
-// LABELS
-// ============================================================================
-
+/**
+ * Sample label data for development and testing
+ * Represents common label types with various printing and material options
+ */
 export const LABELS: Label[] = [
   {
     id: "1",
@@ -306,6 +360,10 @@ export const LABELS: Label[] = [
   },
 ];
 
+/**
+ * Sample supplier label relationships with pricing and specifications
+ * Demonstrates various printing types, materials, and bulk pricing structures
+ */
 export const SUPPLIER_LABELS: SupplierLabel[] = [
   {
     id: "1",

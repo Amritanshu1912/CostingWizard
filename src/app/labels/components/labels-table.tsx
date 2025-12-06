@@ -55,6 +55,10 @@ interface LabelsTableDrawerProps {
   onInitiateDelete: (label: LabelWithSuppliers) => void;
 }
 
+/**
+ * LabelsTableDrawer component provides an editable table for label items
+ * with inline editing capabilities for all label properties.
+ */
 export function LabelsTableDrawer({
   data,
   editingLabelId,
@@ -66,7 +70,7 @@ export function LabelsTableDrawer({
   onCancelEdit,
   onInitiateDelete,
 }: LabelsTableDrawerProps) {
-  // Table columns
+  // Define table columns with custom rendering and editing capabilities
   const columns = useMemo(
     () => [
       {

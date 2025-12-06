@@ -23,6 +23,7 @@ import {
 import { useLabelMutations } from "@/hooks/label-hooks/use-labels-mutations";
 import { useLabelsWithSuppliers } from "@/hooks/label-hooks/use-labels-queries";
 import type { LabelFormData, LabelWithSuppliers } from "@/types/label-types";
+import { DEFAULT_LABEL_FORM } from "./labels-constants";
 
 import { AlertCircle, Loader2, Plus, Tag } from "lucide-react";
 import { useMemo, useState } from "react";
@@ -35,21 +36,20 @@ interface LabelsDrawerProps {
   onOpenChange: (open: boolean) => void;
 }
 
+/**
+ * LabelsDrawer component manages the side panel for labels inventory
+ * Provides CRUD operations for label items with inline editing capabilities
+ */
 export function LabelsDrawer({
   open,
   onOpenChange,
   onRefresh,
 }: LabelsDrawerProps) {
   const [editingLabelId, setEditingLabelId] = useState<string | null>(null);
-  const [editForm, setEditForm] = useState<LabelFormData>({
-    name: "",
-    type: "sticker",
-    printingType: "bw",
-    material: "paper",
-    shape: "rectangular",
-    size: "",
-    notes: "",
-  });
+
+  // Form data for the currently edited label item
+  const [editForm, setEditForm] = useState<LabelFormData>(DEFAULT_LABEL_FORM);
+
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
   const [labelToDelete, setLabelToDelete] = useState<LabelWithSuppliers | null>(
     null
@@ -58,13 +58,10 @@ export function LabelsDrawer({
   const [isAddingNew, setIsAddingNew] = useState(false);
   const [shakeFields, setShakeFields] = useState(false);
 
-  // Fetch labels with supplier count using optimized hook
   const allLabelsWithSuppliers = useLabelsWithSuppliers();
-
-  // Mutation hooks
   const { createLabel, updateLabel, deleteLabel } = useLabelMutations();
 
-  // Add empty row for new label if adding
+  // Prepare display data, adding a placeholder row when creating new items
   const labelsWithSuppliers = useMemo(() => {
     if (!allLabelsWithSuppliers) return [];
 
@@ -90,7 +87,7 @@ export function LabelsDrawer({
     return result;
   }, [allLabelsWithSuppliers, isAddingNew]);
 
-  // Start editing
+  // Initialize editing mode for an existing label item
   const startEdit = (label: LabelWithSuppliers) => {
     setEditingLabelId(label.id);
     setEditForm({
@@ -104,38 +101,22 @@ export function LabelsDrawer({
     });
   };
 
-  // Start adding new label
+  // Initialize adding mode for a new label item
   const startAddingNew = () => {
     setIsAddingNew(true);
     setEditingLabelId("new");
-    setEditForm({
-      name: "",
-      type: "sticker",
-      printingType: "color",
-      material: "paper",
-      shape: "rectangular",
-      size: "",
-      notes: "",
-    });
+    setEditForm(DEFAULT_LABEL_FORM);
   };
 
-  // Cancel editing
+  // Cancel current editing operation and reset form state
   const cancelEdit = () => {
     setEditingLabelId(null);
     setIsAddingNew(false);
     setShakeFields(false);
-    setEditForm({
-      name: "",
-      type: "sticker",
-      printingType: "bw",
-      material: "paper",
-      shape: "rectangular",
-      size: "",
-      notes: "",
-    });
+    setEditForm(DEFAULT_LABEL_FORM);
   };
 
-  // Save edit using mutation hooks
+  // Save the current edit, either creating new or updating existing
   const saveEdit = async () => {
     if (!editingLabelId) return;
 
@@ -175,7 +156,7 @@ export function LabelsDrawer({
 
       cancelEdit();
 
-      // Trigger refresh of other components
+      // Trigger refresh of parent components
       if (onRefresh) onRefresh();
     } catch (error: any) {
       console.error("Error saving label:", error);
@@ -185,13 +166,13 @@ export function LabelsDrawer({
     }
   };
 
-  // Initiate delete
+  // Open delete confirmation dialog for a label item
   const initiateDelete = (label: LabelWithSuppliers) => {
     setLabelToDelete(label);
     setDeleteConfirmOpen(true);
   };
 
-  // Confirm delete using mutation hook
+  // Execute the delete operation after confirmation
   const confirmDelete = async () => {
     if (!labelToDelete) return;
 
@@ -209,6 +190,7 @@ export function LabelsDrawer({
     }
   };
 
+  // Calculate the count of active label items (excluding placeholder)
   const activeLabels =
     labelsWithSuppliers?.filter((l) => l.id !== "new").length || 0;
 

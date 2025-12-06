@@ -47,15 +47,18 @@ import {
 } from "recharts";
 import { AI_INSIGHTS } from "./labels-constants";
 
+/**
+ * LabelsAnalytics component provides comprehensive analytics for labels data
+ * including key metrics, trend charts, usage analysis, and AI-powered insights.
+ * It visualizes supplier performance, pricing trends, and inventory status for labels.
+ */
 export function LabelsAnalytics() {
   const supplierLabels = useSupplierLabelTableRows();
   const analytics = useLabelsAnalytics();
 
-  // Calculate key metrics dynamically
   const keyMetrics = useMemo(() => {
     if (!supplierLabels.length) return [];
 
-    // Stock Alerts - count labels with low-stock or out-of-stock
     const stockAlerts = supplierLabels.filter(
       (sl) =>
         sl.stockStatus === "low-stock" || sl.stockStatus === "out-of-stock"
@@ -153,6 +156,7 @@ export function LabelsAnalytics() {
     ];
   }, [supplierLabels, analytics]);
 
+  // Generate mock price history data based on current pricing
   function generatePriceHistory(supplierLabels: SupplierLabelTableRow[]) {
     if (!supplierLabels.length) return [];
 
@@ -175,15 +179,13 @@ export function LabelsAnalytics() {
     });
   }
 
-  // Price History Data - create mock trend data based on current prices
+  // Generate mock price history data based on current pricing
   const priceHistoryData = useMemo(
     () => generatePriceHistory(supplierLabels),
     [supplierLabels]
   );
 
-  // ---------------------------------------------------------
-  // Mock Generator for Labels Usage Data (outside component)
-  // ---------------------------------------------------------
+  // Generate labels usage data by grouping items by type
   function generateLabelsUsageData(supplierLabels: SupplierLabelTableRow[]) {
     if (!supplierLabels.length) return [];
 
@@ -248,7 +250,7 @@ export function LabelsAnalytics() {
     }));
   }, [supplierLabels, analytics]);
 
-  // Printing Type Distribution - use analytics data if available, otherwise calculate
+  // Calculate distribution of printing types for pie chart
   const printingTypeDistribution = useMemo(() => {
     if (analytics?.printingTypeDistribution) {
       return analytics.printingTypeDistribution.map((item) => ({
@@ -277,9 +279,10 @@ export function LabelsAnalytics() {
       color: chartColors[index % chartColors.length],
     }));
   }, [supplierLabels, analytics]);
+
   return (
     <div className="space-y-6">
-      {/* Key Metrics */}
+      {/* Display key performance metrics in a responsive grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
         {keyMetrics.map((metric) => {
           const Icon = metric.icon;
@@ -320,9 +323,9 @@ export function LabelsAnalytics() {
         })}
       </div>
 
-      {/* Charts */}
+      {/* First row of charts: price trends and usage analysis */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Price Trends */}
+        {/* Price Trends Chart */}
         <Card className="card-enhanced">
           <CardHeader>
             <CardTitle className="text-foreground">Price Trends</CardTitle>
@@ -379,7 +382,7 @@ export function LabelsAnalytics() {
           </CardContent>
         </Card>
 
-        {/* Labels Usage */}
+        {/* Labels Usage Analysis Chart */}
         <Card className="card-enhanced">
           <CardHeader>
             <CardTitle className="text-foreground">
@@ -432,9 +435,9 @@ export function LabelsAnalytics() {
         </Card>
       </div>
 
-      {/* Additional Charts */}
+      {/* Second row of charts: type distribution and printing distribution */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Label Type Distribution */}
+        {/* Label Type Distribution Pie Chart */}
         <Card className="card-enhanced">
           <CardHeader>
             <CardTitle className="text-foreground">
@@ -476,7 +479,7 @@ export function LabelsAnalytics() {
           </CardContent>
         </Card>
 
-        {/* Printing Type Distribution */}
+        {/* Printing Type Distribution Pie Chart */}
         <Card className="card-enhanced">
           <CardHeader>
             <CardTitle className="text-foreground">
@@ -519,7 +522,7 @@ export function LabelsAnalytics() {
         </Card>
       </div>
 
-      {/* AI Insights */}
+      {/* AI Insights section with hardcoded sample data */}
       <Card className="card-enhanced border-2 border-primary/20 shadow-lg">
         <CardHeader>
           <div className="flex items-center gap-3">

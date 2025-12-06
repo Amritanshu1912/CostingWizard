@@ -2,6 +2,10 @@
 import { Sidebar } from "@/components/sidebar";
 import { LabelsManager } from "./components/labels-manager";
 
+/**
+ * LabelsPage component serves as the main entry point for the labels management module.
+ * It provides a full-screen layout with sidebar navigation and the labels manager interface.
+ */
 export default function LabelsPage() {
   return (
     <div className="flex h-screen bg-background">

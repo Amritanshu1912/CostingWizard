@@ -5,59 +5,49 @@ import { SUPPLIERS } from "@/app/suppliers/components/suppliers-constants";
 import { Button } from "@/components/ui/button";
 import { MetricCard } from "@/components/ui/metric-card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { useLabelsMutations } from "@/hooks/label-hooks/use-labels-mutations";
+import { useAllLabelMutations } from "@/hooks/label-hooks/use-labels-mutations";
 import { useSupplierLabelTableRows } from "@/hooks/label-hooks/use-labels-queries";
 import { useDexieTable } from "@/hooks/use-dexie-table";
 import { db } from "@/lib/db";
 import type {
-  SupplierLabelTableRow,
   SupplierLabelFormData,
+  SupplierLabelTableRow,
 } from "@/types/label-types";
 import { BarChart3, List, Package, TrendingUp } from "lucide-react";
 import { useCallback, useState } from "react";
 import { toast } from "sonner";
 import { LabelsAnalytics } from "./labels-analytics";
+import { DEFAULT_SUPPLIER_LABEL_FORM } from "./labels-constants";
 import { LabelsDrawer } from "./labels-drawer";
 import { LabelsPriceComparison } from "./labels-price-comparison";
 import { SupplierLabelsDialog } from "./supplier-labels-dialog";
 import { SupplierLabelsTable } from "./supplier-labels-table";
 
-const DEFAULT_LABEL_FORM: SupplierLabelFormData = {
-  labelName: "",
-  bulkPrice: 0,
-  quantityForBulkPrice: 1,
-  supplierId: "",
-  labelType: "other",
-  printingType: "bw",
-  material: "other",
-  shape: "custom",
-  unit: "",
-  tax: 0,
-  moq: 0,
-  leadTime: 0,
-};
-
+/**
+ * LabelsManager component provides the main interface for managing labels inventory
+ * and supplier relationships. It includes tabs for supplier labels, price comparison,
+ * and analytics, with full CRUD operations for supplier label entries.
+ */
 export function LabelsManager() {
   const [showAddSupplierLabel, setShowAddSupplierLabel] = useState(false);
   const [editingSupplierLabel, setEditingSupplierLabel] =
     useState<SupplierLabelTableRow | null>(null);
   const [showLabelsDrawer, setShowLabelsDrawer] = useState(false);
-  const [formData, setFormData] =
-    useState<SupplierLabelFormData>(DEFAULT_LABEL_FORM);
+  const [formData, setFormData] = useState<SupplierLabelFormData>(
+    DEFAULT_SUPPLIER_LABEL_FORM
+  );
   const [refreshTrigger, setRefreshTrigger] = useState(0);
 
-  // Database hooks - still needed for dialog
+  // Database hooks - needed for dialog
   const { data: suppliers } = useDexieTable(db.suppliers, SUPPLIERS);
   const { data: labels } = useDexieTable(db.labels, []);
 
-  // Enriched data using optimized hook
   const enrichedSupplierLabels = useSupplierLabelTableRows();
 
-  // Mutation hooks
   const { createSupplierLabel, updateSupplierLabel, deleteSupplierLabel } =
-    useLabelsMutations();
+    useAllLabelMutations();
 
-  // Calculate metrics
+  // Calculate key metrics from supplier label data for overview display
   const totalLabels = enrichedSupplierLabels.length;
   const avgPrice =
     enrichedSupplierLabels.reduce((sum, sl) => sum + sl.unitPrice, 0) /
@@ -70,12 +60,11 @@ export function LabelsManager() {
     enrichedSupplierLabels.reduce((sum, sl) => sum + (sl.tax || 0), 0) /
     (enrichedSupplierLabels.length || 1);
 
-  // Handle add using mutation hook
   const handleAddSupplierLabel = useCallback(async () => {
     try {
       await createSupplierLabel(formData as any);
 
-      setFormData(DEFAULT_LABEL_FORM);
+      setFormData(DEFAULT_SUPPLIER_LABEL_FORM);
       setShowAddSupplierLabel(false);
       toast.success("Supplier label added successfully");
     } catch (error: any) {
@@ -84,7 +73,7 @@ export function LabelsManager() {
     }
   }, [formData, createSupplierLabel]);
 
-  // Handle edit
+  // Map table row data back to form format for editing dialog
   const handleEditSupplierLabel = useCallback(
     async (item: SupplierLabelTableRow) => {
       setEditingSupplierLabel(item);
@@ -120,7 +109,7 @@ export function LabelsManager() {
     try {
       await updateSupplierLabel(editingSupplierLabel.id, formData as any);
 
-      setFormData(DEFAULT_LABEL_FORM);
+      setFormData(DEFAULT_SUPPLIER_LABEL_FORM);
       setEditingSupplierLabel(null);
       setShowAddSupplierLabel(false);
       toast.success("Supplier label updated successfully");
@@ -149,7 +138,7 @@ export function LabelsManager() {
     if (!open) {
       setShowAddSupplierLabel(false);
       setEditingSupplierLabel(null);
-      setFormData(DEFAULT_LABEL_FORM);
+      setFormData(DEFAULT_SUPPLIER_LABEL_FORM);
     }
   }, []);
 

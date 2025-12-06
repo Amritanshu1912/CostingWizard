@@ -58,6 +58,11 @@ interface SupplierLabelsTableProps {
   onAddSupplierLabel: () => void;
 }
 
+/**
+ * SupplierLabelsTable component displays supplier label relationships in a sortable table
+ * with filtering capabilities and CRUD actions. Shows label specifications, pricing,
+ * and supplier information for each label relationship.
+ */
 export function SupplierLabelsTable({
   supplierLabels,
   suppliers,
@@ -72,12 +77,12 @@ export function SupplierLabelsTable({
   const [labelToDelete, setLabelToDelete] =
     useState<SupplierLabelTableRow | null>(null);
 
-  // Get unique label types from the data
+  // Extract unique label types for filter dropdown
   const labelTypes = Array.from(
     new Set(supplierLabels.map((sl) => sl.labelType))
   );
 
-  // Filter labels using enriched data
+  // Filter labels based on search and filter criteria
   const filteredLabels = useMemo(() => {
     return supplierLabels.filter((label) => {
       const matchesSearch =
@@ -91,20 +96,20 @@ export function SupplierLabelsTable({
     });
   }, [supplierLabels, searchTerm, selectedType, selectedSupplier]);
 
-  // Clear filters
+  // Reset all filters to default state
   const clearFilters = () => {
     setSearchTerm("");
     setSelectedType("all");
     setSelectedSupplier("all");
   };
 
-  // Initiate delete
+  // Open delete confirmation dialog for a label relationship
   const initiateDelete = (label: SupplierLabelTableRow) => {
     setLabelToDelete(label);
     setDeleteConfirmOpen(true);
   };
 
-  // Confirm delete
+  // Execute the delete operation after confirmation
   const confirmDelete = () => {
     if (labelToDelete) {
       onDeleteLabel(labelToDelete.id);
@@ -113,6 +118,7 @@ export function SupplierLabelsTable({
     }
   };
 
+  // Define table columns with custom rendering for each data type
   const columns = useMemo(
     () => [
       {
@@ -220,10 +226,10 @@ export function SupplierLabelsTable({
 
           return (
             <div className="text-foreground">
-              {/* Main unit price */}
+              {/* Display the calculated unit price */}
               <div className="font-medium">₹{value.toFixed(2)}</div>
 
-              {/* Bulk pricing info */}
+              {/* Show bulk pricing details if applicable */}
               {hasBulkPricing && row.bulkPrice && (
                 <div className="text-xs text-muted-foreground mt-1">
                   ₹{row.bulkPrice.toFixed(2)} for {row.quantityForBulkPrice}{" "}
@@ -231,7 +237,7 @@ export function SupplierLabelsTable({
                 </div>
               )}
 
-              {/* Unit indicator for non-bulk */}
+              {/* Indicate per unit pricing for non-bulk items */}
               {!hasBulkPricing && (
                 <div className="text-xs text-muted-foreground">per unit</div>
               )}
@@ -374,7 +380,7 @@ export function SupplierLabelsTable({
           </div>
         </CardHeader>
         <CardContent className="space-y-4">
-          {/* Filters */}
+          {/* Search and filter controls */}
           <div className="flex flex-col pb-2 sm:flex-row gap-4">
             <div className="flex-1">
               <div className="relative">
@@ -437,7 +443,7 @@ export function SupplierLabelsTable({
         </CardContent>
       </Card>
 
-      {/* Delete Confirmation Dialog */}
+      {/* Confirmation dialog for deleting supplier label relationship */}
       <AlertDialog open={deleteConfirmOpen} onOpenChange={setDeleteConfirmOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
