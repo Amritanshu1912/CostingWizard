@@ -1,5 +1,4 @@
 // src/hooks/packaging-hooks/use-packaging-queries.ts
-
 import { db } from "@/lib/db";
 import type {
   Packaging,
@@ -17,13 +16,9 @@ import { usePackagingBaseData } from "./use-packaging-data";
 import { Supplier } from "@/types/shared-types";
 import { useSuppliers } from "../use-suppliers";
 
-// ============================================================================
-// PACKAGING QUERIES
-// ============================================================================
-
 /**
- * Get packagings with supplier info for lists/dropdowns
- * Returns: id, name, type, capacity, unit, buildMaterial, supplierCount, suppliers array
+ * Returns packagings with supplier count and details.
+ * @returns Array of packagings with supplier information
  */
 export function usePackagingsWithSupplierCount(): PackagingWithSupplierCount[] {
   const baseData = usePackagingBaseData();
@@ -68,8 +63,9 @@ export function usePackagingsWithSupplierCount(): PackagingWithSupplierCount[] {
 }
 
 /**
- * Get supplier packagings as table rows (main table)
- * Returns: All fields needed for packaging-supplier-table
+ * Returns supplier packagings formatted as table rows.
+ * @param filters - Optional filters to apply
+ * @returns Array of table rows with supplier packaging data
  */
 export function useSupplierPackagingTableRows(
   filters?: PackagingFilters
@@ -87,6 +83,7 @@ export function useSupplierPackagingTableRows(
     const supplierMap = new Map(suppliers.map((s) => [s.id, s]));
     const inventoryMap = new Map(inventory.map((i) => [i.itemId, i]));
 
+    // Transform supplier packagings to table row format
     let rows = baseData.supplierPackagings.map((sp) => {
       const packaging = baseData.packagingMap.get(sp.packagingId);
       const supplier = supplierMap.get(sp.supplierId);
@@ -101,7 +98,7 @@ export function useSupplierPackagingTableRows(
         packagingType: packaging?.type || "other",
         capacity: packaging?.capacity || 0,
         capacityUnit: sp.capacityUnit,
-        buildMaterial: packaging?.buildMaterial,
+        buildMaterial: packaging?.buildMaterial || "Other",
         supplierName: supplier?.name || "Unknown",
         supplierRating: supplier?.rating || 0,
         bulkPrice: sp.bulkPrice,
@@ -154,8 +151,8 @@ export function useSupplierPackagingTableRows(
 }
 
 /**
- * Get price comparison data grouped by packaging
- * Returns: Packagings with multiple suppliers for comparison
+ * Returns price comparison data for packagings with multiple suppliers.
+ * @returns Array of packagings with supplier alternatives sorted by price
  */
 export function usePackagingPriceComparison(): PackagingPriceComparison[] {
   const baseData = usePackagingBaseData();
@@ -242,7 +239,8 @@ export function usePackagingPriceComparison(): PackagingPriceComparison[] {
 }
 
 /**
- * Get analytics data for dashboard
+ * Returns analytics data for packagings dashboard.
+ * @returns Analytics object with totals, averages, and distributions
  */
 export function usePackagingAnalytics(): PackagingAnalytics {
   const baseData = usePackagingBaseData();
@@ -378,12 +376,9 @@ export function usePackagingAnalytics(): PackagingAnalytics {
   }, [baseData, inventory]);
 }
 
-// ============================================================================
-// Lightweight hooks for specific needs
-// ============================================================================
-
 /**
- * Get raw packagings array for dropdowns (minimal data)
+ * Returns packagings data for dropdown selections.
+ * @returns Array of packagings with id, name, type, capacity, capacityUnit
  */
 export function usePackagingsForDropdown(): Pick<
   Packaging,
@@ -404,21 +399,25 @@ export function usePackagingsForDropdown(): Pick<
 }
 
 /**
- * Get all packagings (for packaging manager)
+ * Returns all packagings.
+ * @returns Array of all packagings
  */
 export function useAllPackagings(): Packaging[] {
   return useLiveQuery(() => db.packaging.toArray(), []) || [];
 }
 
 /**
- * Get all suppliers (for supplier selection)
+ * Returns all suppliers.
+ * @returns Array of all suppliers
  */
 export function useAllSuppliers(): Supplier[] {
   return useLiveQuery(() => db.suppliers.toArray(), []) || [];
 }
 
 /**
- * Get supplier packagings by supplier ID
+ * Returns supplier packagings for a specific supplier.
+ * @param supplierId - The supplier ID to filter by
+ * @returns Array of supplier packaging rows for the supplier
  */
 export function useSupplierPackagingsBySupplier(
   supplierId: string | undefined
@@ -431,8 +430,8 @@ export function useSupplierPackagingsBySupplier(
 }
 
 /**
- * Get minimal packaging-supplier mappings for analytics calculations
- * Returns: packagingName and supplierId for supplier diversity analysis
+ * Returns minimal mappings of packagings to suppliers.
+ * @returns Array of packaging-supplier mappings
  */
 export function usePackagingSupplierMappings(): PackagingSupplierMapping[] {
   const baseData = usePackagingBaseData();

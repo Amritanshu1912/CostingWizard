@@ -29,7 +29,13 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import type { PackagingWithSupplierCount } from "@/types/packaging-types";
+import type {
+  BuildMaterial,
+  CapacityUnit,
+  PackagingFormData,
+  PackagingType,
+  PackagingWithSupplierCount,
+} from "@/types/packaging-types";
 import { cn } from "@/utils/shared-utils";
 import { format } from "date-fns";
 import {
@@ -41,25 +47,6 @@ import {
   Trash2,
 } from "lucide-react";
 import { useCallback, useMemo, useState } from "react";
-
-interface PackagingTableProps {
-  data: PackagingWithSupplierCount[];
-  editingPackagingId: string | null;
-  editForm: {
-    name: string;
-    type: string;
-    capacity: string;
-    unit: string;
-    buildMaterial: string;
-  };
-  loading: boolean;
-  shakeFields?: boolean;
-  onEditFormChange: (form: any) => void;
-  onStartEdit: (packaging: PackagingWithSupplierCount) => void;
-  onSaveEdit: () => void;
-  onCancelEdit: () => void;
-  onInitiateDelete: (packaging: PackagingWithSupplierCount) => void;
-}
 
 import {
   BUILD_MATERIAL_LABELS,
@@ -74,6 +61,24 @@ const packagingTypes = PACKAGING_TYPE_LABELS;
 const capacityUnits = CAPACITY_UNIT_VALUES;
 const buildMaterials = BUILD_MATERIAL_LABELS;
 
+interface PackagingTableProps {
+  data: PackagingWithSupplierCount[];
+  editingPackagingId: string | null;
+  editForm: PackagingFormData;
+  loading: boolean;
+  shakeFields?: boolean;
+  onEditFormChange: (form: PackagingFormData) => void;
+  onStartEdit: (packaging: PackagingWithSupplierCount) => void;
+  onSaveEdit: () => void;
+  onCancelEdit: () => void;
+  onInitiateDelete: (packaging: PackagingWithSupplierCount) => void;
+}
+
+/**
+ * PackagingTable component provides an editable data table for packaging items
+ * Supports inline editing with comboboxes for type/material selection, form validation,
+ * and CRUD operations with proper error handling and visual feedback.
+ */
 export function PackagingTable({
   data,
   editingPackagingId,
@@ -86,12 +91,16 @@ export function PackagingTable({
   onCancelEdit,
   onInitiateDelete,
 }: PackagingTableProps) {
+  // State for searchable comboboxes in edit mode
   const [typeSearch, setTypeSearch] = useState("");
   const [buildMaterialSearch, setBuildMaterialSearch] = useState("");
+
+  // State for controlling combobox popover visibility
   const [openTypeCombobox, setOpenTypeCombobox] = useState(false);
   const [openBuildMaterialCombobox, setOpenBuildMaterialCombobox] =
     useState(false);
 
+  // Filter packaging types based on search input
   const filteredTypes = useMemo(() => {
     if (!typeSearch) return packagingTypes;
     return packagingTypes.filter((type) =>
@@ -99,6 +108,7 @@ export function PackagingTable({
     );
   }, [typeSearch]);
 
+  // Filter build materials based on search input
   const filteredBuildMaterials = useMemo(() => {
     if (!buildMaterialSearch) return buildMaterials;
     return buildMaterials.filter((material) =>
@@ -106,6 +116,7 @@ export function PackagingTable({
     );
   }, [buildMaterialSearch]);
 
+  // Check if the current search represents a new type not in the predefined list
   const isNewType = useMemo(() => {
     if (!typeSearch) return false;
     return !packagingTypes.some(
@@ -113,6 +124,7 @@ export function PackagingTable({
     );
   }, [typeSearch]);
 
+  // Check if the current search represents a new build material
   const isNewBuildMaterial = useMemo(() => {
     if (!buildMaterialSearch) return false;
     return !buildMaterials.some(
@@ -120,20 +132,23 @@ export function PackagingTable({
     );
   }, [buildMaterialSearch]);
 
+  // Handle selection of an existing packaging type
   const handleSelectType = useCallback(
     (type: string) => {
-      onEditFormChange({ ...editForm, type });
+      onEditFormChange({ ...editForm, type: type as PackagingType });
       setTypeSearch(type);
       setOpenTypeCombobox(false);
     },
     [editForm, onEditFormChange]
   );
 
+  // Handle creation of a new packaging type from search input
   const handleNewType = useCallback(() => {
-    onEditFormChange({ ...editForm, type: typeSearch });
+    onEditFormChange({ ...editForm, type: typeSearch as PackagingType });
     setOpenTypeCombobox(false);
   }, [editForm, onEditFormChange, typeSearch]);
 
+  // Define table columns with custom rendering for each field
   const columns = useMemo(
     () => [
       {
@@ -203,7 +218,7 @@ export function PackagingTable({
                               <Check
                                 className={cn(
                                   "mr-2 h-4 w-4",
-                                  editForm.type === type
+                                  editForm.type === (type as PackagingType)
                                     ? "opacity-100"
                                     : "opacity-0"
                                 )}
@@ -289,7 +304,7 @@ export function PackagingTable({
                               onSelect={() => {
                                 onEditFormChange({
                                   ...editForm,
-                                  buildMaterial: material,
+                                  buildMaterial: material as BuildMaterial,
                                 });
                                 setBuildMaterialSearch(material);
                                 setOpenBuildMaterialCombobox(false);
@@ -298,7 +313,8 @@ export function PackagingTable({
                               <Check
                                 className={cn(
                                   "mr-2 h-4 w-4",
-                                  editForm.buildMaterial === material
+                                  editForm.buildMaterial ===
+                                    (material as BuildMaterial)
                                     ? "opacity-100"
                                     : "opacity-0"
                                 )}
@@ -314,7 +330,8 @@ export function PackagingTable({
                             onSelect={() => {
                               onEditFormChange({
                                 ...editForm,
-                                buildMaterial: buildMaterialSearch,
+                                buildMaterial:
+                                  buildMaterialSearch as BuildMaterial,
                               });
                               setOpenBuildMaterialCombobox(false);
                             }}
@@ -366,7 +383,10 @@ export function PackagingTable({
                   type="number"
                   value={editForm.capacity}
                   onChange={(e) =>
-                    onEditFormChange({ ...editForm, capacity: e.target.value })
+                    onEditFormChange({
+                      ...editForm,
+                      capacity: parseFloat(e.target.value) || 0,
+                    })
                   }
                   className={cn(
                     "h-9 flex-1",
@@ -378,9 +398,12 @@ export function PackagingTable({
                   step="0.01"
                 />
                 <Select
-                  value={editForm.unit}
+                  value={editForm.capacityUnit}
                   onValueChange={(value) =>
-                    onEditFormChange({ ...editForm, unit: value })
+                    onEditFormChange({
+                      ...editForm,
+                      capacityUnit: value as CapacityUnit,
+                    })
                   }
                 >
                   <SelectTrigger
@@ -564,7 +587,7 @@ export function PackagingTable({
     ]
   );
 
-  // Disable sorting when adding new item to keep it at the top
+  // Disable column sorting when editing a new item to keep it at the top
   const disableSorting = editingPackagingId === "new";
 
   return (

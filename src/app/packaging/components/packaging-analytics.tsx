@@ -43,10 +43,15 @@ import {
 } from "recharts";
 import { AI_INSIGHTS } from "./packaging-constants";
 
+/**
+ * PackagingAnalytics component provides comprehensive analytics for packaging data
+ * including key metrics, trend charts, usage analysis, and AI-powered insights.
+ * It visualizes supplier performance, pricing trends, and inventory status.
+ */
 export function PackagingAnalytics() {
   const supplierPackaging = useSupplierPackagingTableRows();
 
-  // Calculate key metrics dynamically
+  // Calculate and memoize key performance metrics from supplier packaging data
   const keyMetrics = useMemo(() => {
     if (!supplierPackaging.length) return [];
 
@@ -131,6 +136,11 @@ export function PackagingAnalytics() {
     ];
   }, [supplierPackaging]);
 
+  /**
+   * Generates a stable random number based on a seed string.
+   * @param seed - The string seed for generating consistent random values
+   * @returns A number between 0 and 1
+   */
   const getStableRandom = (seed: string): number => {
     let hash = 0;
     for (let i = 0; i < seed.length; i++) {
@@ -142,7 +152,7 @@ export function PackagingAnalytics() {
     return (hash & 0x7fffffff) / 0x7fffffff;
   };
 
-  // Price History Data - create mock trend data based on current prices
+  // Generate mock price history data based on current pricing
   const priceHistoryData = useMemo(() => {
     if (!supplierPackaging.length) return [];
 
@@ -165,7 +175,7 @@ export function PackagingAnalytics() {
     });
   }, [supplierPackaging]);
 
-  // Packaging Usage Data - calculate based on packaging types
+  // Calculate packaging usage data by grouping items by type
   const packagingUsageData = useMemo(() => {
     if (!supplierPackaging.length) return [];
 
@@ -190,7 +200,7 @@ export function PackagingAnalytics() {
     }));
   }, [supplierPackaging]);
 
-  // Packaging Type Distribution
+  // Calculate distribution of packaging types for pie chart
   const packagingTypeDistribution = useMemo(() => {
     if (!supplierPackaging.length) return [];
 
@@ -213,7 +223,7 @@ export function PackagingAnalytics() {
     }));
   }, [supplierPackaging]);
 
-  // Supplier Performance Data
+  // Group supplier data for performance comparison
   const supplierPerformanceData = useMemo(() => {
     if (!supplierPackaging.length) return [];
 
@@ -245,7 +255,7 @@ export function PackagingAnalytics() {
 
   return (
     <div className="space-y-6">
-      {/* Key Metrics */}
+      {/* Display key performance metrics in a responsive grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         {keyMetrics.map((metric) => {
           const Icon = metric.icon;
@@ -286,9 +296,9 @@ export function PackagingAnalytics() {
         })}
       </div>
 
-      {/* Charts */}
+      {/* First row of charts: price trends and usage analysis */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Price Trends */}
+        {/* Price Trends Chart */}
         <Card className="card-enhanced">
           <CardHeader>
             <CardTitle className="text-foreground">Price Trends</CardTitle>
@@ -347,7 +357,7 @@ export function PackagingAnalytics() {
           </CardContent>
         </Card>
 
-        {/* Packaging Usage */}
+        {/* Packaging Usage Analysis Chart */}
         <Card className="card-enhanced">
           <CardHeader>
             <CardTitle className="text-foreground">
@@ -400,9 +410,9 @@ export function PackagingAnalytics() {
         </Card>
       </div>
 
-      {/* Additional Charts */}
+      {/* Second row of charts: type distribution and supplier performance */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Packaging Type Distribution */}
+        {/* Packaging Type Distribution Pie Chart */}
         <Card className="card-enhanced">
           <CardHeader>
             <CardTitle className="text-foreground">
@@ -444,7 +454,7 @@ export function PackagingAnalytics() {
           </CardContent>
         </Card>
 
-        {/* Supplier Performance */}
+        {/* Supplier Performance Comparison Chart */}
         <Card className="card-enhanced">
           <CardHeader>
             <CardTitle className="text-foreground">
@@ -507,7 +517,7 @@ export function PackagingAnalytics() {
         </Card>
       </div>
 
-      {/* AI Insights */}
+      {/* AI Insights section with hardcoded sample data */}
       <Card className="card-enhanced border-2 border-primary/20 shadow-lg">
         <CardHeader>
           <div className="flex items-center gap-3">

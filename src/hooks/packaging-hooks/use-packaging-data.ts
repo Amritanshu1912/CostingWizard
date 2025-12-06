@@ -8,27 +8,29 @@ import type {
 import { useLiveQuery } from "dexie-react-hooks";
 
 /**
- * Core data hook - fetches all base data and provides lookup maps
- * Internal use only - other hooks build on this
+ * Fetches all base packaging data and creates optimized lookup maps.
+ * @returns {PackagingBaseData | undefined} Base data with packagings, suppliers, and maps
  */
 export function usePackagingBaseData(): PackagingBaseData | undefined {
   return useLiveQuery(async () => {
+    // Fetch data in parallel for performance
     const [packagings, supplierPackagings] = await Promise.all([
       db.packaging.toArray(),
       db.supplierPackaging.toArray(),
     ]);
 
-    // Create lookup maps
+    // Create lookup maps for O(1) access
     const packagingMap = new Map(packagings.map((p: Packaging) => [p.id, p]));
     const supplierPackagingMap = new Map(
       supplierPackagings.map((sp: SupplierPackaging) => [sp.id, sp])
     );
 
-    // Create indexes
+    // Group supplier packagings by their associated packaging ID for quick filtering
     const supplierPackagingsByPackaging = new Map<
       string,
       SupplierPackaging[]
     >();
+    // Group supplier packagings by supplier ID to find all packagings from a supplier
     const supplierPackagingsBySupplier = new Map<string, SupplierPackaging[]>();
 
     supplierPackagings.forEach((sp) => {
@@ -37,11 +39,13 @@ export function usePackagingBaseData(): PackagingBaseData | undefined {
       byPackaging.push(sp);
       supplierPackagingsByPackaging.set(sp.packagingId, byPackaging);
 
+      // Add to supplier-based grouping
       const bySupplier = supplierPackagingsBySupplier.get(sp.supplierId) || [];
       bySupplier.push(sp);
       supplierPackagingsBySupplier.set(sp.supplierId, bySupplier);
     });
 
+    // Group packagings by type for categorization
     const packagingsByType = new Map<string, Packaging[]>();
     packagings.forEach((p) => {
       const byType = packagingsByType.get(p.type) || [];
@@ -49,6 +53,7 @@ export function usePackagingBaseData(): PackagingBaseData | undefined {
       packagingsByType.set(p.type, byType);
     });
 
+    // Group packagings by build material
     const packagingsByMaterial = new Map<string, Packaging[]>();
     packagings.forEach((p) => {
       if (p.buildMaterial) {

@@ -1,39 +1,123 @@
 // src/hooks/material-hooks/use-materials-mutations.ts
 import { db } from "@/lib/db";
 import type {
+  CategoryFormData,
   MaterialFormData,
   SupplierMaterialFormData,
-  CategoryFormData,
 } from "@/types/material-types";
 import { assignCategoryColor } from "@/utils/color-utils";
 import { normalizeText } from "@/utils/text-utils";
 import { nanoid } from "nanoid";
 import { useCallback } from "react";
 
+// ============================================================================
+// HELPER FUNCTIONS
+// ============================================================================
+
 /**
- * Provides functions to create, update, and delete materials.
- * @returns Object with createMaterial, updateMaterial, deleteMaterial
+ * Ensures a category exists in the database, creating it if not found.
+ * Performs case-insensitive name matching.
+ * @param categoryName - Name of the category to ensure exists
+ * @param timestamp - ISO timestamp for createdAt field if creating
+ * @param color - Optional hex color code, auto-assigned if not provided
+ */
+async function ensureCategoryExists(
+  categoryName: string,
+  timestamp: string,
+  color?: string
+): Promise<void> {
+  const normalized = normalizeText(categoryName);
+  const existing = await db.categories
+    .filter((c) => normalizeText(c.name) === normalized)
+    .first();
+
+  if (!existing) {
+    await db.categories.add({
+      id: nanoid(),
+      name: categoryName.trim(),
+      color: color || assignCategoryColor(categoryName),
+      createdAt: timestamp,
+    });
+  }
+}
+
+/**
+ * Gets existing material by name or creates a new one.
+ * If material exists but has different category, updates the category.
+ * @param name - Material name
+ * @param category - Category name (will be ensured to exist)
+ * @param notes - Optional notes
+ * @param timestamp - ISO timestamp for created/updated fields
+ * @returns Material ID (existing or newly created)
+ */
+async function getOrCreateMaterial(
+  name: string,
+  category: string,
+  notes: string | undefined,
+  timestamp: string
+): Promise<string> {
+  const normalized = normalizeText(name);
+  const existing = await db.materials
+    .filter((m) => normalizeText(m.name) === normalized)
+    .first();
+
+  if (existing) {
+    // Sync category if it has changed
+    if (existing.category !== category.trim()) {
+      await db.materials.update(existing.id, {
+        category: category.trim(),
+        updatedAt: timestamp,
+      });
+    }
+    return existing.id;
+  }
+
+  // Create new material
+  const id = nanoid();
+  await db.materials.add({
+    id,
+    name: name.trim(),
+    category: category.trim(),
+    notes: notes?.trim(),
+    createdAt: timestamp,
+  });
+
+  return id;
+}
+
+// ============================================================================
+// MATERIAL MUTATIONS
+// ============================================================================
+
+/**
+ * Hook providing CRUD operations for base materials.
+ * Materials are uniquely identified by name (case-insensitive).
+ * @returns Object containing createMaterial, updateMaterial, and deleteMaterial functions
  */
 export function useMaterialMutations() {
+  /**
+   * Creates a new material in the database.
+   * Ensures the category exists before creating the material.
+   * @param data - Material form data
+   * @returns Promise resolving to the created material's ID
+   */
   const createMaterial = useCallback(
     async (data: MaterialFormData): Promise<string> => {
       const now = new Date().toISOString();
-      const id = nanoid();
 
-      // Check for duplicates
+      // Prevent duplicate materials
       const normalized = normalizeText(data.name);
       const duplicate = await db.materials
         .filter((m) => normalizeText(m.name) === normalized)
         .first();
 
       if (duplicate) {
-        throw new Error(`Material with these specifications already exists`);
+        throw new Error("Material with this name already exists");
       }
 
-      // Ensure category exists
       await ensureCategoryExists(data.category, now);
 
-      // Create material
+      const id = nanoid();
       await db.materials.add({
         id,
         name: data.name.trim(),
@@ -47,11 +131,17 @@ export function useMaterialMutations() {
     []
   );
 
+  /**
+   * Updates an existing material's properties.
+   * Validates name uniqueness if name is being changed.
+   * @param id - Material ID to update
+   * @param data - Partial material data to update
+   */
   const updateMaterial = useCallback(
     async (id: string, data: Partial<MaterialFormData>): Promise<void> => {
       const now = new Date().toISOString();
 
-      // Check for duplicate name
+      // Check name uniqueness if being updated
       if (data.name) {
         const normalized = normalizeText(data.name);
         const duplicate = await db.materials
@@ -59,16 +149,14 @@ export function useMaterialMutations() {
           .first();
 
         if (duplicate) {
-          throw new Error(`Material with these specifications already exists`);
+          throw new Error("Material with this name already exists");
         }
       }
 
-      // Ensure category exists if being updated
       if (data.category) {
         await ensureCategoryExists(data.category, now);
       }
 
-      // Update material
       await db.materials.update(id, {
         ...(data.name && { name: data.name.trim() }),
         ...(data.category && { category: data.category.trim() }),
@@ -79,8 +167,11 @@ export function useMaterialMutations() {
     []
   );
 
+  /**
+   * Deletes a material from the database.
+   * @param id - Material ID to delete
+   */
   const deleteMaterial = useCallback(async (id: string): Promise<void> => {
-    // Check if in use
     const inUse = await db.supplierMaterials
       .where("materialId")
       .equals(id)
@@ -96,28 +187,44 @@ export function useMaterialMutations() {
   return { createMaterial, updateMaterial, deleteMaterial };
 }
 
+// ============================================================================
+// SUPPLIER MATERIAL MUTATIONS
+// ============================================================================
+
 /**
- * Provides functions to create, update, and delete supplier materials.
- * @returns Object with createSupplierMaterial, updateSupplierMaterial, deleteSupplierMaterial
+ * Hook providing CRUD operations for supplier materials.
+ * Handles complex material creation/linking and pricing calculations within transactions.
+ * @returns Object containing createSupplierMaterial, updateSupplierMaterial, and deleteSupplierMaterial functions
  */
 export function useSupplierMaterialMutations() {
+  /**
+   * Creates a new supplier material entry.
+   * Automatically creates or links to existing material and category.
+   * @param data - Supplier material form data
+   * @returns Promise resolving to the created supplier material's ID
+   */
   const createSupplierMaterial = useCallback(
     async (data: SupplierMaterialFormData): Promise<string> => {
       const now = new Date().toISOString();
 
-      // Use database transaction for atomic operations
       return await db.transaction(
         "rw",
         [db.materials, db.supplierMaterials, db.categories],
         async () => {
           await ensureCategoryExists(data.materialCategory, now);
 
-          let materialId: string;
+          // Link to existing material or create new one
+          const materialId = data.materialId
+            ? data.materialId
+            : await getOrCreateMaterial(
+                data.materialName,
+                data.materialCategory,
+                data.notes,
+                now
+              );
 
+          // Sync category for existing materials
           if (data.materialId) {
-            // Using existing material
-            materialId = data.materialId;
-
             const material = await db.materials.get(materialId);
             if (
               material &&
@@ -128,40 +235,13 @@ export function useSupplierMaterialMutations() {
                 updatedAt: now,
               });
             }
-          } else {
-            // Check if material exists
-            const normalized = normalizeText(data.materialName);
-            const existingMaterial = await db.materials
-              .filter((m) => normalizeText(m.name) === normalized)
-              .first();
-
-            if (existingMaterial) {
-              materialId = existingMaterial.id;
-
-              // Update category if changed
-              if (existingMaterial.category !== data.materialCategory.trim()) {
-                await db.materials.update(materialId, {
-                  category: data.materialCategory.trim(),
-                  updatedAt: now,
-                });
-              }
-            } else {
-              materialId = nanoid();
-              await db.materials.add({
-                id: materialId,
-                name: data.materialName.trim(),
-                category: data.materialCategory.trim(),
-                notes: data.notes?.trim(),
-                createdAt: now,
-              });
-            }
           }
 
           const unitPrice = data.bulkPrice / (data.quantityForBulkPrice || 1);
 
-          const supplierMaterialId = nanoid();
+          const id = nanoid();
           await db.supplierMaterials.add({
-            id: supplierMaterialId,
+            id,
             supplierId: data.supplierId,
             materialId,
             unitPrice,
@@ -177,13 +257,19 @@ export function useSupplierMaterialMutations() {
             createdAt: now,
           });
 
-          return supplierMaterialId;
+          return id;
         }
       );
     },
     []
   );
 
+  /**
+   * Updates an existing supplier material.
+   * Handles material name/category changes and recalculates pricing.
+   * @param id - Supplier material ID to update
+   * @param data - Partial supplier material data to update
+   */
   const updateSupplierMaterial = useCallback(
     async (
       id: string,
@@ -195,21 +281,20 @@ export function useSupplierMaterialMutations() {
         "rw",
         [db.materials, db.supplierMaterials, db.categories],
         async () => {
-          const supplierMaterial = await db.supplierMaterials.get(id);
-          if (!supplierMaterial) {
+          const current = await db.supplierMaterials.get(id);
+          if (!current) {
             throw new Error("Supplier material not found");
           }
 
-          // Handle material/category updates
-          if (data.materialCategory || data.materialName) {
-            const material = await db.materials.get(
-              supplierMaterial.materialId
-            );
+          const hasMaterialChanges = data.materialCategory || data.materialName;
+
+          if (hasMaterialChanges) {
+            const material = await db.materials.get(current.materialId);
             if (!material) {
               throw new Error("Material not found");
             }
 
-            // Update category
+            // Sync category
             if (
               data.materialCategory &&
               material.category !== data.materialCategory.trim()
@@ -221,7 +306,7 @@ export function useSupplierMaterialMutations() {
               });
             }
 
-            // Update material name
+            // Update material name with duplicate check
             if (
               data.materialName &&
               material.name !== data.materialName.trim()
@@ -235,9 +320,7 @@ export function useSupplierMaterialMutations() {
                 .first();
 
               if (duplicate) {
-                throw new Error(
-                  `Material with these specifications already exists`
-                );
+                throw new Error("Material with this name already exists");
               }
 
               await db.materials.update(material.id, {
@@ -247,24 +330,21 @@ export function useSupplierMaterialMutations() {
             }
           }
 
-          // Calculate unit price if bulk pricing changed
-          let unitPrice = supplierMaterial.unitPrice;
+          // Recalculate unit price if bulk pricing changed
+          let unitPrice = current.unitPrice;
           if (
             data.bulkPrice !== undefined ||
             data.quantityForBulkPrice !== undefined
           ) {
-            const bulkPrice = data.bulkPrice ?? supplierMaterial.bulkPrice ?? 0;
+            const bulkPrice = data.bulkPrice ?? current.bulkPrice ?? 0;
             const quantity =
-              data.quantityForBulkPrice ??
-              supplierMaterial.quantityForBulkPrice ??
-              1;
+              data.quantityForBulkPrice ?? current.quantityForBulkPrice ?? 1;
             unitPrice = bulkPrice / quantity;
           }
 
-          // Update supplier material
           await db.supplierMaterials.update(id, {
             ...(data.supplierId && { supplierId: data.supplierId }),
-            ...(unitPrice !== supplierMaterial.unitPrice && { unitPrice }),
+            ...(unitPrice !== current.unitPrice && { unitPrice }),
             ...(data.bulkPrice !== undefined && { bulkPrice: data.bulkPrice }),
             ...(data.quantityForBulkPrice !== undefined && {
               quantityForBulkPrice: data.quantityForBulkPrice,
@@ -286,6 +366,11 @@ export function useSupplierMaterialMutations() {
     []
   );
 
+  /**
+   * Deletes a supplier material entry.
+   * Does not delete the underlying material.
+   * @param id - Supplier material ID to delete
+   */
   const deleteSupplierMaterial = useCallback(
     async (id: string): Promise<void> => {
       await db.supplierMaterials.delete(id);
@@ -300,26 +385,37 @@ export function useSupplierMaterialMutations() {
   };
 }
 
+// ============================================================================
+// CATEGORY MUTATIONS
+// ============================================================================
+
 /**
- * Provides functions to create, update, and delete categories.
- * @returns Object with createCategory, updateCategory, deleteCategory
+ * Hook providing CRUD operations for material categories.
+ * Categories are uniquely identified by name (case-insensitive).
+ * @returns Object containing createCategory, updateCategory, and deleteCategory functions
  */
 export function useCategoryMutations() {
+  /**
+   * Creates a new category in the database.
+   * Auto-assigns color if not provided.
+   * @param data - Category form data
+   * @returns Promise resolving to the created category's ID
+   */
   const createCategory = useCallback(
     async (data: CategoryFormData): Promise<string> => {
       const now = new Date().toISOString();
-      const id = nanoid();
 
-      // Check for duplicates
+      // Prevent duplicate categories
       const normalized = normalizeText(data.name);
       const duplicate = await db.categories
         .filter((c) => normalizeText(c.name) === normalized)
         .first();
 
       if (duplicate) {
-        throw new Error(`Category with these specifications already exists`);
+        throw new Error("Category with this name already exists");
       }
 
+      const id = nanoid();
       await db.categories.add({
         id,
         name: data.name.trim(),
@@ -333,11 +429,17 @@ export function useCategoryMutations() {
     []
   );
 
+  /**
+   * Updates an existing category's properties.
+   * Validates name uniqueness if name is being changed.
+   * @param id - Category ID to update
+   * @param data - Partial category data to update
+   */
   const updateCategory = useCallback(
     async (id: string, data: Partial<CategoryFormData>): Promise<void> => {
       const now = new Date().toISOString();
 
-      // Check for duplicate name
+      // Check name uniqueness if being updated
       if (data.name) {
         const normalized = normalizeText(data.name);
         const duplicate = await db.categories
@@ -345,7 +447,7 @@ export function useCategoryMutations() {
           .first();
 
         if (duplicate) {
-          throw new Error(`Category with these specifications already exists`);
+          throw new Error("Category with this name already exists");
         }
       }
 
@@ -361,13 +463,16 @@ export function useCategoryMutations() {
     []
   );
 
+  /**
+   * Deletes a category from the database.
+   * @param id - Category ID to delete
+   */
   const deleteCategory = useCallback(async (id: string): Promise<void> => {
     const category = await db.categories.get(id);
     if (!category) {
       throw new Error("Category not found");
     }
 
-    // Check if in use
     const inUse = await db.materials
       .filter((m) => m.category === category.name)
       .count();
@@ -382,11 +487,16 @@ export function useCategoryMutations() {
   return { createCategory, updateCategory, deleteCategory };
 }
 
+// ============================================================================
+// COMBINED HOOK
+// ============================================================================
+
 /**
- * Combined hook for all material mutations.
- * @returns Object with all mutation functions
+ * Convenience hook that combines all material-related mutations.
+ * Use this when a component needs access to multiple mutation types.
+ * @returns Object containing all material, supplier material, and category mutation functions
  */
-export function useMaterialsMutations() {
+export function useAllMaterialMutations() {
   const materialMutations = useMaterialMutations();
   const supplierMaterialMutations = useSupplierMaterialMutations();
   const categoryMutations = useCategoryMutations();
@@ -396,28 +506,4 @@ export function useMaterialsMutations() {
     ...supplierMaterialMutations,
     ...categoryMutations,
   };
-}
-
-// HELPER FUNCTION
-
-/**
- * Ensure category exists, create if not
- */
-async function ensureCategoryExists(
-  categoryName: string,
-  timestamp: string
-): Promise<void> {
-  const normalized = normalizeText(categoryName);
-  const existing = await db.categories
-    .filter((c) => normalizeText(c.name) === normalized)
-    .first();
-
-  if (!existing) {
-    await db.categories.add({
-      id: nanoid(),
-      name: categoryName.trim(),
-      color: assignCategoryColor(categoryName),
-      createdAt: timestamp,
-    });
-  }
 }

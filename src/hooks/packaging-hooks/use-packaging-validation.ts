@@ -1,3 +1,4 @@
+// src/hooks/packaging-hooks/use-packaging-validation.ts
 import type {
   PackagingFormErrors,
   PackagingFormData,
@@ -6,12 +7,10 @@ import type {
 import { useCallback } from "react";
 import { useDuplicateCheck } from "../use-duplicate-check";
 
-// ============================================================================
-// FORM VALIDATION
-// ============================================================================
-
 /**
- * Validate packaging form data
+ * Validates packaging form data.
+ * @param data - The form data to validate
+ * @returns Validation result with errors
  */
 export function validatePackagingForm(data: PackagingFormData): {
   isValid: boolean;
@@ -50,7 +49,9 @@ export function validatePackagingForm(data: PackagingFormData): {
 }
 
 /**
- * Validate supplier packaging form data
+ * Validates supplier packaging form data.
+ * @param data - The form data to validate
+ * @returns Validation result with errors
  */
 export function validateSupplierPackagingForm(
   data: SupplierPackagingFormData
@@ -115,13 +116,12 @@ export function validateSupplierPackagingForm(
   };
 }
 
-// ============================================================================
-// VALIDATION HOOK
-// ============================================================================
-
 /**
- * Combined validation hook for forms
- * Provides both validation and duplicate checking
+ * Combined validation hook for packaging forms.
+ * @param formType - Type of form being validated
+ * @param existingItems - Items to check for duplicates
+ * @param currentId - Current item ID for updates
+ * @returns Validation function and duplicate checking utilities
  */
 export function usePackagingFormValidation<
   T extends PackagingFormData | SupplierPackagingFormData,

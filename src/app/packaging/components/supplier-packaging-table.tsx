@@ -13,12 +13,6 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
-import {
   Card,
   CardContent,
   CardDescription,
@@ -34,7 +28,17 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { SortableTable } from "@/components/ui/sortable-table";
-import type { SupplierPackagingTableRow } from "@/types/packaging-types";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
+import type {
+  BuildMaterial,
+  PackagingType,
+  SupplierPackagingTableRow,
+} from "@/types/packaging-types";
 import type { Supplier } from "@/types/shared-types";
 import { Edit, Filter, Info, Plus, Search, Trash2 } from "lucide-react";
 import { useMemo, useState } from "react";
@@ -52,6 +56,10 @@ interface SupplierPackagingTableProps {
   onAddSupplierPackaging: () => void;
 }
 
+/**
+ * SupplierPackagingTable component displays supplier packaging data in a sortable table
+ * with filtering capabilities and CRUD actions. Shows pricing, inventory status, and supplier details.
+ */
 export function SupplierPackagingTable({
   supplierPackaging,
   suppliers,
@@ -59,19 +67,22 @@ export function SupplierPackagingTable({
   onDeletePackaging,
   onAddSupplierPackaging,
 }: SupplierPackagingTableProps) {
+  // State for search and filter controls
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedType, setSelectedType] = useState("all");
   const [selectedSupplier, setSelectedSupplier] = useState("all");
+
+  // State for delete confirmation dialog
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
   const [packagingToDelete, setPackagingToDelete] =
     useState<SupplierPackagingTableRow | null>(null);
 
-  // Get unique packaging types from the data
+  // Extract unique packaging types for filter dropdown
   const packagingTypes = Array.from(
     new Set(supplierPackaging.map((sp) => sp.packagingType))
   );
 
-  // Filter packaging using enriched data
+  // Filter the packaging data based on search and filter criteria
   const filteredPackaging = useMemo(() => {
     return supplierPackaging.filter((packaging) => {
       const matchesSearch =
@@ -87,20 +98,20 @@ export function SupplierPackagingTable({
     });
   }, [supplierPackaging, searchTerm, selectedType, selectedSupplier]);
 
-  // Clear filters
+  // Reset all filters to default state
   const clearFilters = () => {
     setSearchTerm("");
     setSelectedType("all");
     setSelectedSupplier("all");
   };
 
-  // Initiate delete
+  // Open delete confirmation dialog for a packaging item
   const initiateDelete = (packaging: SupplierPackagingTableRow) => {
     setPackagingToDelete(packaging);
     setDeleteConfirmOpen(true);
   };
 
-  // Confirm delete
+  // Execute the delete operation after confirmation
   const confirmDelete = () => {
     if (packagingToDelete) {
       onDeletePackaging(packagingToDelete.id);
@@ -109,6 +120,7 @@ export function SupplierPackagingTable({
     }
   };
 
+  // Define table columns with custom rendering for each data type
   const columns = useMemo(
     () => [
       {
@@ -124,8 +136,8 @@ export function SupplierPackagingTable({
         label: "Type",
         sortable: true,
         render: (value: string) => {
-          const displayLabel = getPackagingTypeLabel(value as any);
-          const color = getPackagingTypeColor(value as any);
+          const displayLabel = getPackagingTypeLabel(value as PackagingType);
+          const color = getPackagingTypeColor(value as PackagingType);
           return (
             <Badge
               variant="outline"
@@ -164,7 +176,7 @@ export function SupplierPackagingTable({
           if (!material)
             return <span className="text-muted-foreground">—</span>;
 
-          const color = getBuildMaterialColor(material as any);
+          const color = getBuildMaterialColor(material as BuildMaterial);
           return (
             <Badge
               variant="outline"
@@ -198,10 +210,10 @@ export function SupplierPackagingTable({
 
           return (
             <div className="text-foreground">
-              {/* Main unit price */}
+              {/* Display the calculated unit price */}
               <div className="font-medium">₹{(value ?? 0).toFixed(2)}</div>
 
-              {/* Bulk pricing info */}
+              {/* Show bulk pricing details if applicable */}
               {hasBulkPricing && row.bulkPrice && (
                 <div className="text-xs text-muted-foreground mt-1">
                   ₹{row.bulkPrice.toFixed(2)} for {row.quantityForBulkPrice}{" "}
@@ -209,7 +221,7 @@ export function SupplierPackagingTable({
                 </div>
               )}
 
-              {/* Unit indicator for non-bulk */}
+              {/* Indicate per unit pricing for non-bulk items */}
               {!hasBulkPricing && (
                 <div className="text-xs text-muted-foreground">per unit</div>
               )}
@@ -356,7 +368,7 @@ export function SupplierPackagingTable({
           </div>
         </CardHeader>
         <CardContent className="space-y-4">
-          {/* Filters */}
+          {/* Search and filter controls */}
           <div className="flex flex-col pb-2 sm:flex-row gap-4">
             <div className="flex-1">
               <div className="relative">
@@ -419,7 +431,7 @@ export function SupplierPackagingTable({
         </CardContent>
       </Card>
 
-      {/* Delete Confirmation Dialog */}
+      {/* Confirmation dialog for deleting supplier packaging */}
       <AlertDialog open={deleteConfirmOpen} onOpenChange={setDeleteConfirmOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>

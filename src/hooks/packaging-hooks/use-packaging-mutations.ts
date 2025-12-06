@@ -1,54 +1,145 @@
-/**
- * Mutation hooks - All database write operations
- *
- * Encapsulates all CRUD operations for packaging and supplier packaging.
- * Components should never import db directly.
- *
- * Benefits:
- * - Single source for all mutations
- * - Consistent error handling
- * - Automatic timestamp management
- * - Transaction support for complex operations
- */
-
+// src/hooks/packaging-hooks/use-packaging-mutations.ts
 import { db } from "@/lib/db";
 import type {
+  BuildMaterial,
+  CapacityUnit,
+  Packaging,
   PackagingFormData,
+  PackagingType,
   SupplierPackagingFormData,
 } from "@/types/packaging-types";
 import { normalizeText } from "@/utils/text-utils";
 import { nanoid } from "nanoid";
 import { useCallback } from "react";
 
-// ============================================================================
-// PACKAGING MUTATIONS
-// ============================================================================
+/**
+ * Finds packaging with exact specifications to prevent duplicates.
+ * @param name - Packaging name
+ * @param type - Packaging type
+ * @param capacity - Capacity value
+ * @param capacityUnit - Capacity unit
+ * @param buildMaterial - Build material
+ * @param excludeId - Optional ID to exclude from search
+ * @returns Matching packaging ID or null
+ */
+async function findExactPackagingMatch(
+  name: string,
+  type: PackagingType,
+  capacity: number,
+  capacityUnit: CapacityUnit,
+  buildMaterial: BuildMaterial,
+  excludeId?: string
+): Promise<{ id: string } | null> {
+  const matches = await db.packaging
+    .filter((p) => {
+      if (excludeId && p.id === excludeId) return false;
 
-export function useBasePackagingMutations() {
+      return (
+        normalizeText(p.name) === normalizeText(name) &&
+        p.type === type &&
+        p.capacity === capacity &&
+        p.capacityUnit === capacityUnit &&
+        p.buildMaterial === buildMaterial
+      );
+    })
+    .toArray();
+
+  return matches.length > 0 ? { id: matches[0].id } : null;
+}
+
+/**
+ * Validates packaging form data.
+ * @param data - Form data to validate
+ */
+function validatePackagingData(data: PackagingFormData): void {
+  const trimmedName = data.name.trim();
+  const capacity = data.capacity;
+
+  if (!trimmedName || !data.type) {
+    throw new Error("Name and type are required");
+  }
+
+  if (capacity !== undefined && (isNaN(capacity) || capacity < 0)) {
+    throw new Error("Capacity must be a positive number");
+  }
+
+  if (capacity !== undefined && capacity > 0 && !data.capacityUnit) {
+    throw new Error("Unit is required when capacity is specified");
+  }
+}
+
+/**
+ * Gets existing packaging or creates new one with specifications.
+ * @param data - Packaging data without ID and createdAt
+ * @param timestamp - Creation timestamp
+ * @returns Packaging ID
+ */
+async function getOrCreatePackaging(
+  data: Omit<Packaging, "id" | "createdAt">,
+  timestamp: string
+): Promise<string> {
+  const existing = await findExactPackagingMatch(
+    data.name,
+    data.type,
+    data.capacity,
+    data.capacityUnit,
+    data.buildMaterial
+  );
+
+  if (existing) {
+    return existing.id;
+  }
+
+  const id = nanoid();
+  await db.packaging.add({
+    id,
+    name: data.name.trim(),
+    type: data.type,
+    capacity: data.capacity,
+    capacityUnit: data.capacityUnit,
+    buildMaterial: data.buildMaterial,
+    notes: data.notes?.trim(),
+    createdAt: timestamp,
+  });
+
+  return id;
+}
+
+/**
+ * Provides functions to create, update, and delete packagings.
+ * @returns Object with createPackaging, updatePackaging, deletePackaging
+ */
+export function usePackagingMutations() {
   const createPackaging = useCallback(
     async (data: PackagingFormData): Promise<string> => {
       const now = new Date().toISOString();
-      const id = nanoid();
 
-      // Check for duplicates
-      const normalized = normalizeText(data.name);
-      const duplicate = await db.packaging
-        .filter((p) => normalizeText(p.name) === normalized)
-        .first();
+      // Validate
+      validatePackagingData(data);
 
-      if (duplicate) {
-        throw new Error(`Packaging with these specifications already exists`);
+      // Check for exact duplicate
+      const existing = await findExactPackagingMatch(
+        data.name,
+        data.type,
+        data.capacity,
+        data.capacityUnit,
+        data.buildMaterial
+      );
+
+      if (existing) {
+        throw new Error(
+          "A packaging with identical specifications already exists. Please modify at least one property to create a new entry."
+        );
       }
-
+      const id = nanoid();
       // Create packaging
       await db.packaging.add({
         id,
         name: data.name.trim(),
         type: data.type,
-        capacity: data.capacity,
-        capacityUnit: data.capacityUnit,
-        buildMaterial: data.buildMaterial,
-        notes: data.notes?.trim(),
+        capacity: data.capacity || 0,
+        capacityUnit: data.capacityUnit || "ml",
+        buildMaterial: data.buildMaterial || "Other",
         createdAt: now,
       });
 
@@ -61,28 +152,49 @@ export function useBasePackagingMutations() {
     async (id: string, data: Partial<PackagingFormData>): Promise<void> => {
       const now = new Date().toISOString();
 
-      // If name is being updated, check for duplicates
-      if (data.name) {
-        const normalized = normalizeText(data.name);
-        const duplicate = await db.packaging
-          .filter((p) => p.id !== id && normalizeText(p.name) === normalized)
-          .first();
-
-        if (duplicate) {
-          throw new Error(`Packaging with these specifications already exists`);
-        }
+      // Get current packaging
+      const current = await db.packaging.get(id);
+      if (!current) {
+        throw new Error("Packaging not found");
       }
 
-      // Update packaging
+      // Merge with current values for validation
+      const merged: PackagingFormData = {
+        name: data.name ?? current.name,
+        type: data.type ?? current.type,
+        capacity: data.capacity ?? current.capacity,
+        capacityUnit: data.capacityUnit ?? current.capacityUnit,
+        buildMaterial: data.buildMaterial ?? current.buildMaterial,
+      };
+
+      // Validate merged data
+      validatePackagingData(merged);
+
+      // Check for duplicate (excluding current)
+      const existing = await findExactPackagingMatch(
+        merged.name,
+        merged.type,
+        merged.capacity,
+        merged.capacityUnit,
+        merged.buildMaterial,
+        id // exclude current
+      );
+
+      if (existing) {
+        throw new Error(
+          "A packaging with identical specifications already exists. Please modify at least one property."
+        );
+      }
+
+      // Update
       await db.packaging.update(id, {
         ...(data.name && { name: data.name.trim() }),
-        ...(data.type && { type: data.type }),
+        ...(data.type && { type: data.type as any }),
         ...(data.capacity !== undefined && { capacity: data.capacity }),
-        ...(data.capacityUnit && { capacityUnit: data.capacityUnit }),
+        ...(data.capacityUnit && { capacityUnit: data.capacityUnit as any }),
         ...(data.buildMaterial !== undefined && {
-          buildMaterial: data.buildMaterial,
+          buildMaterial: data.buildMaterial as any,
         }),
-        ...(data.notes !== undefined && { notes: data.notes?.trim() }),
         updatedAt: now,
       });
     },
@@ -90,7 +202,7 @@ export function useBasePackagingMutations() {
   );
 
   const deletePackaging = useCallback(async (id: string): Promise<void> => {
-    // Check if packaging is in use by any supplier packaging
+    // Check if in use
     const inUse = await db.supplierPackaging
       .where("packagingId")
       .equals(id)
@@ -110,10 +222,10 @@ export function useBasePackagingMutations() {
   };
 }
 
-// ============================================================================
-// SUPPLIER PACKAGING MUTATIONS
-// ============================================================================
-
+/**
+ * Provides functions to create, update, and delete supplier packagings.
+ * @returns Object with createSupplierPackaging, updateSupplierPackaging, deleteSupplierPackaging
+ */
 export function useSupplierPackagingMutations() {
   const createSupplierPackaging = useCallback(
     async (data: SupplierPackagingFormData): Promise<string> => {
@@ -123,46 +235,26 @@ export function useSupplierPackagingMutations() {
         "rw",
         [db.packaging, db.supplierPackaging],
         async () => {
-          // Step 1: Get or create packaging
-          let packagingId: string;
-
-          // Check if packaging with exact combination already exists
-          // Business rule: each unique combination of (name + type + material + capacity + unit) is separate
-          const existingPackaging = await db.packaging
-            .filter(
-              (p) =>
-                normalizeText(p.name) === normalizeText(data.packagingName) &&
-                p.type === data.packagingType &&
-                p.capacity === data.capacity &&
-                p.capacityUnit === data.capacityUnit &&
-                p.buildMaterial === data.buildMaterial
-            )
-            .first();
-
-          if (existingPackaging) {
-            // Use existing packaging with exact match
-            packagingId = existingPackaging.id;
-          } else {
-            // Create new packaging - no exact match found
-            packagingId = nanoid();
-            await db.packaging.add({
-              id: packagingId,
-              name: data.packagingName.trim(),
+          // Get or create packaging with exact specifications
+          const packagingId = await getOrCreatePackaging(
+            {
+              name: data.packagingName,
               type: data.packagingType!,
               capacity: data.capacity,
               capacityUnit: data.capacityUnit,
               buildMaterial: data.buildMaterial,
-              notes: data.notes?.trim(),
-              createdAt: now,
-            });
-          }
+              notes: data.notes,
+            },
+            now
+          );
 
-          // Step 3: Create supplier packaging
-          const supplierPackagingId = nanoid();
+          // Create supplier packaging
+          const id = nanoid();
           await db.supplierPackaging.add({
-            id: supplierPackagingId,
+            id,
             supplierId: data.supplierId,
             packagingId,
+            unitPrice: data.unitPrice,
             bulkPrice: data.bulkPrice,
             quantityForBulkPrice: data.quantityForBulkPrice || 1,
             capacityUnit: data.capacityUnit,
@@ -173,10 +265,9 @@ export function useSupplierPackagingMutations() {
             bulkDiscounts: data.bulkDiscounts || [],
             notes: data.notes?.trim(),
             createdAt: now,
-            unitPrice: data.unitPrice,
           });
 
-          return supplierPackagingId;
+          return id;
         }
       );
     },
@@ -194,81 +285,57 @@ export function useSupplierPackagingMutations() {
         "rw",
         [db.packaging, db.supplierPackaging],
         async () => {
-          const supplierPackaging = await db.supplierPackaging.get(id);
-          if (!supplierPackaging) {
+          const current = await db.supplierPackaging.get(id);
+          if (!current) {
             throw new Error("Supplier packaging not found");
           }
 
-          // Handle packaging changes - use combination logic like createSupplierPackaging
-          if (
+          // Handle packaging changes if any packaging property is updated
+          const hasPackagingChanges =
             data.packagingName ||
             data.packagingType ||
-            data.capacity ||
+            data.capacity !== undefined ||
             data.capacityUnit ||
-            data.buildMaterial
-          ) {
-            // Ensure required fields are present for combination check
-            if (
-              !data.packagingName ||
-              !data.packagingType ||
-              data.capacity === undefined ||
-              !data.capacityUnit ||
-              data.buildMaterial === undefined
-            ) {
-              throw new Error(
-                "All packaging properties are required for updates"
-              );
+            data.buildMaterial !== undefined;
+
+          if (hasPackagingChanges) {
+            // Get current packaging for fallback values
+            const currentPackaging = await db.packaging.get(
+              current.packagingId
+            );
+            if (!currentPackaging) {
+              throw new Error("Current packaging not found");
             }
 
-            // Check if the new packaging combination already exists
-            // Business rule: each unique combination is separate
-            const existingPackaging = await db.packaging
-              .filter(
-                (p) =>
-                  normalizeText(p.name) ===
-                    normalizeText(data.packagingName!) &&
-                  p.type === data.packagingType &&
-                  p.capacity === data.capacity &&
-                  p.capacityUnit === data.capacityUnit &&
-                  p.buildMaterial === data.buildMaterial
-              )
-              .first();
+            // Get or create packaging with new specifications
+            const newPackagingId = await getOrCreatePackaging(
+              {
+                name: data.packagingName || currentPackaging.name,
+                type: data.packagingType || currentPackaging.type,
+                capacity: data.capacity ?? currentPackaging.capacity,
+                capacityUnit:
+                  data.capacityUnit || currentPackaging.capacityUnit,
+                buildMaterial:
+                  data.buildMaterial ?? currentPackaging.buildMaterial,
+                notes: data.notes,
+              },
+              now
+            );
 
-            let newPackagingId: string;
-
-            if (existingPackaging) {
-              // Use existing packaging with exact match
-              newPackagingId = existingPackaging.id;
-            } else {
-              // Create new packaging - no exact match found
-              newPackagingId = nanoid();
-              await db.packaging.add({
-                id: newPackagingId,
-                name: data.packagingName.trim(),
-                type: data.packagingType,
-                capacity: data.capacity,
-                capacityUnit: data.capacityUnit,
-                buildMaterial: data.buildMaterial,
-                notes: data.notes?.trim(),
-                createdAt: now,
-              });
-            }
-
-            // Update supplier packaging to reference the new/correct packaging
+            // Update supplier packaging to reference new/correct packaging
             await db.supplierPackaging.update(id, {
               packagingId: newPackagingId,
-              updatedAt: now,
             });
           }
 
-          // Update supplier packaging
+          // Update supplier packaging fields
           await db.supplierPackaging.update(id, {
             ...(data.supplierId && { supplierId: data.supplierId }),
+            ...(data.unitPrice !== undefined && { unitPrice: data.unitPrice }),
             ...(data.bulkPrice !== undefined && { bulkPrice: data.bulkPrice }),
             ...(data.quantityForBulkPrice !== undefined && {
               quantityForBulkPrice: data.quantityForBulkPrice,
             }),
-            ...(data.unitPrice !== undefined && { unitPrice: data.unitPrice }),
             ...(data.tax !== undefined && { tax: data.tax }),
             ...(data.moq !== undefined && { moq: data.moq }),
             ...(data.leadTime !== undefined && { leadTime: data.leadTime }),
@@ -299,16 +366,12 @@ export function useSupplierPackagingMutations() {
   };
 }
 
-// ============================================================================
-// COMBINED MUTATIONS HOOK
-// ============================================================================
-
 /**
- * Get all mutation hooks in one place
- * Convenient for components that need multiple mutation types
+ * Combined hook for all packaging mutations.
+ * @returns Object with all mutation functions
  */
-export function usePackagingMutations() {
-  const packagingMutations = useBasePackagingMutations();
+export function useAllPackagingMutations() {
+  const packagingMutations = usePackagingMutations();
   const supplierPackagingMutations = useSupplierPackagingMutations();
 
   return {

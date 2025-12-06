@@ -4,14 +4,49 @@ import {
   BuildMaterial,
   CapacityUnit,
   Packaging,
+  PackagingFormData,
   PackagingType,
   SupplierPackaging,
+  SupplierPackagingFormData,
 } from "@/types/packaging-types";
 
-// ============================================================================
-// ANALYTICS CONFIGURATION
-// ============================================================================
+/**
+ * Default form data structure for creating new packaging items
+ * Provides empty initial values for all required fields
+ */
+export const DEFAULT_PACKAGING_FORM: PackagingFormData = {
+  name: "",
+  type: "bottle" as const,
+  capacity: 0,
+  capacityUnit: "ml" as const,
+  buildMaterial: "Other" as const,
+};
 
+/**
+ * Default form data structure for supplier packaging relationships
+ * Initializes with sensible defaults like standard lead time and tax rate
+ */
+export const DEFAULT_SUPPLIER_PACKAGING_FORM: SupplierPackagingFormData = {
+  supplierId: "",
+  packagingName: "",
+  packagingId: "",
+  packagingType: "other",
+  capacity: 0,
+  capacityUnit: "ml",
+  buildMaterial: "Other",
+  bulkPrice: 0,
+  quantityForBulkPrice: 1,
+  tax: 0,
+  moq: 1,
+  leadTime: 7,
+  notes: "",
+  unitPrice: 0,
+};
+
+/**
+ * Sample AI insights data for analytics demonstration
+ * These represent typical recommendations and alerts the system might generate
+ */
 export const AI_INSIGHTS = [
   {
     type: "cost-optimization",
@@ -46,14 +81,10 @@ export const AI_INSIGHTS = [
   },
 ];
 
-// ============================================================================
-// SUPPLIER PERFORMANCE DATA
-// ============================================================================
-
-// ============================================================================
-// CORE DATA - Single source of truth with labels and colors
-// ============================================================================
-
+/**
+ * Core packaging type definitions with associated colors for UI consistency
+ * Used throughout the application for dropdowns, filters, and visualizations
+ */
 export const PACKAGING_TYPES = [
   { value: "bottle" as const, label: "Bottle", color: "#3b82f6" },
   { value: "jar" as const, label: "Jar", color: "#8b5cf6" },
@@ -63,6 +94,10 @@ export const PACKAGING_TYPES = [
   { value: "other" as const, label: "Other", color: "#6b7280" },
 ] as const;
 
+/**
+ * Build material options with consistent color coding
+ * Covers common packaging materials used in the industry
+ */
 export const BUILD_MATERIALS = [
   { value: "PET" as const, label: "PET", color: "#06b6d4" },
   { value: "HDPE" as const, label: "HDPE", color: "#8b5cf6" },
@@ -72,21 +107,23 @@ export const BUILD_MATERIALS = [
   { value: "Other" as const, label: "Other", color: "#6b7280" },
 ] as const;
 
-// ============================================================================
-// DERIVED CONSTANTS - Computed once, reused everywhere
-// ============================================================================
-
-// Simple arrays for when you just need the values
+/**
+ * Derived arrays for just values, used in validation and form options
+ */
 export const PACKAGING_TYPE_VALUES = PACKAGING_TYPES.map((t) => t.value);
 export const BUILD_MATERIAL_VALUES = BUILD_MATERIALS.map((m) => m.value);
 export const CAPACITY_UNIT_VALUES = CAPACITY_UNITS.map((u) => u.value);
 
-// Simple arrays for when you just need the labels (for UI display)
+/**
+ * Derived arrays for labels, used in UI display components
+ */
 export const PACKAGING_TYPE_LABELS = PACKAGING_TYPES.map((t) => t.label);
 export const BUILD_MATERIAL_LABELS = BUILD_MATERIALS.map((m) => m.label);
 export const CAPACITY_UNIT_LABELS = CAPACITY_UNITS.map((u) => u.label);
 
-// O(1) lookup maps for colors - Performance optimized
+/**
+ * Optimized lookup maps for O(1) color retrieval by value
+ */
 const PACKAGING_TYPE_COLOR_MAP = new Map(
   PACKAGING_TYPES.map((t) => [t.value, t.color])
 );
@@ -95,7 +132,9 @@ const BUILD_MATERIAL_COLOR_MAP = new Map(
   BUILD_MATERIALS.map((m) => [m.value, m.color])
 );
 
-// O(1) lookup maps for labels
+/**
+ * Optimized lookup maps for O(1) label retrieval by value
+ */
 const PACKAGING_TYPE_LABEL_MAP = new Map(
   PACKAGING_TYPES.map((t) => [t.value, t.label])
 );
@@ -108,51 +147,49 @@ const CAPACITY_UNIT_LABEL_MAP = new Map(
   CAPACITY_UNITS.map((u) => [u.value, u.label])
 );
 
-// ============================================================================
-// HELPER FUNCTIONS - O(1) lookups using Maps
-// ============================================================================
-
-const DEFAULT_COLOR = "#6b7280"; // Gray fallback
+/**
+ * Utility functions for retrieving display properties with fallback defaults
+ */
+const DEFAULT_COLOR = "#6b7280";
 
 /**
- * Get color for packaging type - O(1) lookup
+ * Get the associated color for a packaging type
  */
 export const getPackagingTypeColor = (type: PackagingType): string => {
   return PACKAGING_TYPE_COLOR_MAP.get(type) ?? DEFAULT_COLOR;
 };
 
 /**
- * Get color for build material - O(1) lookup
+ * Get the associated color for a build material
  */
 export const getBuildMaterialColor = (material: BuildMaterial): string => {
   return BUILD_MATERIAL_COLOR_MAP.get(material) ?? DEFAULT_COLOR;
 };
 
 /**
- * Get label for packaging type - O(1) lookup
+ * Get the human-readable label for a packaging type
  */
 export const getPackagingTypeLabel = (type: PackagingType): string => {
   return PACKAGING_TYPE_LABEL_MAP.get(type) ?? type;
 };
 
 /**
- * Get label for build material - O(1) lookup
+ * Get the human-readable label for a build material
  */
 export const getBuildMaterialLabel = (material: BuildMaterial): string => {
   return BUILD_MATERIAL_LABEL_MAP.get(material) ?? material;
 };
 
 /**
- * Get label for capacity unit - O(1) lookup
+ * Get the human-readable label for a capacity unit
  */
 export const getCapacityUnitLabel = (capacityUnit: CapacityUnit): string => {
   return CAPACITY_UNIT_LABEL_MAP.get(capacityUnit) ?? capacityUnit;
 };
 
-// ============================================================================
-// TYPE GUARDS - Type-safe validation
-// ============================================================================
-
+/**
+ * Type guard functions for runtime type validation
+ */
 export const isValidPackagingType = (value: string): value is PackagingType => {
   return PACKAGING_TYPE_VALUES.includes(value as PackagingType);
 };
@@ -165,10 +202,10 @@ export const isValidCapacityUnit = (value: string): value is CapacityUnit => {
   return CAPACITY_UNIT_VALUES.includes(value as CapacityUnit);
 };
 
-// ============================================================================
-// PACKAGING
-// ============================================================================
-
+/**
+ * Sample packaging data for development and testing
+ * Represents common packaging items with various types and materials
+ */
 export const PACKAGING: Packaging[] = [
   {
     id: "1",
@@ -263,6 +300,10 @@ export const PACKAGING: Packaging[] = [
   },
 ];
 
+/**
+ * Sample supplier packaging relationships with pricing and terms
+ * Demonstrates various bulk discounts, lead times, and supplier-specific data
+ */
 export const SUPPLIER_PACKAGING: SupplierPackaging[] = [
   {
     id: "1",

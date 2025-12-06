@@ -27,7 +27,7 @@ export interface Packaging extends BaseEntity {
   type: PackagingType;
   capacity: number;
   capacityUnit: CapacityUnit;
-  buildMaterial?: BuildMaterial;
+  buildMaterial: BuildMaterial;
   notes?: string;
 }
 
@@ -61,7 +61,7 @@ export interface PackagingWithSupplierCount {
   type: PackagingType;
   capacity: number;
   capacityUnit: CapacityUnit;
-  buildMaterial?: BuildMaterial;
+  buildMaterial: BuildMaterial;
   supplierCount: number;
   suppliers: Array<{
     id: string;
@@ -87,7 +87,7 @@ export interface SupplierPackagingTableRow {
   packagingType: PackagingType;
   capacity: number;
   capacityUnit: CapacityUnit;
-  buildMaterial?: BuildMaterial;
+  buildMaterial: BuildMaterial;
 
   // Supplier info
   supplierName: string;
@@ -132,7 +132,7 @@ export interface SupplierPackagingForComparison {
   stockStatus: string;
   packagingName: string;
   packagingType: PackagingType;
-  buildMaterial?: BuildMaterial;
+  buildMaterial: BuildMaterial;
 }
 
 /**
@@ -143,7 +143,7 @@ export interface PackagingPriceComparison {
   packagingId: string;
   packagingName: string;
   packagingType: PackagingType;
-  buildMaterial?: BuildMaterial;
+  buildMaterial: BuildMaterial;
   alternatives: SupplierPackagingForComparison[];
   cheapest: SupplierPackagingForComparison;
   mostExpensive: SupplierPackagingForComparison;
@@ -204,8 +204,7 @@ export interface PackagingFormData {
   type: PackagingType;
   capacity: number;
   capacityUnit: CapacityUnit;
-  buildMaterial?: BuildMaterial;
-  notes?: string;
+  buildMaterial: BuildMaterial;
 }
 
 /**
@@ -219,7 +218,7 @@ export interface SupplierPackagingFormData {
   packagingType: PackagingType;
   capacity: number;
   capacityUnit: CapacityUnit;
-  buildMaterial?: BuildMaterial;
+  buildMaterial: BuildMaterial;
   bulkPrice: number;
   quantityForBulkPrice: number;
   unitPrice: number;

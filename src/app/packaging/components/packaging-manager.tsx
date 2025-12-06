@@ -5,13 +5,14 @@ import { SUPPLIERS } from "@/app/suppliers/components/suppliers-constants";
 import { Button } from "@/components/ui/button";
 import { MetricCard } from "@/components/ui/metric-card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { usePackagingMutations } from "@/hooks/packaging-hooks/use-packaging-mutations";
+import { useAllPackagingMutations } from "@/hooks/packaging-hooks/use-packaging-mutations";
 import {
   usePackagingAnalytics,
   useSupplierPackagingTableRows,
 } from "@/hooks/packaging-hooks/use-packaging-queries";
 import { useDexieTable } from "@/hooks/use-dexie-table";
 
+import { DEFAULT_SUPPLIER_PACKAGING_FORM } from "@/app/packaging/components/packaging-constants";
 import { db } from "@/lib/db";
 import type {
   CapacityUnit,
@@ -28,26 +29,13 @@ import { PackagingPriceComparison } from "./packaging-price-comparison";
 import { SupplierPackagingDialog } from "./supplier-packaging-dialog";
 import { SupplierPackagingTable } from "./supplier-packaging-table";
 
-const DEFAULT_SUPPLIER_PACKAGING_FORM: SupplierPackagingFormData = {
-  supplierId: "",
-  packagingId: "",
-  packagingName: "",
-  packagingType: "other",
-  capacity: 0,
-  capacityUnit: "ml",
-  buildMaterial: undefined,
-  bulkPrice: 0,
-  quantityForBulkPrice: 1,
-  tax: 0,
-  moq: 1,
-  leadTime: 7,
-  transportationCost: 0,
-  bulkDiscounts: [],
-  notes: "",
-  unitPrice: 0,
-};
-
+/**
+ * PackagingManager component provides the main interface for managing packaging inventory
+ * and supplier relationships. It includes tabs for supplier packaging, price comparison,
+ * and analytics, with full CRUD operations for supplier packaging entries.
+ */
 export function PackagingManager() {
+  // State for controlling the add/edit supplier packaging dialog
   const [showAddSupplierPackaging, setShowAddSupplierPackaging] =
     useState(false);
   const [editingSupplierPackaging, setEditingSupplierPackaging] =
@@ -56,16 +44,18 @@ export function PackagingManager() {
   const [formData, setFormData] = useState<SupplierPackagingFormData>(
     DEFAULT_SUPPLIER_PACKAGING_FORM
   );
+
+  // Trigger for refreshing dialog data when packaging changes
   const [refreshTrigger, setRefreshTrigger] = useState(0);
 
-  // New hooks
+  // Fetch data using hooks
   const { data: suppliers } = useDexieTable(db.suppliers, SUPPLIERS);
   const { data: packaging } = useDexieTable(db.packaging, []);
   const supplierPackagingTableData = useSupplierPackagingTableRows();
   const analytics = usePackagingAnalytics();
-  const mutations = usePackagingMutations();
+  const mutations = useAllPackagingMutations();
 
-  // Handle add with mutations hook
+  // Handle adding new supplier packaging with validation
   const handleAddSupplierPackaging = useCallback(async () => {
     if (
       !formData.supplierId ||
@@ -87,7 +77,7 @@ export function PackagingManager() {
     }
   }, [formData, mutations]);
 
-  // Handle edit
+  // Prepare form data for editing an existing supplier packaging entry
   const handleEditSupplierPackaging = useCallback(
     (item: SupplierPackagingTableRow) => {
       setEditingSupplierPackaging(item);
@@ -114,7 +104,7 @@ export function PackagingManager() {
     []
   );
 
-  // Handle update with mutations hook
+  // Handle updating existing supplier packaging entry
   const handleUpdateSupplierPackaging = useCallback(async () => {
     if (!editingSupplierPackaging) return;
 
@@ -133,7 +123,7 @@ export function PackagingManager() {
     }
   }, [editingSupplierPackaging, formData, mutations]);
 
-  // Handle delete
+  // Handle deleting a supplier packaging entry
   const handleDeleteSupplierPackaging = useCallback(
     async (id: string) => {
       try {
@@ -147,7 +137,7 @@ export function PackagingManager() {
     [mutations]
   );
 
-  // Reset dialog
+  // Reset dialog state when closed
   const handleDialogClose = useCallback((open: boolean) => {
     if (!open) {
       setShowAddSupplierPackaging(false);
@@ -156,14 +146,14 @@ export function PackagingManager() {
     }
   }, []);
 
-  // Handle refresh from drawer
+  // Trigger refresh when drawer operations complete
   const handleDrawerRefresh = useCallback(() => {
     setRefreshTrigger((prev) => prev + 1);
   }, []);
 
   return (
     <div className="space-y-6 animate-fade-in">
-      {/* Header */}
+      {/* Page Header with title and action buttons */}
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div className="min-w-0 flex-1">
           <h1 className="text-2xl sm:text-3xl font-bold text-foreground truncate">
@@ -195,7 +185,7 @@ export function PackagingManager() {
         </TabsList>
 
         <TabsContent value="supplier-packaging" className="space-y-6">
-          {/* Quick Stats */}
+          {/* Quick overview metrics for supplier packaging */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
             <MetricCard
               title="Total Packaging"
@@ -242,7 +232,7 @@ export function PackagingManager() {
             supplierPackaging={supplierPackagingTableData}
             suppliers={[]}
             onEditPackaging={(item) => {
-              // Convert back to row format for editing
+              // Convert table item back to row format for editing dialog
               const row: SupplierPackagingTableRow = {
                 id: item.id,
                 packagingId: item.packagingId,
@@ -284,13 +274,13 @@ export function PackagingManager() {
         </TabsContent>
       </Tabs>
 
-      {/* Enhanced Supplier Packaging Dialog with refresh trigger */}
+      {/* Dialog for adding/editing supplier packaging with key-based refresh */}
       <SupplierPackagingDialog
         key={refreshTrigger}
         open={showAddSupplierPackaging}
         onOpenChange={handleDialogClose}
         packaging={formData}
-        setPackaging={setFormData as any} // Temporary type assertion for compatibility
+        setPackaging={setFormData} // Temporary type assertion for compatibility
         onSave={
           editingSupplierPackaging
             ? handleUpdateSupplierPackaging
@@ -301,7 +291,7 @@ export function PackagingManager() {
         isEditing={!!editingSupplierPackaging}
       />
 
-      {/* Packaging Management Drawer */}
+      {/* Drawer for managing base packaging inventory */}
       <PackagingDrawer
         open={showPackagingDrawer}
         onOpenChange={setShowPackagingDrawer}
