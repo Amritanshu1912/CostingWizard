@@ -10,6 +10,12 @@ import { normalizeText } from "@/utils/text-utils";
 import { nanoid } from "nanoid";
 import { useCallback } from "react";
 
+interface LabelMutations {
+  createLabel: (data: LabelFormData) => Promise<string>;
+  updateLabel: (id: string, data: Partial<LabelFormData>) => Promise<void>;
+  deleteLabel: (id: string) => Promise<void>;
+}
+
 // Helper function to check if a label with exact specifications already exists
 async function findExactLabelMatch(
   name: string,
@@ -94,9 +100,9 @@ async function getOrCreateLabel(
 // Hook providing functions to create, update, and delete labels.
 // Includes duplicate checking to prevent identical label specifications.
 /**
- * @returns {Object} Object containing createLabel, updateLabel, and deleteLabel functions
+ * @returns {LabelMutations} Object containing createLabel, updateLabel, and deleteLabel functions
  */
-export function useLabelMutations() {
+export function useLabelMutations(): LabelMutations {
   const createLabel = useCallback(
     async (data: LabelFormData): Promise<string> => {
       const now = new Date().toISOString();

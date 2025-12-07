@@ -14,7 +14,7 @@ import type {
 import { useLiveQuery } from "dexie-react-hooks";
 import { useMemo } from "react";
 import { getCategoryColor, useMaterialsBaseData } from "./use-materials-data";
-import { Supplier } from "@/types/shared-types";
+import { Supplier } from "@/types/supplier-types";
 
 /**
  * Returns materials with supplier count and details.

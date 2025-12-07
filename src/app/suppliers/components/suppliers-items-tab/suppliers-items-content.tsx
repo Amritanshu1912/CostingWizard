@@ -1,36 +1,26 @@
 // src/app/suppliers/components/suppliers-items-tab/suppliers-items-content.tsx
 "use client";
 
-import { useCallback, useState } from "react";
-import { toast } from "sonner";
-import { Box, Package, Plus, Tag } from "lucide-react";
-
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
-
 import { MaterialsSupplierDialog } from "@/app/materials/components/materials-supplier-dialog";
 import { SupplierLabelsDialog } from "@/app/labels/components/supplier-labels-dialog";
 import { SupplierPackagingDialog } from "@/app/packaging/components/supplier-packaging-dialog";
-
-import { useDexieTable } from "@/hooks/use-dexie-table";
-import { useSupplierLabelMutations } from "@/hooks/label-hooks/use-labels-mutations";
-import { useSupplierMaterialMutations } from "@/hooks/material-hooks/use-materials-mutations";
-import { useSupplierPackagingMutations } from "@/hooks/packaging-hooks/use-packaging-mutations";
-
-import type { SupplierLabelFormData } from "@/types/label-types";
-import type { SupplierMaterialFormData } from "@/types/material-types";
-import type { SupplierPackagingFormData } from "@/types/packaging-types";
-import type { Supplier } from "@/types/shared-types";
-
 import { DEFAULT_SUPPLIER_LABEL_FORM } from "@/app/labels/components/labels-constants";
 import { DEFAULT_SUPPLIER_MATERIAL_FORM } from "@/app/materials/components/materials-constants";
 import { DEFAULT_SUPPLIER_PACKAGING_FORM } from "@/app/packaging/components/packaging-constants";
-import { SUPPLIERS } from "@/app/suppliers/components/suppliers-constants";
-
+import { useSupplierDialogs } from "@/hooks/supplier-hooks/use-supplier-dialogs";
+import { useAllLabelMutations } from "@/hooks/label-hooks/use-labels-mutations";
+import { useAllMaterialMutations } from "@/hooks/material-hooks/use-materials-mutations";
+import { useAllPackagingMutations } from "@/hooks/packaging-hooks/use-packaging-mutations";
+import { useLiveQuery } from "dexie-react-hooks";
 import { db } from "@/lib/db";
-
+import type { Supplier } from "@/types/supplier-types";
+import { Box, Package, Plus, Tag } from "lucide-react";
+import { useCallback, useState } from "react";
+import { toast } from "sonner";
 import { SuppliersItemsTable } from "./suppliers-items-table";
 
 interface SuppliersItemsContentProps {
@@ -41,6 +31,10 @@ interface SuppliersItemsContentProps {
   supplierLabels: any[];
 }
 
+/**
+ * Content component for managing supplier items (materials, packaging, labels).
+ * Handles dialogs, form state, and CRUD operations for all item types.
+ */
 export function SuppliersItemsContent({
   selectedSupplierId,
   selectedSupplier,
@@ -51,109 +45,98 @@ export function SuppliersItemsContent({
   const [activeTab, setActiveTab] = useState("materials");
 
   // Mutation hooks
-  const { createSupplierMaterial } = useSupplierMaterialMutations();
-  const { createSupplierPackaging } = useSupplierPackagingMutations();
-  const { createSupplierLabel } = useSupplierLabelMutations();
+  const { createSupplierMaterial, updateSupplierMaterial } =
+    useAllMaterialMutations();
+  const { createSupplierPackaging, updateSupplierPackaging } =
+    useAllPackagingMutations();
+  const { createSupplierLabel, updateSupplierLabel } = useAllLabelMutations();
 
-  // Dialog states
-  const [showMaterialDialog, setShowMaterialDialog] = useState(false);
-  const [showPackagingDialog, setShowPackagingDialog] = useState(false);
-  const [showLabelDialog, setShowLabelDialog] = useState(false);
-  const [editingMaterial, setEditingMaterial] = useState<any>(null);
-  const [editingPackaging, setEditingPackaging] = useState<any>(null);
-  const [editingLabel, setEditingLabel] = useState<any>(null);
-
-  // Form states
-  const [materialFormData, setMaterialFormData] =
-    useState<SupplierMaterialFormData>(DEFAULT_SUPPLIER_MATERIAL_FORM);
-  const [packagingFormData, setPackagingFormData] =
-    useState<SupplierPackagingFormData>(DEFAULT_SUPPLIER_PACKAGING_FORM);
-  const [labelFormData, setLabelFormData] = useState<SupplierLabelFormData>(
+  // Dialog management hook
+  const {
+    materialDialog,
+    packagingDialog,
+    labelDialog,
+    openDialog,
+    closeDialog,
+    updateFormData,
+  } = useSupplierDialogs(
+    DEFAULT_SUPPLIER_MATERIAL_FORM,
+    DEFAULT_SUPPLIER_PACKAGING_FORM,
     DEFAULT_SUPPLIER_LABEL_FORM
   );
 
-  // Database hooks - useLiveQuery automatically refreshes when data changes
-  const { data: suppliersData } = useDexieTable(db.suppliers, SUPPLIERS);
-  const { data: materials } = useDexieTable(db.materials, []);
-  const { data: categories } = useDexieTable(db.categories, []);
-  const { data: packaging } = useDexieTable(db.packaging, []);
-  const { data: labels } = useDexieTable(db.labels, []);
+  // Fetch reference data for dialogs
+  const suppliers = useLiveQuery(() => db.suppliers.toArray(), [], []);
+  const materials = useLiveQuery(() => db.materials.toArray(), [], []);
+  const categories = useLiveQuery(() => db.categories.toArray(), [], []);
+  const packaging = useLiveQuery(() => db.packaging.toArray(), [], []);
+  const labels = useLiveQuery(() => db.labels.toArray(), [], []);
 
-  // Handle add item
+  /**
+   * Opens appropriate dialog based on active tab
+   */
   const handleAddItem = useCallback(() => {
     if (!selectedSupplierId) return;
 
     switch (activeTab) {
       case "materials":
-        setMaterialFormData({
-          ...DEFAULT_SUPPLIER_MATERIAL_FORM,
-          supplierId: selectedSupplierId,
-        });
-        setEditingMaterial(null);
-        setShowMaterialDialog(true);
+        openDialog("material", selectedSupplierId);
         break;
       case "packaging":
-        setPackagingFormData({
-          ...DEFAULT_SUPPLIER_PACKAGING_FORM,
-          supplierId: selectedSupplierId,
-        });
-        setEditingPackaging(null);
-        setShowPackagingDialog(true);
+        openDialog("packaging", selectedSupplierId);
         break;
       case "labels":
-        setLabelFormData({
-          ...DEFAULT_SUPPLIER_LABEL_FORM,
-          supplierId: selectedSupplierId,
-        });
-        setEditingLabel(null);
-        setShowLabelDialog(true);
+        openDialog("label", selectedSupplierId);
         break;
     }
-  }, [selectedSupplierId, activeTab]);
+  }, [selectedSupplierId, activeTab, openDialog]);
 
-  // Handle edit material
+  /**
+   * Opens material dialog with existing data for editing
+   */
   const handleEditMaterial = useCallback(
     (material: any) => {
       const materialDetails = materials.find(
         (m) => m.id === material.materialId
       );
-      setEditingMaterial(material);
-      setMaterialFormData({
+      const editData = {
         ...material,
         materialName: materialDetails?.name,
         materialCategory: materialDetails?.category,
-      });
-      setShowMaterialDialog(true);
+      };
+      openDialog("material", selectedSupplierId, editData);
     },
-    [materials]
+    [materials, selectedSupplierId, openDialog]
   );
 
-  // Handle edit packaging
+  /**
+   * Opens packaging dialog with existing data for editing
+   */
   const handleEditPackaging = useCallback(
     (packagingItem: any) => {
       const packagingDetails = packaging.find(
         (p) => p.id === packagingItem.packagingId
       );
-      setEditingPackaging(packagingItem);
-      setPackagingFormData({
+      const editData = {
         ...packagingItem,
         packagingName: packagingDetails?.name,
         packagingType: packagingDetails?.type,
         capacity: packagingDetails?.capacity,
         capacityUnit: packagingDetails?.capacityUnit,
         buildMaterial: packagingDetails?.buildMaterial,
-      });
-      setShowPackagingDialog(true);
+      };
+      openDialog("packaging", selectedSupplierId, editData);
     },
-    [packaging]
+    [packaging, selectedSupplierId, openDialog]
   );
 
-  // Handle edit label
+  /**
+   * Opens label dialog with existing data for editing
+   */
   const handleEditLabel = useCallback(
     (label: any) => {
       const labelDetails = labels.find((l) => l.id === label.labelId);
-      setEditingLabel(label);
-      setLabelFormData({
+      const editData = {
         ...label,
         labelName: labelDetails?.name,
         labelType: labelDetails?.type,
@@ -161,107 +144,113 @@ export function SuppliersItemsContent({
         material: labelDetails?.material,
         shape: labelDetails?.shape,
         size: labelDetails?.size,
-      });
-      setShowLabelDialog(true);
+      };
+      openDialog("label", selectedSupplierId, editData);
     },
-    [labels]
+    [labels, selectedSupplierId, openDialog]
   );
 
-  // Handle save material
+  /**
+   * Saves or updates material
+   */
   const handleSaveMaterial = useCallback(async () => {
-    if (
-      !materialFormData.supplierId ||
-      !materialFormData.materialName ||
-      !materialFormData.bulkPrice
-    ) {
+    const { formData, editingItem } = materialDialog;
+
+    if (!formData.supplierId || !formData.materialName || !formData.bulkPrice) {
       toast.error("Please fill in all required fields");
       return;
     }
 
     try {
-      await createSupplierMaterial(materialFormData);
-      setMaterialFormData(DEFAULT_SUPPLIER_MATERIAL_FORM);
-      setShowMaterialDialog(false);
-      setEditingMaterial(null);
-      toast.success("Material added successfully");
-    } catch (error) {
-      console.error("Error adding material:", error);
-      toast.error("Failed to add material");
-    }
-  }, [materialFormData, createSupplierMaterial]);
-
-  // Handle save packaging
-  const handleSavePackaging = useCallback(async () => {
-    if (
-      !packagingFormData.supplierId ||
-      !packagingFormData.packagingName ||
-      !packagingFormData.bulkPrice
-    ) {
-      toast.error("Please fill in all required fields");
-      return;
-    }
-
-    try {
-      await createSupplierPackaging(packagingFormData);
-      setPackagingFormData(DEFAULT_SUPPLIER_PACKAGING_FORM);
-      setShowPackagingDialog(false);
-      setEditingPackaging(null);
-      toast.success("Packaging added successfully");
-    } catch (error) {
-      console.error("Error adding packaging:", error);
-      toast.error("Failed to add packaging");
-    }
-  }, [packagingFormData, createSupplierPackaging]);
-
-  // Handle save label
-  const handleSaveLabel = useCallback(async () => {
-    if (
-      !labelFormData.supplierId ||
-      !labelFormData.labelName ||
-      !labelFormData.bulkPrice
-    ) {
-      toast.error("Please fill in all required fields");
-      return;
-    }
-
-    try {
-      await createSupplierLabel(labelFormData);
-      setLabelFormData(DEFAULT_SUPPLIER_LABEL_FORM);
-      setShowLabelDialog(false);
-      setEditingLabel(null);
-      toast.success("Label added successfully");
-    } catch (error) {
-      console.error("Error adding label:", error);
-      toast.error("Failed to add label");
-    }
-  }, [labelFormData, createSupplierLabel]);
-
-  // Handle dialog close
-  const handleDialogClose = useCallback(
-    (open: boolean, type: "material" | "packaging" | "label") => {
-      if (!open) {
-        switch (type) {
-          case "material":
-            setShowMaterialDialog(false);
-            setEditingMaterial(null);
-            setMaterialFormData(DEFAULT_SUPPLIER_MATERIAL_FORM);
-            break;
-          case "packaging":
-            setShowPackagingDialog(false);
-            setEditingPackaging(null);
-            setPackagingFormData(DEFAULT_SUPPLIER_PACKAGING_FORM);
-            break;
-          case "label":
-            setShowLabelDialog(false);
-            setEditingLabel(null);
-            setLabelFormData(DEFAULT_SUPPLIER_LABEL_FORM);
-            break;
-        }
+      if (editingItem) {
+        await updateSupplierMaterial(editingItem.id, formData);
+        toast.success("Material updated successfully");
+      } else {
+        await createSupplierMaterial(formData);
+        toast.success("Material added successfully");
       }
-    },
-    []
-  );
+      closeDialog("material");
+    } catch (error) {
+      console.error("Error saving material:", error);
+      toast.error(
+        editingItem ? "Failed to update material" : "Failed to add material"
+      );
+    }
+  }, [
+    materialDialog,
+    createSupplierMaterial,
+    updateSupplierMaterial,
+    closeDialog,
+  ]);
 
+  /**
+   * Saves or updates packaging
+   */
+  const handleSavePackaging = useCallback(async () => {
+    const { formData, editingItem } = packagingDialog;
+
+    if (
+      !formData.supplierId ||
+      !formData.packagingName ||
+      !formData.bulkPrice
+    ) {
+      toast.error("Please fill in all required fields");
+      return;
+    }
+
+    try {
+      if (editingItem) {
+        await updateSupplierPackaging(editingItem.id, formData);
+        toast.success("Packaging updated successfully");
+      } else {
+        await createSupplierPackaging(formData);
+        toast.success("Packaging added successfully");
+      }
+      closeDialog("packaging");
+    } catch (error) {
+      console.error("Error saving packaging:", error);
+      toast.error(
+        editingItem ? "Failed to update packaging" : "Failed to add packaging"
+      );
+    }
+  }, [
+    packagingDialog,
+    createSupplierPackaging,
+    updateSupplierPackaging,
+    closeDialog,
+  ]);
+
+  /**
+   * Saves or updates label
+   */
+  const handleSaveLabel = useCallback(async () => {
+    const { formData, editingItem } = labelDialog;
+
+    if (!formData.supplierId || !formData.labelName || !formData.bulkPrice) {
+      toast.error("Please fill in all required fields");
+      return;
+    }
+
+    try {
+      if (editingItem) {
+        await updateSupplierLabel(editingItem.id, formData);
+        toast.success("Label updated successfully");
+      } else {
+        await createSupplierLabel(formData);
+        toast.success("Label added successfully");
+      }
+      closeDialog("label");
+    } catch (error) {
+      console.error("Error saving label:", error);
+      toast.error(
+        editingItem ? "Failed to update label" : "Failed to add label"
+      );
+    }
+  }, [labelDialog, createSupplierLabel, updateSupplierLabel, closeDialog]);
+
+  /**
+   * Gets appropriate label for add button based on active tab
+   */
   const getItemLabel = () => {
     switch (activeTab) {
       case "materials":
@@ -340,38 +329,40 @@ export function SuppliersItemsContent({
         </CardContent>
       </Card>
 
-      {/* Dialogs */}
+      {/* Material Dialog */}
       <MaterialsSupplierDialog
-        open={showMaterialDialog}
-        onOpenChange={(open) => handleDialogClose(open, "material")}
-        supplierMaterial={materialFormData || undefined}
-        isEditing={!!editingMaterial}
+        open={materialDialog.isOpen}
+        onOpenChange={(open) => !open && closeDialog("material")}
+        supplierMaterial={materialDialog.formData}
+        isEditing={!!materialDialog.editingItem}
         onSave={handleSaveMaterial}
-        suppliers={suppliersData}
+        suppliers={suppliers}
         materials={materials}
         categories={categories}
       />
 
+      {/* Packaging Dialog */}
       <SupplierPackagingDialog
-        open={showPackagingDialog}
-        onOpenChange={(open) => handleDialogClose(open, "packaging")}
-        packaging={packagingFormData}
-        setPackaging={setPackagingFormData}
+        open={packagingDialog.isOpen}
+        onOpenChange={(open) => !open && closeDialog("packaging")}
+        packaging={packagingDialog.formData}
+        setPackaging={(data) => updateFormData("packaging", data)}
         onSave={handleSavePackaging}
-        suppliers={suppliersData}
+        suppliers={suppliers}
         packagingList={packaging}
-        isEditing={!!editingPackaging}
+        isEditing={!!packagingDialog.editingItem}
       />
 
+      {/* Label Dialog */}
       <SupplierLabelsDialog
-        open={showLabelDialog}
-        onOpenChange={(open) => handleDialogClose(open, "label")}
-        label={labelFormData}
-        setLabel={setLabelFormData}
+        open={labelDialog.isOpen}
+        onOpenChange={(open) => !open && closeDialog("label")}
+        label={labelDialog.formData}
+        setLabel={(data) => updateFormData("label", data)}
         onSave={handleSaveLabel}
-        suppliers={suppliersData}
+        suppliers={suppliers}
         labelsList={labels}
-        isEditing={!!editingLabel}
+        isEditing={!!labelDialog.editingItem}
       />
     </>
   );

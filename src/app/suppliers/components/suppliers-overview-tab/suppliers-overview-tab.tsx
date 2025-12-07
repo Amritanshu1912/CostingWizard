@@ -2,80 +2,107 @@
 "use client";
 
 import { Button } from "@/components/ui/button";
-import { db } from "@/lib/db";
-import type { Supplier } from "@/types/shared-types";
+import { useSupplierMutations } from "@/hooks/supplier-hooks/use-supplier-mutations";
+import type { Supplier, SupplierFormData } from "@/types/supplier-types";
 import { Plus } from "lucide-react";
 import { useEffect, useState } from "react";
 import { SuppliersDetailsCard } from "./suppliers-details-card";
-import { SuppliersList } from "./suppliers-list";
+import { SuppliersList } from "./suppliers-list-card";
 
 interface SuppliersOverviewTabProps {
   suppliers: Supplier[];
   itemsBySupplier: Record<string, number>;
 }
 
+/**
+ * Overview tab for supplier management.
+ * Displays supplier list and detailed information with CRUD operations.
+ */
 export function SuppliersOverviewTab({
   suppliers,
   itemsBySupplier,
 }: SuppliersOverviewTabProps) {
+  const { createSupplier, updateSupplier, deleteSupplier } =
+    useSupplierMutations();
+
   const [selectedSupplierId, setSelectedSupplierId] = useState<string | null>(
     null
   );
   const [searchTerm, setSearchTerm] = useState("");
   const [isCreating, setIsCreating] = useState(false);
 
-  // Auto-select first supplier on mount or when suppliers change
+  // Auto-select first active supplier on mount
   useEffect(() => {
     if (!selectedSupplierId && !isCreating && suppliers.length > 0) {
-      const firstActiveSupplier = suppliers.find((s) => s.isActive !== false);
-      if (firstActiveSupplier) {
-        setSelectedSupplierId(firstActiveSupplier.id);
+      const firstActive = suppliers.find((s) => s.isActive);
+      if (firstActive) {
+        setSelectedSupplierId(firstActive.id);
       }
     }
   }, [suppliers, selectedSupplierId, isCreating]);
 
-  // Filter suppliers based on search
+  // Filter active suppliers by search term
   const filteredSuppliers = suppliers.filter(
     (supplier) =>
-      supplier.name.toLowerCase().includes(searchTerm.toLowerCase()) &&
-      supplier.isActive !== false
+      supplier.isActive &&
+      supplier.name.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
-  // Get the selected supplier
   const selectedSupplier =
     suppliers.find((s) => s.id === selectedSupplierId) || null;
 
-  // Handle start creating
+  /**
+   * Initiates supplier creation mode
+   */
   const handleStartCreate = () => {
     setIsCreating(true);
-    setSelectedSupplierId(null); // Deselect any selected supplier
+    setSelectedSupplierId(null);
   };
 
-  // Handle create - auto-select the new supplier
-  const handleCreate = async (supplier: Supplier) => {
-    await db.suppliers.add(supplier);
+  /**
+   * Creates new supplier and selects it
+   */
+  const handleCreate = async (data: SupplierFormData) => {
+    const newSupplier = await createSupplier(data);
     setIsCreating(false);
-    setSelectedSupplierId(supplier.id); // Auto-select new supplier
+    setSelectedSupplierId(newSupplier.id);
   };
 
-  // Handle edit supplier
-  const handleEditSupplier = async (supplier: Supplier) => {
-    await db.suppliers.put(supplier);
+  /**
+   * Updates existing supplier
+   */
+  const handleUpdate = async (id: string, data: Partial<SupplierFormData>) => {
+    const existingSupplier = suppliers.find((s) => s.id === id);
+    if (existingSupplier) {
+      const updatedSupplier: Supplier = { ...existingSupplier, ...data };
+      await updateSupplier(updatedSupplier);
+    }
   };
 
-  // Handle delete supplier
-  const handleDeleteSupplier = async (id: string) => {
-    await db.suppliers.update(id, { isActive: false });
+  /**
+   * Soft-deletes supplier
+   */
+  const handleDelete = async (id: string) => {
+    await deleteSupplier(id);
+    // Select first available supplier after deletion
+    if (suppliers.length > 1) {
+      const nextSupplier = suppliers.find((s) => s.id !== id && s.isActive);
+      if (nextSupplier) {
+        setSelectedSupplierId(nextSupplier.id);
+      }
+    }
   };
 
-  // Handle cancel create
+  /**
+   * Cancels creation and returns to view mode
+   */
   const handleCancelCreate = () => {
     setIsCreating(false);
-    // Re-select first supplier if available
+    // Auto-select first available supplier
     if (suppliers.length > 0) {
-      const firstActiveSupplier = suppliers.find((s) => s.isActive !== false);
-      if (firstActiveSupplier) {
-        setSelectedSupplierId(firstActiveSupplier.id);
+      const firstActive = suppliers.find((s) => s.isActive);
+      if (firstActive) {
+        setSelectedSupplierId(firstActive.id);
       }
     }
   };
@@ -98,7 +125,7 @@ export function SuppliersOverviewTab({
 
       {/* List + Details Layout */}
       <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
-        {/* Supplier List - 1/3 width */}
+        {/* Supplier List - 1/4 width */}
         <div className="lg:col-span-1">
           <SuppliersList
             suppliers={filteredSuppliers}
@@ -113,14 +140,14 @@ export function SuppliersOverviewTab({
           />
         </div>
 
-        {/* Details Card - 2/3 width */}
+        {/* Details Card - 3/4 width */}
         <div className="lg:col-span-3">
           <SuppliersDetailsCard
             supplier={selectedSupplier}
             isCreating={isCreating}
-            onUpdate={handleEditSupplier}
             onCreate={handleCreate}
-            onDelete={handleDeleteSupplier}
+            onUpdate={handleUpdate}
+            onDelete={handleDelete}
             onCancelCreate={handleCancelCreate}
             materialCount={
               selectedSupplierId ? itemsBySupplier[selectedSupplierId] || 0 : 0

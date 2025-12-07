@@ -1,6 +1,10 @@
 // src/app/suppliers/components/suppliers-constants.tsx
-import { Supplier } from "@/types/shared-types";
+import { Supplier } from "@/types/supplier-types";
 
+/**
+ * Hardcoded supplier data array for demo purposes
+ * In production, this data should come from the database
+ */
 export const SUPPLIERS: Supplier[] = [
   {
     id: "1",

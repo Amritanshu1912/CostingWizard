@@ -19,37 +19,6 @@ export interface BulkDiscount {
 export type CapacityUnit = "kg" | "L" | "ml" | "gm" | "pcs";
 
 // ============================================================================
-// CATEGORIES
-// ============================================================================
-
-// ============================================================================
-// SUPPLIERS
-// ============================================================================
-
-export interface ContactPerson {
-  name: string;
-  email?: string;
-  phone?: string;
-  role?: string;
-}
-
-export interface Supplier extends BaseEntity {
-  name: string;
-  contactPersons?: ContactPerson[];
-  address?: string;
-  rating: number;
-  isActive: boolean;
-  paymentTerms: string;
-  leadTime: number; // in days
-  notes?: string;
-  performance?: {
-    onTimeDelivery: number;
-    qualityScore: number;
-    priceCompetitiveness: number;
-  };
-}
-
-// ============================================================================
 // RECIPES
 // ============================================================================
 

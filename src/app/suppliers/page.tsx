@@ -1,8 +1,14 @@
 // src/app/suppliers/page.tsx
+
 import { SuppliersManager } from "@/app/suppliers/components/suppliers-manager";
 import { Sidebar } from "@/components/sidebar";
 
+/**
+ * Suppliers page component that renders the main suppliers management interface
+ * @returns JSX element containing the suppliers manager with sidebar layout
+ */
 export default function SuppliersPage() {
+  // Main page layout with sidebar and content area
   return (
     <div className="flex h-screen bg-background">
       <Sidebar />

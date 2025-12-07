@@ -1,7 +1,6 @@
 // src/lib/db.ts
 import Dexie, { Table } from "dexie";
 import type {
-  Supplier,
   RecipeIngredient,
   Recipe,
   RecipeVariant,
@@ -21,7 +20,7 @@ import type {
 } from "@/types/material-types";
 import type { Label, SupplierLabel } from "@/types/label-types";
 import type { Packaging, SupplierPackaging } from "@/types/packaging-types";
-
+import type { Supplier } from "@/types/supplier-types";
 import { MATERIAL_CATEGORIES } from "./constants";
 import { SUPPLIERS } from "@/app/suppliers/components/suppliers-constants";
 import {
