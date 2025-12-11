@@ -3,7 +3,8 @@ import type {
   InventoryItem,
   InventoryAlert,
   InventoryItemWithDetails,
-} from "../types/shared-types";
+} from "../types/inventory-types";
+import { generateId, createUntrackedItem } from "../utils/inventory-utils";
 
 // Utility module to centralize alert creation logic.
 // All functions accept a `db` instance so we avoid circular imports with `db.ts`.
@@ -39,7 +40,7 @@ export async function createOrUpdateAlertForItem(
 
   if (status === "out-of-stock") {
     const payload = {
-      id: `alert_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+      id: generateId("alert"),
       inventoryItemId: item.id,
       alertType: "out-of-stock",
       severity: "critical",
@@ -51,7 +52,7 @@ export async function createOrUpdateAlertForItem(
     await db.inventoryAlerts.add(payload);
   } else if (status === "low-stock") {
     const payload = {
-      id: `alert_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+      id: generateId("alert"),
       inventoryItemId: item.id,
       alertType: "low-stock",
       severity: "warning",
@@ -65,7 +66,7 @@ export async function createOrUpdateAlertForItem(
     await db.inventoryAlerts.add(payload);
   } else if (status === "overstock") {
     const payload = {
-      id: `alert_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+      id: generateId("alert"),
       inventoryItemId: item.id,
       alertType: "overstock",
       severity: "info",
@@ -107,33 +108,6 @@ export async function sweepAndGenerateAlerts(db: any) {
 
   const combinedItems: Partial<InventoryItemWithDetails>[] = [];
 
-  const makeUntracked = (
-    id: string,
-    itemType: InventoryItem["itemType"],
-    itemId: string,
-    itemName: string,
-    supplierName: string,
-    supplierId: string,
-    unit: string,
-    unitPrice: number,
-    tax: number
-  ): Partial<InventoryItemWithDetails> => ({
-    id: `untracked-${id}`,
-    itemType,
-    itemId,
-    itemName,
-    supplierName,
-    supplierId,
-    currentStock: 0,
-    unit,
-    minStockLevel: 0,
-    status: "out-of-stock",
-    lastUpdated: new Date().toISOString(),
-    createdAt: new Date().toISOString(),
-    unitPrice,
-    tax,
-  });
-
   // Materials
   supplierMaterials.forEach((sm: any) => {
     const tracked = inventoryItems.find(
@@ -144,7 +118,7 @@ export async function sweepAndGenerateAlerts(db: any) {
       const material = materials.find((m: any) => m.id === sm.materialId);
       const supplier = suppliers.find((s: any) => s.id === sm.supplierId);
       combinedItems.push(
-        makeUntracked(
+        createUntrackedItem(
           `sm-${sm.id}`,
           "supplierMaterial",
           sm.id,
@@ -169,7 +143,7 @@ export async function sweepAndGenerateAlerts(db: any) {
       const pkg = packaging.find((p: any) => p.id === sp.packagingId);
       const supplier = suppliers.find((s: any) => s.id === sp.supplierId);
       combinedItems.push(
-        makeUntracked(
+        createUntrackedItem(
           `sp-${sp.id}`,
           "supplierPackaging",
           sp.id,
@@ -194,7 +168,7 @@ export async function sweepAndGenerateAlerts(db: any) {
       const label = labels.find((l: any) => l.id === sl.labelId);
       const supplier = suppliers.find((s: any) => s.id === sl.supplierId);
       combinedItems.push(
-        makeUntracked(
+        createUntrackedItem(
           `sl-${sl.id}`,
           "supplierLabel",
           sl.id,

@@ -1,12 +1,12 @@
-// src/app/inventory/components/inventory-manager.tsx
+// src/app/inventory/components/manager.tsx
 "use client";
 
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
-  useInventoryItemsWithDetails,
+  useAllInventoryItemsWithDetails,
   useInventoryStats,
-} from "@/hooks/use-inventory";
+} from "@/hooks/inventory-hooks/use-inventory-computed";
 import { Package, Plus } from "lucide-react";
 import { useState } from "react";
 import { BulkAdjustDialog } from "./inventory-bulk-adjust-dialog";
@@ -14,13 +14,17 @@ import { InventoryItemDialog } from "./inventory-item-dialog";
 import { InventoryOverview } from "./inventory-overview";
 import { InventoryStockList } from "./inventory-stock-list";
 
+/**
+ * Main inventory management component
+ * Manages tabs and global dialogs for inventory operations
+ */
 export function InventoryManager() {
   const [showAddDialog, setShowAddDialog] = useState(false);
   const [showBulkDialog, setShowBulkDialog] = useState(false);
 
-  const items = useInventoryItemsWithDetails();
+  // Pre-fetch data for tabs (will be cached by React Query/Dexie)
+  const items = useAllInventoryItemsWithDetails();
   const stats = useInventoryStats();
-  // alerts tab removed — keep hooks for future analytics if needed
 
   return (
     <div className="space-y-6 animate-fade-in">
@@ -31,19 +35,29 @@ export function InventoryManager() {
             Inventory Management
           </h1>
           <p className="text-muted-foreground mt-1 text-sm sm:text-base">
-            Manage your inventory here
+            Track and manage your stock levels
           </p>
         </div>
+
         <div className="flex gap-2 w-full sm:w-auto">
-          <Button onClick={() => setShowAddDialog(true)}>
-            <Plus /> Add Stock
+          <Button
+            onClick={() => setShowAddDialog(true)}
+            className="flex-1 sm:flex-initial"
+          >
+            <Plus className="h-4 w-4" />
+            Add Stock
           </Button>
-          <Button onClick={() => setShowBulkDialog(true)}>
-            <Package /> Bulk Add/Adjust
+          <Button
+            onClick={() => setShowBulkDialog(true)}
+            className="flex-1 sm:flex-initial"
+          >
+            <Package className="h-4 w-4" />
+            Bulk Add/Adjust
           </Button>
         </div>
       </div>
 
+      {/* Tabs */}
       <Tabs defaultValue="overview" className="space-y-6">
         <TabsList className="grid w-full grid-cols-2">
           <TabsTrigger value="overview">Overview</TabsTrigger>
@@ -57,11 +71,9 @@ export function InventoryManager() {
         <TabsContent value="stock" className="mt-0">
           <InventoryStockList />
         </TabsContent>
-
-        {/* Transactions and Alerts tabs removed. Analytics tab will be added later. */}
       </Tabs>
 
-      {/* Dialogs */}
+      {/* Global Dialogs */}
       <InventoryItemDialog
         open={showAddDialog}
         onOpenChange={setShowAddDialog}
@@ -73,3 +85,5 @@ export function InventoryManager() {
     </div>
   );
 }
+
+export default InventoryManager;

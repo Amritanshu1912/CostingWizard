@@ -8,7 +8,7 @@ import { useSupplierMaterialRows } from "@/hooks/material-hooks/use-materials-qu
 import {
   convertToBaseUnit,
   normalizeToKg,
-} from "../utils/unit-conversion-utils";
+} from "../../utils/unit-conversion-utils";
 
 export interface ExperimentIngredient extends RecipeIngredient {
   _changed?: boolean;

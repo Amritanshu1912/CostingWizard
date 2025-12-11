@@ -19,7 +19,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
-import type { ExperimentIngredient } from "@/hooks/use-recipe-experiment";
+import type { ExperimentIngredient } from "@/hooks/recipe-hooks/use-recipe-experiment";
 import type { OptimizationGoalType } from "@/types/shared-types";
 import type { SupplierMaterialRow } from "@/types/material-types";
 import { Edit3, GitBranch, TrendingDown } from "lucide-react";

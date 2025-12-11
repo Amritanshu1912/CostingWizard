@@ -8,9 +8,6 @@ import type {
   ProductVariant,
   ProductionBatch,
   PurchaseOrder,
-  InventoryItem,
-  InventoryTransaction,
-  InventoryAlert,
   TransportationCost,
 } from "@/types/shared-types";
 import type {
@@ -21,6 +18,11 @@ import type {
 import type { Label, SupplierLabel } from "@/types/label-types";
 import type { Packaging, SupplierPackaging } from "@/types/packaging-types";
 import type { Supplier } from "@/types/supplier-types";
+import type {
+  InventoryItem,
+  InventoryTransaction,
+  InventoryAlert,
+} from "@/types/inventory-types";
 import { MATERIAL_CATEGORIES } from "./constants";
 import { SUPPLIERS } from "@/app/suppliers/components/suppliers-constants";
 import {
@@ -99,7 +101,7 @@ export class CostingWizardDB extends Dexie {
         productionBatches: "id, batchName, status, startDate, endDate",
         purchaseOrders: "id, orderId, supplierId, status, dateCreated",
         inventoryItems:
-          "id, itemType, itemId, status, currentStock, lastUpdated, [itemId+itemType]",
+          "id, itemType, itemId, status, currentStock, updatedAt, [itemId+itemType]",
         inventoryTransactions:
           "id, inventoryItemId, type, createdAt, reference",
         inventoryAlerts:

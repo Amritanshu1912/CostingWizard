@@ -1,24 +1,25 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
 "use client";
 
-import { useState, useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Plus } from "lucide-react";
-import { db } from "@/lib/db";
+import { useSupplierMaterialTableRows } from "@/hooks/material-hooks/use-materials-queries";
 import { useDexieTable } from "@/hooks/use-dexie-table";
-import { Supplier, PurchaseOrder } from "@/types/shared-types";
+import { db } from "@/lib/db";
+import type { PurchaseOrder } from "@/types/shared-types";
+import type { Supplier } from "@/types/supplier-types";
+import { Plus } from "lucide-react";
+import { useMemo, useState } from "react";
 import { ProcurementAnalytics } from "./procurement-analytics";
-import { OrdersTab } from "./procurement-orders-tab";
-import { OrderDialog } from "./procurement-orders-dialogs";
 import {
-  SUMMARY_METRICS,
-  MONTHLY_SPEND_DATA,
   MATERIAL_COST_DATA,
+  MONTHLY_SPEND_DATA,
   ORDER_STATUS_DATA,
+  SUMMARY_METRICS,
   getSupplierPerformanceData,
 } from "./procurement-constants";
-import { useSupplierMaterialRows } from "@/hooks/material-hooks/use-materials-queries";
+import { OrderDialog } from "./procurement-orders-dialogs";
+import { OrdersTab } from "./procurement-orders-tab";
 
 // Get enriched data with all joins already done
 
@@ -31,7 +32,7 @@ export default function ProcurementManager() {
   const { data: purchaseOrders } = useDexieTable<PurchaseOrder>(
     db.purchaseOrders
   );
-  const supplierMaterials = useSupplierMaterialRows();
+  const supplierMaterials = useSupplierMaterialTableRows();
 
   const {
     metrics,

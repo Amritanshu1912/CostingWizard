@@ -15,7 +15,7 @@ import {
   convertToBaseUnit,
   formatQuantity,
   normalizeToKg,
-} from "../utils/unit-conversion-utils";
+} from "../../utils/unit-conversion-utils";
 
 /**
  * Fetches all recipe-related data once and creates lookup maps

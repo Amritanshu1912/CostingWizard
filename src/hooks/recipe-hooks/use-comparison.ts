@@ -9,12 +9,14 @@ import type {
   RecipeIngredient,
   RecipeIngredientDisplay,
   RecipeVariant,
-  Supplier,
   VariantIngredientSnapshot,
 } from "@/types/shared-types";
-
+import type { Supplier } from "@/types/supplier-types";
 import { useMemo } from "react";
-import { formatQuantity, normalizeToKg } from "../utils/unit-conversion-utils";
+import {
+  formatQuantity,
+  normalizeToKg,
+} from "../../utils/unit-conversion-utils";
 import { useEnrichedRecipes, useRecipeData } from "./use-recipes";
 
 /**
@@ -95,7 +97,7 @@ const getVariantIngredients = (
         ingOrSnap.lockedPricing && sm
           ? sm.unitPrice - ingOrSnap.lockedPricing.unitPrice
           : undefined,
-      isAvailable: sm ? sm.availability === "in-stock" : false,
+      stockStatus: sm ? sm.stockStatus === "in-stock" : false,
     };
   });
 

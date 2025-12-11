@@ -2,15 +2,9 @@
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import type { ItemWithoutInventory } from "@/types/inventory-types";
 import { AlertTriangle, Plus, X } from "lucide-react";
 import { useState } from "react";
-
-interface ItemWithoutInventory {
-  itemType: "material" | "packaging" | "label";
-  itemId: string;
-  itemName: string;
-  supplierName: string;
-}
 
 interface InventoryWarningsAlertProps {
   items: ItemWithoutInventory[];

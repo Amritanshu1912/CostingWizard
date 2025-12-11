@@ -1,13 +1,16 @@
 // hooks/use-batch-calculations.ts
-import { normalizeToKg } from "@/utils/unit-conversion-utils";
 import { db } from "@/lib/db";
 import type {
   InventoryItem,
+  ItemWithoutInventory,
+} from "@/types/inventory-types";
+import type { SupplierMaterial } from "@/types/material-types";
+import type {
   RecipeIngredient,
   RequirementItem,
   SupplierRequirement,
 } from "@/types/shared-types";
-import type { SupplierMaterial } from "@/types/material-types";
+import { normalizeToKg } from "@/utils/unit-conversion-utils";
 
 // ============================================================================
 // PRICE RESOLUTION
@@ -190,7 +193,7 @@ export async function calculateVariantMaterialRequirements(
       required: requiredQty,
       available: inventory.available,
       shortage: inventory.shortage,
-      unit: supplierMaterial.unit,
+      unit: supplierMaterial.capacityUnit,
       unitPrice: pricing.unitPrice,
       tax: pricing.tax,
       totalCost,
@@ -547,13 +550,6 @@ export function groupByProduct(
 // ============================================================================
 // ITEMS WITHOUT INVENTORY TRACKING
 // ============================================================================
-
-export interface ItemWithoutInventory {
-  itemType: "material" | "packaging" | "label";
-  itemId: string;
-  itemName: string;
-  supplierName: string;
-}
 
 export function findItemsWithoutInventory(
   materials: RequirementItem[],
