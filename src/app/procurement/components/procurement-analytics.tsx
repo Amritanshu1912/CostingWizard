@@ -37,7 +37,22 @@ import {
   Line,
   ComposedChart,
 } from "recharts";
-import { CHART_COLORS } from "@/utils/color-utils";
+import {
+  BAR_CHART_CONFIG,
+  CHART_COLOR_SCHEMES,
+  CHART_GRID_CONFIG,
+  CHART_LEGEND_CONFIG,
+  CHART_MARGIN_CONFIG,
+  CHART_RESPONSIVE_CONFIG,
+  CHART_TOOLTIP_ITEM_STYLE,
+  CHART_TOOLTIP_LABEL_STYLE,
+  CHART_TOOLTIP_STYLE,
+  CHART_XAXIS_CONFIG,
+  CHART_YAXIS_CONFIG,
+  LINE_CHART_CONFIG,
+  PIE_CHART_CONFIG,
+  formatChartCurrency,
+} from "@/utils/chart-utils";
 import {
   SPEND_BY_SUPPLIER_DATA,
   ORDER_VOLUME_TRENDS_DATA,
@@ -106,20 +121,15 @@ export function ProcurementAnalytics({
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <ResponsiveContainer width="100%" height={300}>
-              <AreaChart data={monthlySpendData}>
-                <CartesianGrid
-                  strokeDasharray="3 3"
-                  stroke="hsl(var(--border))"
-                />
-                <XAxis dataKey="month" stroke="hsl(var(--muted-foreground))" />
-                <YAxis stroke="hsl(var(--muted-foreground))" />
+            <ResponsiveContainer {...CHART_RESPONSIVE_CONFIG} height={300}>
+              <AreaChart data={monthlySpendData} margin={CHART_MARGIN_CONFIG}>
+                <CartesianGrid {...CHART_GRID_CONFIG} />
+                <XAxis dataKey="month" {...CHART_XAXIS_CONFIG} />
+                <YAxis {...CHART_YAXIS_CONFIG} />
                 <Tooltip
-                  contentStyle={{
-                    backgroundColor: "hsl(var(--card))",
-                    border: "1px solid hsl(var(--border))",
-                    borderRadius: "8px",
-                  }}
+                  contentStyle={CHART_TOOLTIP_STYLE}
+                  itemStyle={CHART_TOOLTIP_ITEM_STYLE}
+                  labelStyle={CHART_TOOLTIP_LABEL_STYLE}
                   formatter={(value) =>
                     typeof value === "number" ? value.toFixed(2) : value
                   }
@@ -127,8 +137,8 @@ export function ProcurementAnalytics({
                 <Area
                   type="monotone"
                   dataKey="spend"
-                  stroke={CHART_COLORS.light.chart1}
-                  fill={CHART_COLORS.light.chart1}
+                  stroke={CHART_COLOR_SCHEMES.default[0]}
+                  fill={CHART_COLOR_SCHEMES.default[0]}
                   fillOpacity={0.2}
                 />
               </AreaChart>
@@ -147,27 +157,30 @@ export function ProcurementAnalytics({
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <ResponsiveContainer width="100%" height={300}>
-              <PieChart>
+            <ResponsiveContainer {...CHART_RESPONSIVE_CONFIG} height={300}>
+              <PieChart margin={CHART_MARGIN_CONFIG}>
                 <Pie
                   data={orderStatusData}
                   cx="50%"
                   cy="50%"
+                  dataKey="value"
                   innerRadius={60}
                   outerRadius={120}
                   paddingAngle={5}
-                  dataKey="value"
                 >
                   {orderStatusData.map((entry, index) => (
                     <Cell key={`cell-${index}`} fill={entry.color} />
                   ))}
                 </Pie>
                 <Tooltip
+                  contentStyle={CHART_TOOLTIP_STYLE}
+                  itemStyle={CHART_TOOLTIP_ITEM_STYLE}
+                  labelStyle={CHART_TOOLTIP_LABEL_STYLE}
                   formatter={(value) =>
                     typeof value === "number" ? value.toFixed(2) : value
                   }
                 />
-                <Legend />
+                <Legend {...CHART_LEGEND_CONFIG} />
               </PieChart>
             </ResponsiveContainer>
           </CardContent>
@@ -185,45 +198,40 @@ export function ProcurementAnalytics({
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <ResponsiveContainer width="100%" height={400}>
+          <ResponsiveContainer {...CHART_RESPONSIVE_CONFIG} height={400}>
             <BarChart
               data={supplierPerformanceData}
-              margin={{ top: 20, right: 30, left: 20, bottom: 5 }}
+              margin={CHART_MARGIN_CONFIG}
             >
-              <CartesianGrid
-                strokeDasharray="3 3"
-                stroke="hsl(var(--border))"
-              />
-              <XAxis dataKey="name" stroke="hsl(var(--muted-foreground))" />
-              <YAxis stroke="hsl(var(--muted-foreground))" />
+              <CartesianGrid {...CHART_GRID_CONFIG} />
+              <XAxis dataKey="name" {...CHART_XAXIS_CONFIG} />
+              <YAxis {...CHART_YAXIS_CONFIG} />
               <Tooltip
-                contentStyle={{
-                  backgroundColor: "hsl(var(--card))",
-                  border: "1px solid hsl(var(--border))",
-                  borderRadius: "8px",
-                }}
+                contentStyle={CHART_TOOLTIP_STYLE}
+                itemStyle={CHART_TOOLTIP_ITEM_STYLE}
+                labelStyle={CHART_TOOLTIP_LABEL_STYLE}
                 formatter={(value) =>
                   typeof value === "number" ? value.toFixed(2) : value
                 }
               />
-              <Legend />
+              <Legend {...CHART_LEGEND_CONFIG} />
               <Bar
                 dataKey="onTime"
-                fill={CHART_COLORS.light.chart1}
+                fill={CHART_COLOR_SCHEMES.default[0]}
                 name="On-time Delivery %"
-                radius={[2, 2, 0, 0]}
+                {...BAR_CHART_CONFIG}
               />
               <Bar
                 dataKey="quality"
-                fill={CHART_COLORS.light.chart2}
+                fill={CHART_COLOR_SCHEMES.default[1]}
                 name="Quality Score %"
-                radius={[2, 2, 0, 0]}
+                {...BAR_CHART_CONFIG}
               />
               <Bar
                 dataKey="price"
-                fill={CHART_COLORS.light.chart3}
+                fill={CHART_COLOR_SCHEMES.default[2]}
                 name="Price Competitiveness %"
-                radius={[2, 2, 0, 0]}
+                {...BAR_CHART_CONFIG}
               />
             </BarChart>
           </ResponsiveContainer>
@@ -243,31 +251,26 @@ export function ProcurementAnalytics({
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <ResponsiveContainer width="100%" height={300}>
-              <BarChart data={SPEND_BY_SUPPLIER_DATA}>
-                <CartesianGrid
-                  strokeDasharray="3 3"
-                  stroke="hsl(var(--border))"
-                />
-                <XAxis
-                  dataKey="supplier"
-                  stroke="hsl(var(--muted-foreground))"
-                />
-                <YAxis stroke="hsl(var(--muted-foreground))" />
+            <ResponsiveContainer {...CHART_RESPONSIVE_CONFIG} height={300}>
+              <BarChart
+                data={SPEND_BY_SUPPLIER_DATA}
+                margin={CHART_MARGIN_CONFIG}
+              >
+                <CartesianGrid {...CHART_GRID_CONFIG} />
+                <XAxis dataKey="supplier" {...CHART_XAXIS_CONFIG} />
+                <YAxis {...CHART_YAXIS_CONFIG} />
                 <Tooltip
-                  contentStyle={{
-                    backgroundColor: "hsl(var(--card))",
-                    border: "1px solid hsl(var(--border))",
-                    borderRadius: "8px",
-                  }}
+                  contentStyle={CHART_TOOLTIP_STYLE}
+                  itemStyle={CHART_TOOLTIP_ITEM_STYLE}
+                  labelStyle={CHART_TOOLTIP_LABEL_STYLE}
                   formatter={(value) =>
                     typeof value === "number" ? value.toFixed(2) : value
                   }
                 />
                 <Bar
                   dataKey="spend"
-                  fill={CHART_COLORS.light.chart1}
-                  radius={[2, 2, 0, 0]}
+                  fill={CHART_COLOR_SCHEMES.default[0]}
+                  {...BAR_CHART_CONFIG}
                 />
               </BarChart>
             </ResponsiveContainer>
@@ -285,49 +288,47 @@ export function ProcurementAnalytics({
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <ResponsiveContainer width="100%" height={300}>
-              <ComposedChart data={combinedTrendsData}>
-                <CartesianGrid
-                  strokeDasharray="3 3"
-                  stroke="hsl(var(--border))"
-                />
-                <XAxis dataKey="month" stroke="#000" />
+            <ResponsiveContainer {...CHART_RESPONSIVE_CONFIG} height={300}>
+              <ComposedChart
+                data={combinedTrendsData}
+                margin={CHART_MARGIN_CONFIG}
+              >
+                <CartesianGrid {...CHART_GRID_CONFIG} />
+                <XAxis dataKey="month" {...CHART_XAXIS_CONFIG} />
                 <YAxis
                   yAxisId="left"
-                  stroke={CHART_COLORS.light.chart2}
+                  {...CHART_YAXIS_CONFIG}
                   orientation="left"
                 />
                 <YAxis
                   yAxisId="right"
-                  stroke={CHART_COLORS.light.chart4}
+                  {...CHART_YAXIS_CONFIG}
                   orientation="right"
                 />
                 <Tooltip
-                  contentStyle={{
-                    backgroundColor: "hsl(var(--card))",
-                    border: "1px solid hsl(var(--border))",
-                    borderRadius: "8px",
-                  }}
+                  contentStyle={CHART_TOOLTIP_STYLE}
+                  itemStyle={CHART_TOOLTIP_ITEM_STYLE}
+                  labelStyle={CHART_TOOLTIP_LABEL_STYLE}
                   formatter={(value) =>
                     typeof value === "number" ? value.toFixed(2) : value
                   }
                 />
-                <Legend />
+                <Legend {...CHART_LEGEND_CONFIG} />
                 <Line
                   yAxisId="left"
                   type="monotone"
                   dataKey="orders"
-                  stroke={CHART_COLORS.light.chart2}
-                  strokeWidth={3}
+                  stroke={CHART_COLOR_SCHEMES.default[0]}
                   name="Orders"
+                  {...LINE_CHART_CONFIG}
                 />
                 <Line
                   yAxisId="right"
                   type="monotone"
                   dataKey="avgDeliveryTime"
-                  stroke={CHART_COLORS.light.chart4}
-                  strokeWidth={3}
+                  stroke={CHART_COLOR_SCHEMES.default[1]}
                   name="Avg Delivery Time (days)"
+                  {...LINE_CHART_CONFIG}
                 />
               </ComposedChart>
             </ResponsiveContainer>

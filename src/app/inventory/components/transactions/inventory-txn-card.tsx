@@ -8,12 +8,12 @@ import { useAllInventoryItemsWithDetails } from "@/hooks/inventory-hooks/use-inv
 import { useInventoryTransactions } from "@/hooks/inventory-hooks/use-inventory-data";
 import type { InventoryTransaction } from "@/types/inventory-types";
 import {
-  formatDate,
   formatTransactionQuantity,
   getItemDetails,
   getTransactionColor,
   getTransactionTypeIcon,
 } from "@/utils/inventory-utils";
+import { formatDate } from "@/utils/formatting-utils";
 import InventoryTransactionDialog from "./inventory-txn-dialog";
 
 interface TransactionCardProps {

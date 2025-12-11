@@ -8,17 +8,25 @@ import type {
   InventoryStats,
 } from "@/types/inventory-types";
 import {
+  BAR_CHART_CONFIG,
+  CHART_GRID_CONFIG,
+  CHART_LEGEND_CONFIG,
+  CHART_MARGIN_CONFIG,
+  CHART_RESPONSIVE_CONFIG,
   CHART_TOOLTIP_ITEM_STYLE,
   CHART_TOOLTIP_LABEL_STYLE,
   CHART_TOOLTIP_STYLE,
+  CHART_XAXIS_CONFIG,
+  CHART_YAXIS_CONFIG,
   INVENTORY_CHART_COLORS,
+  PIE_CHART_CONFIG,
   calculateTypeDistribution,
   formatChartCurrency,
   formatLegendWithValue,
   prepareStockValueByTypePieData,
   prepareTopItemsByValueBarData,
-} from "@/utils/inventory-chart-utils";
-import { formatCurrency } from "@/utils/inventory-utils";
+} from "@/utils/chart-utils";
+import { formatINR } from "@/utils/formatting-utils";
 import { AlertTriangle, DollarSign, Package } from "lucide-react";
 import {
   Bar,
@@ -87,7 +95,7 @@ export function InventoryOverview({ stats, items }: InventoryOverviewProps) {
 
           <MetricCard
             title="Stock Value"
-            value={formatCurrency(stats.totalStockValue)}
+            value={formatINR(stats.totalStockValue)}
             icon={DollarSign}
             iconClassName="text-primary"
             description="Total inventory worth"
@@ -108,16 +116,18 @@ export function InventoryOverview({ stats, items }: InventoryOverviewProps) {
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <ResponsiveContainer width="100%" height={250}>
-                    <PieChart>
+                  <ResponsiveContainer
+                    {...CHART_RESPONSIVE_CONFIG}
+                    height={250}
+                  >
+                    <PieChart margin={CHART_MARGIN_CONFIG}>
                       <Pie
                         data={pieData}
                         cx="40%"
                         cy="50%"
                         label={false}
-                        outerRadius={70}
-                        fill="#8884d8"
                         dataKey="value"
+                        {...PIE_CHART_CONFIG}
                       >
                         {pieData.map((entry, index) => (
                           <Cell
@@ -131,18 +141,19 @@ export function InventoryOverview({ stats, items }: InventoryOverviewProps) {
                         ))}
                       </Pie>
                       <Tooltip
-                        formatter={(value: number) => formatCurrency(value)}
+                        formatter={(value: number) => formatINR(value)}
                         contentStyle={CHART_TOOLTIP_STYLE}
                         itemStyle={CHART_TOOLTIP_ITEM_STYLE}
                         labelStyle={CHART_TOOLTIP_LABEL_STYLE}
                       />
                       <Legend
-                        layout="vertical"
-                        align="right"
-                        verticalAlign="middle"
                         formatter={(value, entry: any) =>
                           formatLegendWithValue(value, entry.payload.value)
                         }
+                        {...CHART_LEGEND_CONFIG}
+                        layout="vertical"
+                        align="right"
+                        verticalAlign="middle"
                         wrapperStyle={{ right: 0 }}
                       />
                     </PieChart>
@@ -158,28 +169,25 @@ export function InventoryOverview({ stats, items }: InventoryOverviewProps) {
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <ResponsiveContainer width="100%" height={250}>
-                    <BarChart data={topItemsData}>
-                      <CartesianGrid
-                        strokeDasharray="3 3"
-                        stroke="hsl(var(--border))"
-                        opacity={0.3}
-                      />
+                  <ResponsiveContainer
+                    {...CHART_RESPONSIVE_CONFIG}
+                    height={250}
+                  >
+                    <BarChart data={topItemsData} margin={CHART_MARGIN_CONFIG}>
+                      <CartesianGrid {...CHART_GRID_CONFIG} />
                       <XAxis
                         dataKey="name"
-                        type="category"
+                        {...CHART_XAXIS_CONFIG}
                         width={120}
                         fontSize={11}
-                        stroke="hsl(var(--muted-foreground))"
                       />
                       <YAxis
-                        type="number"
-                        stroke="hsl(var(--muted-foreground))"
+                        {...CHART_YAXIS_CONFIG}
                         fontSize={11}
                         tickFormatter={formatChartCurrency}
                       />
                       <Tooltip
-                        formatter={(value: number) => formatCurrency(value)}
+                        formatter={(value: number) => formatINR(value)}
                         contentStyle={CHART_TOOLTIP_STYLE}
                         itemStyle={CHART_TOOLTIP_ITEM_STYLE}
                         labelStyle={CHART_TOOLTIP_LABEL_STYLE}
@@ -187,7 +195,7 @@ export function InventoryOverview({ stats, items }: InventoryOverviewProps) {
                       <Bar
                         dataKey="value"
                         fill={INVENTORY_CHART_COLORS[0]}
-                        radius={[0, 4, 4, 0]}
+                        {...BAR_CHART_CONFIG}
                       />
                     </BarChart>
                   </ResponsiveContainer>
@@ -222,7 +230,7 @@ export function InventoryOverview({ stats, items }: InventoryOverviewProps) {
                           </div>
                           <div className="text-right">
                             <div className="font-semibold text-sm">
-                              {formatCurrency(supplier.totalValue)}
+                              {formatINR(supplier.totalValue)}
                             </div>
                           </div>
                         </div>
@@ -253,7 +261,7 @@ export function InventoryOverview({ stats, items }: InventoryOverviewProps) {
                             </div>
                           </div>
                           <div className="text-sm text-muted-foreground">
-                            {item.count} • {formatCurrency(item.value)}
+                            {item.count} • {formatINR(item.value)}
                           </div>
                         </div>
                         <div className="w-full bg-muted/20 h-2 rounded">

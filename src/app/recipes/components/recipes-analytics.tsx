@@ -19,8 +19,21 @@ import {
   useEnrichedRecipes,
   useRecipeStats,
 } from "@/hooks/recipe-hooks/use-recipes";
-import { CHART_COLORS } from "@/utils/color-utils";
 import type { Recipe } from "@/types/shared-types";
+import {
+  CHART_COLOR_SCHEMES,
+  CHART_GRID_CONFIG,
+  CHART_LEGEND_CONFIG,
+  CHART_MARGIN_CONFIG,
+  CHART_RESPONSIVE_CONFIG,
+  CHART_TOOLTIP_ITEM_STYLE,
+  CHART_TOOLTIP_LABEL_STYLE,
+  CHART_TOOLTIP_STYLE,
+  CHART_XAXIS_CONFIG,
+  CHART_YAXIS_CONFIG,
+  LINE_CHART_CONFIG,
+  PIE_CHART_CONFIG,
+} from "@/utils/chart-utils";
 import {
   AlertCircle,
   Beaker,
@@ -227,8 +240,6 @@ export function RecipeAnalytics({ recipes }: RecipeAnalyticsProps) {
       0
     );
 
-    const chartColors = Object.values(CHART_COLORS.light);
-
     return Array.from(ingredientCosts.values())
       .sort((a, b) => b.cost - a.cost)
       .map((item, index) => ({
@@ -238,7 +249,10 @@ export function RecipeAnalytics({ recipes }: RecipeAnalyticsProps) {
           totalCost > 0
             ? parseFloat(((item.cost / totalCost) * 100).toFixed(1))
             : 0,
-        color: chartColors[index % chartColors.length],
+        color:
+          CHART_COLOR_SCHEMES.default[
+            index % CHART_COLOR_SCHEMES.default.length
+          ],
       }));
   }, [recipesWithDetails]);
 
@@ -266,15 +280,16 @@ export function RecipeAnalytics({ recipes }: RecipeAnalyticsProps) {
       });
     });
 
-    const chartColors = Object.values(CHART_COLORS.light);
-
     return Array.from(supplierMaterialWeights.values())
       .sort((a, b) => b.weight - a.weight)
       .map((item, index) => ({
         name: item.name,
         value: item.weight,
         percentage: 0, // Will be calculated in tooltip if needed
-        color: chartColors[index % chartColors.length],
+        color:
+          CHART_COLOR_SCHEMES.default[
+            index % CHART_COLOR_SCHEMES.default.length
+          ],
       }));
   }, [recipesWithDetails]);
 
@@ -343,53 +358,43 @@ export function RecipeAnalytics({ recipes }: RecipeAnalyticsProps) {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <ResponsiveContainer width="100%" height={300}>
-              <LineChart data={recipeCostVsTargetData}>
-                <CartesianGrid
-                  strokeDasharray="3 3"
-                  className="stroke-border"
-                />
+            <ResponsiveContainer {...CHART_RESPONSIVE_CONFIG} height={300}>
+              <LineChart
+                data={recipeCostVsTargetData}
+                margin={CHART_MARGIN_CONFIG}
+              >
+                <CartesianGrid {...CHART_GRID_CONFIG} />
                 <XAxis
                   dataKey="name"
-                  className="stroke-muted-foreground"
-                  tick={{ fill: "hsl(var(--muted-foreground))" }}
+                  {...CHART_XAXIS_CONFIG}
                   angle={-45}
                   textAnchor="end"
                   height={80}
                 />
-                <YAxis
-                  className="stroke-muted-foreground"
-                  tick={{ fill: "hsl(var(--muted-foreground))" }}
-                />
+                <YAxis {...CHART_YAXIS_CONFIG} />
                 <Tooltip
-                  contentStyle={{
-                    backgroundColor: "hsl(var(--card))",
-                    border: "1px solid hsl(var(--border))",
-                    borderRadius: "8px",
-                    color: "hsl(var(--foreground))",
-                  }}
+                  contentStyle={CHART_TOOLTIP_STYLE}
+                  itemStyle={CHART_TOOLTIP_ITEM_STYLE}
+                  labelStyle={CHART_TOOLTIP_LABEL_STYLE}
                   formatter={(value) =>
                     typeof value === "number" ? `₹${value.toFixed(2)}` : value
                   }
                 />
-                <Legend />
+                <Legend {...CHART_LEGEND_CONFIG} />
                 <Line
                   type="monotone"
                   dataKey="costPerKg"
-                  stroke={CHART_COLORS.light.chart1}
-                  strokeWidth={3}
+                  stroke={CHART_COLOR_SCHEMES.default[0]}
                   name="Cost/kg (₹)"
-                  dot={{ fill: CHART_COLORS.light.chart1, r: 4 }}
-                  activeDot={{ r: 6, fill: CHART_COLORS.light.chart2 }}
+                  {...LINE_CHART_CONFIG}
                 />
                 <Line
                   type="monotone"
                   dataKey="targetCostPerKg"
-                  stroke={CHART_COLORS.light.chart2}
-                  strokeWidth={2}
+                  stroke={CHART_COLOR_SCHEMES.default[1]}
                   name="Target Cost/kg (₹)"
-                  dot={{ fill: CHART_COLORS.light.chart2, r: 4 }}
-                  activeDot={{ r: 6, fill: CHART_COLORS.light.chart1 }}
+                  {...LINE_CHART_CONFIG}
+                  strokeWidth={2}
                 />
               </LineChart>
             </ResponsiveContainer>
@@ -410,33 +415,31 @@ export function RecipeAnalytics({ recipes }: RecipeAnalyticsProps) {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <ResponsiveContainer width="100%" height={300}>
-              <PieChart>
+            <ResponsiveContainer {...CHART_RESPONSIVE_CONFIG} height={300}>
+              <PieChart margin={CHART_MARGIN_CONFIG}>
                 <Pie
                   data={ingredientCostDistribution}
                   dataKey="value"
                   nameKey="name"
                   cx="40%"
                   cy="50%"
-                  outerRadius={80}
                   labelLine={false}
+                  {...PIE_CHART_CONFIG}
                 >
                   {ingredientCostDistribution.map((entry, index) => (
                     <Cell key={`cell-${index}`} fill={entry.color} />
                   ))}
                 </Pie>
                 <Tooltip
-                  contentStyle={{
-                    backgroundColor: "hsl(var(--card))",
-                    border: "1px solid hsl(var(--border))",
-                    borderRadius: "8px",
-                    color: "hsl(var(--foreground))",
-                  }}
+                  contentStyle={CHART_TOOLTIP_STYLE}
+                  itemStyle={CHART_TOOLTIP_ITEM_STYLE}
+                  labelStyle={CHART_TOOLTIP_LABEL_STYLE}
                   formatter={(value) =>
                     typeof value === "number" ? `₹${value.toFixed(2)}` : value
                   }
                 />
                 <Legend
+                  {...CHART_LEGEND_CONFIG}
                   verticalAlign="middle"
                   align="right"
                   layout="vertical"
@@ -458,28 +461,25 @@ export function RecipeAnalytics({ recipes }: RecipeAnalyticsProps) {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <ResponsiveContainer width="100%" height={300}>
-              <PieChart>
+            <ResponsiveContainer {...CHART_RESPONSIVE_CONFIG} height={300}>
+              <PieChart margin={CHART_MARGIN_CONFIG}>
                 <Pie
                   data={ingredientWeightDistribution}
                   dataKey="value"
                   nameKey="name"
                   cx="40%"
                   cy="50%"
-                  outerRadius={80}
                   labelLine={false}
+                  {...PIE_CHART_CONFIG}
                 >
                   {ingredientWeightDistribution.map((entry, index) => (
                     <Cell key={`cell-${index}`} fill={entry.color} />
                   ))}
                 </Pie>
                 <Tooltip
-                  contentStyle={{
-                    backgroundColor: "hsl(var(--card))",
-                    border: "1px solid hsl(var(--border))",
-                    borderRadius: "8px",
-                    color: "hsl(var(--foreground))",
-                  }}
+                  contentStyle={CHART_TOOLTIP_STYLE}
+                  itemStyle={CHART_TOOLTIP_ITEM_STYLE}
+                  labelStyle={CHART_TOOLTIP_LABEL_STYLE}
                   formatter={(value) =>
                     typeof value === "number"
                       ? `${value.toFixed(1)} gms`
@@ -487,6 +487,7 @@ export function RecipeAnalytics({ recipes }: RecipeAnalyticsProps) {
                   }
                 />
                 <Legend
+                  {...CHART_LEGEND_CONFIG}
                   verticalAlign="middle"
                   align="right"
                   layout="vertical"

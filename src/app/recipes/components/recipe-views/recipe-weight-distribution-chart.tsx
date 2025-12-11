@@ -5,12 +5,12 @@ import {
   ChartTooltip,
   ChartTooltipContent,
 } from "@/components/ui/chart";
+import type { RecipeIngredientDisplay } from "@/types/shared-types";
+import { CHART_COLOR_SCHEMES } from "@/utils/chart-utils";
 import {
   convertToBaseUnit,
   formatQuantity,
 } from "@/utils/unit-conversion-utils";
-import { CHART_COLORS } from "@/utils/color-utils";
-import type { RecipeIngredientDisplay } from "@/types/shared-types";
 import { Package } from "lucide-react";
 import { useMemo } from "react";
 import { Cell, Pie, PieChart } from "recharts";
@@ -43,8 +43,8 @@ export function RecipeWeightDistributionChart({
           supplier: ing.supplierName || "Unknown",
           displayQuantity: formatQuantity(ing.quantity, ing.unit),
           color:
-            CHART_COLORS.light[
-              `chart${(index % 5) + 1}` as keyof typeof CHART_COLORS.light
+            CHART_COLOR_SCHEMES.default[
+              index % CHART_COLOR_SCHEMES.default.length
             ],
         };
       })

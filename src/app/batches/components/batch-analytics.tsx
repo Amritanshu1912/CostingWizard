@@ -3,8 +3,21 @@
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
-import { CHART_COLORS } from "@/utils/color-utils";
 import type { BatchCostAnalysis } from "@/types/shared-types";
+import {
+  BAR_CHART_CONFIG,
+  CHART_COLOR_SCHEMES,
+  CHART_GRID_CONFIG,
+  CHART_LEGEND_CONFIG,
+  CHART_MARGIN_CONFIG,
+  CHART_RESPONSIVE_CONFIG,
+  CHART_TOOLTIP_ITEM_STYLE,
+  CHART_TOOLTIP_LABEL_STYLE,
+  CHART_TOOLTIP_STYLE,
+  CHART_XAXIS_CONFIG,
+  CHART_YAXIS_CONFIG,
+  PIE_CHART_CONFIG,
+} from "@/utils/chart-utils";
 import { AlertCircle, DollarSign, Package, TrendingUp } from "lucide-react";
 import {
   Bar,
@@ -25,9 +38,9 @@ interface BatchAnalyticsProps {
 }
 
 const COLORS = {
-  materials: CHART_COLORS.light.chart1,
-  packaging: CHART_COLORS.light.chart5,
-  labels: CHART_COLORS.light.chart4,
+  materials: CHART_COLOR_SCHEMES.default[0],
+  packaging: CHART_COLOR_SCHEMES.default[1],
+  labels: CHART_COLOR_SCHEMES.default[2],
 };
 
 export function BatchAnalytics({ costAnalysis }: BatchAnalyticsProps) {
@@ -143,16 +156,20 @@ export function BatchAnalytics({ costAnalysis }: BatchAnalyticsProps) {
           </CardHeader>
           <CardContent>
             <div className="flex gap-4 items-center">
-              <ResponsiveContainer width="100%" height={250} className="flex-1">
-                <PieChart>
+              <ResponsiveContainer
+                {...CHART_RESPONSIVE_CONFIG}
+                height={250}
+                className="flex-1"
+              >
+                <PieChart margin={CHART_MARGIN_CONFIG}>
                   <Pie
                     data={costBreakdownData}
                     cx="50%"
                     cy="50%"
                     labelLine={false}
                     label={false}
-                    outerRadius={80}
                     dataKey="value"
+                    {...PIE_CHART_CONFIG}
                   >
                     {costBreakdownData.map((entry, index) => (
                       <Cell
@@ -169,6 +186,9 @@ export function BatchAnalytics({ costAnalysis }: BatchAnalyticsProps) {
                   </Pie>
 
                   <Tooltip
+                    contentStyle={CHART_TOOLTIP_STYLE}
+                    itemStyle={CHART_TOOLTIP_ITEM_STYLE}
+                    labelStyle={CHART_TOOLTIP_LABEL_STYLE}
                     formatter={(value: number) => `₹${value.toFixed(0)}`}
                   />
                 </PieChart>
@@ -221,39 +241,46 @@ export function BatchAnalytics({ costAnalysis }: BatchAnalyticsProps) {
             <CardTitle>Cost vs Revenue by Variant</CardTitle>
           </CardHeader>
           <CardContent>
-            <ResponsiveContainer width="100%" height={300}>
-              <BarChart data={variantComparisonData}>
-                <CartesianGrid strokeDasharray="3 3" />
+            <ResponsiveContainer {...CHART_RESPONSIVE_CONFIG} height={300}>
+              <BarChart
+                data={variantComparisonData}
+                margin={CHART_MARGIN_CONFIG}
+              >
+                <CartesianGrid {...CHART_GRID_CONFIG} />
                 <XAxis
                   dataKey="name"
                   angle={-25}
                   textAnchor="end"
                   height={70}
                   interval={0}
-                  tick={{ fontSize: 12 }}
+                  {...CHART_XAXIS_CONFIG}
+                  fontSize={12}
                 />
-                <YAxis />
+                <YAxis {...CHART_YAXIS_CONFIG} />
                 <Tooltip
+                  contentStyle={CHART_TOOLTIP_STYLE}
+                  itemStyle={CHART_TOOLTIP_ITEM_STYLE}
+                  labelStyle={CHART_TOOLTIP_LABEL_STYLE}
                   formatter={(value, name) => [
                     `₹${value.toLocaleString()}`,
                     name,
                   ]}
                 />
-                <Legend />
+                <Legend {...CHART_LEGEND_CONFIG} />
                 <Bar
                   dataKey="cost"
                   fill={COLORS.materials}
-                  radius={[4, 4, 0, 0]}
+                  {...BAR_CHART_CONFIG}
                 />
                 <Bar
                   dataKey="revenue"
                   fill={COLORS.packaging}
-                  radius={[4, 4, 0, 0]}
+                  {...BAR_CHART_CONFIG}
                 />
                 <Bar
                   dataKey="profit"
                   fill={COLORS.labels}
-                  radius={[4, 4, 0, 0]}
+                  {...BAR_CHART_CONFIG}
                 />
               </BarChart>
             </ResponsiveContainer>

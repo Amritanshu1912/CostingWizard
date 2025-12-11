@@ -39,7 +39,7 @@ import type {
   RecipeIngredientDisplay,
   RecipeVariant,
 } from "@/types/shared-types";
-import { formatDate } from "@/utils/shared-utils";
+import { formatDate } from "@/utils/formatting-utils";
 import {
   AlertCircle,
   CheckCircle2,
@@ -316,7 +316,6 @@ export function RecipeDetailView({
       editedIngredients.map((ing, i) => {
         if (i === index) {
           if (ing.lockedPricing) {
-            // eslint-disable-next-line @typescript-eslint/no-unused-vars
             const { lockedPricing: _, ...rest } = ing;
             return rest;
           } else {

@@ -20,7 +20,21 @@ import {
   useSupplierLabelTableRows,
 } from "@/hooks/label-hooks/use-labels-queries";
 import { SupplierLabelTableRow } from "@/types/label-types";
-import { CHART_COLORS } from "@/utils/color-utils";
+import {
+  BAR_CHART_CONFIG,
+  CHART_COLOR_SCHEMES,
+  CHART_GRID_CONFIG,
+  CHART_LEGEND_CONFIG,
+  CHART_MARGIN_CONFIG,
+  CHART_RESPONSIVE_CONFIG,
+  CHART_TOOLTIP_ITEM_STYLE,
+  CHART_TOOLTIP_LABEL_STYLE,
+  CHART_TOOLTIP_STYLE,
+  CHART_XAXIS_CONFIG,
+  CHART_YAXIS_CONFIG,
+  LINE_CHART_CONFIG,
+  PIE_CHART_CONFIG,
+} from "@/utils/chart-utils";
 import {
   AlertTriangle,
   Clock,
@@ -223,10 +237,13 @@ export function LabelsAnalytics() {
   // Label Type Distribution - use analytics data if available, otherwise calculate
   const labelTypeDistribution = useMemo(() => {
     if (analytics?.typeDistribution) {
-      return analytics.typeDistribution.map((item) => ({
+      return analytics.typeDistribution.map((item, index) => ({
         name: item.type,
         value: item.percentage,
-        color: CHART_COLORS.light.chart1, // Default color
+        color:
+          CHART_COLOR_SCHEMES.default[
+            index % CHART_COLOR_SCHEMES.default.length
+          ],
       }));
     }
 
@@ -242,21 +259,24 @@ export function LabelsAnalytics() {
     );
 
     const total = supplierLabels.length;
-    const chartColors = Object.values(CHART_COLORS.light);
     return Object.entries(typeCounts).map(([name, count], index) => ({
       name,
       value: Math.round((count / total) * 100),
-      color: chartColors[index % chartColors.length],
+      color:
+        CHART_COLOR_SCHEMES.default[index % CHART_COLOR_SCHEMES.default.length],
     }));
   }, [supplierLabels, analytics]);
 
   // Calculate distribution of printing types for pie chart
   const printingTypeDistribution = useMemo(() => {
     if (analytics?.printingTypeDistribution) {
-      return analytics.printingTypeDistribution.map((item) => ({
+      return analytics.printingTypeDistribution.map((item, index) => ({
         name: item.printingType,
         value: item.percentage,
-        color: CHART_COLORS.light.chart2, // Default color
+        color:
+          CHART_COLOR_SCHEMES.default[
+            index % CHART_COLOR_SCHEMES.default.length
+          ],
       }));
     }
 
@@ -272,11 +292,11 @@ export function LabelsAnalytics() {
     );
 
     const total = supplierLabels.length;
-    const chartColors = Object.values(CHART_COLORS.light);
     return Object.entries(printingCounts).map(([name, count], index) => ({
       name,
       value: Math.round((count / total) * 100),
-      color: chartColors[index % chartColors.length],
+      color:
+        CHART_COLOR_SCHEMES.default[index % CHART_COLOR_SCHEMES.default.length],
     }));
   }, [supplierLabels, analytics]);
 
@@ -332,50 +352,34 @@ export function LabelsAnalytics() {
             <CardDescription>Average label prices over time</CardDescription>
           </CardHeader>
           <CardContent>
-            <ResponsiveContainer width="100%" height={300}>
-              <LineChart data={priceHistoryData}>
-                <CartesianGrid
-                  strokeDasharray="3 3"
-                  className="stroke-border"
-                />
-                <XAxis
-                  dataKey="month"
-                  className="stroke-muted-foreground"
-                  tick={{ fill: "hsl(var(--muted-foreground))" }}
-                />
-                <YAxis
-                  className="stroke-muted-foreground"
-                  tick={{ fill: "hsl(var(--muted-foreground))" }}
-                />
+            <ResponsiveContainer {...CHART_RESPONSIVE_CONFIG} height={300}>
+              <LineChart data={priceHistoryData} margin={CHART_MARGIN_CONFIG}>
+                <CartesianGrid {...CHART_GRID_CONFIG} />
+                <XAxis dataKey="month" {...CHART_XAXIS_CONFIG} />
+                <YAxis {...CHART_YAXIS_CONFIG} />
                 <Tooltip
-                  contentStyle={{
-                    backgroundColor: "hsl(var(--card))",
-                    border: "1px solid hsl(var(--border))",
-                    borderRadius: "8px",
-                    color: "hsl(var(--foreground))",
-                  }}
+                  contentStyle={CHART_TOOLTIP_STYLE}
+                  itemStyle={CHART_TOOLTIP_ITEM_STYLE}
+                  labelStyle={CHART_TOOLTIP_LABEL_STYLE}
                   formatter={(value) =>
                     typeof value === "number" ? value.toFixed(2) : value
                   }
                 />
-                <Legend />
+                <Legend {...CHART_LEGEND_CONFIG} />
                 <Line
                   type="monotone"
                   dataKey="avgPrice"
-                  stroke={CHART_COLORS.light.chart1}
-                  strokeWidth={3}
+                  stroke={CHART_COLOR_SCHEMES.default[0]}
                   name="Avg Price (₹)"
-                  dot={{ fill: CHART_COLORS.light.chart1, r: 4 }}
-                  activeDot={{ r: 6, fill: CHART_COLORS.light.chart2 }}
+                  {...LINE_CHART_CONFIG}
                 />
                 <Line
                   type="monotone"
                   dataKey="labels"
-                  stroke={CHART_COLORS.light.chart2}
-                  strokeWidth={2}
+                  stroke={CHART_COLOR_SCHEMES.default[1]}
                   name="Label Count"
-                  dot={{ fill: CHART_COLORS.light.chart2, r: 4 }}
-                  activeDot={{ r: 6, fill: CHART_COLORS.light.chart1 }}
+                  {...LINE_CHART_CONFIG}
+                  strokeWidth={2}
                 />
               </LineChart>
             </ResponsiveContainer>
@@ -393,41 +397,25 @@ export function LabelsAnalytics() {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <ResponsiveContainer width="100%" height={300}>
-              <BarChart
-                data={labelsUsageData}
-                margin={{ top: 20, right: 30, left: 20, bottom: 5 }}
-              >
-                <CartesianGrid
-                  strokeDasharray="3 3"
-                  className="stroke-border"
-                />
-                <XAxis
-                  dataKey="label"
-                  className="stroke-muted-foreground"
-                  tick={{ fill: "hsl(var(--muted-foreground))" }}
-                />
-                <YAxis
-                  className="stroke-muted-foreground"
-                  tick={{ fill: "hsl(var(--muted-foreground))" }}
-                />
+            <ResponsiveContainer {...CHART_RESPONSIVE_CONFIG} height={300}>
+              <BarChart data={labelsUsageData} margin={CHART_MARGIN_CONFIG}>
+                <CartesianGrid {...CHART_GRID_CONFIG} />
+                <XAxis dataKey="label" {...CHART_XAXIS_CONFIG} />
+                <YAxis {...CHART_YAXIS_CONFIG} />
                 <Tooltip
-                  contentStyle={{
-                    backgroundColor: "hsl(var(--card))",
-                    border: "1px solid hsl(var(--border))",
-                    borderRadius: "8px",
-                    color: "hsl(var(--foreground))",
-                  }}
+                  contentStyle={CHART_TOOLTIP_STYLE}
+                  itemStyle={CHART_TOOLTIP_ITEM_STYLE}
+                  labelStyle={CHART_TOOLTIP_LABEL_STYLE}
                   formatter={(value) =>
                     typeof value === "number" ? value.toFixed(2) : value
                   }
                 />
-                <Legend />
+                <Legend {...CHART_LEGEND_CONFIG} />
                 <Bar
                   dataKey="usage"
-                  fill={CHART_COLORS.light.chart1}
+                  fill={CHART_COLOR_SCHEMES.default[0]}
                   name="Usage (pieces)"
-                  radius={[4, 4, 0, 0]}
+                  {...BAR_CHART_CONFIG}
                 />
               </BarChart>
             </ResponsiveContainer>
@@ -448,8 +436,8 @@ export function LabelsAnalytics() {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <ResponsiveContainer width="100%" height={300}>
-              <PieChart>
+            <ResponsiveContainer {...CHART_RESPONSIVE_CONFIG} height={300}>
+              <PieChart margin={CHART_MARGIN_CONFIG}>
                 <Pie
                   data={labelTypeDistribution}
                   cx="50%"
@@ -461,15 +449,17 @@ export function LabelsAnalytics() {
                     const name = (payload as { name: string }).name;
                     return `${name} ${(p * 100).toFixed(0)}%`;
                   }}
-                  outerRadius={80}
-                  fill="#8884d8"
                   dataKey="value"
+                  {...PIE_CHART_CONFIG}
                 >
                   {labelTypeDistribution.map((entry, index) => (
                     <Cell key={`cell-${index}`} fill={entry.color} />
                   ))}
                 </Pie>
                 <Tooltip
+                  contentStyle={CHART_TOOLTIP_STYLE}
+                  itemStyle={CHART_TOOLTIP_ITEM_STYLE}
+                  labelStyle={CHART_TOOLTIP_LABEL_STYLE}
                   formatter={(value) =>
                     typeof value === "number" ? value.toFixed(2) : value
                   }
@@ -490,8 +480,8 @@ export function LabelsAnalytics() {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <ResponsiveContainer width="100%" height={300}>
-              <PieChart>
+            <ResponsiveContainer {...CHART_RESPONSIVE_CONFIG} height={300}>
+              <PieChart margin={CHART_MARGIN_CONFIG}>
                 <Pie
                   data={printingTypeDistribution}
                   cx="50%"
@@ -503,15 +493,17 @@ export function LabelsAnalytics() {
                     const name = (payload as { name: string }).name;
                     return `${name} ${(p * 100).toFixed(0)}%`;
                   }}
-                  outerRadius={80}
-                  fill="#8884d8"
                   dataKey="value"
+                  {...PIE_CHART_CONFIG}
                 >
                   {printingTypeDistribution.map((entry, index) => (
                     <Cell key={`cell-${index}`} fill={entry.color} />
                   ))}
                 </Pie>
                 <Tooltip
+                  contentStyle={CHART_TOOLTIP_STYLE}
+                  itemStyle={CHART_TOOLTIP_ITEM_STYLE}
+                  labelStyle={CHART_TOOLTIP_LABEL_STYLE}
                   formatter={(value) =>
                     typeof value === "number" ? value.toFixed(2) : value
                   }
