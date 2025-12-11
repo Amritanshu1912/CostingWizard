@@ -26,7 +26,7 @@ import { Beaker, Box, Edit, Filter, History, Search, Tag } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 import { InventoryItemDialog } from "./inventory-item-dialog";
-import { ItemTransactionDialog } from "./transactions/inventory-item-txn-dialog";
+import { ItemTransactionDialog } from "../transactions/inventory-item-txn-dialog";
 
 /**
  * Full inventory stock list with filtering and actions

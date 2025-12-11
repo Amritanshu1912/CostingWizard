@@ -9,10 +9,10 @@ import {
 } from "@/hooks/inventory-hooks/use-inventory-computed";
 import { Package, Plus } from "lucide-react";
 import { useState } from "react";
-import { BulkAdjustDialog } from "./inventory-bulk-adjust-dialog";
-import { InventoryItemDialog } from "./inventory-item-dialog";
+import { BulkAdjustDialog } from "./items/inventory-bulk-adjust-dialog";
+import { InventoryItemDialog } from "./items/inventory-item-dialog";
 import { InventoryOverview } from "./inventory-overview";
-import { InventoryStockList } from "./inventory-stock-list";
+import { InventoryStockList } from "./items/inventory-stock-list";
 
 /**
  * Main inventory management component
