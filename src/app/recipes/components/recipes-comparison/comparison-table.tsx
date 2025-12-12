@@ -6,21 +6,27 @@ import { Card } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useIngredientComparison } from "@/hooks/recipe-hooks/use-comparison";
 import { cn } from "@/utils/shared-utils";
+import {
+  formatINR,
+  formatNumber,
+  formatPercentage,
+} from "@/utils/formatting-utils";
 import { Minus, TrendingDown, TrendingUp } from "lucide-react";
 import type { ComparisonItem, ComparisonMetric } from "./comparison-types";
 
-// Formatters
-const formatCurrency = (value: number | string) =>
-  `₹${typeof value === "number" ? value.toFixed(2) : value}`;
+// Wrapper functions to handle string | number union types
+const formatINRWrapper = (value: number | string) =>
+  typeof value === "number" ? formatINR(value) : value;
 
+const formatNumberWrapper = (value: number | string) =>
+  typeof value === "number" ? formatNumber(value) : value;
+
+const formatPercentageWrapper = (value: number | string) =>
+  typeof value === "number" ? formatPercentage(value) : value;
+
+// Weight formatter (specific to grams)
 const formatWeight = (value: number | string) =>
   `${typeof value === "number" ? value.toFixed(2) : value}g`;
-
-const formatPercent = (value: number | string) =>
-  `${typeof value === "number" ? value.toFixed(1) : value}%`;
-
-const formatNumber = (value: number | string) =>
-  typeof value === "number" ? value.toFixed(0) : value;
 
 // Difference calculator
 const calculateDiff = (
@@ -36,7 +42,7 @@ const calculateDiff = (
   else trend = "neutral";
 
   return {
-    value: formatPercent(Math.abs(diff)),
+    value: formatPercentageWrapper(Math.abs(diff)),
     trend,
   };
 };
@@ -58,7 +64,7 @@ const comparisonMetrics: ComparisonMetric[] = [
     key: "totalCost",
     label: "Total Cost",
     getValue: (item) => item.totalCost,
-    format: formatCurrency,
+    format: formatINRWrapper,
     calculateDiff,
     description: "Total cost for entire recipe batch",
   },
@@ -66,7 +72,7 @@ const comparisonMetrics: ComparisonMetric[] = [
     key: "costPerKg",
     label: "Cost per kg",
     getValue: (item) => item.costPerKg,
-    format: formatCurrency,
+    format: formatINRWrapper,
     calculateDiff,
     description: "Base cost per kilogram (excluding tax)",
   },
@@ -74,7 +80,7 @@ const comparisonMetrics: ComparisonMetric[] = [
     key: "taxedCostPerKg",
     label: "Cost per kg (with tax)",
     getValue: (item) => item.taxedCostPerKg,
-    format: formatCurrency,
+    format: formatINRWrapper,
     calculateDiff,
     description: "Total cost per kilogram including all taxes",
   },
@@ -85,7 +91,7 @@ const comparisonMetrics: ComparisonMetric[] = [
     key: "ingredientCount",
     label: "Ingredient Count",
     getValue: (item) => item.ingredients.length,
-    format: formatNumber,
+    format: formatNumberWrapper,
     description: "Number of ingredients in formulation",
   },
 
@@ -99,7 +105,7 @@ const comparisonMetrics: ComparisonMetric[] = [
       );
       return suppliers.size;
     },
-    format: formatNumber,
+    format: formatNumberWrapper,
     description: "Number of unique suppliers used",
   },
 ];

@@ -15,9 +15,8 @@ import {
 import { useAllItemsWithInventoryStatus } from "@/hooks/inventory-hooks/use-inventory-computed";
 import { useInventoryFilters } from "@/hooks/inventory-hooks/use-inventory-data";
 import type { InventoryItemWithDetails } from "@/types/inventory-types";
+import { formatINR, formatDate } from "@/utils/formatting-utils";
 import {
-  formatCurrency,
-  formatDate,
   getStatusBadge,
   getTypeIcon,
   isUntrackedItem,
@@ -25,8 +24,8 @@ import {
 import { Beaker, Box, Edit, Filter, History, Search, Tag } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
-import { InventoryItemDialog } from "./inventory-item-dialog";
 import { ItemTransactionDialog } from "../transactions/inventory-item-txn-dialog";
+import { InventoryItemDialog } from "./inventory-item-dialog";
 
 /**
  * Full inventory stock list with filtering and actions
@@ -129,7 +128,7 @@ export function InventoryStockList() {
       label: "Stock Value",
       align: "right",
       render: (value) => (
-        <span className="font-semibold">{formatCurrency(value)}</span>
+        <span className="font-semibold">{formatINR(value)}</span>
       ),
     },
     {

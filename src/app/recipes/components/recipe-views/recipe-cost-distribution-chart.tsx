@@ -5,8 +5,8 @@ import {
   ChartTooltip,
   ChartTooltipContent,
 } from "@/components/ui/chart";
-import { CHART_COLORS } from "@/utils/color-utils";
 import type { RecipeIngredientDisplay } from "@/types/shared-types";
+import { CHART_COLOR_SCHEMES } from "@/utils/chart-utils";
 import { DollarSign } from "lucide-react";
 import { useMemo } from "react";
 import { Cell, Pie, PieChart } from "recharts";
@@ -33,8 +33,8 @@ export function RecipeCostDistributionChart({
         percentage: totalCost > 0 ? (ing.costForQuantity / totalCost) * 100 : 0,
         supplier: ing.supplierName || "Unknown",
         color:
-          CHART_COLORS.light[
-            `chart${(index % 5) + 1}` as keyof typeof CHART_COLORS.light
+          CHART_COLOR_SCHEMES.default[
+            index % CHART_COLOR_SCHEMES.default.length
           ],
       }))
       .filter((item) => item.value > 0)

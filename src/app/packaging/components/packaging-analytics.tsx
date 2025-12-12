@@ -16,7 +16,21 @@ import {
 } from "@/components/ui/metric-card";
 import { Progress } from "@/components/ui/progress";
 import { useSupplierPackagingTableRows } from "@/hooks/packaging-hooks/use-packaging-queries";
-import { CHART_COLORS } from "@/utils/color-utils";
+import {
+  BAR_CHART_CONFIG,
+  CHART_COLOR_SCHEMES,
+  CHART_GRID_CONFIG,
+  CHART_LEGEND_CONFIG,
+  CHART_MARGIN_CONFIG,
+  CHART_RESPONSIVE_CONFIG,
+  CHART_TOOLTIP_ITEM_STYLE,
+  CHART_TOOLTIP_LABEL_STYLE,
+  CHART_TOOLTIP_STYLE,
+  CHART_XAXIS_CONFIG,
+  CHART_YAXIS_CONFIG,
+  LINE_CHART_CONFIG,
+  PIE_CHART_CONFIG,
+} from "@/utils/chart-utils";
 import {
   AlertTriangle,
   Clock,
@@ -214,12 +228,12 @@ export function PackagingAnalytics() {
     );
 
     const total = supplierPackaging.length;
-    const chartColors = Object.values(CHART_COLORS.light);
 
     return Object.entries(typeCounts).map(([name, count], index) => ({
       name,
       value: Math.round((count / total) * 100),
-      color: chartColors[index % chartColors.length],
+      color:
+        CHART_COLOR_SCHEMES.default[index % CHART_COLOR_SCHEMES.default.length],
     }));
   }, [supplierPackaging]);
 
@@ -307,50 +321,34 @@ export function PackagingAnalytics() {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <ResponsiveContainer width="100%" height={300}>
-              <LineChart data={priceHistoryData}>
-                <CartesianGrid
-                  strokeDasharray="3 3"
-                  className="stroke-border"
-                />
-                <XAxis
-                  dataKey="month"
-                  className="stroke-muted-foreground"
-                  tick={{ fill: "hsl(var(--muted-foreground))" }}
-                />
-                <YAxis
-                  className="stroke-muted-foreground"
-                  tick={{ fill: "hsl(var(--muted-foreground))" }}
-                />
+            <ResponsiveContainer {...CHART_RESPONSIVE_CONFIG} height={300}>
+              <LineChart data={priceHistoryData} margin={CHART_MARGIN_CONFIG}>
+                <CartesianGrid {...CHART_GRID_CONFIG} />
+                <XAxis dataKey="month" {...CHART_XAXIS_CONFIG} />
+                <YAxis {...CHART_YAXIS_CONFIG} />
                 <Tooltip
-                  contentStyle={{
-                    backgroundColor: "hsl(var(--card))",
-                    border: "1px solid hsl(var(--border))",
-                    borderRadius: "8px",
-                    color: "hsl(var(--foreground))",
-                  }}
+                  contentStyle={CHART_TOOLTIP_STYLE}
+                  itemStyle={CHART_TOOLTIP_ITEM_STYLE}
+                  labelStyle={CHART_TOOLTIP_LABEL_STYLE}
                   formatter={(value) =>
                     typeof value === "number" ? value.toFixed(2) : value
                   }
                 />
-                <Legend />
+                <Legend {...CHART_LEGEND_CONFIG} />
                 <Line
                   type="monotone"
                   dataKey="avgPrice"
-                  stroke={CHART_COLORS.light.chart1}
-                  strokeWidth={3}
+                  stroke={CHART_COLOR_SCHEMES.default[0]}
                   name="Avg Price (₹)"
-                  dot={{ fill: CHART_COLORS.light.chart1, r: 4 }}
-                  activeDot={{ r: 6, fill: CHART_COLORS.light.chart2 }}
+                  {...LINE_CHART_CONFIG}
                 />
                 <Line
                   type="monotone"
                   dataKey="packaging"
-                  stroke={CHART_COLORS.light.chart2}
-                  strokeWidth={2}
+                  stroke={CHART_COLOR_SCHEMES.default[1]}
                   name="Packaging Count"
-                  dot={{ fill: CHART_COLORS.light.chart2, r: 4 }}
-                  activeDot={{ r: 6, fill: CHART_COLORS.light.chart1 }}
+                  {...LINE_CHART_CONFIG}
+                  strokeWidth={2}
                 />
               </LineChart>
             </ResponsiveContainer>
@@ -368,41 +366,25 @@ export function PackagingAnalytics() {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <ResponsiveContainer width="100%" height={300}>
-              <BarChart
-                data={packagingUsageData}
-                margin={{ top: 20, right: 30, left: 20, bottom: 5 }}
-              >
-                <CartesianGrid
-                  strokeDasharray="3 3"
-                  className="stroke-border"
-                />
-                <XAxis
-                  dataKey="packaging"
-                  className="stroke-muted-foreground"
-                  tick={{ fill: "hsl(var(--muted-foreground))" }}
-                />
-                <YAxis
-                  className="stroke-muted-foreground"
-                  tick={{ fill: "hsl(var(--muted-foreground))" }}
-                />
+            <ResponsiveContainer {...CHART_RESPONSIVE_CONFIG} height={300}>
+              <BarChart data={packagingUsageData} margin={CHART_MARGIN_CONFIG}>
+                <CartesianGrid {...CHART_GRID_CONFIG} />
+                <XAxis dataKey="packaging" {...CHART_XAXIS_CONFIG} />
+                <YAxis {...CHART_YAXIS_CONFIG} />
                 <Tooltip
-                  contentStyle={{
-                    backgroundColor: "hsl(var(--card))",
-                    border: "1px solid hsl(var(--border))",
-                    borderRadius: "8px",
-                    color: "hsl(var(--foreground))",
-                  }}
+                  contentStyle={CHART_TOOLTIP_STYLE}
+                  itemStyle={CHART_TOOLTIP_ITEM_STYLE}
+                  labelStyle={CHART_TOOLTIP_LABEL_STYLE}
                   formatter={(value) =>
                     typeof value === "number" ? value.toFixed(2) : value
                   }
                 />
-                <Legend />
+                <Legend {...CHART_LEGEND_CONFIG} />
                 <Bar
                   dataKey="usage"
-                  fill={CHART_COLORS.light.chart1}
+                  fill={CHART_COLOR_SCHEMES.default[0]}
                   name="Usage (units)"
-                  radius={[4, 4, 0, 0]}
+                  {...BAR_CHART_CONFIG}
                 />
               </BarChart>
             </ResponsiveContainer>
@@ -423,8 +405,8 @@ export function PackagingAnalytics() {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <ResponsiveContainer width="100%" height={300}>
-              <PieChart>
+            <ResponsiveContainer {...CHART_RESPONSIVE_CONFIG} height={300}>
+              <PieChart margin={CHART_MARGIN_CONFIG}>
                 <Pie
                   data={packagingTypeDistribution}
                   cx="50%"
@@ -436,15 +418,17 @@ export function PackagingAnalytics() {
                     const name = (payload as { name: string }).name;
                     return `${name} ${(p * 100).toFixed(0)}%`;
                   }}
-                  outerRadius={80}
-                  fill="#8884d8"
                   dataKey="value"
+                  {...PIE_CHART_CONFIG}
                 >
                   {packagingTypeDistribution.map((entry, index) => (
                     <Cell key={`cell-${index}`} fill={entry.color} />
                   ))}
                 </Pie>
                 <Tooltip
+                  contentStyle={CHART_TOOLTIP_STYLE}
+                  itemStyle={CHART_TOOLTIP_ITEM_STYLE}
+                  labelStyle={CHART_TOOLTIP_LABEL_STYLE}
                   formatter={(value) =>
                     typeof value === "number" ? value.toFixed(2) : value
                   }
@@ -463,53 +447,41 @@ export function PackagingAnalytics() {
             <CardDescription>Lead time and pricing comparison</CardDescription>
           </CardHeader>
           <CardContent>
-            <ResponsiveContainer width="100%" height={300}>
-              <BarChart data={supplierPerformanceData}>
-                <CartesianGrid
-                  strokeDasharray="3 3"
-                  className="stroke-border"
-                />
-                <XAxis
-                  dataKey="supplier"
-                  className="stroke-muted-foreground"
-                  tick={{ fill: "hsl(var(--muted-foreground))" }}
-                />
-                <YAxis
-                  yAxisId="left"
-                  className="stroke-muted-foreground"
-                  tick={{ fill: "hsl(var(--muted-foreground))" }}
-                />
+            <ResponsiveContainer {...CHART_RESPONSIVE_CONFIG} height={300}>
+              <BarChart
+                data={supplierPerformanceData}
+                margin={CHART_MARGIN_CONFIG}
+              >
+                <CartesianGrid {...CHART_GRID_CONFIG} />
+                <XAxis dataKey="supplier" {...CHART_XAXIS_CONFIG} />
+                <YAxis yAxisId="left" {...CHART_YAXIS_CONFIG} />
                 <YAxis
                   yAxisId="right"
                   orientation="right"
-                  className="stroke-muted-foreground"
-                  tick={{ fill: "hsl(var(--muted-foreground))" }}
+                  {...CHART_YAXIS_CONFIG}
                 />
                 <Tooltip
-                  contentStyle={{
-                    backgroundColor: "hsl(var(--card))",
-                    border: "1px solid hsl(var(--border))",
-                    borderRadius: "8px",
-                    color: "hsl(var(--foreground))",
-                  }}
+                  contentStyle={CHART_TOOLTIP_STYLE}
+                  itemStyle={CHART_TOOLTIP_ITEM_STYLE}
+                  labelStyle={CHART_TOOLTIP_LABEL_STYLE}
                   formatter={(value) =>
                     typeof value === "number" ? value.toFixed(2) : value
                   }
                 />
-                <Legend />
+                <Legend {...CHART_LEGEND_CONFIG} />
                 <Bar
                   yAxisId="left"
                   dataKey="avgLeadTime"
-                  fill={CHART_COLORS.light.chart1}
+                  fill={CHART_COLOR_SCHEMES.default[0]}
                   name="Avg Lead Time (days)"
-                  radius={[4, 4, 0, 0]}
+                  {...BAR_CHART_CONFIG}
                 />
                 <Bar
                   yAxisId="right"
                   dataKey="avgPrice"
-                  fill={CHART_COLORS.light.chart2}
+                  fill={CHART_COLOR_SCHEMES.default[1]}
                   name="Avg Price (₹)"
-                  radius={[4, 4, 0, 0]}
+                  {...BAR_CHART_CONFIG}
                 />
               </BarChart>
             </ResponsiveContainer>

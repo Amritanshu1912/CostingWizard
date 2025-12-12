@@ -5,7 +5,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import type { RecipeDisplay } from "@/types/shared-types";
-import { formatDate } from "@/utils/shared-utils";
+import { formatDate } from "@/utils/formatting-utils";
 import {
   FileText,
   Package,

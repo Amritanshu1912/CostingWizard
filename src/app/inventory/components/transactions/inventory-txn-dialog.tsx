@@ -19,13 +19,12 @@ import {
 } from "@/hooks/inventory-hooks/use-inventory-computed";
 import type { InventoryTransaction } from "@/types/inventory-types";
 import {
-  formatDate,
   formatTransactionQuantity,
   getItemDetails,
   getTransactionColor,
   getTransactionTypeIcon,
-  truncate,
 } from "@/utils/inventory-utils";
+import { formatDate, truncateText } from "@/utils/formatting-utils";
 import { format } from "date-fns";
 
 /**
@@ -135,7 +134,7 @@ export default function InventoryTransactionDialog() {
                                 </div>
                                 {txn.notes && (
                                   <div className="mt-1 text-xs text-muted-foreground">
-                                    {truncate(txn.notes, 60)}
+                                    {truncateText(txn.notes, 60)}
                                   </div>
                                 )}
                               </div>

@@ -13,7 +13,20 @@ import {
   useMaterialsAnalytics,
   useMaterialSupplierMappings,
 } from "@/hooks/material-hooks/use-materials-queries";
-import { CHART_COLORS } from "@/utils/color-utils";
+import {
+  BAR_CHART_CONFIG,
+  CHART_COLOR_SCHEMES,
+  CHART_GRID_CONFIG,
+  CHART_LEGEND_CONFIG,
+  CHART_MARGIN_CONFIG,
+  CHART_RESPONSIVE_CONFIG,
+  CHART_TOOLTIP_ITEM_STYLE,
+  CHART_TOOLTIP_LABEL_STYLE,
+  CHART_TOOLTIP_STYLE,
+  CHART_XAXIS_CONFIG,
+  CHART_YAXIS_CONFIG,
+  PIE_CHART_CONFIG,
+} from "@/utils/chart-utils";
 import { AlertTriangle, DollarSign, Package, Users } from "lucide-react";
 import { useMemo } from "react";
 import {
@@ -221,8 +234,8 @@ export function MaterialsAnalytics() {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <ResponsiveContainer width="100%" height={300}>
-              <PieChart>
+            <ResponsiveContainer {...CHART_RESPONSIVE_CONFIG} height={300}>
+              <PieChart margin={CHART_MARGIN_CONFIG}>
                 <Pie
                   data={categoryChartData}
                   cx="50%"
@@ -231,21 +244,18 @@ export function MaterialsAnalytics() {
                   label={({ name, percent }) =>
                     `${name}: ${((percent ?? 0) * 100).toFixed(0)}%`
                   }
-                  outerRadius={100}
-                  fill="#8884d8"
                   dataKey="value"
+                  {...PIE_CHART_CONFIG}
+                  outerRadius={100}
                 >
                   {categoryChartData.map((entry, index) => (
                     <Cell key={`cell-${index}`} fill={entry.color} />
                   ))}
                 </Pie>
                 <Tooltip
-                  contentStyle={{
-                    backgroundColor: "hsl(var(--card))",
-                    border: "1px solid hsl(var(--border))",
-                    borderRadius: "8px",
-                    color: "hsl(var(--foreground))",
-                  }}
+                  contentStyle={CHART_TOOLTIP_STYLE}
+                  itemStyle={CHART_TOOLTIP_ITEM_STYLE}
+                  labelStyle={CHART_TOOLTIP_LABEL_STYLE}
                   formatter={(value, name, props) => [
                     `${value} materials`,
                     props.payload.name,
@@ -265,39 +275,26 @@ export function MaterialsAnalytics() {
             <CardDescription>Materials grouped by price ranges</CardDescription>
           </CardHeader>
           <CardContent>
-            <ResponsiveContainer width="100%" height={300}>
-              <BarChart data={priceRangeChartData}>
-                <CartesianGrid
-                  strokeDasharray="3 3"
-                  className="stroke-border"
-                />
-                <XAxis
-                  dataKey="range"
-                  className="stroke-muted-foreground"
-                  tick={{ fill: "hsl(var(--muted-foreground))" }}
-                />
-                <YAxis
-                  className="stroke-muted-foreground"
-                  tick={{ fill: "hsl(var(--muted-foreground))" }}
-                />
+            <ResponsiveContainer {...CHART_RESPONSIVE_CONFIG} height={300}>
+              <BarChart data={priceRangeChartData} margin={CHART_MARGIN_CONFIG}>
+                <CartesianGrid {...CHART_GRID_CONFIG} />
+                <XAxis dataKey="range" {...CHART_XAXIS_CONFIG} />
+                <YAxis {...CHART_YAXIS_CONFIG} />
                 <Tooltip
-                  contentStyle={{
-                    backgroundColor: "hsl(var(--card))",
-                    border: "1px solid hsl(var(--border))",
-                    borderRadius: "8px",
-                    color: "hsl(var(--foreground))",
-                  }}
+                  contentStyle={CHART_TOOLTIP_STYLE}
+                  itemStyle={CHART_TOOLTIP_ITEM_STYLE}
+                  labelStyle={CHART_TOOLTIP_LABEL_STYLE}
                   formatter={(value, name) => [
                     `${value} materials`,
                     name === "count" ? "Count" : name,
                   ]}
                 />
-                <Legend />
+                <Legend {...CHART_LEGEND_CONFIG} />
                 <Bar
                   dataKey="count"
-                  fill={CHART_COLORS.light.chart1}
+                  fill={CHART_COLOR_SCHEMES.default[0]}
                   name="Material Count"
-                  radius={[4, 4, 0, 0]}
+                  {...BAR_CHART_CONFIG}
                 />
               </BarChart>
             </ResponsiveContainer>
@@ -312,14 +309,14 @@ export function MaterialsAnalytics() {
           <CardDescription>Detailed metrics for each category</CardDescription>
         </CardHeader>
         <CardContent>
-          <ResponsiveContainer width="100%" height={400}>
+          <ResponsiveContainer {...CHART_RESPONSIVE_CONFIG} height={400}>
             <BarChart
               data={categoryChartData}
               margin={{ top: 20, right: 40, left: 40, bottom: 5 }}
               barCategoryGap="20%" // space between groups
               barGap={6}
             >
-              <CartesianGrid strokeDasharray="3 3" className="stroke-border" />
+              <CartesianGrid {...CHART_GRID_CONFIG} />
               {/* X axis: categories */}
               <XAxis
                 dataKey="name"
@@ -327,14 +324,15 @@ export function MaterialsAnalytics() {
                 angle={-20}
                 textAnchor="end"
                 height={60}
-                tick={{ fill: "hsl(var(--muted-foreground))", fontSize: 12 }}
+                {...CHART_XAXIS_CONFIG}
+                fontSize={12}
               />
 
               {/* LEFT Y axis: Count (materials) */}
               <YAxis
                 yAxisId="count"
                 orientation="left"
-                tick={{ fill: "hsl(var(--muted-foreground))", fontSize: 12 }}
+                {...CHART_YAXIS_CONFIG}
                 domain={[0, maxValues.maxCount]}
                 allowDecimals={false}
                 label={{
@@ -343,13 +341,14 @@ export function MaterialsAnalytics() {
                   position: "insideLeft",
                   offset: 8,
                 }}
+                fontSize={12}
               />
 
               {/* RIGHT Y axis: Avg Price (₹) */}
               <YAxis
                 yAxisId="price"
                 orientation="right"
-                tick={{ fill: "hsl(var(--muted-foreground))", fontSize: 12 }}
+                {...CHART_YAXIS_CONFIG}
                 domain={[0, maxValues.maxPrice]}
                 tickFormatter={(v) => `₹${v}`}
                 label={{
@@ -358,14 +357,12 @@ export function MaterialsAnalytics() {
                   position: "insideRight",
                   offset: 8,
                 }}
+                fontSize={12}
               />
               <Tooltip
-                contentStyle={{
-                  backgroundColor: "hsl(var(--card))",
-                  border: "1px solid hsl(var(--border))",
-                  borderRadius: "8px",
-                  color: "hsl(var(--foreground))",
-                }}
+                contentStyle={CHART_TOOLTIP_STYLE}
+                itemStyle={CHART_TOOLTIP_ITEM_STYLE}
+                labelStyle={CHART_TOOLTIP_LABEL_STYLE}
                 formatter={(value, key) => {
                   if (key === "value") return [`${value} materials`, "Count"];
                   if (key === "avgPrice") return [`₹${value}`, "Avg Price"];
@@ -374,14 +371,14 @@ export function MaterialsAnalytics() {
                 labelFormatter={(label) => `${label}`}
               />
 
-              <Legend verticalAlign="top" />
+              <Legend {...CHART_LEGEND_CONFIG} verticalAlign="top" />
 
               {/* BAR: Count (uses left axis) */}
               <Bar
                 yAxisId="count"
                 dataKey="value"
                 name="Count"
-                radius={[4, 4, 0, 0]}
+                {...BAR_CHART_CONFIG}
                 barSize={18}
               >
                 {categoryChartData.map((entry, idx) => (
@@ -394,10 +391,9 @@ export function MaterialsAnalytics() {
                 yAxisId="price"
                 dataKey="avgPrice"
                 name="Avg Price"
-                radius={[4, 4, 0, 0]}
+                {...BAR_CHART_CONFIG}
                 barSize={18}
-                // make it visually distinct (lighter / semi-transparent)
-                fill="var(--primary)"
+                fill={CHART_COLOR_SCHEMES.default[1]}
                 opacity={0.75}
               />
             </BarChart>
