@@ -5,6 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
+import { formatINR, formatPercentage } from "@/utils/formatting-utils";
 import type {
   ProductVariant,
   ProductVariantCostAnalysis,
@@ -113,13 +114,13 @@ export function VariantCard({
 
             <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-muted-foreground">
               <span className="font-medium text-foreground">
-                ₹{variant.sellingPricePerUnit}
+                {formatINR(variant.sellingPricePerUnit)}
               </span>
               {costAnalysis && (
                 <>
                   <span>•</span>
                   <span className={marginColors.text}>
-                    {costAnalysis.grossProfitMargin.toFixed(1)}% margin
+                    {formatPercentage(costAnalysis.grossProfitMargin)} margin
                   </span>
                 </>
               )}
@@ -185,7 +186,7 @@ export function VariantCard({
                     <span>Gross Margin</span>
                   </div>
                   <div className={`text-2xl font-bold ${marginColors.text}`}>
-                    {costAnalysis.grossProfitMargin.toFixed(1)}%
+                    {formatPercentage(costAnalysis.grossProfitMargin)}
                   </div>
                   {costAnalysis.targetProfitMargin && (
                     <div className="text-xs text-muted-foreground mt-1">
@@ -200,7 +201,7 @@ export function VariantCard({
                         >
                           {" "}
                           ({costAnalysis.marginVsTarget > 0 ? "+" : ""}
-                          {costAnalysis.marginVsTarget.toFixed(1)}%)
+                          {formatPercentage(costAnalysis.marginVsTarget)})
                         </span>
                       )}
                     </div>
@@ -213,10 +214,10 @@ export function VariantCard({
                     Total Cost
                   </div>
                   <div className="text-2xl font-bold">
-                    ₹{costAnalysis.totalCostWithTax.toFixed(2)}
+                    {formatINR(costAnalysis.totalCostWithTax)}
                   </div>
                   <div className="text-xs text-muted-foreground mt-1">
-                    ₹{costAnalysis.costPerKgWithTax.toFixed(2)}/kg
+                    {formatINR(costAnalysis.costPerKgWithTax)}/kg
                   </div>
                 </div>
 
@@ -226,7 +227,7 @@ export function VariantCard({
                     Selling Price
                   </div>
                   <div className="text-2xl font-bold">
-                    ₹{costAnalysis.sellingPricePerUnit.toFixed(2)}
+                    {formatINR(costAnalysis.sellingPricePerUnit)}
                   </div>
                   <div className="text-xs text-muted-foreground mt-1">
                     per unit
@@ -239,7 +240,7 @@ export function VariantCard({
                     Gross Profit
                   </div>
                   <div className="text-2xl font-bold">
-                    ₹{costAnalysis.grossProfit.toFixed(2)}
+                    {formatINR(costAnalysis.grossProfit)}
                   </div>
                   <div className="text-xs text-muted-foreground mt-1">
                     per unit
@@ -264,11 +265,11 @@ export function VariantCard({
                       {variant.recipeName}
                     </div>
                     <div className="text-xs text-muted-foreground">
-                      Recipe: ₹{costAnalysis.recipeCostPerKg.toFixed(2)}/kg (₹
-                      {(
+                      Recipe: {formatINR(costAnalysis.recipeCostPerKg)}/kg (
+                      {formatINR(
                         costAnalysis.recipeCostPerKg +
-                        costAnalysis.recipeTaxPerKg
-                      ).toFixed(2)}
+                          costAnalysis.recipeTaxPerKg
+                      )}
                       /kg with tax)
                     </div>
                     <div className="text-xs flex items-center gap-2">
@@ -277,13 +278,15 @@ export function VariantCard({
                         {variant.fillUnit} :
                       </span>
                       <span className="font-medium">
-                        ₹{costAnalysis.recipeTotalForFill.toFixed(2)}
+                        {formatINR(costAnalysis.recipeTotalForFill)}
                         <span className="text-muted-foreground ml-1">
                           (
-                          {costAnalysis.costBreakdown
-                            .find((c) => c.component === "recipe")
-                            ?.percentage.toFixed(1)}
-                          %)
+                          {formatPercentage(
+                            costAnalysis.costBreakdown.find(
+                              (c) => c.component === "recipe"
+                            )?.percentage || 0
+                          )}
+                          )
                         </span>
                       </span>
                     </div>
@@ -303,13 +306,15 @@ export function VariantCard({
                     <div className="text-xs flex items-center gap-2">
                       <span>Cost</span>
                       <span className="font-medium">
-                        ₹{costAnalysis.packagingTotal.toFixed(2)}
+                        {formatINR(costAnalysis.packagingTotal)}
                         <span className="text-muted-foreground ml-1">
                           (
-                          {costAnalysis.costBreakdown
-                            .find((c) => c.component === "packaging")
-                            ?.percentage.toFixed(1)}
-                          %)
+                          {formatPercentage(
+                            costAnalysis.costBreakdown.find(
+                              (c) => c.component === "packaging"
+                            )?.percentage || 0
+                          )}
+                          )
                         </span>
                       </span>
                     </div>
@@ -334,7 +339,7 @@ export function VariantCard({
                       <div className="text-xs flex items-center gap-2">
                         <span>Cost</span>
                         <span className="font-medium">
-                          ₹{costAnalysis.frontLabelTotal.toFixed(2)}
+                          {formatINR(costAnalysis.frontLabelTotal)}
                         </span>
                       </div>
                     )}
@@ -351,7 +356,7 @@ export function VariantCard({
                       <div className="text-xs flex items-center gap-2">
                         <span>Cost</span>
                         <span className="font-medium">
-                          ₹{costAnalysis.backLabelTotal.toFixed(2)}
+                          {formatINR(costAnalysis.backLabelTotal)}
                         </span>
                       </div>
                     )}
@@ -381,10 +386,10 @@ export function VariantCard({
                         </span>
                         <div className="flex items-center gap-3">
                           <span className="text-xs text-muted-foreground">
-                            {item.percentage.toFixed(1)}%
+                            {formatPercentage(item.percentage)}
                           </span>
                           <span className="font-medium">
-                            ₹{item.cost.toFixed(2)}
+                            {formatINR(item.cost)}
                           </span>
                         </div>
                       </div>

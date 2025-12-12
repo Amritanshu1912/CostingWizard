@@ -28,6 +28,7 @@ import { PackagingDrawer } from "./packaging-drawer";
 import { PackagingPriceComparison } from "./packaging-price-comparison";
 import { SupplierPackagingDialog } from "./supplier-packaging-dialog";
 import { SupplierPackagingTable } from "./supplier-packaging-table";
+import { formatINR, formatPercentage } from "@/utils/formatting-utils";
 
 /**
  * PackagingManager component provides the main interface for managing packaging inventory
@@ -201,7 +202,7 @@ export function PackagingManager() {
 
             <MetricCard
               title="Avg Price (with tax)"
-              value={`₹${(analytics?.avgPrice || 0).toFixed(2)}`}
+              value={formatINR(analytics?.avgPrice || 0)}
               icon={BarChart3}
               iconClassName="text-primary"
               trend={{
@@ -213,7 +214,7 @@ export function PackagingManager() {
 
             <MetricCard
               title="Highest Price"
-              value={`₹${(analytics?.highestPrice || 0).toFixed(2)}`}
+              value={formatINR(analytics?.highestPrice || 0)}
               icon={TrendingUp}
               iconClassName="text-primary"
               description="per piece"
@@ -221,7 +222,7 @@ export function PackagingManager() {
 
             <MetricCard
               title="Avg Tax Rate"
-              value={`${(analytics?.avgTax || 0).toFixed(1)}%`}
+              value={formatPercentage(analytics?.avgTax || 0, 1)}
               icon={BarChart3}
               iconClassName="text-primary"
               description="average across all packaging"

@@ -247,7 +247,7 @@ export function MaterialsListTable({
                     <TooltipContent>
                       <ul>
                         {row.suppliers.map((supplier) => (
-                          <li key={supplier.id}>{supplier.name}</li>
+                          <li key={supplier.id}>{supplier.supplierName}</li>
                         ))}
                       </ul>
                     </TooltipContent>

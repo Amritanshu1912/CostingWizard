@@ -25,6 +25,7 @@ import { MaterialsListDrawer } from "./materials-list-drawer";
 import { MaterialsPriceComparison } from "./materials-price-comparison";
 import { MaterialsSupplierDialog } from "./materials-supplier-dialog";
 import { SupplierMaterialsTable } from "./materials-supplier-table";
+import { formatINR, formatPercentage } from "@/utils/formatting-utils";
 
 /**
  * Main materials management component
@@ -234,7 +235,7 @@ export function MaterialsManager() {
 
             <MetricCard
               title="Avg Price (with tax)"
-              value={`₹${analytics.avgPrice.toFixed(2)}`}
+              value={formatINR(analytics.avgPrice)}
               icon={BarChart3}
               iconClassName="text-primary"
               trend={{
@@ -246,7 +247,7 @@ export function MaterialsManager() {
 
             <MetricCard
               title="Highest Price"
-              value={`₹${analytics.highestPrice.toFixed(2)}`}
+              value={formatINR(analytics.highestPrice)}
               icon={TrendingUp}
               iconClassName="text-primary"
               description="per unit"
@@ -254,7 +255,7 @@ export function MaterialsManager() {
 
             <MetricCard
               title="Avg Tax Rate"
-              value={`${analytics.avgTax.toFixed(1)}%`}
+              value={formatPercentage(analytics.avgTax)}
               icon={BarChart3}
               iconClassName="text-primary"
               description="average across all materials"

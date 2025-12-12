@@ -16,6 +16,11 @@ import {
 } from "@/components/ui/metric-card";
 import { Progress } from "@/components/ui/progress";
 import {
+  formatCompactNumber,
+  formatINR,
+  formatPercentage,
+} from "@/utils/formatting-utils";
+import {
   useLabelsAnalytics,
   useSupplierLabelTableRows,
 } from "@/hooks/label-hooks/use-labels-queries";
@@ -95,7 +100,7 @@ export function LabelsAnalytics() {
       {
         type: "progress",
         title: "Average Unit Price",
-        value: `₹${analytics.avgPrice?.toFixed(2) || "0.00"}`,
+        value: formatINR(analytics.avgPrice || 0),
         icon: DollarSign,
         iconClassName: "text-green-600",
         progress: {
@@ -113,7 +118,7 @@ export function LabelsAnalytics() {
       {
         type: "progress",
         title: "Tax Efficiency",
-        value: `${avgTaxRate.toFixed(1)}%`,
+        value: formatPercentage(avgTaxRate),
         icon: Target,
         iconClassName: "text-blue-600",
         progress: {
@@ -146,7 +151,7 @@ export function LabelsAnalytics() {
       {
         type: "standard",
         title: "Total Value",
-        value: `₹${(totalValue / 100000).toFixed(1)}L`,
+        value: `₹${formatCompactNumber(totalValue)}`,
         icon: DollarSign,
         iconClassName: "text-accent",
         trend: {
@@ -361,9 +366,10 @@ export function LabelsAnalytics() {
                   contentStyle={CHART_TOOLTIP_STYLE}
                   itemStyle={CHART_TOOLTIP_ITEM_STYLE}
                   labelStyle={CHART_TOOLTIP_LABEL_STYLE}
-                  formatter={(value) =>
-                    typeof value === "number" ? value.toFixed(2) : value
-                  }
+                  formatter={(value, name) => [
+                    typeof value === "number" ? formatINR(value) : value,
+                    name,
+                  ]}
                 />
                 <Legend {...CHART_LEGEND_CONFIG} />
                 <Line
@@ -406,9 +412,10 @@ export function LabelsAnalytics() {
                   contentStyle={CHART_TOOLTIP_STYLE}
                   itemStyle={CHART_TOOLTIP_ITEM_STYLE}
                   labelStyle={CHART_TOOLTIP_LABEL_STYLE}
-                  formatter={(value) =>
-                    typeof value === "number" ? value.toFixed(2) : value
-                  }
+                  formatter={(value, name) => [
+                    typeof value === "number" ? formatINR(value) : value,
+                    name,
+                  ]}
                 />
                 <Legend {...CHART_LEGEND_CONFIG} />
                 <Bar
@@ -447,7 +454,7 @@ export function LabelsAnalytics() {
                     const { percent, payload } = props;
                     const p = percent as number;
                     const name = (payload as { name: string }).name;
-                    return `${name} ${(p * 100).toFixed(0)}%`;
+                    return `${name} ${formatPercentage(p * 100)}`;
                   }}
                   dataKey="value"
                   {...PIE_CHART_CONFIG}
@@ -461,7 +468,7 @@ export function LabelsAnalytics() {
                   itemStyle={CHART_TOOLTIP_ITEM_STYLE}
                   labelStyle={CHART_TOOLTIP_LABEL_STYLE}
                   formatter={(value) =>
-                    typeof value === "number" ? value.toFixed(2) : value
+                    typeof value === "number" ? formatPercentage(value) : value
                   }
                 />
               </PieChart>
@@ -491,7 +498,7 @@ export function LabelsAnalytics() {
                     const { percent, payload } = props;
                     const p = percent as number;
                     const name = (payload as { name: string }).name;
-                    return `${name} ${(p * 100).toFixed(0)}%`;
+                    return `${name} ${formatPercentage(p * 100)}`;
                   }}
                   dataKey="value"
                   {...PIE_CHART_CONFIG}
@@ -505,7 +512,7 @@ export function LabelsAnalytics() {
                   itemStyle={CHART_TOOLTIP_ITEM_STYLE}
                   labelStyle={CHART_TOOLTIP_LABEL_STYLE}
                   formatter={(value) =>
-                    typeof value === "number" ? value.toFixed(2) : value
+                    typeof value === "number" ? formatPercentage(value) : value
                   }
                 />
               </PieChart>

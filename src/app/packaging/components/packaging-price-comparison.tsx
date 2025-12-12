@@ -12,6 +12,7 @@ import {
 import { SortableTable } from "@/components/ui/sortable-table";
 import { usePackagingPriceComparison } from "@/hooks/packaging-hooks/use-packaging-queries";
 import type { SupplierPackagingForComparison } from "@/types/packaging-types";
+import { formatINR, formatPercentage } from "@/utils/formatting-utils";
 import { AlertCircle, Star, TrendingDown } from "lucide-react";
 import { useMemo } from "react";
 
@@ -76,7 +77,7 @@ export function PackagingPriceComparison() {
       sortable: true,
       render: (value: number) => (
         <div className="font-medium text-foreground">
-          <div>₹{value.toFixed(2)}</div>
+          <div>{formatINR(value)}</div>
           <div className="text-xs text-muted-foreground">per unit</div>
         </div>
       ),
@@ -191,7 +192,7 @@ export function PackagingPriceComparison() {
                         Potential Savings
                       </div>
                       <div className="text-xl font-bold text-accent">
-                        ₹{savings.toFixed(2)}
+                        {formatINR(savings)}
                       </div>
                     </div>
                     <div className="h-12 w-px bg-border" />
@@ -200,7 +201,7 @@ export function PackagingPriceComparison() {
                         Percentage
                       </div>
                       <div className="text-xl font-bold text-accent">
-                        {savingsPercent.toFixed(1)}%
+                        {formatPercentage(savingsPercent, 2)}%
                       </div>
                     </div>
                   </div>

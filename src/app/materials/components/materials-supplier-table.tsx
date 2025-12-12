@@ -37,6 +37,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import { formatINR, formatNumber } from "@/utils/formatting-utils";
 import { SupplierMaterialTableRow } from "@/types/material-types";
 import { Supplier } from "@/types/supplier-types";
 
@@ -152,7 +153,7 @@ export function SupplierMaterialsTable({
           <div>
             <span className="text-foreground">{value}</span>
             <div className="text-xs text-muted-foreground mt-1">
-              ⭐ {row.supplierRating.toFixed(1)}
+              ⭐ {formatNumber(row.supplierRating, 1)}
             </div>
           </div>
         ),
@@ -167,12 +168,12 @@ export function SupplierMaterialsTable({
 
           return (
             <div className="text-foreground">
-              <div className="font-medium">₹{value.toFixed(2)}</div>
+              <div className="font-medium">{formatINR(value)}</div>
 
               {/* Bulk pricing info */}
               {hasBulkPricing && row.bulkPrice && (
                 <div className="text-xs text-muted-foreground mt-1">
-                  ₹{row.bulkPrice.toFixed(2)} for {row.quantityForBulkPrice}{" "}
+                  {formatINR(row.bulkPrice)} for {row.quantityForBulkPrice}{" "}
                   {row.capacityUnit}
                 </div>
               )}
@@ -201,7 +202,7 @@ export function SupplierMaterialsTable({
         sortable: true,
         render: (value: number, row: SupplierMaterialTableRow) => (
           <div className="text-foreground">
-            <div className="font-medium">₹{value.toFixed(2)}</div>
+            <div className="font-medium">{formatINR(value)}</div>
             <div className="text-xs text-muted-foreground">
               per {row.capacityUnit}
             </div>
