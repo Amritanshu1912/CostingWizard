@@ -1,10 +1,6 @@
 // src/app/inventory/components/inventory-item-txn-dialog.tsx
 "use client";
 
-import {
-  getTransactionTypeBadge,
-  getTransactionTypeIcon,
-} from "@/app/inventory/utils/inventory-utils";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import {
@@ -14,8 +10,12 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { useGroupedTransactions } from "@/hooks/use-inventory";
-import type { InventoryItemWithDetails } from "@/types/shared-types";
+import { useGroupedTransactions } from "@/hooks/inventory-hooks/use-inventory-computed";
+import type { InventoryItemWithDetails } from "@/types/inventory-types";
+import {
+  getTransactionTypeBadge,
+  getTransactionTypeIcon,
+} from "@/utils/inventory-utils";
 import { format } from "date-fns";
 import { Calendar } from "lucide-react";
 
@@ -25,7 +25,7 @@ interface ItemTransactionsDialogProps {
   onOpenChange: (open: boolean) => void;
 }
 
-export function ItemTransactionsDialog({
+export function ItemTransactionDialog({
   item,
   open,
   onOpenChange,

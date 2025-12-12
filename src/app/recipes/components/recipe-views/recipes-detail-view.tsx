@@ -23,7 +23,7 @@ import {
 } from "@/components/ui/table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
-import { useMaterialsWithSuppliers } from "@/hooks/use-recipes";
+import { useMaterialsWithSuppliers } from "@/hooks/recipe-hooks/use-recipes";
 import { useSupplierMaterialRows } from "@/hooks/material-hooks/use-materials-queries";
 
 import {

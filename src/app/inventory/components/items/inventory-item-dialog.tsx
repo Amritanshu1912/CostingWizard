@@ -1,4 +1,4 @@
-// src/app/inventory/components/inventory-item-dialog.tsx
+// src/app/inventory/components/items/item-dialog.tsx
 "use client";
 
 import { Button } from "@/components/ui/button";
@@ -19,42 +19,64 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
-import { useAdjustStock, useCreateInventoryItem } from "@/hooks/use-inventory";
-import { db } from "@/lib/db";
+import {
+  useAdjustStock,
+  useCreateInventoryItem,
+  useUpdateInventoryItem,
+} from "@/hooks/inventory-hooks/use-inventory-mutations";
+import { useAllInventoryItems } from "@/hooks/use-database-data";
+import { useReferenceData } from "@/hooks/inventory-hooks/use-inventory-data";
 import type {
   InventoryItem,
   InventoryItemWithDetails,
-} from "@/types/shared-types";
-import { useLiveQuery } from "dexie-react-hooks";
+} from "@/types/inventory-types";
+import {
+  calculateNewStockTotal,
+  getAvailableItemsForType,
+} from "@/utils/inventory-utils";
 import { Beaker, Box, Minus, Plus, Tag } from "lucide-react";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 
-interface InventoryItemDialogProps {
-  item?: InventoryItemWithDetails; // undefined = Add mode, defined = Edit mode
+interface ItemDialogProps {
+  /** Item to edit (undefined = Add mode) */
+  item?: InventoryItemWithDetails;
+  /** Dialog open state */
   open: boolean;
+  /** Callback when dialog state changes */
   onOpenChange: (open: boolean) => void;
 }
-type ItemType = InventoryItem["itemType"];
 
+/**
+ * Dialog for adding new inventory item or editing existing one
+ * Handles both add and edit modes with different UI states
+ */
 export function InventoryItemDialog({
   item,
   open,
   onOpenChange,
-}: InventoryItemDialogProps) {
+}: ItemDialogProps) {
   const isEditMode = !!item;
 
-  // === ADD MODE STATES ===
-  const [itemType, setItemType] = useState<ItemType>("supplierMaterial");
+  // Hooks
+  const createInventoryItem = useCreateInventoryItem();
+  const updateInventoryItem = useUpdateInventoryItem();
+  const adjustStock = useAdjustStock();
+  const refData = useReferenceData();
+  const existingInventory = useAllInventoryItems();
+
+  // ADD MODE states
+  const [itemType, setItemType] =
+    useState<InventoryItem["itemType"]>("supplierMaterial");
   const [selectedItemId, setSelectedItemId] = useState("");
 
-  // === COMMON STATES ===
+  // COMMON states
   const [currentStock, setCurrentStock] = useState(0);
   const [minStockLevel, setMinStockLevel] = useState(100);
   const [maxStockLevel, setMaxStockLevel] = useState<number | undefined>();
   const [notes, setNotes] = useState("");
 
-  // === EDIT MODE: Stock adjustment fields ===
+  // EDIT MODE: Stock adjustment fields
   const [reason, setReason] = useState("Manual Adjustment");
   const [reference, setReference] = useState("");
   const [adjustmentNotes, setAdjustmentNotes] = useState("");
@@ -62,89 +84,15 @@ export function InventoryItemDialog({
 
   const [loading, setLoading] = useState(false);
 
-  const createInventoryItem = useCreateInventoryItem();
-  const adjustStock = useAdjustStock();
-
-  // Fetch available items for ADD mode
-  const supplierMaterials = useLiveQuery(() => db.supplierMaterials.toArray());
-  const supplierPackaging = useLiveQuery(() => db.supplierPackaging.toArray());
-  const supplierLabels = useLiveQuery(() => db.supplierLabels.toArray());
-  const materials = useLiveQuery(() => db.materials.toArray());
-  const packaging = useLiveQuery(() => db.packaging.toArray());
-  const labels = useLiveQuery(() => db.labels.toArray());
-  const suppliers = useLiveQuery(() => db.suppliers.toArray());
-  const existingInventory = useLiveQuery(() => db.inventoryItems.toArray());
-
   // Get available items for ADD mode
-  const getAvailableItems = () => {
-    if (!existingInventory) return [];
+  const availableItems =
+    refData && existingInventory
+      ? getAvailableItemsForType(itemType, refData, existingInventory)
+      : [];
 
-    switch (itemType) {
-      case "supplierMaterial":
-        return (
-          supplierMaterials
-            ?.filter(
-              (sm) => !existingInventory.some((inv) => inv.itemId === sm.id)
-            )
-            .map((sm) => {
-              const material = materials?.find((m) => m.id === sm.materialId);
-              const supplier = suppliers?.find((s) => s.id === sm.supplierId);
-              return {
-                id: sm.id,
-                name: `${material?.name || "Unknown"} (${
-                  supplier?.name || "Unknown"
-                })`,
-                unit: sm.capacityUnit,
-              };
-            }) || []
-        );
-      case "supplierPackaging":
-        return (
-          supplierPackaging
-            ?.filter(
-              (sp) => !existingInventory.some((inv) => inv.itemId === sp.id)
-            )
-            .map((sp) => {
-              const pkg = packaging?.find((p) => p.id === sp.packagingId);
-              const supplier = suppliers?.find((s) => s.id === sp.supplierId);
-              return {
-                id: sp.id,
-                name: `${pkg?.name || "Unknown"} (${
-                  supplier?.name || "Unknown"
-                })`,
-                unit: "pcs",
-              };
-            }) || []
-        );
-      case "supplierLabel":
-        return (
-          supplierLabels
-            ?.filter(
-              (sl) => !existingInventory.some((inv) => inv.itemId === sl.id)
-            )
-            .map((sl) => {
-              const label = labels?.find((l) => l.id === sl.labelId);
-              const supplier = suppliers?.find((s) => s.id === sl.supplierId);
-              return {
-                id: sl.id,
-                name: `${label?.name || "Unknown"} (${
-                  supplier?.name || "Unknown"
-                })`,
-                unit: sl.unit || "pcs",
-              };
-            }) || []
-        );
-      default:
-        return [];
-    }
-  };
+  const selectedItem = availableItems.find((i) => i.id === selectedItemId);
 
-  const availableItems = getAvailableItems();
-  const selectedItem = availableItems.find(
-    (item) => item.id === selectedItemId
-  );
-
-  // Calculate stock change for EDIT mode (mode-aware)
+  // Calculate stock changes for EDIT mode
   const stockChanged =
     isEditMode &&
     (stockMode === "add"
@@ -152,14 +100,17 @@ export function InventoryItemDialog({
       : currentStock !== item.currentStock);
   const stockDifference = isEditMode
     ? stockMode === "add"
-      ? currentStock
-      : currentStock - item.currentStock
+      ? currentStock // add mode → difference equals input
+      : currentStock - item.currentStock // adjust mode → delta from existing stock
     : 0;
+  const newStockTotal = isEditMode
+    ? calculateNewStockTotal(stockMode, item.currentStock, currentStock)
+    : currentStock;
 
-  // Reset form when dialog opens/closes or mode changes
+  // Reset form when dialog opens/closes
   useEffect(() => {
     if (open && isEditMode) {
-      // EDIT MODE: Pre-fill with existing data
+      // EDIT MODE: Pre-fill
       setCurrentStock(item.currentStock);
       setMinStockLevel(item.minStockLevel);
       setMaxStockLevel(item.maxStockLevel);
@@ -169,7 +120,7 @@ export function InventoryItemDialog({
       setAdjustmentNotes("");
       setStockMode("adjust");
     } else if (open && !isEditMode) {
-      // ADD MODE: Reset to defaults
+      // ADD MODE: Reset
       setItemType("supplierMaterial");
       setSelectedItemId("");
       setCurrentStock(0);
@@ -179,6 +130,9 @@ export function InventoryItemDialog({
     }
   }, [open, isEditMode, item]);
 
+  /**
+   * Handle form submission
+   */
   const handleSubmit = async () => {
     if (!isEditMode) {
       // === ADD MODE ===
@@ -209,12 +163,11 @@ export function InventoryItemDialog({
       // === EDIT MODE ===
       setLoading(true);
       try {
-        // Update inventory item fields
-        await db.inventoryItems.update(item.id, {
+        // Update item details
+        await updateInventoryItem(item.id, {
           minStockLevel,
           maxStockLevel,
           notes,
-          updatedAt: new Date().toISOString(),
         });
 
         // If stock changed, create adjustment transaction
@@ -363,6 +316,7 @@ export function InventoryItemDialog({
               {isEditMode ? "Adjust Stock Level" : "Initial Stock"}
             </Label>
 
+            {/* EDIT MODE: Stock mode selector */}
             {isEditMode && (
               <div className="flex items-center gap-4 mb-3">
                 <Label className="text-sm">Mode:</Label>
@@ -395,6 +349,7 @@ export function InventoryItemDialog({
               </div>
             )}
 
+            {/* Stock input */}
             <div className="space-y-2">
               <div className="flex gap-2">
                 <Button
@@ -425,6 +380,8 @@ export function InventoryItemDialog({
                   <Plus className="h-4 w-4" />
                 </Button>
               </div>
+
+              {/* Stock change indicators */}
               <div className="flex flex-row gap-4">
                 {isEditMode && stockChanged && (
                   <div
@@ -441,17 +398,17 @@ export function InventoryItemDialog({
                   <div className="text-sm text-muted-foreground">
                     New total will be:{" "}
                     <span className="font-semibold text-foreground">
-                      {item.currentStock + currentStock} {item.unit}
+                      {newStockTotal} {item.unit}
                     </span>
                   </div>
                 )}
               </div>
             </div>
 
-            {/* === EDIT MODE ONLY: Show reason fields if stock changed === */}
+            {/* === EDIT MODE: Reason fields if stock changed === */}
             {isEditMode && stockChanged && (
               <div className="space-y-3 pt-3 border-t border-border/50">
-                <div className="grid grid-cols-2 gap-4 sm:grid-cols-2">
+                <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <Label>Reason for Change</Label>
                     <Select value={reason} onValueChange={setReason}>
@@ -576,3 +533,5 @@ export function InventoryItemDialog({
     </Dialog>
   );
 }
+
+export default InventoryItemDialog;

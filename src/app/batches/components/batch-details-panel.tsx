@@ -1,16 +1,19 @@
 // components/batches/batch-details-panel.tsx (updated)
 "use client";
 
-import { useBatchOperations } from "@/hooks/use-batch-operations";
-import { useBatchCostAnalysis, useBatchDetails } from "@/hooks/use-batches";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { convertToDisplayUnit } from "@/utils/unit-conversion-utils";
+import { useBatchOperations } from "@/hooks/batch-hooks/use-batch-operations";
+import {
+  useBatchCostAnalysis,
+  useBatchDetails,
+} from "@/hooks/batch-hooks/use-batches";
 import type { ProductionBatch } from "@/types/shared-types";
 import { cn } from "@/utils/shared-utils";
+import { convertToDisplayUnit } from "@/utils/unit-conversion-utils";
 import {
   Calendar,
   Edit2,

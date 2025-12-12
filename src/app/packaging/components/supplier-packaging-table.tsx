@@ -39,7 +39,7 @@ import type {
   PackagingType,
   SupplierPackagingTableRow,
 } from "@/types/packaging-types";
-import type { Supplier } from "@/types/shared-types";
+import type { Supplier } from "@/types/supplier-types";
 import { Edit, Filter, Info, Plus, Search, Trash2 } from "lucide-react";
 import { useMemo, useState } from "react";
 import {

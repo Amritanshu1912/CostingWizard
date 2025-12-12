@@ -14,7 +14,7 @@ import {
   useEnrichedRecipes,
   useRecipeIngredients,
   useRecipeVariants,
-} from "@/hooks/use-recipes";
+} from "@/hooks/recipe-hooks/use-recipes";
 import { db } from "@/lib/db";
 import type { Recipe, RecipeIngredient } from "@/types/shared-types";
 import { useCallback, useEffect, useState } from "react";

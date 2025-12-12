@@ -18,7 +18,10 @@ import {
 } from "lucide-react";
 
 import { MetricCard } from "@/components/ui/metric-card";
-import { useEnrichedRecipes, useRecipeStats } from "@/hooks/use-recipes";
+import {
+  useEnrichedRecipes,
+  useRecipeStats,
+} from "@/hooks/recipe-hooks/use-recipes";
 import { RecipesTab } from "./recipe-views/recipes-tab";
 import { RecipeAnalytics } from "./recipes-analytics";
 import { RecipeComparison } from "./recipes-comparison/recipe-comparison";

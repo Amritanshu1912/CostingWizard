@@ -54,7 +54,7 @@ import type {
   PackagingType,
   SupplierPackagingFormData,
 } from "@/types/packaging-types";
-import type { Supplier } from "@/types/shared-types";
+import type { Supplier } from "@/types/supplier-types";
 import { cn } from "@/utils/shared-utils";
 import { normalizeText } from "@/utils/text-utils";
 import { BUILD_MATERIALS, PACKAGING_TYPES } from "./packaging-constants";

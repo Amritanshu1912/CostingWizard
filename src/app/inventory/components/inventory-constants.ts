@@ -1,5 +1,36 @@
 // src/app/inventory/components/inventory-constants.ts
-import { InventoryItem, InventoryTransaction } from "@/types/shared-types";
+import { InventoryItem, InventoryTransaction } from "@/types/inventory-types";
+
+/**
+ * Stock adjustment reason options
+ */
+export const STOCK_ADJUSTMENT_REASONS = [
+  "Purchase Order",
+  "Production Batch",
+  "Manual Adjustment",
+  "Stocktake",
+  "Damage/Waste",
+  "Return",
+] as const;
+
+/**
+ * Default stock levels for new inventory items
+ */
+export const DEFAULT_STOCK_LEVELS = {
+  initial: 0,
+  minimum: 100,
+  maximum: undefined,
+} as const;
+
+/**
+ * Preview counts for cards
+ */
+export const PREVIEW_COUNTS = {
+  alerts: 10,
+  transactions: 10,
+  topItems: 10,
+  suppliers: 8,
+} as const;
 
 export const MOCK_INVENTORY_ITEMS: InventoryItem[] = [
   {
@@ -11,7 +42,7 @@ export const MOCK_INVENTORY_ITEMS: InventoryItem[] = [
     unit: "kg",
     minStockLevel: 100,
     maxStockLevel: 1000,
-    lastUpdated: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
     status: "in-stock" as const,
     notes: "High purity salt for formulations",
     createdAt: "",
@@ -25,7 +56,7 @@ export const MOCK_INVENTORY_ITEMS: InventoryItem[] = [
     unit: "kg",
     minStockLevel: 75,
     maxStockLevel: 500,
-    lastUpdated: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
     status: "low-stock" as const,
     notes: "Used in flavor enhancement",
     createdAt: new Date().toISOString(),
@@ -39,7 +70,7 @@ export const MOCK_INVENTORY_ITEMS: InventoryItem[] = [
     unit: "pcs",
     minStockLevel: 500,
     maxStockLevel: 5000,
-    lastUpdated: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
     status: "in-stock" as const,
     notes: "Clear plastic bottles for beverages",
     createdAt: new Date().toISOString(),
@@ -53,7 +84,7 @@ export const MOCK_INVENTORY_ITEMS: InventoryItem[] = [
     unit: "pcs",
     minStockLevel: 500,
     maxStockLevel: 10000,
-    lastUpdated: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
     status: "in-stock" as const,
     notes: "Color printed labels for branding",
     createdAt: new Date().toISOString(),
@@ -67,7 +98,7 @@ export const MOCK_INVENTORY_ITEMS: InventoryItem[] = [
     unit: "kg",
     minStockLevel: 50,
     maxStockLevel: 800,
-    lastUpdated: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
     status: "in-stock" as const,
     notes: "Ingredient and usage information",
     createdAt: new Date().toISOString(),
@@ -81,7 +112,7 @@ export const MOCK_INVENTORY_ITEMS: InventoryItem[] = [
     unit: "kg",
     minStockLevel: 200,
     maxStockLevel: 2000,
-    lastUpdated: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
     status: "in-stock" as const,
     notes: "Ingredient for few recipes",
     createdAt: new Date().toISOString(),
@@ -95,7 +126,7 @@ export const MOCK_INVENTORY_ITEMS: InventoryItem[] = [
     unit: "pcs",
     minStockLevel: 1000,
     maxStockLevel: 20000,
-    lastUpdated: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
     status: "in-stock" as const,
     notes: "Generic notes for packaging",
     createdAt: new Date().toISOString(),
@@ -109,7 +140,7 @@ export const MOCK_INVENTORY_ITEMS: InventoryItem[] = [
     unit: "pcs",
     minStockLevel: 3000,
     maxStockLevel: 50000,
-    lastUpdated: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
     status: "in-stock" as const,
     notes: "Good packaging",
     createdAt: new Date().toISOString(),
@@ -123,7 +154,7 @@ export const MOCK_INVENTORY_ITEMS: InventoryItem[] = [
     unit: "pieces",
     minStockLevel: 1000,
     maxStockLevel: 10000,
-    lastUpdated: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
     status: "in-stock" as const,
     notes: "Specialty Custom labels",
     createdAt: new Date().toISOString(),
@@ -137,7 +168,7 @@ export const MOCK_INVENTORY_ITEMS: InventoryItem[] = [
     unit: "pieces",
     minStockLevel: 2000,
     maxStockLevel: 20000,
-    lastUpdated: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
     status: "in-stock" as const,
     notes: "Specialty small labels",
     createdAt: new Date().toISOString(),
@@ -151,7 +182,7 @@ export const MOCK_INVENTORY_ITEMS: InventoryItem[] = [
     unit: "kg",
     minStockLevel: 200,
     maxStockLevel: 1500,
-    lastUpdated: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
     status: "out-of-stock" as const,
     notes: "Base material for formulations",
     createdAt: new Date().toISOString(),
@@ -165,7 +196,7 @@ export const MOCK_INVENTORY_ITEMS: InventoryItem[] = [
     unit: "kg",
     minStockLevel: 100,
     maxStockLevel: 2000,
-    lastUpdated: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
     status: "overstock" as const,
     notes: "Surfactant for cleaning formulations",
     createdAt: new Date().toISOString(),

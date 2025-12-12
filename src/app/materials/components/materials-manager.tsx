@@ -8,7 +8,7 @@ import { BarChart3, List, Package, TrendingUp } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 
-import { useMaterialsMutations } from "@/hooks/material-hooks/use-materials-mutations";
+import { useAllMaterialMutations } from "@/hooks/material-hooks/use-materials-mutations";
 import {
   useAllCategories,
   useAllMaterials,
@@ -59,7 +59,7 @@ export function MaterialsManager() {
     createCategory,
     updateCategory,
     deleteCategory,
-  } = useMaterialsMutations();
+  } = useAllMaterialMutations();
 
   // Initialize dialog for adding a new supplier material
   const handleAddSupplierMaterial = () => {

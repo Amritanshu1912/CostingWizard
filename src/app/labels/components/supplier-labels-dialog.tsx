@@ -54,7 +54,7 @@ import type {
   ShapeType,
   SupplierLabelFormData,
 } from "@/types/label-types";
-import type { Supplier } from "@/types/shared-types";
+import type { Supplier } from "@/types/supplier-types";
 import { cn } from "@/utils/shared-utils";
 import { normalizeText } from "@/utils/text-utils";
 import {

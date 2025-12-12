@@ -1,9 +1,11 @@
+// src/types/shared-types.ts
+import { ItemWithoutInventory } from "./inventory-types";
+import { SupplierLabelTableRow } from "./label-types";
+import { SupplierPackagingTableRow } from "./packaging-types";
+
 // ============================================================================
 // BASE TYPES
 // ============================================================================
-
-import { SupplierLabelTableRow } from "./label-types";
-import { SupplierPackagingTableRow } from "./packaging-types";
 
 export interface BaseEntity {
   id: string;
@@ -17,37 +19,6 @@ export interface BulkDiscount {
 }
 
 export type CapacityUnit = "kg" | "L" | "ml" | "gm" | "pcs";
-
-// ============================================================================
-// CATEGORIES
-// ============================================================================
-
-// ============================================================================
-// SUPPLIERS
-// ============================================================================
-
-export interface ContactPerson {
-  name: string;
-  email?: string;
-  phone?: string;
-  role?: string;
-}
-
-export interface Supplier extends BaseEntity {
-  name: string;
-  contactPersons?: ContactPerson[];
-  address?: string;
-  rating: number;
-  isActive: boolean;
-  paymentTerms: string;
-  leadTime: number; // in days
-  notes?: string;
-  performance?: {
-    onTimeDelivery: number;
-    qualityScore: number;
-    priceCompetitiveness: number;
-  };
-}
 
 // ============================================================================
 // RECIPES
@@ -531,12 +502,6 @@ export interface BatchRequirementsAnalysis {
   byProduct: ProductRequirements[];
   itemsWithoutInventory: ItemWithoutInventory[];
 }
-export interface ItemWithoutInventory {
-  itemType: "material" | "packaging" | "label";
-  itemId: string;
-  itemName: string;
-  supplierName: string;
-}
 
 export interface RequirementItem {
   itemType: "material" | "packaging" | "label";
@@ -618,91 +583,6 @@ export interface PurchaseOrder extends BaseEntity {
     | "cancelled";
   dateCreated: string;
   deliveryDate: string;
-}
-
-// ============================================================================
-// INVENTORY
-// ============================================================================
-
-export interface InventoryItem extends BaseEntity {
-  itemType: "supplierMaterial" | "supplierPackaging" | "supplierLabel";
-  itemId: string; // references SupplierMaterial.id, SupplierPackaging.id, or SupplierLabel.id
-  itemName: string;
-  currentStock: number;
-  unit: string;
-  minStockLevel: number;
-  maxStockLevel?: number;
-  lastUpdated: string;
-  status: "in-stock" | "low-stock" | "out-of-stock" | "overstock";
-  notes?: string;
-}
-
-export interface InventoryTransaction extends BaseEntity {
-  inventoryItemId: string;
-
-  // Transaction details
-  type: "in" | "out" | "adjustment";
-  quantity: number; // Positive for in, negative for out
-  unit: string;
-
-  // Context
-  reason: string; // "Purchase Order", "Production Batch", "Manual Adjustment"
-  reference?: string; // Batch ID, PO ID, etc.
-
-  // Before/after for audit
-  stockBefore: number;
-  stockAfter: number;
-
-  notes?: string;
-}
-
-export interface InventoryAlert extends BaseEntity {
-  inventoryItemId: string;
-  alertType: "low-stock" | "out-of-stock" | "overstock" | "expiring-soon";
-  severity: "info" | "warning" | "critical";
-  message: string;
-  isRead: number;
-  isResolved: number;
-}
-
-// Helper functions to work with number-based booleans
-export const boolToNum = (val: boolean): number => (val ? 1 : 0);
-export const numToBool = (val: number): boolean => val === 1;
-
-// Computed types (not stored)
-
-export interface InventoryItemWithDetails extends InventoryItem {
-  itemName: string;
-  supplierName: string;
-  supplierId: string;
-  unitPrice: number;
-  tax: number;
-  stockValue: number; // currentStock × unitPrice × (1 + tax/100)
-  stockPercentage: number; // currentStock / minStockLevel × 100
-}
-
-export interface InventoryStats {
-  totalItems: number;
-  lowStockCount: number;
-  outOfStockCount: number;
-  overstockCount: number;
-  totalStockValue: number;
-
-  byType: {
-    materials: { count: number; value: number };
-    packaging: { count: number; value: number };
-    labels: { count: number; value: number };
-  };
-
-  bySupplier: {
-    supplierId: string;
-    supplierName: string;
-    itemCount: number;
-    totalValue: number;
-  }[];
-
-  criticalAlerts: number;
-  warningAlerts: number;
 }
 
 // ============================================================================

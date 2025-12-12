@@ -1,11 +1,6 @@
-// src/app/inventory/components/inventory-stock-list.tsx
+// src/app/inventory/components/stock-list.tsx
 "use client";
 
-import {
-  formatCurrency,
-  getStatusBadge,
-  getTypeIcon,
-} from "@/app/inventory/utils/inventory-utils";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -17,18 +12,26 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import { useAllItemsWithInventoryStatus } from "@/hooks/inventory-hooks/use-inventory-computed";
+import { useInventoryFilters } from "@/hooks/inventory-hooks/use-inventory-data";
+import type { InventoryItemWithDetails } from "@/types/inventory-types";
 import {
-  useAllItemsWithInventoryStatus,
-  useInventoryFilters,
-} from "@/hooks/use-inventory";
-import type { InventoryItemWithDetails } from "@/types/shared-types";
-import { format } from "date-fns";
+  formatCurrency,
+  formatDate,
+  getStatusBadge,
+  getTypeIcon,
+  isUntrackedItem,
+} from "@/utils/inventory-utils";
 import { Beaker, Box, Edit, Filter, History, Search, Tag } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 import { InventoryItemDialog } from "./inventory-item-dialog";
-import { ItemTransactionsDialog } from "./inventory-item-txn-dialog";
+import { ItemTransactionDialog } from "../transactions/inventory-item-txn-dialog";
 
+/**
+ * Full inventory stock list with filtering and actions
+ * Shows all tracked and untracked items in a sortable table
+ */
 export function InventoryStockList() {
   const allItemsWithStatus = useAllItemsWithInventoryStatus();
   const {
@@ -51,8 +54,11 @@ export function InventoryStockList() {
     ? filterItems(allItemsWithStatus)
     : [];
 
+  /**
+   * Handle edit action - show dialog or info toast
+   */
   const handleEdit = (row: InventoryItemWithDetails) => {
-    if (row.id.startsWith("untracked-")) {
+    if (isUntrackedItem(row)) {
       toast.info(
         "This item is not tracked yet. Click 'Add Stock' button to start tracking."
       );
@@ -61,6 +67,18 @@ export function InventoryStockList() {
     setEditDialogItem(row);
   };
 
+  /**
+   * Handle view transactions action
+   */
+  const handleViewTransactions = (row: InventoryItemWithDetails) => {
+    if (isUntrackedItem(row)) {
+      toast.info("No transactions available for untracked items.");
+      return;
+    }
+    setTransactionsDialogItem(row);
+  };
+
+  // Table column definitions
   const columns: ColumnDef<InventoryItemWithDetails>[] = [
     {
       key: "itemType",
@@ -115,11 +133,11 @@ export function InventoryStockList() {
       ),
     },
     {
-      key: "lastUpdated",
+      key: "updatedAt",
       label: "Last Updated",
       render: (value) => (
         <span className="text-muted-foreground text-xs">
-          {format(new Date(value), "MMM dd, yyyy")}
+          {formatDate(value, "short")}
         </span>
       ),
     },
@@ -163,7 +181,7 @@ export function InventoryStockList() {
                   className="h-8 w-8 p-0 hover:bg-primary/10 hover:text-primary transition-colors"
                   onClick={(e) => {
                     e.stopPropagation();
-                    setTransactionsDialogItem(row);
+                    handleViewTransactions(row);
                   }}
                 >
                   <History className="h-4 w-4" />
@@ -187,6 +205,7 @@ export function InventoryStockList() {
     <Card className="p-6">
       {/* Search and Filters */}
       <div className="space-y-4 mb-6">
+        {/* Search */}
         <div className="relative">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
@@ -197,11 +216,14 @@ export function InventoryStockList() {
           />
         </div>
 
+        {/* Filters */}
         <div className="flex items-center gap-4">
           <div className="flex items-center gap-2 text-sm font-medium">
             <Filter className="h-4 w-4" />
             Filters:
           </div>
+
+          {/* Type filters */}
           <div className="flex flex-wrap gap-2">
             <Badge
               variant={
@@ -232,7 +254,10 @@ export function InventoryStockList() {
               Labels
             </Badge>
           </div>
-          |
+
+          <span>|</span>
+
+          {/* Status filters */}
           <div className="flex flex-wrap gap-2">
             <Badge
               variant={filterStatus.has("in-stock") ? "default" : "outline"}
@@ -255,7 +280,6 @@ export function InventoryStockList() {
             >
               Out of Stock
             </Badge>
-
             <Badge
               variant={filterStatus.has("overstock") ? "default" : "outline"}
               className="cursor-pointer"
@@ -267,12 +291,14 @@ export function InventoryStockList() {
         </div>
       </div>
 
+      {/* Table */}
       <SortableTable
         data={filteredItems}
         columns={columns}
         emptyMessage="No inventory items found"
       />
 
+      {/* Dialogs */}
       {editDialogItem && (
         <InventoryItemDialog
           item={editDialogItem}
@@ -282,7 +308,7 @@ export function InventoryStockList() {
       )}
 
       {transactionsDialogItem && (
-        <ItemTransactionsDialog
+        <ItemTransactionDialog
           item={transactionsDialogItem}
           open={!!transactionsDialogItem}
           onOpenChange={(open) => !open && setTransactionsDialogItem(null)}
@@ -291,3 +317,5 @@ export function InventoryStockList() {
     </Card>
   );
 }
+
+export default InventoryStockList;

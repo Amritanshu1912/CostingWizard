@@ -5,7 +5,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import type {
   ExperimentIngredient,
   ExperimentMetrics,
-} from "@/hooks/use-recipe-experiment";
+} from "@/hooks/recipe-hooks/use-recipe-experiment";
 import type { SupplierMaterialRow } from "@/types/material-types";
 import { AlertCircle, CheckCircle2, Sparkles } from "lucide-react";
 

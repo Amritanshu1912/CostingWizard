@@ -17,7 +17,10 @@ import {
   getLabelDetails,
   getPackagingDetails,
 } from "@/hooks/use-products";
-import { useEnrichedRecipes, useRecipeVariants } from "@/hooks/use-recipes";
+import {
+  useEnrichedRecipes,
+  useRecipeVariants,
+} from "@/hooks/recipe-hooks/use-recipes";
 import type {
   CapacityUnit,
   Product,

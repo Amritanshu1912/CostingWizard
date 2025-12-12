@@ -8,7 +8,7 @@ import {
   useComparableItems,
   useComparisonSummary,
   useSelectedItems,
-} from "@/hooks/use-comparison";
+} from "@/hooks/recipe-hooks/use-comparison";
 import { AlertCircle, GitCompare, Package } from "lucide-react";
 import { useState } from "react";
 import { SelectionTree, SummaryCards } from "./comparison-components";

@@ -16,12 +16,12 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { useRecipeExperiment } from "@/hooks/use-recipe-experiment";
+import { useRecipeExperiment } from "@/hooks/recipe-hooks/use-recipe-experiment";
 import {
   useEnrichedRecipe,
   useEnrichedRecipes,
   useRecipeVariants,
-} from "@/hooks/use-recipes";
+} from "@/hooks/recipe-hooks/use-recipes";
 import { useSupplierMaterialRows } from "@/hooks/material-hooks/use-materials-queries";
 import { db } from "@/lib/db";
 import type { RecipeVariant } from "@/types/shared-types";

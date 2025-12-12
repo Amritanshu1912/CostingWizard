@@ -4,7 +4,7 @@
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { useIngredientComparison } from "@/hooks/use-comparison";
+import { useIngredientComparison } from "@/hooks/recipe-hooks/use-comparison";
 import { cn } from "@/utils/shared-utils";
 import { Minus, TrendingDown, TrendingUp } from "lucide-react";
 import type { ComparisonItem, ComparisonMetric } from "./comparison-types";

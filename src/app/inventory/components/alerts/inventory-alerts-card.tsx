@@ -1,26 +1,30 @@
-// src/app/inventory/components/inventory-alerts-card.tsx
+// src/app/inventory/components/alerts/alerts-card.tsx
 "use client";
 
-import { getSeverityIcon } from "@/app/inventory/utils/inventory-utils";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Dialog, DialogTrigger } from "@/components/ui/dialog";
-import {
-  useInventoryAlerts,
-  useInventoryItemsWithDetails,
-} from "@/hooks/use-inventory";
+import { useAllInventoryAlerts } from "@/hooks/use-database-data";
+import { useAllInventoryItemsWithDetails } from "@/hooks/inventory-hooks/use-inventory-computed";
+import { getSeverityIcon } from "@/utils/inventory-utils";
 import { format } from "date-fns";
-import AlertsDialog from "./inventory-alerts-dialog";
+import InventoryAlertsDialog from "./inventory-alerts-dialog";
 
 interface AlertsCardProps {
+  /** Number of alerts to show in preview (default: 10) */
   previewCount?: number;
 }
 
-export function AlertsCard({ previewCount = 10 }: AlertsCardProps) {
-  const alerts = useInventoryAlerts();
-  const items = useInventoryItemsWithDetails();
+/**
+ * Card component displaying recent inventory alerts
+ * Shows severity counts and preview of latest alerts
+ */
+export function InventoryAlertsCard({ previewCount = 10 }: AlertsCardProps) {
+  const alerts = useAllInventoryAlerts();
+  const items = useAllInventoryItemsWithDetails();
 
+  // Loading state
   if (!alerts || !items) {
     return (
       <Card className="card-enhanced">
@@ -35,13 +39,15 @@ export function AlertsCard({ previewCount = 10 }: AlertsCardProps) {
   }
 
   const preview = alerts.slice(0, previewCount);
-  const counts = {
-    critical: alerts.filter((a) => a.severity === "critical").length,
-    warning: alerts.filter((a) => a.severity === "warning").length,
-    info: alerts.filter((a) => a.severity === "info").length,
-  };
-
-  const getItemName = (id: string) => items.find((i) => i.id === id)?.itemName;
+  const counts = (alerts || []).reduce(
+    (acc, a) => {
+      if (a.severity === "critical") acc.critical++;
+      else if (a.severity === "warning") acc.warning++;
+      else if (a.severity === "info") acc.info++;
+      return acc;
+    },
+    { critical: 0, warning: 0, info: 0 }
+  );
 
   return (
     <Card className="card-enhanced gap-0 h-88">
@@ -55,13 +61,14 @@ export function AlertsCard({ previewCount = 10 }: AlertsCardProps) {
               <Badge variant="info">{counts.info}</Badge>
             </div>
           </div>
+
           <Dialog>
             <DialogTrigger asChild>
               <Button variant="link" size="sm" className="cursor-pointer">
                 See all
               </Button>
             </DialogTrigger>
-            <AlertsDialog />
+            <InventoryAlertsDialog />
           </Dialog>
         </div>
       </CardHeader>
@@ -74,29 +81,30 @@ export function AlertsCard({ previewCount = 10 }: AlertsCardProps) {
             </div>
           )}
 
-          {preview.map((a) => (
-            <div
-              key={a.id}
-              className="flex items-start gap-3 p-2 rounded-md hover:bg-accent/5"
-            >
-              <div className="flex-shrink-0 mt-1">
-                {getSeverityIcon(a.severity)}
-              </div>
-              <div className="min-w-0">
-                <div className="text-sm font-medium truncate">{a.message}</div>
-                <div className="text-xs text-muted-foreground">
-                  {getItemName(a.inventoryItemId)
-                    ? `${getItemName(a.inventoryItemId)} • `
-                    : ""}
-                  {format(new Date(a.createdAt), "MMM dd, h:mm a")}
+          {preview.map((alert) => {
+            return (
+              <div
+                key={alert.id}
+                className="flex items-start gap-3 p-2 rounded-md hover:bg-accent/5"
+              >
+                <div className="flex-shrink-0 mt-1">
+                  {getSeverityIcon(alert.severity)}
+                </div>
+                <div className="min-w-0">
+                  <div className="text-sm font-medium truncate">
+                    {alert.message}
+                  </div>
+                  <div className="text-xs text-muted-foreground">
+                    {format(new Date(alert.createdAt), "MMM dd, h:mm a")}
+                  </div>
                 </div>
               </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       </CardContent>
     </Card>
   );
 }
 
-export default AlertsCard;
+export default InventoryAlertsCard;

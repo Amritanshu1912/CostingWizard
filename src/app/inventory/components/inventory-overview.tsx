@@ -1,14 +1,24 @@
-// src/app/inventory/components/inventory-overview.tsx
+// src/app/inventory/components/overview.tsx
 "use client";
 
-import { formatCurrency } from "@/app/inventory/utils/inventory-utils";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { MetricCard } from "@/components/ui/metric-card";
-import { CHART_COLORS } from "@/utils/color-utils";
 import type {
   InventoryItemWithDetails,
   InventoryStats,
-} from "@/types/shared-types";
+} from "@/types/inventory-types";
+import {
+  CHART_TOOLTIP_ITEM_STYLE,
+  CHART_TOOLTIP_LABEL_STYLE,
+  CHART_TOOLTIP_STYLE,
+  INVENTORY_CHART_COLORS,
+  calculateTypeDistribution,
+  formatChartCurrency,
+  formatLegendWithValue,
+  prepareStockValueByTypePieData,
+  prepareTopItemsByValueBarData,
+} from "@/utils/inventory-chart-utils";
+import { formatCurrency } from "@/utils/inventory-utils";
 import { AlertTriangle, DollarSign, Package } from "lucide-react";
 import {
   Bar,
@@ -23,65 +33,29 @@ import {
   XAxis,
   YAxis,
 } from "recharts";
-import AlertsCard from "./inventory-alerts-card";
-import TransactionHistoryCard from "./inventory-txn-card";
+import InventoryAlertsCard from "./alerts/inventory-alerts-card";
+import InventoryTransactionCard from "./transactions/inventory-txn-card";
 
 interface InventoryOverviewProps {
+  /** Inventory statistics (from hook) */
   stats: InventoryStats | undefined;
+  /** All inventory items with details (from hook) */
   items: InventoryItemWithDetails[] | undefined;
 }
 
+/**
+ * Main overview dashboard for inventory
+ * Displays metrics, charts, and recent activity
+ */
 export function InventoryOverview({ stats, items }: InventoryOverviewProps) {
   if (!stats || !items) {
     return <div>Loading...</div>;
   }
 
-  // Pie chart data
-  const pieData = [
-    {
-      name: "Materials",
-      value: stats.byType.materials.value,
-      count: stats.byType.materials.count,
-    },
-    {
-      name: "Packaging",
-      value: stats.byType.packaging.value,
-      count: stats.byType.packaging.count,
-    },
-    {
-      name: "Labels",
-      value: stats.byType.labels.value,
-      count: stats.byType.labels.count,
-    },
-  ];
-
-  const COLORS = [
-    CHART_COLORS.light.chart1,
-    CHART_COLORS.light.chart5,
-    CHART_COLORS.light.chart4,
-  ];
-
-  // Standard tooltip style for charts (consistent across app)
-  const CHART_TOOLTIP_STYLE = {
-    backgroundColor: "hsl(var(--popover))",
-    border: "1px solid hsl(var(--border))",
-    borderRadius: 8,
-    color: "hsl(var(--foreground))",
-    padding: "8px",
-  } as const;
-
-  // Top 10 items by value - Vertical Bar Chart
-  const topItems = [...items]
-    .sort((a, b) => b.stockValue - a.stockValue)
-    .slice(0, 10)
-    .reverse() // Reverse for better vertical display
-    .map((item) => ({
-      name: item.itemName.slice(0, 25),
-      value: item.stockValue,
-    }));
-
-  // Mock transactions for preview (first N items as sample transactions)
-  // Transactions preview now uses hook inside the card — no mock data here.
+  // Prepare chart data using utilities
+  const pieData = prepareStockValueByTypePieData(items);
+  const topItemsData = prepareTopItemsByValueBarData(items, 10);
+  const distributionData = calculateTypeDistribution(items);
 
   return (
     <Card className="p-6">
@@ -120,11 +94,13 @@ export function InventoryOverview({ stats, items }: InventoryOverviewProps) {
           />
         </div>
 
-        {/* Main content: left (4/5) with nested rows and right (1/5) stacked */}
+        {/* Main content: left (3/4) charts and right (1/4) activity cards */}
         <div className="grid grid-cols-4 gap-4">
+          {/* Left section: Charts and supplier info */}
           <div className="col-span-3 grid grid-rows-2 gap-4">
-            {/* Top: two charts side-by-side */}
+            {/* Top row: Two charts side-by-side */}
             <div className="grid grid-cols-2 gap-4">
+              {/* Pie Chart: Stock Value by Type */}
               <Card className="card-enhanced">
                 <CardHeader>
                   <CardTitle className="text-base">
@@ -134,7 +110,6 @@ export function InventoryOverview({ stats, items }: InventoryOverviewProps) {
                 <CardContent>
                   <ResponsiveContainer width="100%" height={250}>
                     <PieChart>
-                      {/* Legend moved to the right; disable floating labels */}
                       <Pie
                         data={pieData}
                         cx="40%"
@@ -147,28 +122,27 @@ export function InventoryOverview({ stats, items }: InventoryOverviewProps) {
                         {pieData.map((entry, index) => (
                           <Cell
                             key={`cell-${index}`}
-                            fill={COLORS[index % COLORS.length]}
+                            fill={
+                              INVENTORY_CHART_COLORS[
+                                index % INVENTORY_CHART_COLORS.length
+                              ]
+                            }
                           />
                         ))}
                       </Pie>
                       <Tooltip
                         formatter={(value: number) => formatCurrency(value)}
                         contentStyle={CHART_TOOLTIP_STYLE}
-                        itemStyle={{ color: "hsl(var(--foreground))" }}
-                        labelStyle={{ color: "hsl(var(--muted-foreground))" }}
+                        itemStyle={CHART_TOOLTIP_ITEM_STYLE}
+                        labelStyle={CHART_TOOLTIP_LABEL_STYLE}
                       />
                       <Legend
                         layout="vertical"
                         align="right"
                         verticalAlign="middle"
-                        formatter={(value) => {
-                          const item: any = pieData.find(
-                            (d) => d.name === value
-                          );
-                          return `${value} (${
-                            item ? formatCurrency(item.value) : ""
-                          })`;
-                        }}
+                        formatter={(value, entry: any) =>
+                          formatLegendWithValue(value, entry.payload.value)
+                        }
                         wrapperStyle={{ right: 0 }}
                       />
                     </PieChart>
@@ -176,6 +150,7 @@ export function InventoryOverview({ stats, items }: InventoryOverviewProps) {
                 </CardContent>
               </Card>
 
+              {/* Bar Chart: Top 10 Items by Value */}
               <Card className="card-enhanced">
                 <CardHeader>
                   <CardTitle className="text-base">
@@ -184,7 +159,7 @@ export function InventoryOverview({ stats, items }: InventoryOverviewProps) {
                 </CardHeader>
                 <CardContent>
                   <ResponsiveContainer width="100%" height={250}>
-                    <BarChart data={topItems}>
+                    <BarChart data={topItemsData}>
                       <CartesianGrid
                         strokeDasharray="3 3"
                         stroke="hsl(var(--border))"
@@ -201,19 +176,17 @@ export function InventoryOverview({ stats, items }: InventoryOverviewProps) {
                         type="number"
                         stroke="hsl(var(--muted-foreground))"
                         fontSize={11}
-                        tickFormatter={(value) =>
-                          `₹${(value / 1000).toFixed(0)}k`
-                        }
+                        tickFormatter={formatChartCurrency}
                       />
                       <Tooltip
                         formatter={(value: number) => formatCurrency(value)}
                         contentStyle={CHART_TOOLTIP_STYLE}
-                        itemStyle={{ color: "hsl(var(--foreground))" }}
-                        labelStyle={{ color: "hsl(var(--muted-foreground))" }}
+                        itemStyle={CHART_TOOLTIP_ITEM_STYLE}
+                        labelStyle={CHART_TOOLTIP_LABEL_STYLE}
                       />
                       <Bar
                         dataKey="value"
-                        fill={CHART_COLORS.light.chart1}
+                        fill={INVENTORY_CHART_COLORS[0]}
                         radius={[0, 4, 4, 0]}
                       />
                     </BarChart>
@@ -222,7 +195,7 @@ export function InventoryOverview({ stats, items }: InventoryOverviewProps) {
               </Card>
             </div>
 
-            {/* Bottom: two cards side-by-side (each half of left area) */}
+            {/* Bottom row: Two info cards side-by-side */}
             <div className="grid grid-cols-2 gap-4">
               {/* Stock by Supplier */}
               <Card className="card-enhanced">
@@ -258,7 +231,7 @@ export function InventoryOverview({ stats, items }: InventoryOverviewProps) {
                 </CardContent>
               </Card>
 
-              {/* Stock Distribution Summary - improved layout with progress bars */}
+              {/* Stock Distribution with Progress Bars */}
               <Card className="card-enhanced">
                 <CardHeader>
                   <CardTitle className="text-base">
@@ -266,80 +239,49 @@ export function InventoryOverview({ stats, items }: InventoryOverviewProps) {
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
-                  {(() => {
-                    const materialVal = stats.byType.materials.value;
-                    const packagingVal = stats.byType.packaging.value;
-                    const labelsVal = stats.byType.labels.value;
-                    const total = materialVal + packagingVal + labelsVal || 1;
-
-                    const rows = [
-                      {
-                        key: "Materials",
-                        value: materialVal,
-                        color: CHART_COLORS.light.chart1,
-                        count: stats.byType.materials.count,
-                      },
-                      {
-                        key: "Packaging",
-                        value: packagingVal,
-                        color: CHART_COLORS.light.chart5,
-                        count: stats.byType.packaging.count,
-                      },
-                      {
-                        key: "Labels",
-                        value: labelsVal,
-                        color: CHART_COLORS.light.chart4,
-                        count: stats.byType.labels.count,
-                      },
-                    ];
-
-                    return (
-                      <div className="space-y-3">
-                        {rows.map((r) => {
-                          const pct = Math.round((r.value / total) * 100);
-                          return (
-                            <div key={r.key}>
-                              <div className="flex items-center justify-between mb-1">
-                                <div className="flex items-center gap-2">
-                                  <div
-                                    style={{ backgroundColor: r.color }}
-                                    className="h-3 w-3 rounded-full"
-                                  />
-                                  <div className="text-sm font-medium">
-                                    {r.key}
-                                  </div>
-                                </div>
-                                <div className="text-sm text-muted-foreground">
-                                  {r.count} • {formatCurrency(r.value)}
-                                </div>
-                              </div>
-                              <div className="w-full bg-muted/20 h-2 rounded">
-                                <div
-                                  style={{
-                                    width: `${pct}%`,
-                                    backgroundColor: r.color,
-                                  }}
-                                  className="h-2 rounded"
-                                />
-                              </div>
+                  <div className="space-y-3">
+                    {distributionData.map((item) => (
+                      <div key={item.key}>
+                        <div className="flex items-center justify-between mb-1">
+                          <div className="flex items-center gap-2">
+                            <div
+                              style={{ backgroundColor: item.color }}
+                              className="h-3 w-3 rounded-full"
+                            />
+                            <div className="text-sm font-medium">
+                              {item.key}
                             </div>
-                          );
-                        })}
+                          </div>
+                          <div className="text-sm text-muted-foreground">
+                            {item.count} • {formatCurrency(item.value)}
+                          </div>
+                        </div>
+                        <div className="w-full bg-muted/20 h-2 rounded">
+                          <div
+                            style={{
+                              width: `${item.percentage}%`,
+                              backgroundColor: item.color,
+                            }}
+                            className="h-2 rounded"
+                          />
+                        </div>
                       </div>
-                    );
-                  })()}
+                    ))}
+                  </div>
                 </CardContent>
               </Card>
             </div>
           </div>
 
-          {/* Right column (1/5) spanning both rows: transactions + alerts */}
+          {/* Right column (1/4): Recent activity */}
           <div className="col-span-1 row-span-2 flex flex-col gap-4">
-            <TransactionHistoryCard previewCount={10} />
-            <AlertsCard previewCount={10} />
+            <InventoryTransactionCard previewCount={10} />
+            <InventoryAlertsCard previewCount={10} />
           </div>
         </div>
       </div>
     </Card>
   );
 }
+
+export default InventoryOverview;

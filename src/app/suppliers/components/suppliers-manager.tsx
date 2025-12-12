@@ -2,18 +2,24 @@
 "use client";
 
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { useItemsBySupplier, useSuppliers } from "@/hooks/use-suppliers";
+import {
+  useItemsBySupplier,
+  useSuppliers,
+} from "@/hooks/supplier-hooks/use-suppliers";
 import { SuppliersItemsTab } from "./suppliers-items-tab/suppliers-items-tab";
 import { SuppliersOverviewTab } from "./suppliers-overview-tab/suppliers-overview-tab";
 
+/**
+ * Main supplier management interface with tabbed navigation.
+ * Provides overview of suppliers and detailed item management per supplier.
+ */
 export function SuppliersManager() {
-  // Use separate hooks for data and state management
   const suppliers = useSuppliers();
   const itemsBySupplier = useItemsBySupplier();
 
   return (
     <div className="space-y-6 animate-wave-in">
-      {/* Header */}
+      {/* Page header */}
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold text-foreground">
@@ -25,6 +31,7 @@ export function SuppliersManager() {
         </div>
       </div>
 
+      {/* Tabbed interface */}
       <Tabs defaultValue="overview" className="space-y-6">
         <TabsList className="grid w-full grid-cols-2">
           <TabsTrigger value="overview">Overview</TabsTrigger>

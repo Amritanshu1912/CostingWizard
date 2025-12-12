@@ -15,7 +15,10 @@ import {
   MetricCardWithProgress,
 } from "@/components/ui/metric-card";
 import { Progress } from "@/components/ui/progress";
-import { useEnrichedRecipes, useRecipeStats } from "@/hooks/use-recipes";
+import {
+  useEnrichedRecipes,
+  useRecipeStats,
+} from "@/hooks/recipe-hooks/use-recipes";
 import { CHART_COLORS } from "@/utils/color-utils";
 import type { Recipe } from "@/types/shared-types";
 import {

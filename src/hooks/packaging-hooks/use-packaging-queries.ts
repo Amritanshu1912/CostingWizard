@@ -13,8 +13,8 @@ import type {
 import { useLiveQuery } from "dexie-react-hooks";
 import { useMemo } from "react";
 import { usePackagingBaseData } from "./use-packaging-data";
-import { Supplier } from "@/types/shared-types";
-import { useSuppliers } from "../use-suppliers";
+import { Supplier } from "@/types/supplier-types";
+import { useSuppliers } from "@/hooks/supplier-hooks/use-suppliers";
 
 /**
  * Returns packagings with supplier count and details.

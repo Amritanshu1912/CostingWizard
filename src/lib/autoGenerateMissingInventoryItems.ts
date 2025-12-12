@@ -1,5 +1,5 @@
 import { CostingWizardDB } from "./db";
-import { InventoryItem } from "../types/shared-types";
+import { InventoryItem } from "../types/inventory-types";
 
 /**
  * Auto-generate inventory items for supplier materials/packaging/labels
@@ -30,7 +30,7 @@ export async function autoGenerateMissingInventoryItems(db: CostingWizardDB) {
         unit: sm.capacityUnit,
         minStockLevel: 50, // Default minimum
         maxStockLevel: 500, // Default maximum
-        lastUpdated: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
         status: "out-of-stock",
         notes: "Auto-generated inventory tracking",
         createdAt: new Date().toISOString(),
@@ -53,7 +53,7 @@ export async function autoGenerateMissingInventoryItems(db: CostingWizardDB) {
         unit: "pcs",
         minStockLevel: 100,
         maxStockLevel: 1000,
-        lastUpdated: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
         status: "out-of-stock",
         notes: "Auto-generated inventory tracking",
         createdAt: new Date().toISOString(),
@@ -76,7 +76,7 @@ export async function autoGenerateMissingInventoryItems(db: CostingWizardDB) {
         unit: sl.unit || "pieces",
         minStockLevel: 100,
         maxStockLevel: 1000,
-        lastUpdated: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
         status: "out-of-stock",
         notes: "Auto-generated inventory tracking",
         createdAt: new Date().toISOString(),

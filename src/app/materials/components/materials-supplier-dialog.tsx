@@ -60,7 +60,7 @@ import type {
   MaterialFormErrors,
   SupplierMaterialFormData,
 } from "@/types/material-types";
-import type { Supplier } from "@/types/shared-types";
+import type { Supplier } from "@/types/supplier-types";
 import { cn } from "@/utils/shared-utils";
 
 interface MaterialsSupplierDialogProps {

@@ -13,7 +13,7 @@ import {
 import { useSupplierMaterialTableRows } from "@/hooks/material-hooks/use-materials-queries";
 import { useLabelsWithSuppliers } from "@/hooks/label-hooks/use-labels-queries";
 import { useSupplierPackagingTableRows } from "@/hooks/packaging-hooks/use-packaging-queries";
-import type { Supplier } from "@/types/shared-types";
+import type { Supplier } from "@/types/supplier-types";
 import { Package } from "lucide-react";
 import { useMemo, useState } from "react";
 import { SuppliersItemsContent } from "./suppliers-items-content";
@@ -22,13 +22,18 @@ interface SuppliersItemsTabProps {
   suppliers: Supplier[];
 }
 
+/**
+ * Tab component for managing supplier items (materials, packaging, labels)
+ * Allows selection of supplier and displays their associated items
+ */
 export function SuppliersItemsTab({ suppliers }: SuppliersItemsTabProps) {
-  // Get active suppliers and select first one by default
+  // Filter to only active suppliers for selection
   const activeSuppliers = useMemo(
     () => suppliers.filter((s) => s.isActive),
     [suppliers]
   );
 
+  // State for selected supplier, defaulting to first active supplier
   const [selectedSupplierId, setSelectedSupplierId] = useState<string>(
     activeSuppliers[0]?.id || ""
   );

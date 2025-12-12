@@ -38,7 +38,7 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { SupplierMaterialTableRow } from "@/types/material-types";
-import { Supplier } from "@/types/shared-types";
+import { Supplier } from "@/types/supplier-types";
 
 interface SupplierMaterialsTableProps {
   items: SupplierMaterialTableRow[];

@@ -1,4 +1,4 @@
-import { Supplier } from "@/types/shared-types";
+import type { Supplier } from "@/types/supplier-types";
 import {
   DollarSign,
   Clock,
