@@ -22,10 +22,9 @@ import {
   useEnrichedRecipes,
   useRecipeVariants,
 } from "@/hooks/recipe-hooks/use-recipes";
-import { useSupplierMaterialRows } from "@/hooks/material-hooks/use-materials-queries";
+import { useSupplierMaterialTableRows } from "@/hooks/material-hooks/use-materials-queries";
 import { db } from "@/lib/db";
-import type { RecipeVariant } from "@/types/shared-types";
-import { OptimizationGoalType } from "@/types/shared-types";
+import type { RecipeVariant, OptimizationGoalType } from "@/types/recipe-types";
 import { FlaskConical } from "lucide-react";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
@@ -36,7 +35,7 @@ import { RecipeLabWorkspace } from "./recipe-lab-workspace";
 
 export default function RecipeLab() {
   const enrichedRecipes = useEnrichedRecipes();
-  const supplierMaterials = useSupplierMaterialRows();
+  const supplierMaterials = useSupplierMaterialTableRows();
 
   const [selectedRecipeId, setSelectedRecipeId] = useState<string>("");
   const [saveDialogOpen, setSaveDialogOpen] = useState(false);
@@ -155,7 +154,7 @@ export default function RecipeLab() {
         description: variantDescription,
         ingredientIds: experimentIngredients.map((ing) => ing.id),
         optimizationGoal:
-          optimizationGoal === "custom" ? "other" : optimizationGoal,
+          optimizationGoal === "other" ? "other" : optimizationGoal,
         isActive: false,
         changes: createVariantChanges() as any,
         notes: variantDescription,

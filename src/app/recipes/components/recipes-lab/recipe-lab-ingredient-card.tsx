@@ -11,8 +11,8 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { normalizeToKg } from "@/utils/unit-conversion-utils";
-import type { RecipeIngredient } from "@/types/shared-types";
-import type { SupplierMaterialRow } from "@/types/material-types";
+import type { RecipeIngredient } from "@/types/recipe-types";
+import type { SupplierMaterialTableRow } from "@/types/material-types";
 
 import { Lock, RotateCcw, Trash2, Unlock } from "lucide-react";
 
@@ -26,8 +26,8 @@ interface ExperimentIngredient extends RecipeIngredient {
 interface RecipeLabIngredientCardProps {
   ingredient: ExperimentIngredient;
   index: number;
-  supplierMaterial: SupplierMaterialRow | undefined;
-  alternatives: SupplierMaterialRow[];
+  supplierMaterial: SupplierMaterialTableRow | undefined;
+  alternatives: SupplierMaterialTableRow[];
   isExpanded: boolean;
   onQuantityChange: (index: number, quantity: number) => void;
   onSupplierChange: (index: number, supplierId: string) => void;
@@ -125,7 +125,7 @@ export function RecipeLabIngredientCard({
                     {sm?.supplierName || "Select"}
                   </span>
                   <span className="text-muted-foreground text-xs ml-2">
-                    ₹{sm?.unitPrice.toFixed(2)}/{sm?.unit}
+                    ₹{sm?.unitPrice.toFixed(2)}/{sm?.capacityUnit}
                   </span>
                 </div>
               </SelectValue>
@@ -140,7 +140,7 @@ export function RecipeLabIngredientCard({
                   </div>
                   <div className="text-right ml-4">
                     <p className="font-semibold text-sm">
-                      ₹{sm?.unitPrice.toFixed(2)}/{sm?.unit}
+                      ₹{sm?.unitPrice.toFixed(2)}/{sm?.capacityUnit}
                     </p>
                     {sm?.moq && (
                       <p className="text-xs text-muted-foreground">
@@ -168,9 +168,9 @@ export function RecipeLabIngredientCard({
                             <p className="font-medium truncate">
                               {alt.supplierName}
                             </p>
-                            {alt.availability !== "in-stock" && (
+                            {alt.stockStatus !== "in-stock" && (
                               <p className="text-xs text-red-600">
-                                {alt.availability === "out-of-stock"
+                                {alt.stockStatus === "out-of-stock"
                                   ? "Out of Stock"
                                   : "Limited"}
                               </p>
@@ -179,7 +179,7 @@ export function RecipeLabIngredientCard({
                           <div className="flex items-center gap-2 ml-4">
                             <div className="text-right">
                               <p className="font-semibold text-sm">
-                                ₹{alt.unitPrice.toFixed(2)}/{alt.unit}
+                                ₹{alt.unitPrice.toFixed(2)}/{alt.capacityUnit}
                               </p>
                               {alt.moq && (
                                 <p className="text-xs text-muted-foreground">

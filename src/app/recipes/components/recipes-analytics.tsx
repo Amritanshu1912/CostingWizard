@@ -19,7 +19,7 @@ import {
   useEnrichedRecipes,
   useRecipeStats,
 } from "@/hooks/recipe-hooks/use-recipes";
-import type { Recipe } from "@/types/shared-types";
+import type { Recipe } from "@/types/recipe-types";
 import {
   CHART_COLOR_SCHEMES,
   CHART_GRID_CONFIG,

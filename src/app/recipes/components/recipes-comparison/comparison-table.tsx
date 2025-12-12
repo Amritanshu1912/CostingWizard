@@ -12,7 +12,7 @@ import {
   formatPercentage,
 } from "@/utils/formatting-utils";
 import { Minus, TrendingDown, TrendingUp } from "lucide-react";
-import type { ComparisonItem, ComparisonMetric } from "./comparison-types";
+import type { ComparisonItem, ComparisonMetric } from "@/types/recipe-types";
 
 // Wrapper functions to handle string | number union types
 const formatINRWrapper = (value: number | string) =>

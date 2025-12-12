@@ -16,7 +16,7 @@ import {
   useRecipeVariants,
 } from "@/hooks/recipe-hooks/use-recipes";
 import { db } from "@/lib/db";
-import type { Recipe, RecipeIngredient } from "@/types/shared-types";
+import type { Recipe, RecipeIngredient } from "@/types/recipe-types";
 import { useCallback, useEffect, useState } from "react";
 import { toast } from "sonner";
 import { RecipeDetailView } from "./recipes-detail-view";
@@ -131,7 +131,7 @@ export function RecipesTab() {
                   recipeId: newRecipeId,
                   supplierMaterialId: ing.supplierMaterialId,
                   quantity: ing.quantity,
-                  unit: sm?.unit || "gm", // Use supplier material's unit
+                  unit: sm?.capacityUnit || "gm", // Use supplier material's unit
                   lockedPricing: ing.lockedPricing,
                   createdAt: now,
                   updatedAt: now,

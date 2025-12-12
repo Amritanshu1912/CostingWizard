@@ -3,7 +3,7 @@ import type {
   Recipe,
   RecipeIngredient,
   RecipeVariant,
-} from "@/types/shared-types";
+} from "@/types/recipe-types";
 
 // ============================================================================
 // MOCK RECIPES

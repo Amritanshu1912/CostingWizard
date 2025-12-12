@@ -1,21 +1,20 @@
 // hooks/use-recipes.ts
 import { db } from "@/lib/db";
 import type {
-  CapacityUnit,
+  OptimizationSuggestion,
   RecipeDisplay,
   RecipeIngredient,
   RecipeIngredientDisplay,
   RecipeVariant,
-} from "@/types/shared-types";
-import type { SupplierMaterialRow } from "@/types/material-types";
-
+} from "@/types/recipe-types";
+import type { CapacityUnit } from "@/types/shared-types";
 import { useLiveQuery } from "dexie-react-hooks";
 import { useMemo } from "react";
 import {
   convertToBaseUnit,
   formatQuantity,
   normalizeToKg,
-} from "../../utils/unit-conversion-utils";
+} from "@/utils/unit-conversion-utils";
 
 /**
  * Fetches all recipe-related data once and creates lookup maps
@@ -31,6 +30,7 @@ export function useRecipeData() {
       suppliers,
       materials,
       categories,
+      inventoryItems,
     ] = await Promise.all([
       db.recipes.toArray(),
       db.recipeIngredients.toArray(),
@@ -39,6 +39,7 @@ export function useRecipeData() {
       db.suppliers.toArray(),
       db.materials.toArray(),
       db.categories.toArray(),
+      db.inventoryItems.where("itemType").equals("supplierMaterial").toArray(),
     ]);
 
     // Create lookup maps for O(1) access
@@ -46,6 +47,9 @@ export function useRecipeData() {
     const supplierMap = new Map(suppliers.map((s) => [s.id, s]));
     const materialMap = new Map(materials.map((m) => [m.id, m]));
     const categoryMap = new Map(categories.map((c) => [c.name, c]));
+    const inventoryMap = new Map(
+      inventoryItems.map((item) => [item.itemId, item])
+    );
 
     // Group ingredients by recipe
     const ingredientsByRecipe = new Map<string, RecipeIngredient[]>();
@@ -73,11 +77,13 @@ export function useRecipeData() {
       suppliers,
       materials,
       categories,
+      inventoryItems,
       // Lookup maps
       smMap,
       supplierMap,
       materialMap,
       categoryMap,
+      inventoryMap,
       ingredientsByRecipe,
       variantCountMap,
     };
@@ -106,6 +112,7 @@ export function useEnrichedRecipes(): RecipeDisplay[] {
       materialMap,
       ingredientsByRecipe,
       variantCountMap,
+      inventoryMap,
     } = data;
 
     return recipes.map((recipe): RecipeDisplay => {
@@ -129,6 +136,9 @@ export function useEnrichedRecipes(): RecipeDisplay[] {
           const materialName = material?.name || "Unknown Material";
           const supplierName = supplier?.name || "Unknown Supplier";
 
+          // Get inventory data for this supplier material
+          const inventoryItem = inventoryMap.get(ing.supplierMaterialId);
+
           return {
             ...ing,
             displayQuantity: formatQuantity(ing.quantity, ing.unit),
@@ -150,7 +160,8 @@ export function useEnrichedRecipes(): RecipeDisplay[] {
               ing.lockedPricing && sm
                 ? sm.unitPrice - ing.lockedPricing.unitPrice
                 : undefined,
-            isAvailable: sm ? sm.availability === "in-stock" : false,
+            currentStock: inventoryItem?.currentStock || 0,
+            stockStatus: inventoryItem?.status || "unknown",
           };
         }
       );
@@ -273,8 +284,8 @@ export function useRecipeVariants(
     const { ingredientsByRecipe, smMap } = data;
 
     return data.variants
-      .filter((v) => v.originalRecipeId === recipeId)
-      .map((variant) => {
+      .filter((v: RecipeVariant) => v.originalRecipeId === recipeId)
+      .map((variant: RecipeVariant) => {
         const variantIngredients = ingredientsByRecipe.get(variant.id) || [];
 
         const enrichedVariantIngredients = variantIngredients.map((ing) => {
@@ -448,18 +459,6 @@ export function useRecipeComparison(recipeId1: string, recipeId2: string) {
 // OPTIMIZATION SUGGESTIONS HOOK
 // ============================================================================
 
-interface OptimizationSuggestion {
-  type: "supplier_switch" | "quantity_reduction";
-  ingredientName: string;
-  currentSupplier: string;
-  suggestedSupplier?: string;
-  currentPrice: number;
-  suggestedPrice?: number;
-  savings: number;
-  savingsPercent: number;
-  confidence: number;
-}
-
 /**
  * Find optimization opportunities for a recipe
  */
@@ -484,7 +483,6 @@ export function useRecipeOptimizations(
         (sm) =>
           sm.materialId === currentSM.materialId &&
           sm.id !== currentSM.id &&
-          sm.availability !== "out-of-stock" &&
           sm.unitPrice < currentSM.unitPrice
       );
 
@@ -654,66 +652,6 @@ export const recipeCalculator = {
   },
 };
 
-// ============================================================================
-// MATERIALS WITH SUPPLIERS HOOK (for two-dropdown ingredient selection)
-// ============================================================================
-
-/**
- * Returns materials with their available suppliers for ingredient selection
- * Used in recipe editing to provide material-first, then supplier selection
- */
-export function useMaterialsWithSuppliers() {
-  const data = useRecipeData();
-
-  const materialsWithSuppliers = useMemo(() => {
-    if (!data) return [];
-
-    const { materials, supplierMaterials, materialMap, supplierMap } = data;
-
-    // Group supplier materials by material ID
-    const suppliersByMaterial = new Map<string, SupplierMaterialRow[]>();
-
-    supplierMaterials.forEach((sm) => {
-      const material = materialMap.get(sm.materialId);
-      const supplier = supplierMap.get(sm.supplierId);
-
-      if (!material || !supplier) return; // Skip orphaned records
-
-      const enrichedSM: SupplierMaterialRow = {
-        ...sm,
-        materialName: material.name,
-        materialCategory: material.category,
-        unit: sm.unit ?? "kg",
-        priceWithTax: sm.unitPrice * (1 + (sm.tax ?? 0) / 100),
-        categoryColor: "",
-        supplierName: supplier.name,
-        moq: sm.moq ?? 0,
-        leadTime: sm.leadTime ?? 0,
-        availability: sm.availability ?? "out-of-stock",
-        supplierRating: supplier.rating,
-      };
-
-      if (!suppliersByMaterial.has(sm.materialId)) {
-        suppliersByMaterial.set(sm.materialId, []);
-      }
-      suppliersByMaterial.get(sm.materialId)!.push(enrichedSM);
-    });
-
-    // Sort suppliers by price (cheapest first) for each material
-    suppliersByMaterial.forEach((suppliers) => {
-      suppliers.sort((a, b) => a.unitPrice - b.unitPrice);
-    });
-
-    // Return materials with their suppliers
-    return materials.map((material) => ({
-      ...material,
-      suppliers: suppliersByMaterial.get(material.id) || [],
-      supplierCount: suppliersByMaterial.get(material.id)?.length || 0,
-    }));
-  }, [data]);
-
-  return materialsWithSuppliers;
-}
 const useRecipes = {
   useRecipeData,
   useEnrichedRecipes,
@@ -724,7 +662,6 @@ const useRecipes = {
   useRecipeStats,
   useRecipeComparison,
   useRecipeOptimizations,
-  useMaterialsWithSuppliers,
   recipeCalculator,
 };
 

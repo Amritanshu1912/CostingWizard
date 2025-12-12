@@ -23,8 +23,10 @@ import {
 } from "@/components/ui/table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
-import { useMaterialsWithSuppliers } from "@/hooks/recipe-hooks/use-recipes";
-import { useSupplierMaterialRows } from "@/hooks/material-hooks/use-materials-queries";
+import {
+  useSupplierMaterialTableRows,
+  useMaterialsWithSupplierCount,
+} from "@/hooks/material-hooks/use-materials-queries";
 
 import {
   convertToBaseUnit,
@@ -38,7 +40,7 @@ import type {
   RecipeIngredient,
   RecipeIngredientDisplay,
   RecipeVariant,
-} from "@/types/shared-types";
+} from "@/types/recipe-types";
 import { formatDate } from "@/utils/formatting-utils";
 import {
   AlertCircle,
@@ -105,8 +107,8 @@ export function RecipeDetailView({
   onCancelEdit,
   onSaveEdit,
 }: RecipeDetailViewProps) {
-  const supplierMaterials = useSupplierMaterialRows();
-  const materialsWithSuppliers = useMaterialsWithSuppliers();
+  const supplierMaterials = useSupplierMaterialTableRows();
+  const materialsWithSuppliers = useMaterialsWithSupplierCount();
 
   // Edit state - ONLY for fields we save to DB
   const [editedName, setEditedName] = useState("");
@@ -1013,9 +1015,10 @@ export function RecipeDetailView({
                         return "bg-green-100 text-green-800 border-green-200";
                       return "bg-red-100 text-red-800 border-red-200";
                     };
-                    const availabilityText = ing.isAvailable
-                      ? "In Stock"
-                      : "Out of Stock";
+                    const availabilityText =
+                      ing.stockStatus === "in-stock"
+                        ? "In Stock"
+                        : "Out of Stock";
                     const taxRate = ing.lockedPricing
                       ? ing.lockedPricing.tax
                       : sm?.tax || 0;
@@ -1031,7 +1034,7 @@ export function RecipeDetailView({
                                 </h4>
                                 <Badge
                                   className={`text-xs ${getAvailabilityColors(
-                                    ing.isAvailable
+                                    ing.stockStatus === "in-stock"
                                   )}`}
                                 >
                                   {availabilityText}

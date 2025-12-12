@@ -3,14 +3,14 @@ import {
   ComparisonIngredient,
   ComparisonItem,
   ComparisonSummary,
-} from "@/app/recipes/components/recipes-comparison/comparison-types";
+} from "@/types/recipe-types";
 import type { Material, SupplierMaterial } from "@/types/material-types";
 import type {
   RecipeIngredient,
   RecipeIngredientDisplay,
   RecipeVariant,
   VariantIngredientSnapshot,
-} from "@/types/shared-types";
+} from "@/types/recipe-types";
 import type { Supplier } from "@/types/supplier-types";
 import { useMemo } from "react";
 import {
@@ -28,6 +28,7 @@ const getVariantIngredients = (
   smMap: Map<string, SupplierMaterial>,
   materialMap: Map<string, Material>,
   supplierMap: Map<string, Supplier>,
+  inventoryMap: Map<string, any>,
   allRecipeIngredients: RecipeIngredient[]
 ): RecipeIngredientDisplay[] => {
   let baseIngredients: (RecipeIngredient | VariantIngredientSnapshot)[] = [];
@@ -76,6 +77,9 @@ const getVariantIngredients = (
       ingredient = ingOrSnap as RecipeIngredient;
     }
 
+    // Get inventory data for this supplier material
+    const inventoryItem = inventoryMap.get(ingOrSnap.supplierMaterialId);
+
     return {
       ...ingredient,
       displayQuantity: formatQuantity(ingOrSnap.quantity, ingOrSnap.unit),
@@ -97,7 +101,8 @@ const getVariantIngredients = (
         ingOrSnap.lockedPricing && sm
           ? sm.unitPrice - ingOrSnap.lockedPricing.unitPrice
           : undefined,
-      stockStatus: sm ? sm.stockStatus === "in-stock" : false,
+      currentStock: inventoryItem?.currentStock || 0,
+      stockStatus: inventoryItem?.status || "unknown",
     };
   });
 
@@ -141,6 +146,7 @@ export function useComparableItems(): ComparisonItem[] {
         data.smMap,
         data.materialMap,
         data.supplierMap,
+        data.inventoryMap,
         data.recipeIngredients
       );
 
@@ -219,8 +225,12 @@ export function useComparisonSummary(
     );
 
     // Ingredient analysis
-    const ingredientSets = items.map((item) => {
-      return new Set(item.ingredients.map((ing) => ing.supplierMaterialId));
+    const ingredientSets = items.map((item: ComparisonItem) => {
+      return new Set(
+        item.ingredients.map(
+          (ing: RecipeIngredientDisplay) => ing.supplierMaterialId
+        )
+      );
     });
 
     const allIngredients = new Set(
@@ -289,10 +299,10 @@ export function useIngredientComparison(
 
     const comparisonMap = new Map<string, ComparisonIngredient>();
 
-    items.forEach((item) => {
+    items.forEach((item: ComparisonItem) => {
       const ingredients = item.ingredients;
 
-      ingredients.forEach((ing) => {
+      ingredients.forEach((ing: RecipeIngredientDisplay) => {
         const materialId = ing.supplierMaterialId;
 
         if (!comparisonMap.has(materialId)) {

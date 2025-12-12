@@ -5,17 +5,17 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import type {
   ExperimentIngredient,
   ExperimentMetrics,
-} from "@/hooks/recipe-hooks/use-recipe-experiment";
-import type { SupplierMaterialRow } from "@/types/material-types";
+} from "@/types/recipe-types";
+import type { SupplierMaterialTableRow } from "@/types/material-types";
 import { AlertCircle, CheckCircle2, Sparkles } from "lucide-react";
 
 interface RecipeLabMetricsProps {
   metrics: ExperimentMetrics;
   targetCost?: number;
   experimentIngredients: ExperimentIngredient[];
-  supplierMaterials: SupplierMaterialRow[];
+  supplierMaterials: SupplierMaterialTableRow[];
   onApplySuggestion: (index: number, supplierId: string) => void;
-  getAlternatives: (ing: ExperimentIngredient) => SupplierMaterialRow[];
+  getAlternatives: (ing: ExperimentIngredient) => SupplierMaterialTableRow[];
 }
 
 export function RecipeLabMetrics({

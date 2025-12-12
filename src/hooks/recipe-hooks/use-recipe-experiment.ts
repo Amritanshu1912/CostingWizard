@@ -1,41 +1,22 @@
 // hooks/use-recipe-experiment.ts
+import { useSupplierMaterialTableRows } from "@/hooks/material-hooks/use-materials-queries";
 import { db } from "@/lib/db";
-import type { RecipeDisplay, RecipeIngredient } from "@/types/shared-types";
+import type {
+  ExperimentIngredient,
+  ExperimentMetrics,
+  RecipeDisplay,
+  RecipeIngredient,
+} from "@/types/recipe-types";
 import { useCallback, useMemo, useState } from "react";
 import { toast } from "sonner";
-import { useSupplierMaterialRows } from "@/hooks/material-hooks/use-materials-queries";
 
 import {
   convertToBaseUnit,
   normalizeToKg,
-} from "../../utils/unit-conversion-utils";
-
-export interface ExperimentIngredient extends RecipeIngredient {
-  _changed?: boolean;
-  _changeTypes?: Set<"quantity" | "supplier">; // Track multiple changes
-  _originalQuantity?: number;
-  _originalSupplierId?: string;
-}
-
-export interface ExperimentMetrics {
-  originalCost: number;
-  modifiedCost: number;
-  originalWeight: number;
-  modifiedWeight: number;
-  originalTotalCost: number;
-  modifiedTotalCost: number;
-  originalTotalCostWithTax: number;
-  modifiedTotalCostWithTax: number;
-  originalCostPerKgWithTax: number;
-  modifiedCostPerKgWithTax: number;
-  savings: number;
-  savingsPercent: number;
-  targetGap?: number;
-  changeCount: number;
-}
+} from "@/utils/unit-conversion-utils";
 
 export function useRecipeExperiment(recipe: RecipeDisplay | null) {
-  const supplierMaterials = useSupplierMaterialRows();
+  const supplierMaterials = useSupplierMaterialTableRows();
 
   const [experimentIngredients, setExperimentIngredients] = useState<
     ExperimentIngredient[]

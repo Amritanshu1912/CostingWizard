@@ -23,9 +23,8 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
-import type { ExperimentIngredient } from "@/hooks/recipe-hooks/use-recipe-experiment";
-import type { RecipeVariant } from "@/types/shared-types";
-import type { SupplierMaterialRow } from "@/types/material-types";
+import type { RecipeVariant, ExperimentIngredient } from "@/types/recipe-types";
+import type { SupplierMaterialTableRow } from "@/types/material-types";
 
 import {
   Check,
@@ -45,10 +44,10 @@ interface RecipeLabWorkspaceProps {
   loadedVariantName: string | null;
   currentVariant?: RecipeVariant;
   experimentIngredients: ExperimentIngredient[];
-  supplierMaterials: SupplierMaterialRow[];
+  supplierMaterials: SupplierMaterialTableRow[];
   expandedAlternatives: Set<string>;
   metrics: any;
-  getAlternatives: (ing: any) => SupplierMaterialRow[];
+  getAlternatives: (ing: any) => SupplierMaterialTableRow[];
   onQuantityChange: (index: number, quantity: number) => void;
   onSupplierChange: (index: number, supplierId: string) => void;
   onTogglePriceLock: (index: number) => void;

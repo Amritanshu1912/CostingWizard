@@ -10,7 +10,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import type { RecipeDisplay, RecipeVariant } from "@/types/shared-types";
+import type { RecipeDisplay, RecipeVariant } from "@/types/recipe-types";
 import { FlaskConical } from "lucide-react";
 
 interface RecipeLabSidebarProps {
