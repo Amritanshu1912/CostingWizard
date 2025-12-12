@@ -40,15 +40,28 @@ export function useMaterialsWithSupplierCount(): MaterialWithSupplierCount[] {
         supplierMaterials.map((sm) => sm.supplierId)
       ).size;
 
-      // Build suppliers array with details
+      // Build suppliers array with pricing details
+      // Include all supplier-material combinations for complete data access
       const suppliers = supplierMaterials
         .map((sm) => {
           const supplier = supplierMap.get(sm.supplierId);
           return supplier
-            ? { id: supplier.id, name: supplier.name, rating: supplier.rating }
+            ? {
+                id: sm.id, // Use supplierMaterial ID for uniqueness
+                supplierName: supplier.name, // Renamed from 'name'
+                rating: supplier.rating,
+                unitPrice: sm.unitPrice,
+                moq: sm.moq,
+              }
             : null;
         })
-        .filter(Boolean) as Array<{ id: string; name: string; rating: number }>;
+        .filter(Boolean) as Array<{
+        id: string;
+        supplierName: string;
+        rating: number;
+        unitPrice: number;
+        moq: number;
+      }>;
 
       return {
         id: material.id,
