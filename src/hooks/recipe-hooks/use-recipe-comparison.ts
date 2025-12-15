@@ -5,6 +5,13 @@ import type {
   ComparisonItem,
   ComparisonSummary,
 } from "@/types/recipe-types";
+import {
+  calculateRecipeTotals,
+  createLookupMaps,
+  groupIngredientsByRecipe,
+  countUniqueSuppliers,
+  getSupplierNames,
+} from "@/utils/recipe-utils";
 import { useLiveQuery } from "dexie-react-hooks";
 import { useMemo } from "react";
 import { useRecipeDetail, useRecipeList } from "./use-recipe-data";
@@ -17,51 +24,25 @@ export function useComparableItems(): ComparisonItem[] {
   const recipes = useRecipeList();
 
   const data = useLiveQuery(async () => {
-    // Fetch all variants and supplier materials
-    const [
-      variants,
-      supplierMaterials,
-      recipeIngredients, // ← ADD
-      suppliers, // ← ADD
-    ] = await Promise.all([
-      db.recipeVariants.toArray(),
-      db.supplierMaterials.toArray(),
-      db.recipeIngredients.toArray(), // ← ADD
-      db.suppliers.toArray(), // ← ADD
-    ]);
+    const [variants, supplierMaterials, recipeIngredients, suppliers] =
+      await Promise.all([
+        db.recipeVariants.toArray(),
+        db.supplierMaterials.toArray(),
+        db.recipeIngredients.toArray(),
+        db.suppliers.toArray(),
+      ]);
 
-    const smMap = new Map(supplierMaterials.map((sm) => [sm.id, sm]));
-    const supplierMap = new Map(suppliers.map((s) => [s.id, s]));
-
-    // Group ingredients by recipe
-    const ingredientsByRecipe = new Map(); // ← ADD
-    recipeIngredients.forEach((ing) => {
-      if (!ingredientsByRecipe.has(ing.recipeId)) {
-        ingredientsByRecipe.set(ing.recipeId, []);
-      }
-      ingredientsByRecipe.get(ing.recipeId).push(ing);
-    });
+    const smMap = createLookupMaps(supplierMaterials);
+    const supplierMap = createLookupMaps(suppliers);
+    const ingredientsByRecipe = groupIngredientsByRecipe(recipeIngredients);
 
     const items: ComparisonItem[] = [];
 
     // Add recipes as comparison items
     recipes.forEach((recipe) => {
-      const ingredients = ingredientsByRecipe.get(recipe.id) || []; // ← ADD
-
-      // Calculate unique suppliers  // ← ADD
-      const supplierIds = new Set();
-      const supplierNamesList: string[] = [];
-
-      ingredients.forEach((ing: { supplierMaterialId: string }) => {
-        const sm = smMap.get(ing.supplierMaterialId);
-        if (sm && !supplierIds.has(sm.supplierId)) {
-          supplierIds.add(sm.supplierId);
-          const supplier = supplierMap.get(sm.supplierId);
-          if (supplier) {
-            supplierNamesList.push(supplier.name);
-          }
-        }
-      });
+      const ingredients = ingredientsByRecipe.get(recipe.id) || [];
+      const uniqueSuppliers = countUniqueSuppliers(ingredients, smMap);
+      const supplierNames = getSupplierNames(ingredients, smMap, supplierMap);
 
       items.push({
         ...recipe,
@@ -71,10 +52,11 @@ export function useComparableItems(): ComparisonItem[] {
         instructions: undefined,
         notes: undefined,
         itemType: "recipe" as const,
-        uniqueSuppliers: supplierIds.size, // ← ADD
-        supplierNames: supplierNamesList, // ← ADD
+        uniqueSuppliers,
+        supplierNames,
       });
     });
+
     // Add variants as comparison items
     variants.forEach((variant) => {
       const parentRecipe = recipes.find(
@@ -83,48 +65,15 @@ export function useComparableItems(): ComparisonItem[] {
       if (!parentRecipe) return;
 
       const ingredients = variant.ingredientsSnapshot || [];
+      const totals = calculateRecipeTotals(ingredients, smMap);
+      const uniqueSuppliers = countUniqueSuppliers(ingredients, smMap);
+      const supplierNames = getSupplierNames(ingredients, smMap, supplierMap);
 
-      // Calculate variant metrics
-      let totalWeightGrams = 0;
-      let totalCost = 0;
-      let taxedTotalCost = 0;
-      const supplierIds = new Set();
-      const supplierNamesList: string[] = [];
-
-      ingredients.forEach((ing) => {
-        const sm = smMap.get(ing.supplierMaterialId);
-        if (!sm) return;
-
-        const multiplier =
-          ing.unit === "kg" ? 1000 : ing.unit === "L" ? 1000 : 1;
-        totalWeightGrams += ing.quantity * multiplier;
-
-        if (!supplierIds.has(sm.supplierId)) {
-          supplierIds.add(sm.supplierId);
-          const supplier = supplierMap.get(sm.supplierId);
-          if (supplier) {
-            supplierNamesList.push(supplier.name);
-          }
-        }
-
-        const pricePerKg = ing.lockedPricing?.unitPrice || sm.unitPrice;
-        const tax = ing.lockedPricing?.tax || sm.tax || 0;
-
-        const quantityInKg =
-          ing.unit === "kg"
-            ? ing.quantity
-            : ing.unit === "L"
-              ? ing.quantity
-              : ing.quantity / 1000;
-
-        const cost = pricePerKg * quantityInKg;
-        totalCost += cost;
-        taxedTotalCost += cost * (1 + tax / 100);
-      });
-
-      const weightInKg = totalWeightGrams / 1000;
-      const costPerKg = weightInKg > 0 ? totalCost / weightInKg : 0;
-      const taxedCostPerKg = weightInKg > 0 ? taxedTotalCost / weightInKg : 0;
+      const costDifference = totals.costPerKg - parentRecipe.costPerKg;
+      const costDifferencePercentage =
+        parentRecipe.costPerKg > 0
+          ? (costDifference / parentRecipe.costPerKg) * 100
+          : 0;
 
       items.push({
         ...variant,
@@ -137,20 +86,16 @@ export function useComparableItems(): ComparisonItem[] {
           instructions: undefined,
           notes: undefined,
         },
-        totalWeight: totalWeightGrams,
-        totalCost,
-        taxedTotalCost,
-        costPerKg,
-        taxedCostPerKg,
-        costDifference: costPerKg - parentRecipe.costPerKg,
-        costDifferencePercentage:
-          parentRecipe.costPerKg > 0
-            ? ((costPerKg - parentRecipe.costPerKg) / parentRecipe.costPerKg) *
-              100
-            : 0,
+        totalWeight: totals.totalWeightGrams,
+        totalCost: totals.totalCost,
+        taxedTotalCost: totals.totalCostWithTax,
+        costPerKg: totals.costPerKg,
+        taxedCostPerKg: totals.taxedCostPerKg,
+        costDifference,
+        costDifferencePercentage,
         ingredientCount: ingredients.length,
-        uniqueSuppliers: supplierIds.size,
-        supplierNames: supplierNamesList,
+        uniqueSuppliers,
+        supplierNames,
       });
     });
 
@@ -196,7 +141,6 @@ export function useComparisonSummary(
     const worstItem = items.find((item) => item.costPerKg === maxCost)!;
 
     // Ingredient analysis would require fetching ingredients
-    // This is a simplified version
     return {
       itemCount: items.length,
       costRange: {
@@ -252,20 +196,22 @@ export function useIngredientComparison(
       db.suppliers.toArray(),
     ]);
 
-    const smMap = new Map(supplierMaterials.map((sm) => [sm.id, sm]));
-    const materialMap = new Map(materials.map((m) => [m.id, m]));
-    const supplierMap = new Map(suppliers.map((s) => [s.id, s]));
+    const smMap = createLookupMaps(supplierMaterials);
+    const materialMap = createLookupMaps(materials);
+    const supplierMap = createLookupMaps(suppliers);
 
     const comparisonMap = new Map<string, ComparisonIngredient>();
 
-    // Process recipes
-    recipes.forEach((recipe) => {
-      if (!recipe) return;
-
-      const ingredients = allIngredients.filter(
-        (ing) => ing.recipeId === recipe.id
-      );
-
+    // Helper to process ingredients
+    const processIngredients = (
+      itemId: string,
+      ingredients: Array<{
+        supplierMaterialId: string;
+        quantity: number;
+        unit: string;
+        lockedPricing?: { unitPrice: number; tax: number };
+      }>
+    ) => {
       ingredients.forEach((ing) => {
         const sm = smMap.get(ing.supplierMaterialId);
         const material = sm ? materialMap.get(sm.materialId) : null;
@@ -282,60 +228,31 @@ export function useIngredientComparison(
         }
 
         const comparison = comparisonMap.get(material.id)!;
-        const pricePerKg = ing.lockedPricing?.unitPrice || sm?.unitPrice || 0;
-        const quantityInKg =
-          ing.unit === "kg"
-            ? ing.quantity
-            : ing.unit === "L"
-              ? ing.quantity
-              : ing.quantity / 1000;
+        const totals = calculateRecipeTotals([ing], smMap);
 
-        comparison.values[recipe.id] = {
+        comparison.values[itemId] = {
           quantity: ing.quantity,
           unit: ing.unit,
           supplier: supplier?.name || "Unknown",
-          cost: pricePerKg * quantityInKg,
+          cost: totals.totalCost,
           present: true,
         };
       });
+    };
+
+    // Process recipes
+    recipes.forEach((recipe) => {
+      if (!recipe) return;
+      const ingredients = allIngredients.filter(
+        (ing) => ing.recipeId === recipe.id
+      );
+      processIngredients(recipe.id, ingredients);
     });
 
     // Process variants
     variants.forEach((variant) => {
       if (!variant || !variant.ingredientsSnapshot) return;
-
-      variant.ingredientsSnapshot.forEach((ing) => {
-        const sm = smMap.get(ing.supplierMaterialId);
-        const material = sm ? materialMap.get(sm.materialId) : null;
-        const supplier = sm ? supplierMap.get(sm.supplierId) : null;
-
-        if (!material) return;
-
-        if (!comparisonMap.has(material.id)) {
-          comparisonMap.set(material.id, {
-            materialId: material.id,
-            materialName: material.name,
-            values: {},
-          });
-        }
-
-        const comparison = comparisonMap.get(material.id)!;
-        const pricePerKg = ing.lockedPricing?.unitPrice || sm?.unitPrice || 0;
-        const quantityInKg =
-          ing.unit === "kg"
-            ? ing.quantity
-            : ing.unit === "L"
-              ? ing.quantity
-              : ing.quantity / 1000;
-
-        comparison.values[variant.id] = {
-          quantity: ing.quantity,
-          unit: ing.unit,
-          supplier: supplier?.name || "Unknown",
-          cost: pricePerKg * quantityInKg,
-          present: true,
-        };
-      });
+      processIngredients(variant.id, variant.ingredientsSnapshot);
     });
 
     // Fill missing values

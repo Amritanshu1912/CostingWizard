@@ -16,50 +16,35 @@ import type {
  * Convert quantity to kilograms based on unit
  */
 export function convertToKg(quantity: number, unit: string): number {
-  switch (unit) {
-    case "kg":
-    case "L":
-      return quantity;
-    case "gm":
-    case "g":
-    case "ml":
-      return quantity / 1000;
-    default:
-      return quantity / 1000;
-  }
+  // Original logic: ing.unit === "kg" ? ing.quantity : ing.unit === "L" ? ing.quantity : ing.quantity / 1000
+  if (unit === "kg") return quantity;
+  if (unit === "L") return quantity;
+  if (unit === "ltr") return quantity; // Volume treated as kg (density ~1)
+  // Default: assume grams/ml
+  return quantity / 1000;
 }
 
 /**
  * Convert quantity to grams based on unit
  */
 export function convertToGrams(quantity: number, unit: string): number {
-  switch (unit) {
-    case "kg":
-    case "L":
-      return quantity * 1000;
-    case "gm":
-    case "g":
-    case "ml":
-      return quantity;
-    default:
-      return quantity;
-  }
+  // Original logic: ing.unit === "kg" ? 1000 : ing.unit === "L" ? 1000 : 1
+  if (unit === "kg") return quantity * 1000;
+  if (unit === "L") return quantity * 1000;
+  if (unit === "ltr") return quantity * 1000;
+  // Default: assume already in grams/ml
+  return quantity;
 }
 
 /**
- * Get price for ingredient considering locked pricing
+ * Get multiplier for weight conversion
+ * EXACT LOGIC: Direct port from original
  */
-export function getIngredientPrice(
-  ingredient: {
-    lockedPricing?: { unitPrice: number; tax: number };
-  },
-  supplierMaterial: { unitPrice: number; tax?: number }
-): { unitPrice: number; tax: number } {
-  return {
-    unitPrice:
-      ingredient.lockedPricing?.unitPrice ?? supplierMaterial.unitPrice,
-    tax: ingredient.lockedPricing?.tax ?? supplierMaterial.tax ?? 0,
-  };
+export function getWeightMultiplier(unit: string): number {
+  if (unit === "kg") return 1000;
+  if (unit === "L") return 1000;
+  if (unit === "ltr") return 1000;
+  return 1;
 }
 
 /**
@@ -75,16 +60,22 @@ export function calculateIngredientCost(
 ): {
   cost: number;
   costWithTax: number;
-  weightGrams: number;
 } {
-  const { unitPrice, tax } = getIngredientPrice(ingredient, supplierMaterial);
-  const quantityInKg = convertToKg(ingredient.quantity, ingredient.unit);
-  const weightGrams = convertToGrams(ingredient.quantity, ingredient.unit);
+  // Price calculation - EXACT ORIGINAL LOGIC
+  const pricePerKg =
+    ingredient.lockedPricing?.unitPrice || supplierMaterial.unitPrice;
+  const tax = ingredient.lockedPricing?.tax || supplierMaterial.tax || 0;
 
-  const cost = unitPrice * quantityInKg;
+  // Quantity conversion - EXACT ORIGINAL LOGIC
+  const quantityInKg = convertToKg(ingredient.quantity, ingredient.unit);
+
+  const cost = pricePerKg * quantityInKg;
   const costWithTax = cost * (1 + tax / 100);
 
-  return { cost, costWithTax, weightGrams };
+  return {
+    cost,
+    costWithTax,
+  };
 }
 
 /**
@@ -114,13 +105,17 @@ export function calculateRecipeTotals(
     const sm = supplierMaterialsMap.get(ing.supplierMaterialId);
     if (!sm) return;
 
-    const { cost, costWithTax, weightGrams } = calculateIngredientCost(ing, sm);
+    const { cost, costWithTax } = calculateIngredientCost(ing, sm);
+
+    // Weight calculation - EXACT ORIGINAL LOGIC
+    const multiplier = getWeightMultiplier(ing.unit);
+    totalWeightGrams += ing.quantity * multiplier;
 
     totalCost += cost;
     totalCostWithTax += costWithTax;
-    totalWeightGrams += weightGrams;
   });
 
+  // Per kg calculation - EXACT ORIGINAL LOGIC
   const weightInKg = totalWeightGrams / 1000;
   const costPerKg = weightInKg > 0 ? totalCost / weightInKg : 0;
   const taxedCostPerKg = weightInKg > 0 ? totalCostWithTax / weightInKg : 0;
@@ -133,10 +128,9 @@ export function calculateRecipeTotals(
     taxedCostPerKg,
   };
 }
-
 /**
- * Calculate recipe cost from ingredients (legacy function for backward compatibility)
- * @deprecated Use calculateRecipeTotals instead
+ * Calculate recipe cost from ingredients
+ *  Use calculateRecipeTotals instead - kept for backward compatibility
  */
 export function calculateRecipeCost(
   ingredients: Array<{
@@ -152,7 +146,7 @@ export function calculateRecipeCost(
   totalWeight: number;
   costPerKg: number;
 } {
-  const smMap = new Map(supplierMaterials.map((sm) => [sm.id, sm]));
+  const smMap = createLookupMaps(supplierMaterials);
   const result = calculateRecipeTotals(ingredients, smMap);
 
   return {
@@ -395,38 +389,3 @@ export function getSupplierNames(
 
   return names;
 }
-
-/**
- * ================================================================================================
- * EXPORT UTILITIES OBJECT
- * ================================================================================================
- */
-
-export const recipeUtils = {
-  // Cost calculations
-  convertToKg,
-  convertToGrams,
-  getIngredientPrice,
-  calculateIngredientCost,
-  calculateRecipeTotals,
-  calculateRecipeCost,
-
-  // Variance
-  calculateVariance,
-
-  // Data transformation
-  createLookupMaps,
-  groupBy,
-  groupIngredientsByRecipe,
-
-  // Variants
-  createVariantChanges,
-  createVariantSnapshot,
-
-  // Validation
-  validateRecipeData,
-
-  // Supplier analysis
-  countUniqueSuppliers,
-  getSupplierNames,
-};

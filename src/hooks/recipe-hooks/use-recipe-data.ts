@@ -8,6 +8,13 @@ import type {
   RecipeVariantWithMetrics,
   SupplierMaterialForRecipe,
 } from "@/types/recipe-types";
+import {
+  calculateRecipeTotals,
+  calculateVariance,
+  convertToKg,
+  createLookupMaps,
+  groupIngredientsByRecipe,
+} from "@/utils/recipe-utils";
 import { useLiveQuery } from "dexie-react-hooks";
 import { useMemo } from "react";
 
@@ -33,65 +40,22 @@ export function useRecipeDetail(
 
     if (!recipe) return null;
 
-    // Create supplier material lookup
-    const smMap = new Map(supplierMaterials.map((sm) => [sm.id, sm]));
-
-    // Calculate total weight (in grams)
-    let totalWeightGrams = 0;
-    ingredients.forEach((ing) => {
-      const multiplier = ing.unit === "kg" ? 1000 : ing.unit === "L" ? 1000 : 1;
-      totalWeightGrams += ing.quantity * multiplier;
-    });
-
-    // Calculate costs
-    let totalCost = 0;
-    let taxedTotalCost = 0;
-
-    ingredients.forEach((ing) => {
-      const sm = smMap.get(ing.supplierMaterialId);
-      if (!sm) return;
-
-      const pricePerKg = ing.lockedPricing?.unitPrice || sm.unitPrice;
-      const tax = ing.lockedPricing?.tax || sm.tax || 0;
-
-      const quantityInKg =
-        ing.unit === "kg"
-          ? ing.quantity
-          : ing.unit === "L"
-            ? ing.quantity
-            : ing.quantity / 1000;
-
-      const cost = pricePerKg * quantityInKg;
-      const costWithTax = cost * (1 + tax / 100);
-
-      totalCost += cost;
-      taxedTotalCost += costWithTax;
-    });
-
-    // Calculate per kg costs
-    const weightInKg = totalWeightGrams / 1000;
-    const costPerKg = weightInKg > 0 ? totalCost / weightInKg : 0;
-    const taxedCostPerKg = weightInKg > 0 ? taxedTotalCost / weightInKg : 0;
-
-    // Calculate variance
-    const varianceFromTarget = recipe.targetCostPerKg
-      ? costPerKg - recipe.targetCostPerKg
-      : undefined;
-    const variancePercentage =
-      varianceFromTarget && recipe.targetCostPerKg
-        ? (varianceFromTarget / recipe.targetCostPerKg) * 100
-        : undefined;
+    // Use utility for cost calculation
+    const smMap = createLookupMaps(supplierMaterials);
+    const totals = calculateRecipeTotals(ingredients, smMap);
+    const variance = calculateVariance(
+      totals.costPerKg,
+      recipe.targetCostPerKg
+    );
 
     return {
       ...recipe,
-      totalWeight: totalWeightGrams,
-      totalCost,
-      taxedTotalCost,
-      costPerKg,
-      taxedCostPerKg,
-      varianceFromTarget,
-      variancePercentage,
-      isAboveTarget: varianceFromTarget ? varianceFromTarget > 0 : false,
+      totalWeight: totals.totalWeightGrams,
+      totalCost: totals.totalCost,
+      taxedTotalCost: totals.totalCostWithTax,
+      costPerKg: totals.costPerKg,
+      taxedCostPerKg: totals.taxedCostPerKg,
+      ...variance,
       ingredientCount: ingredients.length,
       variantCount: variants.length,
     };
@@ -124,31 +88,16 @@ export function useRecipeIngredients(
           .toArray(),
       ]);
 
-    // Create lookup maps
-    const smMap = new Map(supplierMaterials.map((sm) => [sm.id, sm]));
-    const supplierMap = new Map(suppliers.map((s) => [s.id, s]));
-    const materialMap = new Map(materials.map((m) => [m.id, m]));
+    const smMap = createLookupMaps(supplierMaterials);
+    const supplierMap = createLookupMaps(suppliers);
+    const materialMap = createLookupMaps(materials);
+    // ✅ FIXED: Keep original inventory map logic (maps by itemId, not id)
     const inventoryMap = new Map(inventory.map((i) => [i.itemId, i]));
 
-    // Calculate total cost for percentage calculation
-    let totalCost = 0;
-    ingredients.forEach((ing) => {
-      const sm = smMap.get(ing.supplierMaterialId);
-      if (!sm) return;
+    // Calculate total cost for percentage - use utility
+    const { totalCost } = calculateRecipeTotals(ingredients, smMap);
 
-      const pricePerKg = ing.lockedPricing?.unitPrice || sm.unitPrice;
-      const quantityInKg =
-        ing.unit === "kg"
-          ? ing.quantity
-          : ing.unit === "L"
-            ? ing.quantity
-            : ing.quantity / 1000;
-
-      totalCost += pricePerKg * quantityInKg;
-    });
-
-    // Enrich ingredients
-    const enriched: RecipeIngredientDetail[] = ingredients.map((ing) => {
+    return ingredients.map((ing) => {
       const sm = smMap.get(ing.supplierMaterialId);
       const supplier = sm ? supplierMap.get(sm.supplierId) : null;
       const material = sm ? materialMap.get(sm.materialId) : null;
@@ -157,23 +106,17 @@ export function useRecipeIngredients(
       const materialName = material?.name || "Unknown Material";
       const supplierName = supplier?.name || "Unknown Supplier";
 
-      // Calculate costs
+      // EXACT ORIGINAL LOGIC for cost calculation
       const pricePerKg = ing.lockedPricing?.unitPrice || sm?.unitPrice || 0;
       const tax = ing.lockedPricing?.tax || sm?.tax || 0;
-
-      const quantityInKg =
-        ing.unit === "kg"
-          ? ing.quantity
-          : ing.unit === "L"
-            ? ing.quantity
-            : ing.quantity / 1000;
+      const quantityInKg = convertToKg(ing.quantity, ing.unit);
 
       const costForQuantity = pricePerKg * quantityInKg;
       const taxedPriceForQuantity = costForQuantity * (1 + tax / 100);
       const priceSharePercentage =
         totalCost > 0 ? (costForQuantity / totalCost) * 100 : 0;
 
-      // Price lock status
+      // Price lock status - EXACT ORIGINAL LOGIC
       const isPriceLocked = !!ing.lockedPricing;
       const priceChangedSinceLock =
         ing.lockedPricing && sm
@@ -208,8 +151,6 @@ export function useRecipeIngredients(
         updatedAt: ing.updatedAt,
       };
     });
-
-    return enriched;
   }, [recipeId]);
 
   return data || [];
@@ -234,51 +175,18 @@ export function useRecipeVariants(
       db.supplierMaterials.toArray(),
     ]);
 
-    const smMap = new Map(supplierMaterials.map((sm) => [sm.id, sm]));
+    const smMap = createLookupMaps(supplierMaterials);
 
     // Enrich variants with cost metrics
     return variants.map((variant): RecipeVariantWithMetrics => {
       // Prefer snapshot over ingredient IDs
       const ingredients = variant.ingredientsSnapshot || [];
 
-      // Calculate variant totals
-      let totalWeightGrams = 0;
-      let totalCost = 0;
-      let taxedTotalCost = 0;
+      // Use utility for cost calculation
+      const totals = calculateRecipeTotals(ingredients, smMap);
 
-      ingredients.forEach((ing) => {
-        const sm = smMap.get(ing.supplierMaterialId);
-        if (!sm) return;
-
-        // Weight
-        const multiplier =
-          ing.unit === "kg" ? 1000 : ing.unit === "L" ? 1000 : 1;
-        totalWeightGrams += ing.quantity * multiplier;
-
-        // Cost
-        const pricePerKg = ing.lockedPricing?.unitPrice || sm.unitPrice;
-        const tax = ing.lockedPricing?.tax || sm.tax || 0;
-
-        const quantityInKg =
-          ing.unit === "kg"
-            ? ing.quantity
-            : ing.unit === "L"
-              ? ing.quantity
-              : ing.quantity / 1000;
-
-        const cost = pricePerKg * quantityInKg;
-        const costWithTax = cost * (1 + tax / 100);
-
-        totalCost += cost;
-        taxedTotalCost += costWithTax;
-      });
-
-      const weightInKg = totalWeightGrams / 1000;
-      const costPerKg = weightInKg > 0 ? totalCost / weightInKg : 0;
-      const taxedCostPerKg = weightInKg > 0 ? taxedTotalCost / weightInKg : 0;
-
-      // Compare with original
-      const costDifference = costPerKg - originalRecipe.costPerKg;
+      // Compare with original - EXACT ORIGINAL LOGIC
+      const costDifference = totals.costPerKg - originalRecipe.costPerKg;
       const costDifferencePercentage =
         originalRecipe.costPerKg > 0
           ? (costDifference / originalRecipe.costPerKg) * 100
@@ -286,11 +194,11 @@ export function useRecipeVariants(
 
       return {
         ...variant,
-        totalWeight: totalWeightGrams,
-        totalCost,
-        taxedTotalCost,
-        costPerKg,
-        taxedCostPerKg,
+        totalWeight: totals.totalWeightGrams,
+        totalCost: totals.totalCost,
+        taxedTotalCost: totals.totalCostWithTax,
+        costPerKg: totals.costPerKg,
+        taxedCostPerKg: totals.taxedCostPerKg,
         costDifference,
         costDifferencePercentage,
         ingredientCount: ingredients.length,
@@ -316,19 +224,10 @@ export function useRecipeList(): RecipeListItem[] {
         db.supplierMaterials.toArray(),
       ]);
 
-    // Create supplier material lookup map
-    const smMap = new Map(supplierMaterials.map((sm) => [sm.id, sm]));
+    const smMap = createLookupMaps(supplierMaterials);
+    const ingredientsByRecipe = groupIngredientsByRecipe(allIngredients);
 
-    // Group ingredients by recipe
-    const ingredientsByRecipe = new Map<string, typeof allIngredients>();
-    allIngredients.forEach((ing) => {
-      if (!ingredientsByRecipe.has(ing.recipeId)) {
-        ingredientsByRecipe.set(ing.recipeId, []);
-      }
-      ingredientsByRecipe.get(ing.recipeId)!.push(ing);
-    });
-
-    // Count variants per recipe
+    // Count variants per recipe - EXACT ORIGINAL LOGIC
     const variantCountMap = new Map<string, number>();
     allVariants.forEach((v) => {
       variantCountMap.set(
@@ -341,55 +240,12 @@ export function useRecipeList(): RecipeListItem[] {
     return recipes.map((recipe): RecipeListItem => {
       const ingredients = ingredientsByRecipe.get(recipe.id) || [];
 
-      // Calculate total weight (in grams)
-      let totalWeightGrams = 0;
-      ingredients.forEach((ing) => {
-        // Convert to grams based on unit
-        const multiplier =
-          ing.unit === "kg" ? 1000 : ing.unit === "L" ? 1000 : 1;
-        totalWeightGrams += ing.quantity * multiplier;
-      });
-
-      // Calculate costs
-      let totalCost = 0;
-      let taxedTotalCost = 0;
-
-      ingredients.forEach((ing) => {
-        const sm = smMap.get(ing.supplierMaterialId);
-        if (!sm) return;
-
-        // Get price (locked or current)
-        const pricePerKg = ing.lockedPricing?.unitPrice || sm.unitPrice;
-        const tax = ing.lockedPricing?.tax || sm.tax || 0;
-
-        // Convert quantity to kg for cost calculation
-        const quantityInKg =
-          ing.unit === "kg"
-            ? ing.quantity
-            : ing.unit === "L"
-              ? ing.quantity
-              : ing.quantity / 1000;
-
-        const cost = pricePerKg * quantityInKg;
-        const costWithTax = cost * (1 + tax / 100);
-
-        totalCost += cost;
-        taxedTotalCost += costWithTax;
-      });
-
-      // Calculate per kg costs
-      const weightInKg = totalWeightGrams / 1000;
-      const costPerKg = weightInKg > 0 ? totalCost / weightInKg : 0;
-      const taxedCostPerKg = weightInKg > 0 ? taxedTotalCost / weightInKg : 0;
-
-      // Calculate variance from target
-      const varianceFromTarget = recipe.targetCostPerKg
-        ? costPerKg - recipe.targetCostPerKg
-        : undefined;
-      const variancePercentage =
-        varianceFromTarget && recipe.targetCostPerKg
-          ? (varianceFromTarget / recipe.targetCostPerKg) * 100
-          : undefined;
+      // Use utility for cost calculation
+      const totals = calculateRecipeTotals(ingredients, smMap);
+      const variance = calculateVariance(
+        totals.costPerKg,
+        recipe.targetCostPerKg
+      );
 
       return {
         id: recipe.id,
@@ -397,14 +253,12 @@ export function useRecipeList(): RecipeListItem[] {
         description: recipe.description,
         status: recipe.status,
         version: recipe.version || 1,
-        costPerKg,
-        taxedCostPerKg,
+        costPerKg: totals.costPerKg,
+        taxedCostPerKg: totals.taxedCostPerKg,
         targetCostPerKg: recipe.targetCostPerKg,
         ingredientCount: ingredients.length,
         variantCount: variantCountMap.get(recipe.id) || 0,
-        varianceFromTarget,
-        variancePercentage,
-        isAboveTarget: varianceFromTarget ? varianceFromTarget > 0 : false,
+        ...variance,
         updatedAt: recipe.updatedAt || recipe.createdAt,
         createdAt: recipe.createdAt,
       };
@@ -421,7 +275,7 @@ export function useRecipeList(): RecipeListItem[] {
 export function useRecipeStats(): RecipeStats {
   const recipes = useRecipeList();
 
-  const stats = useMemo(() => {
+  return useMemo(() => {
     const totalRecipes = recipes.length;
 
     if (totalRecipes === 0) {
@@ -435,16 +289,14 @@ export function useRecipeStats(): RecipeStats {
       };
     }
 
+    // EXACT ORIGINAL LOGIC
     const activeRecipes = recipes.filter((r) => r.status === "active").length;
-
     const avgCostPerKg =
       recipes.reduce((sum, r) => sum + r.costPerKg, 0) / totalRecipes;
-
     const totalIngredients = recipes.reduce(
       (sum, r) => sum + r.ingredientCount,
       0
     );
-
     const totalVariants = recipes.reduce((sum, r) => sum + r.variantCount, 0);
 
     // Calculate target achievement
@@ -464,8 +316,6 @@ export function useRecipeStats(): RecipeStats {
       targetAchievementRate,
     };
   }, [recipes]);
-
-  return stats;
 }
 
 /**
@@ -486,9 +336,8 @@ export function useSupplierMaterialsForRecipe(): SupplierMaterialForRecipe[] {
           .toArray(),
       ]);
 
-    // Create lookup maps
-    const supplierMap = new Map(suppliers.map((s) => [s.id, s]));
-    const materialMap = new Map(materials.map((m) => [m.id, m]));
+    const supplierMap = createLookupMaps(suppliers);
+    const materialMap = createLookupMaps(materials);
     const inventoryMap = new Map(inventory.map((i) => [i.itemId, i]));
 
     // Transform to minimal recipe format
