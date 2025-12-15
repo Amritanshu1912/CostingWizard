@@ -18,9 +18,9 @@ import {
   getPackagingDetails,
 } from "@/hooks/use-products";
 import {
-  useEnrichedRecipes,
+  useRecipeList,
   useRecipeVariants,
-} from "@/hooks/recipe-hooks/use-recipes";
+} from "@/hooks/recipe-hooks/use-recipe-data";
 import type {
   CapacityUnit,
   Product,
@@ -45,7 +45,7 @@ export function ProductForm({
   onSave,
   onCancel,
 }: ProductFormProps) {
-  const recipes = useEnrichedRecipes();
+  const recipes = useRecipeList();
   const [showValidationError, setShowValidationError] = useState(false);
   const [validationMessage, setValidationMessage] = useState("");
 

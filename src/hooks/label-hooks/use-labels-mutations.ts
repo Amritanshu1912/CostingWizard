@@ -6,7 +6,7 @@ import type {
   LabelFormData,
   SupplierLabelFormData,
 } from "@/types/label-types";
-import { normalizeText } from "@/utils/text-utils";
+import { normalizeText } from "@/utils/shared-utils";
 import { nanoid } from "nanoid";
 import { useCallback } from "react";
 
