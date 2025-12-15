@@ -1,28 +1,15 @@
+// src/types/recipe-types.ts
 import type { BaseEntity, CapacityUnit } from "@/types/shared-types";
 
 // ============================================================================
-// RECIPES
+// CORE DATABASE SCHEMAS (IndexedDB Tables)
+// These represent the actual structure stored in the database
 // ============================================================================
 
-export interface LockedPricing {
-  unitPrice: number; // locked supplier unit price
-  tax: number; // Locked tax percentage
-  lockedAt: Date;
-  reason?: "cost_analysis" | "quote" | "production_batch" | "other";
-  notes?: string;
-}
-// A single ingredient in a recipe formulation.
-
-export interface RecipeIngredient extends BaseEntity {
-  recipeId: string;
-  supplierMaterialId: string;
-  quantity: number;
-  unit: CapacityUnit;
-  lockedPricing?: LockedPricing;
-}
-
-// Recipe/Formulation - The formula for making a product substance
-
+/**
+ * Recipe entity - The formula for making a product
+ * Stored in: db.recipes
+ */
 export interface Recipe extends BaseEntity {
   name: string;
   description?: string;
@@ -33,33 +20,79 @@ export interface Recipe extends BaseEntity {
   notes?: string;
 }
 
+/**
+ * Recipe ingredient entity - A single ingredient in a recipe
+ * Stored in: db.recipeIngredients
+ * Relationship: ingredient.recipeId → recipe.id (many-to-one)
+ */
+export interface RecipeIngredient extends BaseEntity {
+  recipeId: string; // Points to parent recipe
+  supplierMaterialId: string; // References supplier_materials table
+  quantity: number;
+  unit: CapacityUnit;
+  lockedPricing?: LockedPricing;
+}
+
+/**
+ * Price locking information for ingredients
+ * Used to freeze pricing at a specific point in time
+ */
+export interface LockedPricing {
+  unitPrice: number; // Locked supplier unit price
+  tax: number; // Locked tax percentage
+  lockedAt: Date;
+  reason?: "cost_analysis" | "quote" | "production_batch" | "other";
+  notes?: string;
+}
+
+/**
+ * Recipe variant entity - An experimental version of a recipe
+ * Stored in: db.recipeVariants
+ *
+ * Uses dual storage strategy:
+ * - ingredientIds: References to original RecipeIngredient records (for tracking)
+ * - ingredientsSnapshot: Immutable copy of ingredients (for historical accuracy)
+ *
+ * When loading: Prefer snapshot (source of truth) over IDs
+ */
+export interface RecipeVariant extends BaseEntity {
+  originalRecipeId: string;
+  name: string;
+  description?: string;
+
+  // Dual storage strategy
+  ingredientIds: string[]; // References to ingredient IDs
+  ingredientsSnapshot?: VariantIngredientSnapshot[]; // Immutable copy
+
+  optimizationGoal?: OptimizationGoalType;
+  isActive: boolean;
+  changes?: RecipeVariantChange[];
+  notes?: string;
+}
+
+/**
+ * Optimization goal types for variants
+ */
 export type OptimizationGoalType =
   | "cost_reduction"
   | "quality_improvement"
   | "supplier_diversification"
   | "other";
 
-export interface RecipeVariant extends BaseEntity {
-  originalRecipeId: string;
-  name: string;
-  description?: string;
-
-  // Core formulation
-  ingredientIds: string[];
-  // Optional full snapshot of variant ingredients to avoid referencing mutable
-  // recipe ingredient records. This allows historic variants to stay immutable
-  // even if the base recipe changes.
-  ingredientsSnapshot?: VariantIngredientSnapshot[];
-
-  // Business context
-  optimizationGoal?: OptimizationGoalType;
-  isActive: boolean;
-
-  // Audit trail
-  changes?: RecipeVariantChange[];
+/**
+ * Snapshot of ingredient for variant historical record
+ */
+export interface VariantIngredientSnapshot {
+  supplierMaterialId: string;
+  quantity: number;
+  unit: CapacityUnit;
+  lockedPricing?: LockedPricing;
   notes?: string;
 }
 
+/**
+ * Change record for variant audit trail
+ */
 export interface RecipeVariantChange {
   type:
     | "quantity_change"
@@ -70,86 +103,253 @@ export interface RecipeVariantChange {
   oldValue?: string | number;
   newValue?: string | number;
   reason?: string;
-  changedAt: Date; // Add timestamp for better audit
+  changedAt: Date;
 }
 
-// --- Snapshot for variant (optional) ---
-// If you need the variant to be a full snapshot of formulation at that moment,
-// use this structure instead of referencing ingredientIds. This avoids future edits
-// to base ingredients from changing historic variants.
-export interface VariantIngredientSnapshot {
+// ============================================================================
+// VIEW MODELS - For displaying data in UI components
+// These include computed/joined data for specific use cases
+// ============================================================================
+
+/**
+ * Minimal recipe data for list views
+ * Used in: RecipeListView component
+ * Fetched by: useRecipeList() hook
+ *
+ * @example
+ * ```tsx
+ * const recipes = useRecipeList();
+ * recipes.map(r => <RecipeCard key={r.id} recipe={r} />)
+ * ```
+ */
+export interface RecipeListItem {
+  id: string;
+  name: string;
+  description?: string;
+  status: Recipe["status"];
+  version: number;
+
+  // Computed costs
+  costPerKg: number;
+  taxedCostPerKg: number;
+  targetCostPerKg?: number;
+
+  // Counts (no actual ingredient data)
+  ingredientCount: number;
+  variantCount: number;
+
+  // Variance indicators
+  varianceFromTarget?: number;
+  variancePercentage?: number;
+  isAboveTarget?: boolean;
+
+  // Metadata
+  updatedAt: string;
+  createdAt: string;
+}
+
+/**
+ * Complete recipe data for detail views
+ * Used in: RecipeDetailView, Recipe Lab
+ * Fetched by: useRecipeDetail(id) hook
+ *
+ * Includes all recipe fields plus computed totals
+ * Does NOT include ingredients array (fetch separately)
+ */
+export interface RecipeDetail extends Recipe {
+  // Computed totals
+  totalWeight: number; // in grams
+  totalCost: number;
+  taxedTotalCost: number;
+  costPerKg: number;
+  taxedCostPerKg: number;
+
+  // Target variance
+  varianceFromTarget?: number;
+  variancePercentage?: number;
+  isAboveTarget?: boolean;
+
+  // Counts
+  ingredientCount: number;
+  variantCount: number;
+}
+
+/**
+ * Ingredient data for detail views and tables
+ * Used in: RecipeDetailView ingredients tab, Recipe Lab
+ * Fetched by: useRecipeIngredients(recipeId) hook
+ *
+ * Includes enriched data from joined tables (materials, suppliers, inventory)
+ */
+export interface RecipeIngredientDetail {
+  // Core ingredient data (from RecipeIngredient)
+  id: string;
+  recipeId: string;
   supplierMaterialId: string;
   quantity: number;
   unit: CapacityUnit;
   lockedPricing?: LockedPricing;
-  notes?: string;
-}
 
-// Computed values for a recipe ingredient (NOT stored in DB)
-// These are calculated at runtime from SupplierMaterial data
+  // Joined display data
+  materialName: string;
+  supplierName: string;
+  displayName: string; // "Material Name (Supplier Name)"
 
-export interface RecipeIngredientDisplay extends RecipeIngredient {
-  displayQuantity: string;
-
-  // Material & supplier friendly fields (populated via join)
-  materialName?: string;
-  supplierName?: string;
-  displayName: string; // human-friendly: "Sodium Chloride (Supplier X)"
-
+  // Computed costs
   pricePerKg: number;
   costForQuantity: number;
   taxedPriceForQuantity: number;
+  priceSharePercentage: number; // % of total recipe cost
 
-  priceSharePercentage: number; // share of recipe cost
+  // Price lock status
   isPriceLocked: boolean;
   priceChangedSinceLock: boolean;
-  priceDifference?: number; // positive if current price > locked price
+  priceDifference?: number; // Current price - locked price
+
+  // Inventory status
   currentStock: number;
-  stockStatus: string;
+  stockStatus: string; // "in-stock" | "low-stock" | "out-of-stock"
+
+  // Metadata
+  createdAt: string;
+  updatedAt?: string;
 }
 
-// For UI display - computed from Recipe + RecipeIngredientDisplay[]
-export interface RecipeDisplay extends Recipe {
-  ingredients: RecipeIngredientDisplay[];
-  ingredientCount: number;
-  variantCount: number;
+/**
+ * Minimal supplier material data for recipe operations
+ * Used in: Recipe Lab, ingredient selection dropdowns
+ * Fetched by: useSupplierMaterialsForRecipe() hook
+ *
+ * Contains only fields needed for recipes (not all 25+ fields)
+ */
+export interface SupplierMaterialForRecipe {
+  id: string;
+  materialId: string;
+  supplierId: string;
 
+  // Display names
+  materialName: string;
+  supplierName: string;
+
+  // Pricing
+  unitPrice: number;
+  tax: number;
+  capacityUnit: CapacityUnit;
+
+  // Terms (optional)
+  moq?: number;
+  leadTime?: number;
+
+  // Status
+  stockStatus?: string;
+  currentStock?: number;
+}
+
+/**
+ * Variant with computed cost metrics
+ * Used in: Variant lists, comparison views
+ * Fetched by: useRecipeVariants(recipeId) hook
+ */
+export interface RecipeVariantWithMetrics extends RecipeVariant {
+  // Computed costs (same as parent recipe)
   totalWeight: number;
   totalCost: number;
   taxedTotalCost: number;
   costPerKg: number;
   taxedCostPerKg: number;
 
-  varianceFromTarget?: number;
-  variancePercentage?: number;
-  isAboveTarget?: boolean;
+  // Comparison with original
+  costDifference: number; // variant cost - original cost
+  costDifferencePercentage: number;
+
+  // Ingredient count
+  ingredientCount: number;
+}
+
+// ============================================================================
+// TEMPORARY UI STATE - For editing and experimentation
+// These are NOT stored in DB, only exist in component state
+// ============================================================================
+
+/**
+ * Ingredient with temporary edit state
+ * Used in: Recipe edit mode (RecipeDetailView)
+ *
+ * Extends RecipeIngredient with UI-specific fields for form handling
+ */
+export interface EditableIngredient extends RecipeIngredient {
+  _isNew?: boolean; // Flag for newly added ingredients
+  selectedMaterialId?: string; // For two-step material selection
 }
 
 /**
+ * Ingredient with experiment tracking
+ * Used in: Recipe Lab experimentation
+ *
+ * Tracks changes made during experimentation before saving
+ */
+export interface ExperimentIngredient extends RecipeIngredient {
+  _changed?: boolean; // Has this ingredient been modified?
+  _changeTypes?: Set<"quantity" | "supplier">; // What changed?
+  _originalQuantity?: number; // For reset functionality
+  _originalSupplierId?: string; // For reset functionality
+}
+
+/**
+ * Real-time metrics during experimentation
+ * Used in: Recipe Lab metrics panel
+ * Computed by: useRecipeExperiment() hook
+ */
+export interface ExperimentMetrics {
+  // Original recipe metrics
+  originalCost: number; // per kg
+  originalWeight: number; // in grams
+  originalTotalCost: number;
+  originalTotalCostWithTax: number;
+  originalCostPerKgWithTax: number;
+
+  // Modified (experiment) metrics
+  modifiedCost: number; // per kg
+  modifiedWeight: number; // in grams
+  modifiedTotalCost: number;
+  modifiedTotalCostWithTax: number;
+  modifiedCostPerKgWithTax: number;
+
+  // Savings
+  savings: number; // originalCost - modifiedCost
+  savingsPercent: number;
+
+  // Target comparison
+  targetGap?: number; // modifiedCost - targetCost
+
+  // Change tracking
+  changeCount: number; // Number of modified ingredients
+}
+
+// ============================================================================
+// COMPARISON TYPES - For recipe/variant comparison views
+// ============================================================================
+
+/**
  * Unified type for items that can be compared
- * Extends existing types instead of duplicating
+ * Can be either a recipe or a variant
  */
 export type ComparisonItem =
-  | (RecipeDisplay & { itemType: "recipe" })
-  | (RecipeVariant & {
+  | (RecipeDetail & {
+      itemType: "recipe";
+      uniqueSuppliers: number;
+      supplierNames: string[];
+    })
+  | (RecipeVariantWithMetrics & {
       itemType: "variant";
-      parentRecipe: RecipeDisplay;
-      // Computed fields for variants
-      costPerKg: number;
-      taxedCostPerKg: number;
-      totalWeight: number;
-      // Add missing properties to align with RecipeDisplay
-      ingredients: RecipeIngredientDisplay[];
-      totalCost: number;
-      taxedTotalCost: number;
-      ingredientCount: number;
-      variantCount: number;
-      status: RecipeDisplay["status"];
-      description?: string;
+      parentRecipe: RecipeDetail;
+      uniqueSuppliers: number;
+      supplierNames: string[];
     });
 
 /**
- * Metric definition for comparison table
+ * Metric definition for comparison tables
+ * Defines how to extract and format values for comparison
  */
 export interface ComparisonMetric {
   key: string;
@@ -167,11 +367,14 @@ export interface ComparisonMetric {
 }
 
 /**
- * Ingredient comparison data
+ * Ingredient comparison across multiple recipes/variants
+ * Shows how the same material is used differently
  */
 export interface ComparisonIngredient {
   materialId: string;
   materialName: string;
+
+  // Values per recipe/variant (keyed by item ID)
   values: Record<
     string,
     {
@@ -179,66 +382,65 @@ export interface ComparisonIngredient {
       unit: string;
       supplier: string;
       cost: number;
-      present: boolean;
+      present: boolean; // Is this ingredient in this recipe?
     }
   >;
 }
 
 /**
- * Summary statistics for comparison
+ * Summary statistics for comparison view
  */
 export interface ComparisonSummary {
   itemCount: number;
-  costRange: { min: number; max: number; diff: number };
-  weightRange: { min: number; max: number };
-  commonIngredients: number;
-  uniqueToItems: Record<string, number>;
+
+  // Cost range
+  costRange: {
+    min: number;
+    max: number;
+    diff: number;
+  };
+
+  // Weight range
+  weightRange: {
+    min: number;
+    max: number;
+  };
+
+  // Ingredient overlap
+  commonIngredients: number; // Present in all items
+  uniqueToItems: Record<string, number>; // Unique per item
+
+  // Best/worst performers
   bestCost: { itemId: string; name: string; cost: number };
   worstCost: { itemId: string; name: string; cost: number };
 }
 
-/**
- * Extended ingredient interface for editing with temporary fields
- */
-export interface EditableIngredient extends RecipeIngredient {
-  _isNew?: boolean;
-  // Temporary fields for two-dropdown selection
-  selectedMaterialId?: string;
-  lockedPricing?: LockedPricing;
-}
+// ============================================================================
+// ANALYTICS & STATISTICS
+// ============================================================================
 
 /**
- * Extended ingredient interface for experimentation with change tracking
+ * Analytics-specific data structure
+ * Contains recipe with ingredient details needed for charts
  */
-export interface ExperimentIngredient extends RecipeIngredient {
-  _changed?: boolean;
-  _changeTypes?: Set<"quantity" | "supplier">; // Track multiple changes
-  _originalQuantity?: number;
-  _originalSupplierId?: string;
-}
-
-/**
- * Metrics for recipe experimentation
- */
-export interface ExperimentMetrics {
-  originalCost: number;
-  modifiedCost: number;
-  originalWeight: number;
-  modifiedWeight: number;
-  originalTotalCost: number;
-  modifiedTotalCost: number;
-  originalTotalCostWithTax: number;
-  modifiedTotalCostWithTax: number;
-  originalCostPerKgWithTax: number;
-  modifiedCostPerKgWithTax: number;
-  savings: number;
-  savingsPercent: number;
-  targetGap?: number;
-  changeCount: number;
+export interface RecipeWithIngredients {
+  id: string;
+  name: string;
+  costPerKg: number;
+  targetCostPerKg?: number;
+  ingredients: Array<{
+    materialName: string;
+    supplierName: string;
+    displayName: string;
+    quantity: number;
+    unit: string;
+    costForQuantity: number;
+  }>;
 }
 
 /**
  * Aggregate statistics across all recipes
+ * Used in: Recipe dashboard, analytics views
  */
 export interface RecipeStats {
   totalRecipes: number;
@@ -246,11 +448,12 @@ export interface RecipeStats {
   avgCostPerKg: number;
   totalIngredients: number;
   totalVariants: number;
-  targetAchievementRate: number;
+  targetAchievementRate: number; // % of recipes meeting target
 }
 
 /**
- * Suggestion for optimizing recipe cost
+ * Optimization suggestion for cost reduction
+ * Used in: Recipe Lab suggestions panel
  */
 export interface OptimizationSuggestion {
   type: "supplier_switch" | "quantity_reduction";
@@ -261,5 +464,5 @@ export interface OptimizationSuggestion {
   suggestedPrice?: number;
   savings: number;
   savingsPercent: number;
-  confidence: number;
+  confidence: number; // 0-100
 }

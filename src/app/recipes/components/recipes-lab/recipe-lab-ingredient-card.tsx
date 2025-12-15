@@ -10,25 +10,18 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import type {
+  ExperimentIngredient,
+  SupplierMaterialForRecipe,
+} from "@/types/recipe-types";
 import { normalizeToKg } from "@/utils/unit-conversion-utils";
-import type { RecipeIngredient } from "@/types/recipe-types";
-import type { SupplierMaterialTableRow } from "@/types/material-types";
-
 import { Lock, RotateCcw, Trash2, Unlock } from "lucide-react";
-
-interface ExperimentIngredient extends RecipeIngredient {
-  _changed?: boolean;
-  _changeTypes?: Set<"quantity" | "supplier">;
-  _originalQuantity?: number;
-  _originalSupplierId?: string;
-}
 
 interface RecipeLabIngredientCardProps {
   ingredient: ExperimentIngredient;
   index: number;
-  supplierMaterial: SupplierMaterialTableRow | undefined;
-  alternatives: SupplierMaterialTableRow[];
-  isExpanded: boolean;
+  supplierMaterial: SupplierMaterialForRecipe | undefined;
+  alternatives: SupplierMaterialForRecipe[];
   onQuantityChange: (index: number, quantity: number) => void;
   onSupplierChange: (index: number, supplierId: string) => void;
   onTogglePriceLock: (index: number) => void;
@@ -36,6 +29,11 @@ interface RecipeLabIngredientCardProps {
   onReset: (index: number) => void;
 }
 
+/**
+ * Recipe Lab Ingredient Card Component
+ * Props: Display data + handlers (pure UI component) *
+ * UTILITY FUNCTION NOTE: normalizeToKg used here - extract to utils
+ */
 export function RecipeLabIngredientCard({
   ingredient: ing,
   index,
@@ -47,7 +45,9 @@ export function RecipeLabIngredientCard({
   onRemove,
   onReset,
 }: RecipeLabIngredientCardProps) {
+  // UTILITY FUNCTION CANDIDATE - normalizeToKg
   const quantityInKg = normalizeToKg(ing.quantity, ing.unit);
+
   const pricePerKg = ing.lockedPricing?.unitPrice || sm?.unitPrice || 0;
   const cost = pricePerKg * quantityInKg;
 
@@ -74,7 +74,7 @@ export function RecipeLabIngredientCard({
           {index + 1}.
         </div>
 
-        {/* 1. Material Name & Alt Badges */}
+        {/* Material Name & Badges */}
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 flex-wrap">
             <h4 className="font-semibold text-sm truncate">
@@ -88,7 +88,6 @@ export function RecipeLabIngredientCard({
                 {alternatives.length} alt
               </Badge>
             )}
-            {/* Conditional "Qty" badge */}
             {quantityIsDifferent && (
               <Badge
                 variant="outline"
@@ -98,8 +97,6 @@ export function RecipeLabIngredientCard({
                 <RotateCcw className="h-2.5 w-2.5" />
               </Badge>
             )}
-
-            {/* Conditional "Supplier" badge */}
             {supplierIsDifferent && (
               <Badge
                 variant="outline"
@@ -112,7 +109,7 @@ export function RecipeLabIngredientCard({
           </div>
         </div>
 
-        {/* 2. Supplier Selector */}
+        {/* Supplier Selector */}
         <div className="w-64">
           <Select
             value={ing.supplierMaterialId}
@@ -208,7 +205,7 @@ export function RecipeLabIngredientCard({
           </Select>
         </div>
 
-        {/* 3. Quantity Input */}
+        {/* Quantity Input */}
         <div className="w-32">
           <div className="flex items-center gap-1">
             <Input
@@ -225,7 +222,7 @@ export function RecipeLabIngredientCard({
           </div>
         </div>
 
-        {/* 4. Cost Display */}
+        {/* Cost Display */}
         <div className="w-[97px] text-right ml-2">
           <div className="flex items-center justify-end gap-1">
             <div>
@@ -250,9 +247,8 @@ export function RecipeLabIngredientCard({
           </div>
         </div>
 
-        {/* 5. Action Buttons */}
+        {/* Action Buttons */}
         <div className="flex items-center gap-1">
-          {/* Reset button remains the same, invisible until needed */}
           <Button
             variant="ghost"
             size="icon"

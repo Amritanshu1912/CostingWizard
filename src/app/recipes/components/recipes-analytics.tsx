@@ -1,6 +1,4 @@
 // src/app/recipes/components/recipes-analytics.tsx
-"use client";
-
 import { Badge } from "@/components/ui/badge";
 import {
   Card,
@@ -11,15 +9,11 @@ import {
 } from "@/components/ui/card";
 import {
   MetricCard,
-  MetricCardWithBadge,
   MetricCardWithProgress,
 } from "@/components/ui/metric-card";
 import { Progress } from "@/components/ui/progress";
-import {
-  useEnrichedRecipes,
-  useRecipeStats,
-} from "@/hooks/recipe-hooks/use-recipes";
-import type { Recipe } from "@/types/recipe-types";
+import { useRecipeStats } from "@/hooks/recipe-hooks/use-recipe-data";
+import { useRecipesForAnalytics } from "@/hooks/recipe-hooks/use-recipe-analytics";
 import {
   CHART_COLOR_SCHEMES,
   CHART_GRID_CONFIG,
@@ -40,7 +34,6 @@ import {
   DollarSign,
   FlaskConical,
   GitBranch,
-  LucideIcon,
   Sparkles,
   Target,
 } from "lucide-react";
@@ -60,84 +53,20 @@ import {
 } from "recharts";
 import { recipesAIInsights } from "./recipes-constants";
 
-interface RecipeAnalyticsProps {
-  recipes: Recipe[];
-}
+/**
+ * Recipe analytics dashboard
+ * Data: Fetched via hooks (useRecipesForAnalytics, useRecipeStats)
+ */
+export function RecipeAnalytics() {
+  // DATA FETCHING (Using Specialized Hooks)
+  const recipes = useRecipesForAnalytics(); // Recipes with ingredient details
+  const stats = useRecipeStats(); // Pre-calculated stats
 
-// Define the MetricCardProps, MetricCardWithProgressProps, and MetricCardWithBadgeProps interfaces here
-// as they are not exported from "@/components/ui/metric-card"
-interface MetricCardProps {
-  title: string;
-  value: string | number;
-  icon: LucideIcon;
-  iconClassName?: string;
-  description?: string;
-  trend?: {
-    value: string | number;
-    isPositive?: boolean;
-    label?: string;
-  };
-  onClick?: () => void;
-  className?: string;
-}
-
-interface MetricCardWithProgressProps {
-  title: string;
-  value: string | number;
-  icon: LucideIcon;
-  iconClassName?: string;
-  description?: string;
-  progress: {
-    current: number;
-    max: number;
-    label?: string;
-    showPercentage?: boolean;
-    color?: "default" | "success" | "warning" | "error";
-  };
-  onClick?: () => void;
-  className?: string;
-}
-
-interface MetricCardWithBadgeProps {
-  title: string;
-  value: string | number;
-  icon: LucideIcon;
-  iconClassName?: string;
-  description?: string;
-  badges: Array<{
-    text: string;
-    variant?: "default" | "destructive" | "outline" | "secondary";
-    className?: string;
-  }>;
-  onClick?: () => void;
-  className?: string;
-}
-
-type RecipeMetric =
-  | (Omit<MetricCardProps, "icon"> & { type: "standard"; icon: LucideIcon })
-  | (Omit<MetricCardWithProgressProps, "icon"> & {
-      type: "progress";
-      icon: LucideIcon;
-    })
-  | (Omit<MetricCardWithBadgeProps, "icon"> & {
-      type: "badge";
-      icon: LucideIcon;
-    });
-
-export function RecipeAnalytics({ recipes }: RecipeAnalyticsProps) {
-  const recipesWithDetails = useEnrichedRecipes();
-  const stats = useRecipeStats();
-
-  // Calculate key metrics dynamically
-  const keyMetrics: RecipeMetric[] = useMemo(() => {
-    if (!recipesWithDetails.length) return [];
-
-    // Target Achievement - from useRecipeStats
-    const targetAchievement = stats.targetAchievementRate;
-
-    return [
+  // KEY METRICS
+  const keyMetrics = useMemo(
+    () => [
       {
-        type: "standard",
+        type: "standard" as const,
         title: "Total Recipes",
         value: stats.totalRecipes,
         icon: FlaskConical,
@@ -149,7 +78,7 @@ export function RecipeAnalytics({ recipes }: RecipeAnalyticsProps) {
         },
       },
       {
-        type: "standard",
+        type: "standard" as const,
         title: "Active Recipes",
         value: stats.activeRecipes,
         icon: Beaker,
@@ -161,30 +90,29 @@ export function RecipeAnalytics({ recipes }: RecipeAnalyticsProps) {
         },
       },
       {
-        type: "progress",
+        type: "progress" as const,
         title: "Target Achievement",
-        value: `${targetAchievement.toFixed(0)}%`,
+        value: `${stats.targetAchievementRate.toFixed(0)}%`,
         icon: Target,
         iconClassName: "text-primary",
         progress: {
-          current: targetAchievement,
+          current: stats.targetAchievementRate,
           max: 100,
           label:
-            targetAchievement > 90
+            stats.targetAchievementRate > 90
               ? "Excellent"
-              : targetAchievement > 70
+              : stats.targetAchievementRate > 70
                 ? "Good"
                 : "Needs Improvement",
-          color:
-            targetAchievement > 90
-              ? "success"
-              : targetAchievement > 70
-                ? "default"
-                : "warning",
+          color: (stats.targetAchievementRate > 90
+            ? "success"
+            : stats.targetAchievementRate > 70
+              ? "default"
+              : "warning") as "default" | "success" | "warning" | "error",
         },
       },
       {
-        type: "standard",
+        type: "standard" as const,
         title: "Avg Cost/kg",
         value: `₹${stats.avgCostPerKg.toFixed(2)}`,
         icon: DollarSign,
@@ -196,42 +124,41 @@ export function RecipeAnalytics({ recipes }: RecipeAnalyticsProps) {
         },
       },
       {
-        type: "standard",
+        type: "standard" as const,
         title: "Total Variants",
         value: stats.totalVariants,
         icon: GitBranch,
         iconClassName: "text-orange-600",
         description: "optimization versions",
       },
-    ];
-  }, [recipesWithDetails, stats]);
+    ],
+    [stats]
+  );
 
-  // Recipe Cost vs Target data
+  // CHART DATA - Recipe Cost vs Target
   const recipeCostVsTargetData = useMemo(() => {
-    if (!recipesWithDetails.length) return [];
+    if (!recipes.length) return [];
 
-    return recipesWithDetails
+    return recipes
       .map((recipe) => ({
         name: recipe.name,
         costPerKg: recipe.costPerKg,
-        targetCostPerKg: recipe.targetCostPerKg || recipe.costPerKg * 0.95, // Assume 5% lower if no target set
+        targetCostPerKg: recipe.targetCostPerKg || recipe.costPerKg * 0.95,
       }))
       .sort((a, b) => b.costPerKg - a.costPerKg)
-      .slice(0, 10); // Show top 10 recipes
-  }, [recipesWithDetails]);
+      .slice(0, 10); // Top 10 by cost
+  }, [recipes]);
 
-  // Ingredient Cost Distribution data (all ingredients)
+  // CHART DATA - Ingredient Cost Distribution
   const ingredientCostDistribution = useMemo(() => {
     const ingredientCosts = new Map<string, { name: string; cost: number }>();
 
-    recipesWithDetails.forEach((recipe) => {
-      recipe.ingredients.forEach((item) => {
-        const existing = ingredientCosts.get(item.displayName) || {
-          name: item.displayName,
-          cost: 0,
-        };
-        existing.cost += item.costForQuantity;
-        ingredientCosts.set(item.displayName, existing);
+    recipes.forEach((recipe) => {
+      recipe.ingredients.forEach((ing) => {
+        const key = ing.displayName;
+        const existing = ingredientCosts.get(key) || { name: key, cost: 0 };
+        existing.cost += ing.costForQuantity;
+        ingredientCosts.set(key, existing);
       });
     });
 
@@ -242,6 +169,7 @@ export function RecipeAnalytics({ recipes }: RecipeAnalyticsProps) {
 
     return Array.from(ingredientCosts.values())
       .sort((a, b) => b.cost - a.cost)
+      .slice(0, 10) // Top 10
       .map((item, index) => ({
         name: item.name,
         value: parseFloat(item.cost.toFixed(2)),
@@ -254,44 +182,47 @@ export function RecipeAnalytics({ recipes }: RecipeAnalyticsProps) {
             index % CHART_COLOR_SCHEMES.default.length
           ],
       }));
-  }, [recipesWithDetails]);
+  }, [recipes]);
 
-  // Ingredient Weight Distribution data (all supplier materials)
+  // CHART DATA - Ingredient Weight Distribution
   const ingredientWeightDistribution = useMemo(() => {
     const supplierMaterialWeights = new Map<
       string,
       { name: string; supplier: string; weight: number }
     >();
 
-    recipesWithDetails.forEach((recipe) => {
-      recipe.ingredients.forEach((item) => {
-        const key = `${item.materialName || "Unknown"}-${
-          item.supplierName || "Unknown"
+    recipes.forEach((recipe) => {
+      recipe.ingredients.forEach((ing) => {
+        const key = `${ing.materialName || "Unknown"}-${
+          ing.supplierName || "Unknown"
         }`;
         const existing = supplierMaterialWeights.get(key) || {
-          name: `${item.materialName || "Unknown"} (${
-            item.supplierName || "Unknown"
+          name: `${ing.materialName || "Unknown"} (${
+            ing.supplierName || "Unknown"
           })`,
-          supplier: item.supplierName || "Unknown",
+          supplier: ing.supplierName || "Unknown",
+
           weight: 0,
         };
-        existing.weight += item.quantity; // Assuming quantity is in grams
+        existing.weight += ing.quantity;
         supplierMaterialWeights.set(key, existing);
       });
     });
 
     return Array.from(supplierMaterialWeights.values())
       .sort((a, b) => b.weight - a.weight)
+      .slice(0, 10) // Top 10
       .map((item, index) => ({
         name: item.name,
         value: item.weight,
-        percentage: 0, // Will be calculated in tooltip if needed
         color:
           CHART_COLOR_SCHEMES.default[
             index % CHART_COLOR_SCHEMES.default.length
           ],
       }));
-  }, [recipesWithDetails]);
+  }, [recipes]);
+
+  // RENDER - Empty State
 
   if (recipes.length === 0) {
     return (
@@ -302,32 +233,22 @@ export function RecipeAnalytics({ recipes }: RecipeAnalyticsProps) {
     );
   }
 
+  // RENDER - Analytics Dashboard
+
   return (
     <div className="space-y-6">
-      {/* Key Metrics */}
+      {/* ===== Key Metrics ===== */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
         {keyMetrics.map((metric) => {
-          const Icon = metric.icon;
           if (metric.type === "progress") {
             return (
               <MetricCardWithProgress
                 key={metric.title}
                 title={metric.title}
                 value={metric.value}
-                icon={Icon}
+                icon={metric.icon}
                 iconClassName={metric.iconClassName}
-                progress={metric.progress!}
-              />
-            );
-          } else if (metric.type === "badge") {
-            return (
-              <MetricCardWithBadge
-                key={metric.title}
-                title={metric.title}
-                value={metric.value}
-                icon={Icon}
-                iconClassName={metric.iconClassName}
-                badges={metric.badges!}
+                progress={metric.progress}
               />
             );
           } else {
@@ -336,73 +257,71 @@ export function RecipeAnalytics({ recipes }: RecipeAnalyticsProps) {
                 key={metric.title}
                 title={metric.title}
                 value={metric.value}
-                icon={Icon}
+                icon={metric.icon}
                 iconClassName={metric.iconClassName}
                 trend={metric.trend}
+                description={metric.description}
               />
             );
           }
         })}
       </div>
 
-      {/* Charts */}
-      <div className="grid grid-cols-1 lg:grid-cols-1 gap-6">
-        {/* Recipe Cost vs Target */}
-        <Card className="card-enhanced">
-          <CardHeader>
-            <CardTitle className="text-foreground">
-              Recipe Cost vs Target
-            </CardTitle>
-            <CardDescription>
-              Cost per kg vs target cost per kg for top 10 recipes
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <ResponsiveContainer {...CHART_RESPONSIVE_CONFIG} height={300}>
-              <LineChart
-                data={recipeCostVsTargetData}
-                margin={CHART_MARGIN_CONFIG}
-              >
-                <CartesianGrid {...CHART_GRID_CONFIG} />
-                <XAxis
-                  dataKey="name"
-                  {...CHART_XAXIS_CONFIG}
-                  angle={-45}
-                  textAnchor="end"
-                  height={80}
-                />
-                <YAxis {...CHART_YAXIS_CONFIG} />
-                <Tooltip
-                  contentStyle={CHART_TOOLTIP_STYLE}
-                  itemStyle={CHART_TOOLTIP_ITEM_STYLE}
-                  labelStyle={CHART_TOOLTIP_LABEL_STYLE}
-                  formatter={(value) =>
-                    typeof value === "number" ? `₹${value.toFixed(2)}` : value
-                  }
-                />
-                <Legend {...CHART_LEGEND_CONFIG} />
-                <Line
-                  type="monotone"
-                  dataKey="costPerKg"
-                  stroke={CHART_COLOR_SCHEMES.default[0]}
-                  name="Cost/kg (₹)"
-                  {...LINE_CHART_CONFIG}
-                />
-                <Line
-                  type="monotone"
-                  dataKey="targetCostPerKg"
-                  stroke={CHART_COLOR_SCHEMES.default[1]}
-                  name="Target Cost/kg (₹)"
-                  {...LINE_CHART_CONFIG}
-                  strokeWidth={2}
-                />
-              </LineChart>
-            </ResponsiveContainer>
-          </CardContent>
-        </Card>
-      </div>
+      {/* ===== Recipe Cost vs Target Chart ===== */}
+      <Card className="card-enhanced">
+        <CardHeader>
+          <CardTitle className="text-foreground">
+            Recipe Cost vs Target
+          </CardTitle>
+          <CardDescription>
+            Cost per kg vs target cost per kg for top 10 recipes
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <ResponsiveContainer {...CHART_RESPONSIVE_CONFIG} height={300}>
+            <LineChart
+              data={recipeCostVsTargetData}
+              margin={CHART_MARGIN_CONFIG}
+            >
+              <CartesianGrid {...CHART_GRID_CONFIG} />
+              <XAxis
+                dataKey="name"
+                {...CHART_XAXIS_CONFIG}
+                angle={-45}
+                textAnchor="end"
+                height={80}
+              />
+              <YAxis {...CHART_YAXIS_CONFIG} />
+              <Tooltip
+                contentStyle={CHART_TOOLTIP_STYLE}
+                itemStyle={CHART_TOOLTIP_ITEM_STYLE}
+                labelStyle={CHART_TOOLTIP_LABEL_STYLE}
+                formatter={(value) =>
+                  typeof value === "number" ? `₹${value.toFixed(2)}` : value
+                }
+              />
+              <Legend {...CHART_LEGEND_CONFIG} />
+              <Line
+                type="monotone"
+                dataKey="costPerKg"
+                stroke={CHART_COLOR_SCHEMES.default[0]}
+                name="Cost/kg (₹)"
+                {...LINE_CHART_CONFIG}
+              />
+              <Line
+                type="monotone"
+                dataKey="targetCostPerKg"
+                stroke={CHART_COLOR_SCHEMES.default[1]}
+                name="Target Cost/kg (₹)"
+                {...LINE_CHART_CONFIG}
+                strokeWidth={2}
+              />
+            </LineChart>
+          </ResponsiveContainer>
+        </CardContent>
+      </Card>
 
-      {/* Additional Charts */}
+      {/* ===== Distribution Charts ===== */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Ingredient Cost Distribution */}
         <Card className="card-enhanced">
@@ -411,7 +330,7 @@ export function RecipeAnalytics({ recipes }: RecipeAnalyticsProps) {
               Ingredient Cost Distribution
             </CardTitle>
             <CardDescription>
-              All ingredients by total cost across all recipes
+              Top 10 ingredients by total cost across all recipes
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -457,7 +376,7 @@ export function RecipeAnalytics({ recipes }: RecipeAnalyticsProps) {
               Ingredient Weight Distribution
             </CardTitle>
             <CardDescription>
-              All supplier materials by total weight across all recipes
+              Top 10 materials by total weight across all recipes
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -499,7 +418,7 @@ export function RecipeAnalytics({ recipes }: RecipeAnalyticsProps) {
         </Card>
       </div>
 
-      {/* AI Insights */}
+      {/* ===== AI Insights (Sample Data) ===== */}
       <Card className="card-enhanced border-2 border-primary/20 shadow-lg">
         <CardHeader>
           <div className="flex items-center gap-3">

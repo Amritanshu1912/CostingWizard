@@ -2,30 +2,75 @@
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { useSupplierMaterialsForRecipe } from "@/hooks/recipe-hooks/use-recipe-data";
 import type {
   ExperimentIngredient,
   ExperimentMetrics,
 } from "@/types/recipe-types";
-import type { SupplierMaterialTableRow } from "@/types/material-types";
 import { AlertCircle, CheckCircle2, Sparkles } from "lucide-react";
+import { useMemo } from "react";
 
 interface RecipeLabMetricsProps {
   metrics: ExperimentMetrics;
-  targetCost?: number;
   experimentIngredients: ExperimentIngredient[];
-  supplierMaterials: SupplierMaterialTableRow[];
   onApplySuggestion: (index: number, supplierId: string) => void;
-  getAlternatives: (ing: ExperimentIngredient) => SupplierMaterialTableRow[];
 }
 
+/**
+ * Recipe Lab Metrics Panel
+ * Data: Fetches its own supplier materials (no props drilling)
+ */
 export function RecipeLabMetrics({
   metrics,
-  targetCost,
   experimentIngredients,
-  supplierMaterials,
   onApplySuggestion,
-  getAlternatives,
 }: RecipeLabMetricsProps) {
+  const supplierMaterials = useSupplierMaterialsForRecipe();
+
+  // COMPUTE OPTIMIZATION SUGGESTIONS INTERNALLY
+
+  const optimizationSuggestions = useMemo(() => {
+    return experimentIngredients
+      .map((ing, index) => {
+        const currentSm = supplierMaterials.find(
+          (s) => s.id === ing.supplierMaterialId
+        );
+        if (!currentSm) return null;
+
+        // Find alternatives for same material
+        const alternatives = supplierMaterials.filter(
+          (sm) =>
+            sm.materialId === currentSm.materialId && sm.id !== currentSm.id
+        );
+
+        if (alternatives.length === 0) return null;
+
+        // Find cheapest alternative
+        const cheapest = alternatives.reduce((min, alt) =>
+          alt.unitPrice < min.unitPrice ? alt : min
+        );
+
+        const saving = currentSm.unitPrice - cheapest.unitPrice;
+        const savingPercent = (saving / currentSm.unitPrice) * 100;
+
+        if (saving <= 0) return null;
+
+        return {
+          index,
+          ingredientId: ing.id,
+          materialName: currentSm.materialName,
+          currentSupplier: currentSm.supplierName,
+          suggestedSupplier: cheapest.supplierName,
+          suggestedSupplierId: cheapest.id,
+          saving,
+          savingPercent,
+        };
+      })
+      .filter((s): s is NonNullable<typeof s> => s !== null);
+  }, [experimentIngredients, supplierMaterials]);
+
+  // RENDER
+
   return (
     <Card className="w-80 flex flex-col py-2">
       <div className="p-4 border-b">
@@ -164,14 +209,10 @@ export function RecipeLabMetrics({
               </div>
 
               {/* Target Gap */}
-              {targetCost && metrics.targetGap !== undefined && (
+              {metrics.targetGap !== undefined && (
                 <div className="pt-2 border-t">
                   <div className="flex items-center justify-between mb-1">
-                    <span className="text-sm">Target Cost</span>
-                    <span className="text-sm">₹{targetCost.toFixed(2)}/kg</span>
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm font-medium">Gap</span>
+                    <span className="text-sm">Target Gap</span>
                     <span
                       className={`font-bold ${
                         metrics.targetGap > 0
@@ -188,7 +229,7 @@ export function RecipeLabMetrics({
             </div>
           </Card>
 
-          {/* Smart Suggestions */}
+          {/* Smart Suggestions - Computed Internally */}
           <div>
             <div className="flex items-center gap-2 mb-3">
               <Sparkles className="w-4 h-4 text-amber-600" />
@@ -196,59 +237,42 @@ export function RecipeLabMetrics({
             </div>
 
             <div className="space-y-2">
-              {experimentIngredients
-                .map((ing, index) => {
-                  const alternatives = getAlternatives(ing);
-                  if (alternatives.length === 0) return null;
-
-                  const cheapest = alternatives.reduce((min, alt) =>
-                    alt.unitPrice < min.unitPrice ? alt : min
-                  );
-
-                  const sm = supplierMaterials.find(
-                    (s) => s.id === ing.supplierMaterialId
-                  );
-                  if (!sm) return null;
-
-                  const saving = sm.unitPrice - cheapest.unitPrice;
-                  const savingPercent = (saving / sm.unitPrice) * 100;
-
-                  if (saving <= 0) return null;
-
-                  return (
-                    <Card key={ing.id} className="p-3">
-                      <div className="flex items-start gap-2 mb-2">
-                        <div className="flex-1 min-w-0">
-                          <p className="text-sm font-medium truncate">
-                            Switch {sm.materialName}
-                          </p>
-                          <p className="text-xs text-muted-foreground truncate">
-                            {sm.supplierName} → {cheapest.supplierName}
-                          </p>
-                        </div>
+              {optimizationSuggestions.length > 0 ? (
+                optimizationSuggestions.map((suggestion) => (
+                  <Card key={suggestion.ingredientId} className="p-3">
+                    <div className="flex items-start gap-2 mb-2">
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium truncate">
+                          Switch {suggestion.materialName}
+                        </p>
+                        <p className="text-xs text-muted-foreground truncate">
+                          {suggestion.currentSupplier} →{" "}
+                          {suggestion.suggestedSupplier}
+                        </p>
                       </div>
-                      <div className="flex items-center justify-between">
-                        <span className="text-xs text-green-600 font-semibold">
-                          Save ₹{saving.toFixed(2)}/kg (
-                          {savingPercent.toFixed(0)}%)
-                        </span>
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          className="h-6 text-xs"
-                          onClick={() => onApplySuggestion(index, cheapest.id)}
-                        >
-                          Apply
-                        </Button>
-                      </div>
-                    </Card>
-                  );
-                })
-                .filter(Boolean)}
-
-              {experimentIngredients.every(
-                (ing) => getAlternatives(ing).length === 0
-              ) && (
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs text-green-600 font-semibold">
+                        Save ₹{suggestion.saving.toFixed(2)}/kg (
+                        {suggestion.savingPercent.toFixed(0)}%)
+                      </span>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="h-6 text-xs"
+                        onClick={() =>
+                          onApplySuggestion(
+                            suggestion.index,
+                            suggestion.suggestedSupplierId
+                          )
+                        }
+                      >
+                        Apply
+                      </Button>
+                    </div>
+                  </Card>
+                ))
+              ) : (
                 <Card className="p-3">
                   <div className="flex items-center gap-2 text-sm text-muted-foreground">
                     <CheckCircle2 className="w-4 h-4" />
@@ -260,7 +284,7 @@ export function RecipeLabMetrics({
           </div>
 
           {/* Warnings & Achievements */}
-          {metrics.targetGap && metrics.targetGap > 0 && (
+          {metrics.targetGap !== undefined && metrics.targetGap > 0 && (
             <Card className="p-3 bg-red-50 border-red-200">
               <div className="flex items-start gap-2">
                 <AlertCircle className="w-4 h-4 text-red-600 mt-0.5 flex-shrink-0" />
@@ -276,7 +300,7 @@ export function RecipeLabMetrics({
             </Card>
           )}
 
-          {metrics.targetGap && metrics.targetGap <= 0 && (
+          {metrics.targetGap !== undefined && metrics.targetGap <= 0 && (
             <Card className="p-3 bg-green-50 border-green-200">
               <div className="flex items-start gap-2">
                 <CheckCircle2 className="w-4 h-4 text-green-600 mt-0.5 flex-shrink-0" />

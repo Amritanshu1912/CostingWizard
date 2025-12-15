@@ -1,14 +1,18 @@
 // src/app/recipes/components/recipes-comparison/comparison-components.tsx
-"use client";
-
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
+import type { ComparisonItem, ComparisonSummary } from "@/types/recipe-types";
 import { cn } from "@/utils/shared-utils";
 import { GitCompare, Package, TrendingDown, TrendingUp } from "lucide-react";
-import type { ComparisonItem } from "@/types/recipe-types";
 
-// Selection Tree Component
+/**
+ * Selection tree for choosing recipes/variants to compare
+ * @param items - All comparable items (recipes + variants)
+ * @param selectedIds - Currently selected item IDs
+ * @param onSelect - Selection handler
+ * @param maxReached - Whether max selections (4) reached
+ */
 export function SelectionTree({
   items,
   selectedIds,
@@ -20,16 +24,25 @@ export function SelectionTree({
   onSelect: (id: string) => void;
   maxReached: boolean;
 }) {
-  // Group variants under their parent recipes
+  // Separate recipes and variants
   const recipes = items.filter((item) => item.itemType === "recipe");
-  const variants = items.filter((item) => item.itemType === "variant");
+  const variantsByRecipe = new Map<string, ComparisonItem[]>();
+
+  items
+    .filter((item) => item.itemType === "variant")
+    .forEach((variant) => {
+      const recipeId =
+        variant.itemType === "variant" ? variant.originalRecipeId : "";
+      if (!variantsByRecipe.has(recipeId)) {
+        variantsByRecipe.set(recipeId, []);
+      }
+      variantsByRecipe.get(recipeId)!.push(variant);
+    });
 
   return (
     <div className="space-y-2">
       {recipes.map((recipe) => {
-        const recipeVariants = variants.filter(
-          (v) => v.itemType === "variant" && v.originalRecipeId === recipe.id
-        );
+        const recipeVariants = variantsByRecipe.get(recipe.id) || [];
         const isSelected = selectedIds.includes(recipe.id);
         const isDisabled = maxReached && !isSelected;
 
@@ -61,7 +74,7 @@ export function SelectionTree({
               )}
             </div>
 
-            {/* Variants */}
+            {/* Variants (Nested) */}
             {recipeVariants.map((variant) => {
               const vIsSelected = selectedIds.includes(variant.id);
               const vIsDisabled = maxReached && !vIsSelected;
@@ -98,12 +111,20 @@ export function SelectionTree({
   );
 }
 
-// Summary Cards Component
-export function SummaryCards({ summary }: { summary: any }) {
+/**
+ * Summary cards showing key comparison metrics
+ * @param summary - Comparison summary statistics
+ */
+export function SummaryCards({
+  summary,
+}: {
+  summary: ComparisonSummary | null;
+}) {
   if (!summary) return null;
 
   return (
     <div className="grid grid-cols-4 gap-4">
+      {/* Best Cost */}
       <Card className="p-4 bg-gradient-to-br from-green-50 to-white">
         <div className="flex items-center gap-2 mb-2">
           <TrendingDown className="w-4 h-4 text-green-600" />
@@ -117,6 +138,7 @@ export function SummaryCards({ summary }: { summary: any }) {
         </p>
       </Card>
 
+      {/* Highest Cost */}
       <Card className="p-4 bg-gradient-to-br from-red-50 to-white">
         <div className="flex items-center gap-2 mb-2">
           <TrendingUp className="w-4 h-4 text-red-600" />
@@ -130,10 +152,11 @@ export function SummaryCards({ summary }: { summary: any }) {
         </p>
       </Card>
 
+      {/* Cost Difference */}
       <Card className="p-4 bg-gradient-to-br from-blue-50 to-white">
         <div className="flex items-center gap-2 mb-2">
           <GitCompare className="w-4 h-4 text-blue-600" />
-          <p className="text-sm font-medium">Cost Difference</p>
+          <p className="text-sm font-medium">Savings Potential</p>
         </div>
         <p className="text-2xl font-bold">
           ₹{summary.costRange.diff.toFixed(2)}
@@ -144,6 +167,7 @@ export function SummaryCards({ summary }: { summary: any }) {
         </p>
       </Card>
 
+      {/* Common Ingredients */}
       <Card className="p-4 bg-gradient-to-br from-amber-50 to-white">
         <div className="flex items-center gap-2 mb-2">
           <Package className="w-4 h-4 text-amber-600" />

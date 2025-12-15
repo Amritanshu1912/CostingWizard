@@ -19,7 +19,8 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
-import type { SupplierMaterialTableRow } from "@/types/material-types";
+import { useSupplierMaterialTableRows } from "@/hooks/material-hooks/use-materials-queries";
+import { SupplierMaterialTableRow } from "@/types/material-types";
 import type {
   ExperimentIngredient,
   OptimizationGoalType,
@@ -35,9 +36,10 @@ interface RecipeLabDialogsProps {
   variantDescription: string;
   optimizationGoal: OptimizationGoalType;
   experimentIngredients: ExperimentIngredient[];
-  supplierMaterials: SupplierMaterialTableRow[];
   savings: number;
   savingsPercent: number;
+
+  // Handlers
   onSaveDialogOpenChange: (open: boolean) => void;
   onUpdateDialogOpenChange: (open: boolean) => void;
   onVariantNameChange: (name: string) => void;
@@ -104,6 +106,10 @@ function ChangeSummary({
   );
 }
 
+/**
+ * Recipe Lab Dialogs Component
+ * Props: Form state + summary data only (no full arrays)
+ */
 export function RecipeLabDialogs({
   saveDialogOpen,
   updateVariantDialogOpen,
@@ -113,7 +119,6 @@ export function RecipeLabDialogs({
   variantDescription,
   optimizationGoal,
   experimentIngredients,
-  supplierMaterials,
   savings,
   savingsPercent,
   onSaveDialogOpenChange,
@@ -124,6 +129,8 @@ export function RecipeLabDialogs({
   onSaveVariant,
   onUpdateVariant,
 }: RecipeLabDialogsProps) {
+  const supplierMaterials = useSupplierMaterialTableRows();
+
   return (
     <>
       {/* Save Variant Dialog */}
@@ -188,7 +195,7 @@ export function RecipeLabDialogs({
                       <span>Diversify Suppliers</span>
                     </div>
                   </SelectItem>
-                  <SelectItem value="custom">
+                  <SelectItem value="other">
                     <div className="flex items-center gap-2">
                       <Edit3 className="w-4 h-4" />
                       <span>Custom Experiment</span>

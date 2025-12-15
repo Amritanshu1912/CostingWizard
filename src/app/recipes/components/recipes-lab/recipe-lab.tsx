@@ -16,65 +16,65 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { useRecipeExperiment } from "@/hooks/recipe-hooks/use-recipe-experiment";
 import {
-  useEnrichedRecipe,
-  useEnrichedRecipes,
+  useRecipeDetail,
+  useRecipeIngredients,
   useRecipeVariants,
-} from "@/hooks/recipe-hooks/use-recipes";
-import { useSupplierMaterialTableRows } from "@/hooks/material-hooks/use-materials-queries";
+  useRecipeList,
+} from "@/hooks/recipe-hooks/use-recipe-data";
+import {
+  useRecipeOperations,
+  useVariantOperations,
+} from "@/hooks/recipe-hooks/use-recipe-operations";
+import { useRecipeExperiment } from "@/hooks/recipe-hooks/use-recipe-analytics";
 import { db } from "@/lib/db";
-import type { RecipeVariant, OptimizationGoalType } from "@/types/recipe-types";
+import type { OptimizationGoalType } from "@/types/recipe-types";
+import {
+  createVariantChanges,
+  createVariantSnapshot,
+} from "@/utils/recipe-utils";
 import { FlaskConical } from "lucide-react";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { toast } from "sonner";
 import { RecipeLabDialogs } from "./recipe-lab-dialogs";
 import { RecipeLabMetrics } from "./recipe-lab-metrics";
 import { RecipeLabSidebar } from "./recipe-lab-sidebar";
 import { RecipeLabWorkspace } from "./recipe-lab-workspace";
 
+/**
+ * Recipe Lab - Main coordinator
+ */
 export default function RecipeLab() {
-  const enrichedRecipes = useEnrichedRecipes();
-  const supplierMaterials = useSupplierMaterialTableRows();
-
+  // STATE - UI Orchestration Only
   const [selectedRecipeId, setSelectedRecipeId] = useState<string>("");
   const [saveDialogOpen, setSaveDialogOpen] = useState(false);
   const [updateVariantDialogOpen, setUpdateVariantDialogOpen] = useState(false);
+  const [updateOriginalDialogOpen, setUpdateOriginalDialogOpen] =
+    useState(false);
+
+  // Variant form state
   const [variantName, setVariantName] = useState("");
   const [variantDescription, setVariantDescription] = useState("");
   const [optimizationGoal, setOptimizationGoal] =
     useState<OptimizationGoalType>("cost_reduction");
 
-  // Compute initial recipe selection during render - MUST BE BEFORE usage
-  const initialRecipeId = useMemo(() => {
-    if (!selectedRecipeId && enrichedRecipes.length > 0) {
-      return enrichedRecipes[0].id;
-    }
-    return selectedRecipeId;
-  }, [enrichedRecipes, selectedRecipeId]);
+  // DATA HOOKS
+  const recipes = useRecipeList();
+  const selectedRecipe = useRecipeDetail(selectedRecipeId || null);
+  const selectedIngredients = useRecipeIngredients(selectedRecipeId || null);
+  const variants = useRecipeVariants(selectedRecipeId || null);
 
-  // Use the computed value directly instead of state
-  const effectiveRecipeId = initialRecipeId || selectedRecipeId;
+  // OPERATIONS HOOKS
+  const { updateRecipe } = useRecipeOperations();
+  const { createVariant, updateVariant, updateVariantMetadata, deleteVariant } =
+    useVariantOperations();
 
-  // Update the state only when necessary, but don't use it for rendering
-  useState(() => {
-    if (initialRecipeId && initialRecipeId !== selectedRecipeId) {
-      setSelectedRecipeId(initialRecipeId);
-    }
-  });
-
-  // NOW use the computed effectiveRecipeId
-  const selectedRecipe = useEnrichedRecipe(effectiveRecipeId);
-  const variants = useRecipeVariants(effectiveRecipeId);
-
+  // EXPERIMENT HOOK - Manages Experiment State
   const {
     experimentIngredients,
     metrics,
-    expandedAlternatives,
-    targetCost,
     loadedVariantName,
     initializeExperiment,
-    getAlternatives,
     handleQuantityChange,
     handleSupplierChange,
     handleTogglePriceLock,
@@ -84,96 +84,46 @@ export default function RecipeLab() {
     loadVariant,
   } = useRecipeExperiment(selectedRecipe);
 
-  // Initialize experiment when recipe changes
+  // AUTO-SELECT FIRST RECIPE
   useEffect(() => {
-    if (selectedRecipe) {
-      initializeExperiment(selectedRecipe);
+    if (!selectedRecipeId && recipes.length > 0) {
+      setSelectedRecipeId(recipes[0].id);
     }
-  }, [selectedRecipe, initializeExperiment]);
+  }, [selectedRecipeId, recipes]);
 
-  const createVariantChanges = useCallback(() => {
-    return experimentIngredients
-      .filter((ing) => ing._changed)
-      .map((ing) => {
-        const sm = supplierMaterials.find(
-          (s) => s.id === ing.supplierMaterialId
-        );
-        const changeTypes = Array.from(ing._changeTypes || []);
-        const changes = [];
+  // INITIALIZE EXPERIMENT WHEN RECIPE CHANGES
+  useEffect(() => {
+    if (selectedRecipe && selectedIngredients.length > 0) {
+      initializeExperiment(selectedRecipe, selectedIngredients);
+    }
+  }, [selectedRecipe, selectedIngredients, initializeExperiment]);
 
-        if (changeTypes.includes("quantity")) {
-          changes.push({
-            type: "quantity_change" as const,
-            ingredientName: sm?.materialName || "Unknown",
-            oldValue: `${ing._originalQuantity}`,
-            newValue: `${ing.quantity}`,
-            changedAt: new Date(),
-          });
-        }
-
-        if (changeTypes.includes("supplier")) {
-          changes.push({
-            type: "supplier_change" as const,
-            ingredientName: sm?.materialName || "Unknown",
-            oldValue:
-              supplierMaterials.find((s) => s.id === ing._originalSupplierId)
-                ?.supplierName || "Unknown",
-            newValue: sm?.supplierName || "Unknown",
-            changedAt: new Date(),
-          });
-        }
-
-        return changes;
-      })
-      .flat()
-      .filter(Boolean);
-  }, [experimentIngredients, supplierMaterials]);
-
-  const createVariantSnapshot = useCallback(() => {
-    return experimentIngredients.map((ing) => ({
-      supplierMaterialId: ing.supplierMaterialId,
-      quantity: ing.quantity,
-      unit: ing.unit,
-      lockedPricing: ing.lockedPricing,
-      createdAt: ing.createdAt || new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-    }));
-  }, [experimentIngredients]);
-
-  const handleSaveVariant = async () => {
+  // HANDLERS - Variant CRUD
+  const handleSaveVariant = useCallback(async () => {
     if (!selectedRecipe || !variantName.trim()) {
       toast.error("Variant name is required");
       return;
     }
 
     try {
-      const variant: RecipeVariant = {
-        id: Date.now().toString(),
+      // Use utility functions from recipe-utils.ts
+      const changes = createVariantChanges(experimentIngredients, []); // Will be computed in workspace
+      const snapshot = createVariantSnapshot(experimentIngredients);
+
+      const newVariantId = await createVariant({
         originalRecipeId: selectedRecipe.id,
         name: variantName,
         description: variantDescription,
-        ingredientIds: experimentIngredients.map((ing) => ing.id),
-        optimizationGoal:
-          optimizationGoal === "other" ? "other" : optimizationGoal,
-        isActive: false,
-        changes: createVariantChanges() as any,
+        optimizationGoal,
+        ingredientsSnapshot: snapshot,
+        changes,
         notes: variantDescription,
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-      };
-
-      await db.recipeVariants.add({
-        ...variant,
-        ingredientsSnapshot: createVariantSnapshot(),
       });
 
-      toast.success(`Variant "${variantName}" saved successfully!`);
-
-      try {
-        const saved = await db.recipeVariants.get(variant.id);
-        if (saved) loadVariant(saved as any);
-      } catch (err) {
-        console.debug("Failed to load newly created variant", err);
+      // Load newly created variant
+      const saved = await db.recipeVariants.get(newVariantId);
+      if (saved && saved.ingredientsSnapshot) {
+        loadVariant(saved, saved.ingredientsSnapshot);
       }
 
       setSaveDialogOpen(false);
@@ -183,10 +133,18 @@ export default function RecipeLab() {
       console.error("Save variant error:", error);
       toast.error("Failed to save variant");
     }
-  };
+  }, [
+    selectedRecipe,
+    variantName,
+    variantDescription,
+    optimizationGoal,
+    experimentIngredients,
+    createVariant,
+    loadVariant,
+  ]);
 
-  const handleUpdateVariant = async () => {
-    if (!selectedRecipe || !loadedVariantName) {
+  const handleUpdateVariant = useCallback(async () => {
+    if (!loadedVariantName) {
       toast.error("No variant loaded to update");
       return;
     }
@@ -200,20 +158,18 @@ export default function RecipeLab() {
         return;
       }
 
-      await db.recipeVariants.update(existingVariant.id, {
-        ingredientIds: experimentIngredients.map((ing) => ing.id),
-        ingredientsSnapshot: createVariantSnapshot(),
-        changes: createVariantChanges() as any,
-        updatedAt: new Date().toISOString(),
+      const changes = createVariantChanges(experimentIngredients, []);
+      const snapshot = createVariantSnapshot(experimentIngredients);
+
+      await updateVariant(existingVariant.id, {
+        ingredientsSnapshot: snapshot,
+        changes,
       });
 
-      toast.success(`Variant "${loadedVariantName}" updated successfully!`);
-
-      try {
-        const saved = await db.recipeVariants.get(existingVariant.id);
-        if (saved) loadVariant(saved as any);
-      } catch (err) {
-        console.debug("Failed to reload variant after update", err);
+      // Reload variant
+      const saved = await db.recipeVariants.get(existingVariant.id);
+      if (saved && saved.ingredientsSnapshot) {
+        loadVariant(saved, saved.ingredientsSnapshot);
       }
 
       setUpdateVariantDialogOpen(false);
@@ -221,95 +177,90 @@ export default function RecipeLab() {
       console.error("Update variant error:", error);
       toast.error("Failed to update variant");
     }
-  };
+  }, [
+    loadedVariantName,
+    variants,
+    experimentIngredients,
+    updateVariant,
+    loadVariant,
+  ]);
 
-  const [updateOriginalDialogOpen, setUpdateOriginalDialogOpen] =
-    useState(false);
-
-  const handleUpdateOriginal = () => {
+  const handleUpdateOriginal = useCallback(() => {
     if (!selectedRecipe) return;
     setUpdateOriginalDialogOpen(true);
-  };
+  }, [selectedRecipe]);
 
-  const performUpdateOriginal = async () => {
+  const performUpdateOriginal = useCallback(async () => {
     if (!selectedRecipe) return;
     setUpdateOriginalDialogOpen(false);
 
     try {
-      await db.transaction(
-        "rw",
-        [db.recipes, db.recipeIngredients],
-        async () => {
-          await db.recipes.update(selectedRecipe.id, {
-            version: (selectedRecipe.version || 1) + 1,
-            updatedAt: new Date().toISOString(),
-          });
+      await updateRecipe(selectedRecipe.id, {
+        name: selectedRecipe.name,
+        description: selectedRecipe.description,
+        targetCostPerKg: selectedRecipe.targetCostPerKg,
+        status: selectedRecipe.status,
+        instructions: selectedRecipe.instructions,
+        notes: selectedRecipe.notes,
+        version: (selectedRecipe.version || 1) + 1,
+        ingredients: experimentIngredients.map((ing) => ({
+          id: ing.id,
+          supplierMaterialId: ing.supplierMaterialId,
+          quantity: ing.quantity,
+          unit: ing.unit,
+          lockedPricing: ing.lockedPricing,
+        })),
+      });
 
-          await db.recipeIngredients
-            .where("recipeId")
-            .equals(selectedRecipe.id)
-            .delete();
-
-          for (const ing of experimentIngredients) {
-            await db.recipeIngredients.add({
-              id: ing.id.startsWith("temp-")
-                ? Date.now().toString() + Math.random()
-                : ing.id,
-              recipeId: selectedRecipe.id,
-              supplierMaterialId: ing.supplierMaterialId,
-              quantity: ing.quantity,
-              unit: ing.unit,
-              lockedPricing: ing.lockedPricing,
-              createdAt: ing.createdAt || new Date().toISOString(),
-              updatedAt: new Date().toISOString(),
-            });
-          }
-        }
-      );
-
-      toast.success("Recipe updated successfully");
       handleResetAll();
     } catch (error) {
       console.error("Update recipe error:", error);
       toast.error("Failed to update recipe");
     }
-  };
+  }, [selectedRecipe, experimentIngredients, updateRecipe, handleResetAll]);
 
   const handleLoadOriginalRecipe = useCallback(() => {
-    if (selectedRecipe) {
-      initializeExperiment(selectedRecipe);
+    if (selectedRecipe && selectedIngredients.length > 0) {
+      initializeExperiment(selectedRecipe, selectedIngredients);
     }
-  }, [selectedRecipe, initializeExperiment]);
+  }, [selectedRecipe, selectedIngredients, initializeExperiment]);
 
-  const handleDeleteVariant = async (variantId: string) => {
-    try {
-      await db.recipeVariants.delete(variantId);
-      toast.success("Variant deleted successfully");
+  const handleDeleteVariant = useCallback(
+    async (variantId: string) => {
+      await deleteVariant(variantId);
       handleResetAll();
-    } catch (error) {
-      console.error("Delete variant error:", error);
-      toast.error("Failed to delete variant");
-    }
-  };
+    },
+    [deleteVariant, handleResetAll]
+  );
 
-  const handleUpdateVariantDetails = async (variant: RecipeVariant) => {
-    try {
-      await db.recipeVariants.update(variant.id, {
+  const handleUpdateVariantDetails = useCallback(
+    async (variant: any) => {
+      await updateVariantMetadata(variant.id, {
         name: variant.name,
         description: variant.description,
         optimizationGoal: variant.optimizationGoal,
         isActive: variant.isActive,
         notes: variant.notes,
-        updatedAt: new Date().toISOString(),
       });
-      toast.success("Variant updated successfully");
-      loadVariant(variant as any);
-    } catch (error) {
-      console.error("Update variant error:", error);
-      toast.error("Failed to update variant");
-    }
-  };
 
+      // Reload variant
+      const saved = await db.recipeVariants.get(variant.id);
+      if (saved && saved.ingredientsSnapshot) {
+        loadVariant(saved, saved.ingredientsSnapshot);
+      }
+    },
+    [updateVariantMetadata, loadVariant]
+  );
+
+  const handleLoadVariant = useCallback(
+    async (variant: any) => {
+      const ingredients = variant.ingredientsSnapshot || [];
+      loadVariant(variant, ingredients);
+    },
+    [loadVariant]
+  );
+
+  // RENDER - Empty State
   if (!selectedRecipe) {
     return (
       <div className="flex items-center justify-center h-96">
@@ -320,16 +271,16 @@ export default function RecipeLab() {
             Select a recipe to start experimenting
           </p>
 
-          {enrichedRecipes.length > 0 ? (
+          {recipes.length > 0 ? (
             <Select
-              value={effectiveRecipeId}
+              value={selectedRecipeId}
               onValueChange={setSelectedRecipeId}
             >
               <SelectTrigger className="w-full">
                 <SelectValue placeholder="Select a recipe..." />
               </SelectTrigger>
               <SelectContent>
-                {enrichedRecipes.map((recipe) => (
+                {recipes.map((recipe) => (
                   <SelectItem key={recipe.id} value={recipe.id}>
                     {recipe.name} (₹{recipe.costPerKg.toFixed(2)}/kg)
                   </SelectItem>
@@ -350,24 +301,23 @@ export default function RecipeLab() {
 
   return (
     <div className="flex gap-6 h-[calc(100vh-12rem)]">
+      {/* Sidebar - Only needs display data */}
       <RecipeLabSidebar
-        recipes={enrichedRecipes}
-        selectedRecipeId={effectiveRecipeId}
+        recipes={recipes}
+        selectedRecipeId={selectedRecipeId}
         variants={variants}
         loadedVariantName={loadedVariantName}
         onSelectRecipe={setSelectedRecipeId}
-        onLoadVariant={loadVariant}
+        onLoadVariant={handleLoadVariant}
       />
 
+      {/* Workspace - Fetches its own material data internally */}
       <RecipeLabWorkspace
         selectedRecipeName={selectedRecipe.name}
         loadedVariantName={loadedVariantName}
         currentVariant={variants.find((v) => v.name === loadedVariantName)}
         experimentIngredients={experimentIngredients}
-        supplierMaterials={supplierMaterials}
-        expandedAlternatives={expandedAlternatives}
         metrics={metrics}
-        getAlternatives={getAlternatives}
         onQuantityChange={handleQuantityChange}
         onSupplierChange={handleSupplierChange}
         onTogglePriceLock={handleTogglePriceLock}
@@ -382,15 +332,14 @@ export default function RecipeLab() {
         onUpdateVariantDetails={handleUpdateVariantDetails}
       />
 
+      {/* Metrics - Computes suggestions internally */}
       <RecipeLabMetrics
         metrics={metrics}
-        targetCost={targetCost}
         experimentIngredients={experimentIngredients}
-        supplierMaterials={supplierMaterials}
         onApplySuggestion={handleSupplierChange}
-        getAlternatives={getAlternatives}
       />
 
+      {/* Dialogs */}
       <RecipeLabDialogs
         saveDialogOpen={saveDialogOpen}
         updateVariantDialogOpen={updateVariantDialogOpen}
@@ -400,7 +349,6 @@ export default function RecipeLab() {
         variantDescription={variantDescription}
         optimizationGoal={optimizationGoal}
         experimentIngredients={experimentIngredients}
-        supplierMaterials={supplierMaterials}
         savings={metrics.savings}
         savingsPercent={metrics.savingsPercent}
         onSaveDialogOpenChange={setSaveDialogOpen}
@@ -411,6 +359,8 @@ export default function RecipeLab() {
         onSaveVariant={handleSaveVariant}
         onUpdateVariant={handleUpdateVariant}
       />
+
+      {/* Update Original Recipe Confirmation */}
       <AlertDialog
         open={updateOriginalDialogOpen}
         onOpenChange={setUpdateOriginalDialogOpen}

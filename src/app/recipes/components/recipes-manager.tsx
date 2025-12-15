@@ -16,20 +16,15 @@ import {
   GitBranch,
   TrendingUp,
 } from "lucide-react";
-
 import { MetricCard } from "@/components/ui/metric-card";
-import {
-  useEnrichedRecipes,
-  useRecipeStats,
-} from "@/hooks/recipe-hooks/use-recipes";
-import { RecipesTab } from "./recipe-views/recipes-tab";
+import { useRecipeStats } from "@/hooks/recipe-hooks/use-recipe-data";
+import { RecipesTab } from "./recipe-views/recipe-tab";
 import { RecipeAnalytics } from "./recipes-analytics";
 import { RecipeComparison } from "./recipes-comparison/recipe-comparison";
 import RecipeLab from "./recipes-lab/recipe-lab";
 
 export function RecipeManager() {
   // Use optimized hooks
-  const enrichedRecipes = useEnrichedRecipes();
   const stats = useRecipeStats();
 
   return (
@@ -129,7 +124,7 @@ export function RecipeManager() {
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <RecipeAnalytics recipes={enrichedRecipes} />
+              <RecipeAnalytics />
             </CardContent>
           </Card>
         </TabsContent>
