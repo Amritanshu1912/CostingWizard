@@ -8,20 +8,79 @@ import type {
   RecipeVariantWithMetrics,
   SupplierMaterialForRecipe,
 } from "@/types/recipe-types";
-import {
-  calculateRecipeTotals,
-  calculateVariance,
-  convertToKg,
-  createLookupMaps,
-  groupIngredientsByRecipe,
-} from "@/utils/recipe-utils";
+import { recipeUtils } from "@/utils/recipe-utils";
 import { useLiveQuery } from "dexie-react-hooks";
 import { useMemo } from "react";
 
 /**
+ * ================================================================================================
+ * SHARED DATA FETCHING UTILITIES
+ * PROFESSIONAL: Consolidate common data fetching patterns
+ * ================================================================================================
+ */
+
+/**
+ * Fetch and organize all recipe-related data
+ * PROFESSIONAL: Single source for data fetching, used by multiple hooks
+ */
+async function fetchRecipeBaseData() {
+  const [
+    recipes,
+    allIngredients,
+    allVariants,
+    supplierMaterials,
+    suppliers,
+    materials,
+    inventory,
+  ] = await Promise.all([
+    db.recipes.toArray(),
+    db.recipeIngredients.toArray(),
+    db.recipeVariants.toArray(),
+    db.supplierMaterials.toArray(),
+    db.suppliers.toArray(),
+    db.materials.toArray(),
+    db.inventoryItems.where("itemType").equals("supplierMaterial").toArray(),
+  ]);
+
+  // Create lookup maps
+  const smMap = recipeUtils.createLookupMaps(supplierMaterials);
+  const supplierMap = recipeUtils.createLookupMaps(suppliers);
+  const materialMap = recipeUtils.createLookupMaps(materials);
+  const inventoryMap = new Map(inventory.map((i) => [i.itemId, i]));
+
+  // Group data by recipe
+  const ingredientsByRecipe =
+    recipeUtils.groupIngredientsByRecipe(allIngredients);
+  const variantCountMap = new Map<string, number>();
+  allVariants.forEach((v) => {
+    variantCountMap.set(
+      v.originalRecipeId,
+      (variantCountMap.get(v.originalRecipeId) || 0) + 1
+    );
+  });
+
+  return {
+    recipes,
+    allIngredients,
+    allVariants,
+    smMap,
+    supplierMap,
+    materialMap,
+    inventoryMap,
+    ingredientsByRecipe,
+    variantCountMap,
+  };
+}
+
+/**
+ * ================================================================================================
+ * RECIPE DETAIL HOOKS
+ * ================================================================================================
+ */
+
+/**
  * Fetches complete details for a single recipe
- * @param recipeId - Recipe ID to fetch (null returns null)
- * @returns Recipe with computed totals and metrics
+ * PROFESSIONAL: Uses centralized calculation utilities
  */
 export function useRecipeDetail(
   recipeId: string | null | undefined
@@ -29,7 +88,6 @@ export function useRecipeDetail(
   const data = useLiveQuery(async () => {
     if (!recipeId) return null;
 
-    // Fetch recipe and related data
     const [recipe, ingredients, variants, supplierMaterials] =
       await Promise.all([
         db.recipes.get(recipeId),
@@ -40,10 +98,13 @@ export function useRecipeDetail(
 
     if (!recipe) return null;
 
-    // Use utility for cost calculation
-    const smMap = createLookupMaps(supplierMaterials);
-    const totals = calculateRecipeTotals(ingredients, smMap);
-    const variance = calculateVariance(
+    const smMap = recipeUtils.createLookupMaps(supplierMaterials);
+
+    // Calculate totals using centralized utility
+    const totals = recipeUtils.calculateRecipeTotals(ingredients, smMap);
+
+    // Calculate variance using centralized utility
+    const variance = recipeUtils.calculateVariance(
       totals.costPerKg,
       recipe.targetCostPerKg
     );
@@ -55,7 +116,9 @@ export function useRecipeDetail(
       taxedTotalCost: totals.totalCostWithTax,
       costPerKg: totals.costPerKg,
       taxedCostPerKg: totals.taxedCostPerKg,
-      ...variance,
+      varianceFromTarget: variance.varianceFromTarget,
+      variancePercentage: variance.variancePercentage,
+      isAboveTarget: variance.isAboveTarget,
       ingredientCount: ingredients.length,
       variantCount: variants.length,
     };
@@ -66,8 +129,7 @@ export function useRecipeDetail(
 
 /**
  * Fetches enriched ingredients for a specific recipe
- * @param recipeId - Recipe ID (null returns empty array)
- * @returns Array of enriched ingredient details
+ * PROFESSIONAL: Uses enrichment utilities
  */
 export function useRecipeIngredients(
   recipeId: string | null | undefined
@@ -75,7 +137,6 @@ export function useRecipeIngredients(
   const data = useLiveQuery(async () => {
     if (!recipeId) return [];
 
-    // Fetch ingredients and related data
     const [ingredients, supplierMaterials, suppliers, materials, inventory] =
       await Promise.all([
         db.recipeIngredients.where("recipeId").equals(recipeId).toArray(),
@@ -88,14 +149,13 @@ export function useRecipeIngredients(
           .toArray(),
       ]);
 
-    const smMap = createLookupMaps(supplierMaterials);
-    const supplierMap = createLookupMaps(suppliers);
-    const materialMap = createLookupMaps(materials);
-    // ✅ FIXED: Keep original inventory map logic (maps by itemId, not id)
+    const smMap = recipeUtils.createLookupMaps(supplierMaterials);
+    const supplierMap = recipeUtils.createLookupMaps(suppliers);
+    const materialMap = recipeUtils.createLookupMaps(materials);
     const inventoryMap = new Map(inventory.map((i) => [i.itemId, i]));
 
-    // Calculate total cost for percentage - use utility
-    const { totalCost } = calculateRecipeTotals(ingredients, smMap);
+    // Calculate total cost for share percentage
+    const totals = recipeUtils.calculateRecipeTotals(ingredients, smMap);
 
     return ingredients.map((ing) => {
       const sm = smMap.get(ing.supplierMaterialId);
@@ -106,27 +166,25 @@ export function useRecipeIngredients(
       const materialName = material?.name || "Unknown Material";
       const supplierName = supplier?.name || "Unknown Supplier";
 
-      // EXACT ORIGINAL LOGIC for cost calculation
-      const pricePerKg = ing.lockedPricing?.unitPrice || sm?.unitPrice || 0;
-      const tax = ing.lockedPricing?.tax || sm?.tax || 0;
-      const quantityInKg = convertToKg(ing.quantity, ing.unit);
+      // Use enrichment utility
+      const costDetails = sm
+        ? recipeUtils.enrichIngredientWithCost(ing, sm, totals.totalCost)
+        : {
+            pricePerKg: 0,
+            tax: 0,
+            quantityInKg: 0,
+            costForQuantity: 0,
+            taxedPriceForQuantity: 0,
+            priceSharePercentage: 0,
+          };
 
-      const costForQuantity = pricePerKg * quantityInKg;
-      const taxedPriceForQuantity = costForQuantity * (1 + tax / 100);
-      const priceSharePercentage =
-        totalCost > 0 ? (costForQuantity / totalCost) * 100 : 0;
-
-      // Price lock status - EXACT ORIGINAL LOGIC
-      const isPriceLocked = !!ing.lockedPricing;
-      const priceChangedSinceLock =
-        ing.lockedPricing && sm
-          ? sm.unitPrice !== ing.lockedPricing.unitPrice ||
-            (sm.tax || 0) !== ing.lockedPricing.tax
-          : false;
-      const priceDifference =
-        ing.lockedPricing && sm
-          ? sm.unitPrice - ing.lockedPricing.unitPrice
-          : undefined;
+      // Use pricing check utility
+      const pricingStatus = sm
+        ? recipeUtils.checkPricingChanges(ing, sm)
+        : {
+            isPriceLocked: false,
+            priceChangedSinceLock: false,
+          };
 
       return {
         id: ing.id,
@@ -138,13 +196,13 @@ export function useRecipeIngredients(
         materialName,
         supplierName,
         displayName: `${materialName} (${supplierName})`,
-        pricePerKg,
-        costForQuantity,
-        taxedPriceForQuantity,
-        priceSharePercentage,
-        isPriceLocked,
-        priceChangedSinceLock,
-        priceDifference,
+        pricePerKg: costDetails.pricePerKg,
+        costForQuantity: costDetails.costForQuantity,
+        taxedPriceForQuantity: costDetails.taxedPriceForQuantity,
+        priceSharePercentage: costDetails.priceSharePercentage,
+        isPriceLocked: pricingStatus.isPriceLocked,
+        priceChangedSinceLock: pricingStatus.priceChangedSinceLock,
+        priceDifference: pricingStatus.priceDifference,
         currentStock: inventoryItem?.currentStock || 0,
         stockStatus: inventoryItem?.status || "unknown",
         createdAt: ing.createdAt,
@@ -157,9 +215,14 @@ export function useRecipeIngredients(
 }
 
 /**
+ * ================================================================================================
+ * RECIPE VARIANT HOOKS
+ * ================================================================================================
+ */
+
+/**
  * Fetches variants for a recipe with computed cost metrics
- * @param recipeId - Recipe ID (null returns empty array)
- * @returns Array of variants with cost metrics
+ * PROFESSIONAL: Uses centralized cost calculation
  */
 export function useRecipeVariants(
   recipeId: string | null | undefined
@@ -169,28 +232,24 @@ export function useRecipeVariants(
   const data = useLiveQuery(async () => {
     if (!recipeId || !originalRecipe) return [];
 
-    // Fetch variants and supplier materials
     const [variants, supplierMaterials] = await Promise.all([
       db.recipeVariants.where("originalRecipeId").equals(recipeId).toArray(),
       db.supplierMaterials.toArray(),
     ]);
 
-    const smMap = createLookupMaps(supplierMaterials);
+    const smMap = recipeUtils.createLookupMaps(supplierMaterials);
 
-    // Enrich variants with cost metrics
     return variants.map((variant): RecipeVariantWithMetrics => {
-      // Prefer snapshot over ingredient IDs
       const ingredients = variant.ingredientsSnapshot || [];
 
-      // Use utility for cost calculation
-      const totals = calculateRecipeTotals(ingredients, smMap);
+      // Use centralized calculation
+      const totals = recipeUtils.calculateRecipeTotals(ingredients, smMap);
 
-      // Compare with original - EXACT ORIGINAL LOGIC
-      const costDifference = totals.costPerKg - originalRecipe.costPerKg;
-      const costDifferencePercentage =
-        originalRecipe.costPerKg > 0
-          ? (costDifference / originalRecipe.costPerKg) * 100
-          : 0;
+      // Use centralized cost difference calculation
+      const costComparison = recipeUtils.calculateCostDifference(
+        totals.costPerKg,
+        originalRecipe.costPerKg
+      );
 
       return {
         ...variant,
@@ -199,8 +258,8 @@ export function useRecipeVariants(
         taxedTotalCost: totals.totalCostWithTax,
         costPerKg: totals.costPerKg,
         taxedCostPerKg: totals.taxedCostPerKg,
-        costDifference,
-        costDifferencePercentage,
+        costDifference: costComparison.difference,
+        costDifferencePercentage: costComparison.percentage,
         ingredientCount: ingredients.length,
       };
     });
@@ -210,39 +269,28 @@ export function useRecipeVariants(
 }
 
 /**
+ * ================================================================================================
+ * RECIPE LIST HOOKS
+ * ================================================================================================
+ */
+
+/**
  * Fetches minimal recipe data for list views
- * @returns Array of recipes with computed costs and counts
+ * PROFESSIONAL: Optimized with shared data fetching
  */
 export function useRecipeList(): RecipeListItem[] {
   const data = useLiveQuery(async () => {
-    // Fetch base data in parallel
-    const [recipes, allIngredients, allVariants, supplierMaterials] =
-      await Promise.all([
-        db.recipes.toArray(),
-        db.recipeIngredients.toArray(),
-        db.recipeVariants.toArray(),
-        db.supplierMaterials.toArray(),
-      ]);
+    const { recipes, ingredientsByRecipe, variantCountMap, smMap } =
+      await fetchRecipeBaseData();
 
-    const smMap = createLookupMaps(supplierMaterials);
-    const ingredientsByRecipe = groupIngredientsByRecipe(allIngredients);
-
-    // Count variants per recipe - EXACT ORIGINAL LOGIC
-    const variantCountMap = new Map<string, number>();
-    allVariants.forEach((v) => {
-      variantCountMap.set(
-        v.originalRecipeId,
-        (variantCountMap.get(v.originalRecipeId) || 0) + 1
-      );
-    });
-
-    // Transform recipes with minimal computed data
     return recipes.map((recipe): RecipeListItem => {
       const ingredients = ingredientsByRecipe.get(recipe.id) || [];
 
-      // Use utility for cost calculation
-      const totals = calculateRecipeTotals(ingredients, smMap);
-      const variance = calculateVariance(
+      // Use centralized calculation
+      const totals = recipeUtils.calculateRecipeTotals(ingredients, smMap);
+
+      // Use centralized variance calculation
+      const variance = recipeUtils.calculateVariance(
         totals.costPerKg,
         recipe.targetCostPerKg
       );
@@ -258,7 +306,9 @@ export function useRecipeList(): RecipeListItem[] {
         targetCostPerKg: recipe.targetCostPerKg,
         ingredientCount: ingredients.length,
         variantCount: variantCountMap.get(recipe.id) || 0,
-        ...variance,
+        varianceFromTarget: variance.varianceFromTarget,
+        variancePercentage: variance.variancePercentage,
+        isAboveTarget: variance.isAboveTarget,
         updatedAt: recipe.updatedAt || recipe.createdAt,
         createdAt: recipe.createdAt,
       };
@@ -270,12 +320,12 @@ export function useRecipeList(): RecipeListItem[] {
 
 /**
  * Calculate aggregate statistics across all recipes
- * @returns Summary statistics for recipes
+ * PROFESSIONAL: Efficient memoized calculation
  */
 export function useRecipeStats(): RecipeStats {
   const recipes = useRecipeList();
 
-  return useMemo(() => {
+  const stats = useMemo(() => {
     const totalRecipes = recipes.length;
 
     if (totalRecipes === 0) {
@@ -289,7 +339,6 @@ export function useRecipeStats(): RecipeStats {
       };
     }
 
-    // EXACT ORIGINAL LOGIC
     const activeRecipes = recipes.filter((r) => r.status === "active").length;
     const avgCostPerKg =
       recipes.reduce((sum, r) => sum + r.costPerKg, 0) / totalRecipes;
@@ -299,7 +348,6 @@ export function useRecipeStats(): RecipeStats {
     );
     const totalVariants = recipes.reduce((sum, r) => sum + r.variantCount, 0);
 
-    // Calculate target achievement
     const recipesWithTarget = recipes.filter((r) => r.targetCostPerKg).length;
     const recipesMetTarget = recipes.filter(
       (r) => r.targetCostPerKg && !r.isAboveTarget
@@ -316,15 +364,21 @@ export function useRecipeStats(): RecipeStats {
       targetAchievementRate,
     };
   }, [recipes]);
+
+  return stats;
 }
 
 /**
+ * ================================================================================================
+ * SUPPLIER MATERIAL HOOKS
+ * ================================================================================================
+ */
+
+/**
  * Fetches supplier materials formatted for recipe operations
- * @returns Array of supplier materials with essential recipe data
  */
 export function useSupplierMaterialsForRecipe(): SupplierMaterialForRecipe[] {
   const data = useLiveQuery(async () => {
-    // Fetch only needed tables
     const [supplierMaterials, suppliers, materials, inventory] =
       await Promise.all([
         db.supplierMaterials.toArray(),
@@ -336,11 +390,10 @@ export function useSupplierMaterialsForRecipe(): SupplierMaterialForRecipe[] {
           .toArray(),
       ]);
 
-    const supplierMap = createLookupMaps(suppliers);
-    const materialMap = createLookupMaps(materials);
+    const supplierMap = recipeUtils.createLookupMaps(suppliers);
+    const materialMap = recipeUtils.createLookupMaps(materials);
     const inventoryMap = new Map(inventory.map((i) => [i.itemId, i]));
 
-    // Transform to minimal recipe format
     return supplierMaterials.map((sm): SupplierMaterialForRecipe => {
       const supplier = supplierMap.get(sm.supplierId);
       const material = materialMap.get(sm.materialId);
@@ -368,7 +421,6 @@ export function useSupplierMaterialsForRecipe(): SupplierMaterialForRecipe[] {
 
 /**
  * Get supplier materials grouped by material
- * @returns Map of materialId -> array of supplier options
  */
 export function useSupplierMaterialsByMaterial(): Map<
   string,
@@ -377,14 +429,7 @@ export function useSupplierMaterialsByMaterial(): Map<
   const allMaterials = useSupplierMaterialsForRecipe();
 
   return useMemo(() => {
-    const grouped = new Map<string, SupplierMaterialForRecipe[]>();
-
-    allMaterials.forEach((sm) => {
-      if (!grouped.has(sm.materialId)) {
-        grouped.set(sm.materialId, []);
-      }
-      grouped.get(sm.materialId)!.push(sm);
-    });
+    const grouped = recipeUtils.groupBy(allMaterials, (sm) => sm.materialId);
 
     // Sort each group by price
     grouped.forEach((materials) => {

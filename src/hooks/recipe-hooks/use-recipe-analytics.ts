@@ -6,26 +6,18 @@ import type {
   RecipeDetail,
   RecipeWithIngredients,
 } from "@/types/recipe-types";
-import {
-  calculateRecipeTotals,
-  createLookupMaps,
-  groupIngredientsByRecipe,
-  calculateIngredientCost,
-} from "@/utils/recipe-utils";
+import { recipeUtils } from "@/utils/recipe-utils";
 import { useLiveQuery } from "dexie-react-hooks";
 import { useCallback, useState } from "react";
 import { useSupplierMaterialsForRecipe } from "./use-recipe-data";
 
 /**
  * Hook for recipe experimentation in Recipe Lab
- * Manages temporary state for ingredient modifications before saving as variant
- * @param recipe - Recipe to experiment with (RecipeDetail)
- * @returns Experiment state and handlers
+ * PROFESSIONAL: Simplified with centralized calculation utilities
  */
 export function useRecipeExperiment(recipe: RecipeDetail | null) {
   const supplierMaterials = useSupplierMaterialsForRecipe();
 
-  // Experiment state
   const [experimentIngredients, setExperimentIngredients] = useState<
     ExperimentIngredient[]
   >([]);
@@ -65,6 +57,7 @@ export function useRecipeExperiment(recipe: RecipeDetail | null) {
 
   /**
    * Calculate real-time metrics comparing original vs modified
+   * PROFESSIONAL: Uses centralized calculation utilities
    */
   const calculateMetrics = useCallback((): ExperimentMetrics => {
     if (!recipe || experimentIngredients.length === 0) {
@@ -86,13 +79,17 @@ export function useRecipeExperiment(recipe: RecipeDetail | null) {
     }
 
     // Calculate modified values using centralized utility
-    const smMap = createLookupMaps(supplierMaterials);
-    const modifiedTotals = calculateRecipeTotals(experimentIngredients, smMap);
+    const smMap = recipeUtils.createLookupMaps(supplierMaterials);
+    const modifiedTotals = recipeUtils.calculateRecipeTotals(
+      experimentIngredients,
+      smMap
+    );
 
-    // Calculate savings
-    const savings = recipe.costPerKg - modifiedTotals.costPerKg;
-    const savingsPercent =
-      recipe.costPerKg > 0 ? (savings / recipe.costPerKg) * 100 : 0;
+    // Calculate savings using centralized utility
+    const savingsData = recipeUtils.calculateSavings(
+      recipe.costPerKg,
+      modifiedTotals.costPerKg
+    );
 
     // Target gap
     const targetGap = targetCost
@@ -118,14 +115,14 @@ export function useRecipeExperiment(recipe: RecipeDetail | null) {
       modifiedTotalCostWithTax: modifiedTotals.totalCostWithTax,
       originalCostPerKgWithTax: recipe.taxedCostPerKg,
       modifiedCostPerKgWithTax: modifiedTotals.taxedCostPerKg,
-      savings,
-      savingsPercent,
+      savings: savingsData.savings,
+      savingsPercent: savingsData.savingsPercent,
       targetGap,
       changeCount,
     };
   }, [recipe, experimentIngredients, supplierMaterials, targetCost]);
 
-  // Handlers
+  // Ingredient modification handlers
   const handleQuantityChange = useCallback(
     (index: number, newQuantity: number) => {
       setExperimentIngredients((prev) => {
@@ -296,7 +293,7 @@ export function useRecipeExperiment(recipe: RecipeDetail | null) {
 
 /**
  * Fetches recipe data optimized for analytics
- * @returns Array of recipes with ingredient details
+ * PROFESSIONAL: Uses centralized calculation and grouping
  */
 export function useRecipesForAnalytics(): RecipeWithIngredients[] {
   const data = useLiveQuery(async () => {
@@ -309,21 +306,33 @@ export function useRecipesForAnalytics(): RecipeWithIngredients[] {
         db.materials.toArray(),
       ]);
 
-    const smMap = createLookupMaps(supplierMaterials);
-    const supplierMap = createLookupMaps(suppliers);
-    const materialMap = createLookupMaps(materials);
-    const ingredientsByRecipe = groupIngredientsByRecipe(allIngredients);
+    // Create lookup maps using utility
+    const smMap = recipeUtils.createLookupMaps(supplierMaterials);
+    const supplierMap = recipeUtils.createLookupMaps(suppliers);
+    const materialMap = recipeUtils.createLookupMaps(materials);
+
+    // Group ingredients using utility
+    const ingredientsByRecipe =
+      recipeUtils.groupIngredientsByRecipe(allIngredients);
 
     return recipes.map((recipe): RecipeWithIngredients => {
       const recipeIngredients = ingredientsByRecipe.get(recipe.id) || [];
-      const totals = calculateRecipeTotals(recipeIngredients, smMap);
+
+      // Calculate totals using centralized utility
+      const totals = recipeUtils.calculateRecipeTotals(
+        recipeIngredients,
+        smMap
+      );
 
       const enrichedIngredients = recipeIngredients.map((ing) => {
         const sm = smMap.get(ing.supplierMaterialId);
         const supplier = sm ? supplierMap.get(sm.supplierId) : null;
         const material = sm ? materialMap.get(sm.materialId) : null;
 
-        const { cost } = sm ? calculateIngredientCost(ing, sm) : { cost: 0 };
+        // Use enrichment utility
+        const costDetails = sm
+          ? recipeUtils.enrichIngredientWithCost(ing, sm, totals.totalCost)
+          : { costForQuantity: 0 };
 
         return {
           materialName: material?.name || "Unknown",
@@ -331,7 +340,7 @@ export function useRecipesForAnalytics(): RecipeWithIngredients[] {
           displayName: `${material?.name || "Unknown"} (${supplier?.name || "Unknown"})`,
           quantity: ing.quantity,
           unit: ing.unit,
-          costForQuantity: cost,
+          costForQuantity: costDetails.costForQuantity,
         };
       });
 

@@ -5,20 +5,13 @@ import type {
   ComparisonItem,
   ComparisonSummary,
 } from "@/types/recipe-types";
-import {
-  calculateRecipeTotals,
-  createLookupMaps,
-  groupIngredientsByRecipe,
-  countUniqueSuppliers,
-  getSupplierNames,
-} from "@/utils/recipe-utils";
+import { recipeUtils } from "@/utils/recipe-utils";
 import { useLiveQuery } from "dexie-react-hooks";
 import { useMemo } from "react";
 import { useRecipeDetail, useRecipeList } from "./use-recipe-data";
 
 /**
  * Get all items available for comparison (recipes + variants)
- * @returns Array of all comparable items
  */
 export function useComparableItems(): ComparisonItem[] {
   const recipes = useRecipeList();
@@ -32,17 +25,23 @@ export function useComparableItems(): ComparisonItem[] {
         db.suppliers.toArray(),
       ]);
 
-    const smMap = createLookupMaps(supplierMaterials);
-    const supplierMap = createLookupMaps(suppliers);
-    const ingredientsByRecipe = groupIngredientsByRecipe(recipeIngredients);
+    const smMap = recipeUtils.createLookupMaps(supplierMaterials);
+    const supplierMap = recipeUtils.createLookupMaps(suppliers);
+    const ingredientsByRecipe =
+      recipeUtils.groupIngredientsByRecipe(recipeIngredients);
 
     const items: ComparisonItem[] = [];
 
-    // Add recipes as comparison items
+    // Process recipes
     recipes.forEach((recipe) => {
       const ingredients = ingredientsByRecipe.get(recipe.id) || [];
-      const uniqueSuppliers = countUniqueSuppliers(ingredients, smMap);
-      const supplierNames = getSupplierNames(ingredients, smMap, supplierMap);
+
+      // Use centralized supplier analysis
+      const supplierAnalysis = recipeUtils.analyzeSupplierDistribution(
+        ingredients,
+        smMap,
+        supplierMap
+      );
 
       items.push({
         ...recipe,
@@ -52,12 +51,12 @@ export function useComparableItems(): ComparisonItem[] {
         instructions: undefined,
         notes: undefined,
         itemType: "recipe" as const,
-        uniqueSuppliers,
-        supplierNames,
+        uniqueSuppliers: supplierAnalysis.uniqueCount,
+        supplierNames: supplierAnalysis.supplierNames,
       });
     });
 
-    // Add variants as comparison items
+    // Process variants
     variants.forEach((variant) => {
       const parentRecipe = recipes.find(
         (r) => r.id === variant.originalRecipeId
@@ -65,15 +64,23 @@ export function useComparableItems(): ComparisonItem[] {
       if (!parentRecipe) return;
 
       const ingredients = variant.ingredientsSnapshot || [];
-      const totals = calculateRecipeTotals(ingredients, smMap);
-      const uniqueSuppliers = countUniqueSuppliers(ingredients, smMap);
-      const supplierNames = getSupplierNames(ingredients, smMap, supplierMap);
 
-      const costDifference = totals.costPerKg - parentRecipe.costPerKg;
-      const costDifferencePercentage =
-        parentRecipe.costPerKg > 0
-          ? (costDifference / parentRecipe.costPerKg) * 100
-          : 0;
+      // Calculate totals
+      const totals = recipeUtils.calculateRecipeTotals(ingredients, smMap);
+
+      // Analyze suppliers
+      const supplierAnalysis = recipeUtils.analyzeSupplierDistribution(
+        ingredients,
+        smMap,
+        supplierMap
+      );
+
+      // FIXED: Use correct cost difference calculation
+      // Variant cost compared to parent recipe (parent is the base)
+      const costComparison = recipeUtils.calculateCostDifference(
+        totals.costPerKg,
+        parentRecipe.costPerKg
+      );
 
       items.push({
         ...variant,
@@ -91,11 +98,11 @@ export function useComparableItems(): ComparisonItem[] {
         taxedTotalCost: totals.totalCostWithTax,
         costPerKg: totals.costPerKg,
         taxedCostPerKg: totals.taxedCostPerKg,
-        costDifference,
-        costDifferencePercentage,
+        costDifference: costComparison.difference,
+        costDifferencePercentage: costComparison.percentage,
         ingredientCount: ingredients.length,
-        uniqueSuppliers,
-        supplierNames,
+        uniqueSuppliers: supplierAnalysis.uniqueCount,
+        supplierNames: supplierAnalysis.supplierNames,
       });
     });
 
@@ -107,8 +114,6 @@ export function useComparableItems(): ComparisonItem[] {
 
 /**
  * Fetch only selected items for comparison
- * @param selectedIds - Array of recipe/variant IDs to compare
- * @returns Array of selected comparison items
  */
 export function useComparisonData(selectedIds: string[]): ComparisonItem[] {
   const allItems = useComparableItems();
@@ -122,8 +127,6 @@ export function useComparisonData(selectedIds: string[]): ComparisonItem[] {
 
 /**
  * Generate comparison summary statistics
- * @param items - Items to compare
- * @returns Summary with cost ranges, ingredient overlap, etc.
  */
 export function useComparisonSummary(
   items: ComparisonItem[]
@@ -140,7 +143,6 @@ export function useComparisonSummary(
     const bestItem = items.find((item) => item.costPerKg === minCost)!;
     const worstItem = items.find((item) => item.costPerKg === maxCost)!;
 
-    // Ingredient analysis would require fetching ingredients
     return {
       itemCount: items.length,
       costRange: {
@@ -152,7 +154,7 @@ export function useComparisonSummary(
         min: Math.min(...weights),
         max: Math.max(...weights),
       },
-      commonIngredients: 0, // Would need ingredient data
+      commonIngredients: 0,
       uniqueToItems: {},
       bestCost: {
         itemId: bestItem.id,
@@ -170,8 +172,6 @@ export function useComparisonSummary(
 
 /**
  * Compare ingredients across selected recipes/variants
- * @param itemIds - IDs of items to compare
- * @returns Ingredient comparison data
  */
 export function useIngredientComparison(
   itemIds: string[]
@@ -179,7 +179,6 @@ export function useIngredientComparison(
   const data = useLiveQuery(async () => {
     if (itemIds.length === 0) return [];
 
-    // Fetch ingredients and related data
     const [
       recipes,
       variants,
@@ -196,20 +195,23 @@ export function useIngredientComparison(
       db.suppliers.toArray(),
     ]);
 
-    const smMap = createLookupMaps(supplierMaterials);
-    const materialMap = createLookupMaps(materials);
-    const supplierMap = createLookupMaps(suppliers);
+    const smMap = recipeUtils.createLookupMaps(supplierMaterials);
+    const materialMap = recipeUtils.createLookupMaps(materials);
+    const supplierMap = recipeUtils.createLookupMaps(suppliers);
 
     const comparisonMap = new Map<string, ComparisonIngredient>();
 
-    // Helper to process ingredients
+    // Helper to process ingredients (eliminates duplication)
     const processIngredients = (
       itemId: string,
       ingredients: Array<{
         supplierMaterialId: string;
         quantity: number;
         unit: string;
-        lockedPricing?: { unitPrice: number; tax: number };
+        lockedPricing?: {
+          unitPrice: number;
+          tax: number;
+        };
       }>
     ) => {
       ingredients.forEach((ing) => {
@@ -228,13 +230,17 @@ export function useIngredientComparison(
         }
 
         const comparison = comparisonMap.get(material.id)!;
-        const totals = calculateRecipeTotals([ing], smMap);
+
+        // Calculate cost
+        const costDetails = sm
+          ? recipeUtils.enrichIngredientWithCost(ing, sm, 0)
+          : { costForQuantity: 0 };
 
         comparison.values[itemId] = {
           quantity: ing.quantity,
           unit: ing.unit,
           supplier: supplier?.name || "Unknown",
-          cost: totals.totalCost,
+          cost: costDetails.costForQuantity,
           present: true,
         };
       });
@@ -246,7 +252,15 @@ export function useIngredientComparison(
       const ingredients = allIngredients.filter(
         (ing) => ing.recipeId === recipe.id
       );
-      processIngredients(recipe.id, ingredients);
+      processIngredients(
+        recipe.id,
+        ingredients.map((ing) => ({
+          supplierMaterialId: ing.supplierMaterialId,
+          quantity: ing.quantity,
+          unit: ing.unit,
+          lockedPricing: ing.lockedPricing,
+        }))
+      );
     });
 
     // Process variants
@@ -280,9 +294,7 @@ export function useIngredientComparison(
 
 /**
  * Compare two specific recipes side-by-side
- * @param recipeId1 - First recipe ID
- * @param recipeId2 - Second recipe ID
- * @returns Comparison object with both recipes and differences
+ * FIXED: Uses correct absolute difference calculation
  */
 export function useTwoRecipeComparison(recipeId1: string, recipeId2: string) {
   const recipe1 = useRecipeDetail(recipeId1);
@@ -291,17 +303,21 @@ export function useTwoRecipeComparison(recipeId1: string, recipeId2: string) {
   return useMemo(() => {
     if (!recipe1 || !recipe2) return null;
 
-    const diff = Math.abs(recipe1.costPerKg - recipe2.costPerKg);
+    // FIXED: Use absolute difference calculation (not relative to base)
+    const comparison = recipeUtils.calculateAbsoluteDifference(
+      recipe1.costPerKg,
+      recipe2.costPerKg
+    );
+
     const cheaper = recipe1.costPerKg < recipe2.costPerKg ? recipe1 : recipe2;
     const expensive =
       recipe1.costPerKg >= recipe2.costPerKg ? recipe1 : recipe2;
-    const base = Math.max(recipe1.costPerKg, recipe2.costPerKg);
 
     return {
       recipe1,
       recipe2,
-      difference: diff,
-      differencePercentage: base > 0 ? (diff / base) * 100 : 0,
+      difference: comparison.difference,
+      differencePercentage: comparison.percentage,
       cheaperRecipe: cheaper,
       expensiveRecipe: expensive,
     };

@@ -1,16 +1,12 @@
-/* eslint-disable @typescript-eslint/no-unused-vars */
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { SortableTable } from "@/components/ui/sortable-table";
-import { Star, Edit, Trash2 } from "lucide-react";
+import type { PurchaseOrder } from "@/types/shared-types";
+import type { Supplier } from "@/types/supplier-types";
+import { Edit, Star, Trash2 } from "lucide-react";
 import { SUPPLIER_MATERIALS } from "../../materials/components/materials-constants";
-import type { Supplier, PurchaseOrder } from "@/types/shared-types";
-import {
-  ORDER_STATUS_MAP,
-  SUPPLIER_COLUMNS,
-  PURCHASE_ORDER_COLUMNS,
-} from "./procurement-constants";
+import { ORDER_STATUS_MAP } from "./procurement-constants";
 
 interface SuppliersTableProps {
   suppliers: Supplier[];
@@ -177,7 +173,7 @@ export function OrdersTable({ orders, onEditOrder }: OrdersTableProps) {
       key: "items",
       label: "Items",
       sortable: true,
-      render: (value: any[], row: PurchaseOrder) => `${value.length} items`,
+      render: (value: any[], _row: PurchaseOrder) => `${value.length} items`,
     },
     {
       key: "dateCreated",

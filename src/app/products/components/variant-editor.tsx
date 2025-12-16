@@ -62,7 +62,7 @@ export function VariantEditor({
             ...sp,
             packaging,
             supplier,
-            displayName: `${packaging?.name} - ${packaging?.capacity}${packaging?.unit} (${supplier?.name})`,
+            displayName: `${packaging?.name} - ${packaging?.capacity}${packaging?.capacityUnit} (${supplier?.name})`,
           };
         })
       ).then(setPackagingDetails);

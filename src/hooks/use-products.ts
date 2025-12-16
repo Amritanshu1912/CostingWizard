@@ -70,7 +70,7 @@ export async function getPackagingDetails() {
         ...sp,
         packaging,
         supplier,
-        displayName: `${packaging?.name} - ${packaging?.capacity}${packaging?.unit} (${supplier?.name})`,
+        displayName: `${packaging?.name} - ${packaging?.capacity}${packaging?.capacityUnit} (${supplier?.name})`,
       };
     })
   );
@@ -162,7 +162,7 @@ export async function getProductVariantsWithDetails(
         recipeName: recipe?.name || "Unknown Recipe",
         packagingName: packagingDetails?.name || "Unknown Packaging",
         packagingCapacity: packagingDetails?.capacity || 0,
-        packagingUnit: packagingDetails?.unit || "ml",
+        packagingUnit: packagingDetails?.capacityUnit || "ml",
         frontLabelName: frontLabelDetails?.name,
         backLabelName: backLabelDetails?.name,
         displayName: `${product.name} - ${variant.name}`,
