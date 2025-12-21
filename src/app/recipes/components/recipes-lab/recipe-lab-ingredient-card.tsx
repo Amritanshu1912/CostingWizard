@@ -10,25 +10,18 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import type {
+  ExperimentIngredient,
+  SupplierMaterialForRecipe,
+} from "@/types/recipe-types";
 import { normalizeToKg } from "@/utils/unit-conversion-utils";
-import type { RecipeIngredient } from "@/types/shared-types";
-import type { SupplierMaterialRow } from "@/types/material-types";
-
 import { Lock, RotateCcw, Trash2, Unlock } from "lucide-react";
-
-interface ExperimentIngredient extends RecipeIngredient {
-  _changed?: boolean;
-  _changeTypes?: Set<"quantity" | "supplier">;
-  _originalQuantity?: number;
-  _originalSupplierId?: string;
-}
 
 interface RecipeLabIngredientCardProps {
   ingredient: ExperimentIngredient;
   index: number;
-  supplierMaterial: SupplierMaterialRow | undefined;
-  alternatives: SupplierMaterialRow[];
-  isExpanded: boolean;
+  supplierMaterial: SupplierMaterialForRecipe | undefined;
+  alternatives: SupplierMaterialForRecipe[];
   onQuantityChange: (index: number, quantity: number) => void;
   onSupplierChange: (index: number, supplierId: string) => void;
   onTogglePriceLock: (index: number) => void;
@@ -36,6 +29,11 @@ interface RecipeLabIngredientCardProps {
   onReset: (index: number) => void;
 }
 
+/**
+ * Recipe Lab Ingredient Card Component
+ * Props: Display data + handlers (pure UI component) *
+ * UTILITY FUNCTION NOTE: normalizeToKg used here - extract to utils
+ */
 export function RecipeLabIngredientCard({
   ingredient: ing,
   index,
@@ -47,7 +45,9 @@ export function RecipeLabIngredientCard({
   onRemove,
   onReset,
 }: RecipeLabIngredientCardProps) {
+  // UTILITY FUNCTION CANDIDATE - normalizeToKg
   const quantityInKg = normalizeToKg(ing.quantity, ing.unit);
+
   const pricePerKg = ing.lockedPricing?.unitPrice || sm?.unitPrice || 0;
   const cost = pricePerKg * quantityInKg;
 
@@ -74,7 +74,7 @@ export function RecipeLabIngredientCard({
           {index + 1}.
         </div>
 
-        {/* 1. Material Name & Alt Badges */}
+        {/* Material Name & Badges */}
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 flex-wrap">
             <h4 className="font-semibold text-sm truncate">
@@ -88,7 +88,6 @@ export function RecipeLabIngredientCard({
                 {alternatives.length} alt
               </Badge>
             )}
-            {/* Conditional "Qty" badge */}
             {quantityIsDifferent && (
               <Badge
                 variant="outline"
@@ -98,8 +97,6 @@ export function RecipeLabIngredientCard({
                 <RotateCcw className="h-2.5 w-2.5" />
               </Badge>
             )}
-
-            {/* Conditional "Supplier" badge */}
             {supplierIsDifferent && (
               <Badge
                 variant="outline"
@@ -112,7 +109,7 @@ export function RecipeLabIngredientCard({
           </div>
         </div>
 
-        {/* 2. Supplier Selector */}
+        {/* Supplier Selector */}
         <div className="w-64">
           <Select
             value={ing.supplierMaterialId}
@@ -125,7 +122,7 @@ export function RecipeLabIngredientCard({
                     {sm?.supplierName || "Select"}
                   </span>
                   <span className="text-muted-foreground text-xs ml-2">
-                    ₹{sm?.unitPrice.toFixed(2)}/{sm?.unit}
+                    ₹{sm?.unitPrice.toFixed(2)}/{sm?.capacityUnit}
                   </span>
                 </div>
               </SelectValue>
@@ -140,7 +137,7 @@ export function RecipeLabIngredientCard({
                   </div>
                   <div className="text-right ml-4">
                     <p className="font-semibold text-sm">
-                      ₹{sm?.unitPrice.toFixed(2)}/{sm?.unit}
+                      ₹{sm?.unitPrice.toFixed(2)}/{sm?.capacityUnit}
                     </p>
                     {sm?.moq && (
                       <p className="text-xs text-muted-foreground">
@@ -168,9 +165,9 @@ export function RecipeLabIngredientCard({
                             <p className="font-medium truncate">
                               {alt.supplierName}
                             </p>
-                            {alt.availability !== "in-stock" && (
+                            {alt.stockStatus !== "in-stock" && (
                               <p className="text-xs text-red-600">
-                                {alt.availability === "out-of-stock"
+                                {alt.stockStatus === "out-of-stock"
                                   ? "Out of Stock"
                                   : "Limited"}
                               </p>
@@ -179,7 +176,7 @@ export function RecipeLabIngredientCard({
                           <div className="flex items-center gap-2 ml-4">
                             <div className="text-right">
                               <p className="font-semibold text-sm">
-                                ₹{alt.unitPrice.toFixed(2)}/{alt.unit}
+                                ₹{alt.unitPrice.toFixed(2)}/{alt.capacityUnit}
                               </p>
                               {alt.moq && (
                                 <p className="text-xs text-muted-foreground">
@@ -208,7 +205,7 @@ export function RecipeLabIngredientCard({
           </Select>
         </div>
 
-        {/* 3. Quantity Input */}
+        {/* Quantity Input */}
         <div className="w-32">
           <div className="flex items-center gap-1">
             <Input
@@ -225,7 +222,7 @@ export function RecipeLabIngredientCard({
           </div>
         </div>
 
-        {/* 4. Cost Display */}
+        {/* Cost Display */}
         <div className="w-[97px] text-right ml-2">
           <div className="flex items-center justify-end gap-1">
             <div>
@@ -250,9 +247,8 @@ export function RecipeLabIngredientCard({
           </div>
         </div>
 
-        {/* 5. Action Buttons */}
+        {/* Action Buttons */}
         <div className="flex items-center gap-1">
-          {/* Reset button remains the same, invisible until needed */}
           <Button
             variant="ghost"
             size="icon"

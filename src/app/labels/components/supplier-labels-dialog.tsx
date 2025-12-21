@@ -56,7 +56,7 @@ import type {
 } from "@/types/label-types";
 import type { Supplier } from "@/types/supplier-types";
 import { cn } from "@/utils/shared-utils";
-import { normalizeText } from "@/utils/text-utils";
+import { normalizeText } from "@/utils/shared-utils";
 import {
   getLabelTypeColor,
   getLabelTypeLabel,
@@ -71,6 +71,7 @@ import {
   PRINTING_TYPES,
   SHAPE_TYPES,
 } from "./labels-constants";
+import { formatINR } from "@/utils/formatting-utils";
 
 interface SupplierLabelsDialogProps {
   open: boolean;
@@ -770,7 +771,7 @@ export function SupplierLabelsDialog({
                       Unit Price (₹)
                     </Label>
                     <div className="flex justify-center items-center h-9 px-3 rounded-md bg-muted text-sm">
-                      ₹{calculatedUnitPrice.toFixed(2)}
+                      {formatINR(calculatedUnitPrice)}
                     </div>
                   </div>
                 </div>

@@ -23,10 +23,12 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
-import type { ExperimentIngredient } from "@/hooks/recipe-hooks/use-recipe-experiment";
-import type { RecipeVariant } from "@/types/shared-types";
-import type { SupplierMaterialRow } from "@/types/material-types";
-
+import { useSupplierMaterialsForRecipe } from "@/hooks/recipe-hooks/use-recipe-data";
+import type {
+  RecipeVariant,
+  ExperimentIngredient,
+  ExperimentMetrics,
+} from "@/types/recipe-types";
 import {
   Check,
   ChevronDown,
@@ -45,35 +47,33 @@ interface RecipeLabWorkspaceProps {
   loadedVariantName: string | null;
   currentVariant?: RecipeVariant;
   experimentIngredients: ExperimentIngredient[];
-  supplierMaterials: SupplierMaterialRow[];
-  expandedAlternatives: Set<string>;
-  metrics: any;
-  getAlternatives: (ing: any) => SupplierMaterialRow[];
+  metrics: ExperimentMetrics;
+
+  // Handlers only
   onQuantityChange: (index: number, quantity: number) => void;
   onSupplierChange: (index: number, supplierId: string) => void;
   onTogglePriceLock: (index: number) => void;
   onRemoveIngredient: (index: number) => void;
   onResetIngredient: (index: number) => void;
-  /** Reset all ingredient changes made to the current recipe/variant back to their original state */
   onResetAll: () => void;
   onSaveAsVariant: () => void;
   onUpdateVariant: () => void;
-  /** Load and display the original recipe when viewing a variant */
   onLoadOriginalRecipe: () => void;
   onUpdateOriginal: () => void;
   onDeleteVariant: (variantId: string) => Promise<void>;
   onUpdateVariantDetails: (variant: RecipeVariant) => Promise<void>;
 }
 
+/**
+ * Recipe Lab Workspace
+ * Data Fetching: Fetches its own supplier materials (not passed as prop!)
+ */
 export function RecipeLabWorkspace({
   selectedRecipeName,
   loadedVariantName,
   currentVariant,
   experimentIngredients,
-  supplierMaterials,
-  expandedAlternatives,
   metrics,
-  getAlternatives,
   onQuantityChange,
   onSupplierChange,
   onTogglePriceLock,
@@ -87,6 +87,8 @@ export function RecipeLabWorkspace({
   onDeleteVariant,
   onUpdateVariantDetails,
 }: RecipeLabWorkspaceProps) {
+  const supplierMaterials = useSupplierMaterialsForRecipe();
+
   const [isEditingVariant, setIsEditingVariant] = useState(false);
   const [editedVariant, setEditedVariant] = useState<RecipeVariant | undefined>(
     currentVariant
@@ -97,6 +99,8 @@ export function RecipeLabWorkspace({
     setEditedVariant(currentVariant);
     setIsEditingVariant(false);
   }, [currentVariant]);
+
+  // HANDLERS
 
   const handleSaveVariantDetails = () => {
     if (editedVariant) {
@@ -110,13 +114,13 @@ export function RecipeLabWorkspace({
     setIsEditingVariant(false);
   };
 
+  // RENDER
+
   return (
     <Card className="flex-1 flex flex-col py-2">
       {/* Header */}
       <div className="flex items-start justify-between p-4">
-        {/* Card for Recipe/Variant Info */}
         <Card className="flex-1 p-4 gap-4 bg-gradient-to-r from-blue-50 to-slate-50 border border-blue-200 shadow-sm relative">
-          {/* Top Row: Name, Links, and Action Buttons */}
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
               <Edit3 className="w-5 h-5 text-slate-600 flex-shrink-0" />
@@ -139,8 +143,6 @@ export function RecipeLabWorkspace({
               </div>
             </div>
 
-            {/* --- Actions for Variants --- */}
-
             <div className="flex items-center gap-2">
               {metrics.changeCount > 0 && (
                 <Button
@@ -148,7 +150,6 @@ export function RecipeLabWorkspace({
                   size="sm"
                   onClick={onResetAll}
                   className="flex items-center gap-2"
-                  title="Reset all ingredient changes back to their original values"
                 >
                   <RotateCcw className="w-3.5 h-3.5" />
                   Reset Changes
@@ -160,7 +161,6 @@ export function RecipeLabWorkspace({
                     variant="outline"
                     size="sm"
                     onClick={() => {
-                      // When clicking edit, always expand the details
                       setIsDetailsExpanded(true);
                       setIsEditingVariant(true);
                     }}
@@ -174,7 +174,6 @@ export function RecipeLabWorkspace({
                         variant="destructive"
                         size="icon"
                         className="w-9 h-9"
-                        title={`Delete variant "${currentVariant.name}"`}
                       >
                         <Trash2 className="w-4 h-4" />
                       </Button>
@@ -184,8 +183,8 @@ export function RecipeLabWorkspace({
                         <AlertDialogTitle>Delete Variant</AlertDialogTitle>
                         <AlertDialogDescription>
                           Are you sure you want to delete &quot;
-                          {currentVariant.name}
-                          &quot;? This action cannot be undone.
+                          {currentVariant.name}&quot;? This action cannot be
+                          undone.
                         </AlertDialogDescription>
                       </AlertDialogHeader>
                       <AlertDialogFooter>
@@ -203,12 +202,12 @@ export function RecipeLabWorkspace({
               )}
             </div>
           </div>
-          {/* Chevron for Details Toggle */}
+
+          {/* Chevron */}
           {loadedVariantName && currentVariant && (
             <button
               className="absolute left-1/2 bottom-1 transform -translate-x-1/2 -mb-px text-slate-400 hover:text-blue-500 transition-colors"
               onClick={() => setIsDetailsExpanded(!isDetailsExpanded)}
-              title={isDetailsExpanded ? "Hide details" : "Show details"}
             >
               {isDetailsExpanded ? (
                 <ChevronUp className="w-4 h-4" />
@@ -216,84 +215,66 @@ export function RecipeLabWorkspace({
                 <ChevronDown className="w-4 h-4" />
               )}
             </button>
-          )}{" "}
-          {/* --- Expandable Details Section --- */}
+          )}
+
+          {/* Expandable Details */}
           {isDetailsExpanded &&
             loadedVariantName &&
             currentVariant &&
             editedVariant && (
               <div className="pt-4 border-t border-slate-200">
                 {!isEditingVariant ? (
-                  // --- View Mode for Details ---
-                  <>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6 text-sm">
-                      <div>
-                        <Label className="text-xs text-slate-500">Status</Label>
-                        <p
-                          className={`inline-flex items-center gap-2 font-medium ${
-                            currentVariant.isActive
-                              ? "text-green-700"
-                              : "text-slate-600"
-                          }`}
-                        >
-                          <span
-                            className={`inline-block w-2 h-2 rounded-full ${
-                              currentVariant.isActive
-                                ? "bg-green-500"
-                                : "bg-slate-400"
-                            }`}
-                          ></span>
-                          {currentVariant.isActive ? "Active" : "Inactive"}
-                        </p>
-                      </div>
-
-                      <div>
-                        <Label className="text-xs text-slate-500">
-                          Optimization Goal
-                        </Label>
-                        <p className="text-slate-700 capitalize">
-                          {currentVariant.optimizationGoal?.replace(
-                            /_/g,
-                            " "
-                          ) || (
-                            <span className="italic text-slate-500">
-                              Not specified
-                            </span>
-                          )}
-                        </p>
-                      </div>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6 text-sm">
+                    <div>
+                      <Label className="text-xs text-slate-500">Status</Label>
+                      <p
+                        className={`inline-flex items-center gap-2 font-medium ${currentVariant.isActive ? "text-green-700" : "text-slate-600"}`}
+                      >
+                        <span
+                          className={`inline-block w-2 h-2 rounded-full ${currentVariant.isActive ? "bg-green-500" : "bg-slate-400"}`}
+                        ></span>
+                        {currentVariant.isActive ? "Active" : "Inactive"}
+                      </p>
                     </div>
-
-                    <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-6 text-sm">
-                      <div>
-                        <Label className="text-xs text-slate-500">
-                          Description
-                        </Label>
-                        <p className="text-slate-700 leading-relaxed">
-                          {currentVariant.description || (
-                            <span className="italic text-slate-500">
-                              No description provided
-                            </span>
-                          )}
-                        </p>
-                      </div>
-
-                      <div>
-                        <Label className="text-xs text-slate-500">Notes</Label>
-                        <p className="text-slate-700 leading-relaxed">
-                          {currentVariant.notes ? (
-                            currentVariant.notes
-                          ) : (
-                            <span className="italic text-slate-500">
-                              No notes available
-                            </span>
-                          )}
-                        </p>
-                      </div>
+                    <div>
+                      <Label className="text-xs text-slate-500">
+                        Optimization Goal
+                      </Label>
+                      <p className="text-slate-700 capitalize">
+                        {currentVariant.optimizationGoal?.replace(
+                          /_/g,
+                          " "
+                        ) || (
+                          <span className="italic text-slate-500">
+                            Not specified
+                          </span>
+                        )}
+                      </p>
                     </div>
-                  </>
+                    <div>
+                      <Label className="text-xs text-slate-500">
+                        Description
+                      </Label>
+                      <p className="text-slate-700 leading-relaxed">
+                        {currentVariant.description || (
+                          <span className="italic text-slate-500">
+                            No description
+                          </span>
+                        )}
+                      </p>
+                    </div>
+                    <div>
+                      <Label className="text-xs text-slate-500">Notes</Label>
+                      <p className="text-slate-700 leading-relaxed">
+                        {currentVariant.notes || (
+                          <span className="italic text-slate-500">
+                            No notes
+                          </span>
+                        )}
+                      </p>
+                    </div>
+                  </div>
                 ) : (
-                  // --- Edit Mode for Details ---
                   <div className="space-y-4">
                     <div className="grid grid-cols-4 gap-4">
                       <div className="col-span-2">
@@ -316,8 +297,7 @@ export function RecipeLabWorkspace({
                           onValueChange={(value) =>
                             setEditedVariant({
                               ...editedVariant,
-                              optimizationGoal:
-                                value as RecipeVariant["optimizationGoal"],
+                              optimizationGoal: value as any,
                             })
                           }
                         >
@@ -351,9 +331,7 @@ export function RecipeLabWorkspace({
                             }
                             className="w-4 h-4"
                           />
-                          <span className="text-sm font-medium">
-                            Active Variant
-                          </span>
+                          <span className="text-sm font-medium">Active</span>
                         </label>
                       </div>
                     </div>
@@ -387,7 +365,6 @@ export function RecipeLabWorkspace({
                         />
                       </div>
                     </div>
-
                     <div className="flex justify-end pt-2 gap-2">
                       <Button
                         variant="ghost"
@@ -399,7 +376,7 @@ export function RecipeLabWorkspace({
                       </Button>
                       <Button size="sm" onClick={handleSaveVariantDetails}>
                         <Check className="w-4 h-4 mr-1" />
-                        Save Changes
+                        Save
                       </Button>
                     </div>
                   </div>
@@ -412,27 +389,37 @@ export function RecipeLabWorkspace({
       {/* Ingredients List */}
       <ScrollArea className="flex-1 min-h-0 px-4 py-0">
         <div className="space-y-3">
-          {experimentIngredients.map((ing, index) => (
-            <RecipeLabIngredientCard
-              key={ing.id}
-              ingredient={ing}
-              index={index}
-              supplierMaterial={supplierMaterials.find(
-                (s) => s.id === ing.supplierMaterialId
-              )}
-              alternatives={getAlternatives(ing)}
-              isExpanded={expandedAlternatives.has(ing.id)}
-              onQuantityChange={onQuantityChange}
-              onSupplierChange={onSupplierChange}
-              onTogglePriceLock={onTogglePriceLock}
-              onRemove={onRemoveIngredient}
-              onReset={onResetIngredient}
-            />
-          ))}
+          {experimentIngredients.map((ing, index) => {
+            const sm = supplierMaterials.find(
+              (s) => s.id === ing.supplierMaterialId
+            );
+
+            // Get alternatives for this ingredient from supplier materials
+            const alternatives = sm
+              ? supplierMaterials.filter(
+                  (alt) => alt.materialId === sm.materialId && alt.id !== sm.id
+                )
+              : [];
+
+            return (
+              <RecipeLabIngredientCard
+                key={ing.id}
+                ingredient={ing}
+                index={index}
+                supplierMaterial={sm}
+                alternatives={alternatives}
+                onQuantityChange={onQuantityChange}
+                onSupplierChange={onSupplierChange}
+                onTogglePriceLock={onTogglePriceLock}
+                onRemove={onRemoveIngredient}
+                onReset={onResetIngredient}
+              />
+            );
+          })}
         </div>
       </ScrollArea>
 
-      {/* Action Panel - Shows when changes exist */}
+      {/* Action Panel */}
       {metrics.changeCount > 0 && (
         <div className="p-4 border-t bg-gradient-to-r from-slate-50 to-blue-50">
           <div className="flex items-center justify-between mb-3">
@@ -442,9 +429,7 @@ export function RecipeLabWorkspace({
                 made
               </p>
               <p
-                className={`text-lg font-bold ${
-                  metrics.savings > 0 ? "text-green-600" : "text-red-600"
-                }`}
+                className={`text-lg font-bold ${metrics.savings > 0 ? "text-green-600" : "text-red-600"}`}
               >
                 {metrics.savings > 0 ? "−" : "+"}₹
                 {Math.abs(metrics.savings).toFixed(2)}/kg
@@ -454,18 +439,15 @@ export function RecipeLabWorkspace({
               </p>
             </div>
           </div>
-
           <div className="flex gap-2">
             <Button
               variant="outline"
               className="flex-1"
               onClick={onResetAll}
               size="sm"
-              title="Reset all ingredient changes back to their original values"
             >
               Reset Changes
             </Button>
-
             {loadedVariantName ? (
               <>
                 <Button

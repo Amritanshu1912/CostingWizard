@@ -22,6 +22,7 @@ import { LabelsDrawer } from "./labels-drawer";
 import { LabelsPriceComparison } from "./labels-price-comparison";
 import { SupplierLabelsDialog } from "./supplier-labels-dialog";
 import { SupplierLabelsTable } from "./supplier-labels-table";
+import { formatINR, formatPercentage } from "@/utils/formatting-utils";
 
 /**
  * LabelsManager component provides the main interface for managing labels inventory
@@ -195,7 +196,7 @@ export function LabelsManager() {
 
             <MetricCard
               title="Avg Price (with tax)"
-              value={`₹${avgPrice.toFixed(2)}`}
+              value={formatINR(avgPrice)}
               icon={BarChart3}
               iconClassName="text-primary"
               trend={{
@@ -207,7 +208,7 @@ export function LabelsManager() {
 
             <MetricCard
               title="Highest Price"
-              value={`₹${highestPrice.toFixed(2)}`}
+              value={formatINR(highestPrice)}
               icon={TrendingUp}
               iconClassName="text-primary"
               description="per piece"
@@ -215,7 +216,7 @@ export function LabelsManager() {
 
             <MetricCard
               title="Avg Tax Rate"
-              value={`${avgTax.toFixed(1)}%`}
+              value={formatPercentage(avgTax)}
               icon={BarChart3}
               iconClassName="text-primary"
               description="average across all labels"

@@ -15,6 +15,7 @@ import {
   MetricCardWithProgress,
 } from "@/components/ui/metric-card";
 import { Progress } from "@/components/ui/progress";
+import { formatINR, formatPercentage } from "@/utils/formatting-utils";
 import { useSupplierPackagingTableRows } from "@/hooks/packaging-hooks/use-packaging-queries";
 import {
   BAR_CHART_CONFIG,
@@ -93,7 +94,7 @@ export function PackagingAnalytics() {
       {
         type: "progress",
         title: "Price Volatility",
-        value: `+${volatility.toFixed(1)}%`,
+        value: `+${formatPercentage(volatility)}`,
         icon: TrendingUp,
         iconClassName: "text-accent",
         progress: {
@@ -330,9 +331,10 @@ export function PackagingAnalytics() {
                   contentStyle={CHART_TOOLTIP_STYLE}
                   itemStyle={CHART_TOOLTIP_ITEM_STYLE}
                   labelStyle={CHART_TOOLTIP_LABEL_STYLE}
-                  formatter={(value) =>
-                    typeof value === "number" ? value.toFixed(2) : value
-                  }
+                  formatter={(value, name) => [
+                    typeof value === "number" ? formatINR(value) : value,
+                    name,
+                  ]}
                 />
                 <Legend {...CHART_LEGEND_CONFIG} />
                 <Line
@@ -375,9 +377,10 @@ export function PackagingAnalytics() {
                   contentStyle={CHART_TOOLTIP_STYLE}
                   itemStyle={CHART_TOOLTIP_ITEM_STYLE}
                   labelStyle={CHART_TOOLTIP_LABEL_STYLE}
-                  formatter={(value) =>
-                    typeof value === "number" ? value.toFixed(2) : value
-                  }
+                  formatter={(value, name) => [
+                    typeof value === "number" ? formatINR(value) : value,
+                    name,
+                  ]}
                 />
                 <Legend {...CHART_LEGEND_CONFIG} />
                 <Bar
@@ -416,7 +419,7 @@ export function PackagingAnalytics() {
                     const { percent, payload } = props;
                     const p = percent as number;
                     const name = (payload as { name: string }).name;
-                    return `${name} ${(p * 100).toFixed(0)}%`;
+                    return `${name} ${formatPercentage(p * 100)}`;
                   }}
                   dataKey="value"
                   {...PIE_CHART_CONFIG}
@@ -430,7 +433,7 @@ export function PackagingAnalytics() {
                   itemStyle={CHART_TOOLTIP_ITEM_STYLE}
                   labelStyle={CHART_TOOLTIP_LABEL_STYLE}
                   formatter={(value) =>
-                    typeof value === "number" ? value.toFixed(2) : value
+                    typeof value === "number" ? formatPercentage(value) : value
                   }
                 />
               </PieChart>
@@ -464,9 +467,10 @@ export function PackagingAnalytics() {
                   contentStyle={CHART_TOOLTIP_STYLE}
                   itemStyle={CHART_TOOLTIP_ITEM_STYLE}
                   labelStyle={CHART_TOOLTIP_LABEL_STYLE}
-                  formatter={(value) =>
-                    typeof value === "number" ? value.toFixed(2) : value
-                  }
+                  formatter={(value, name) => [
+                    typeof value === "number" ? formatINR(value) : value,
+                    name,
+                  ]}
                 />
                 <Legend {...CHART_LEGEND_CONFIG} />
                 <Bar

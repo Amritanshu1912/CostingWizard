@@ -1,30 +1,44 @@
 // src/lib/db.ts
-import Dexie, { Table } from "dexie";
+import { PRODUCTION_BATCHES } from "@/app/batches/components/batches-constants";
+import {
+  MOCK_INVENTORY_ITEMS,
+  MOCK_TRANSACTIONS,
+} from "@/app/inventory/components/inventory-constants";
+import {
+  PRODUCTS,
+  PRODUCT_VARIANTS,
+} from "@/app/products/components/products-constants";
+import { SUPPLIERS } from "@/app/suppliers/components/suppliers-constants";
 import type {
-  RecipeIngredient,
+  InventoryAlert,
+  InventoryItem,
+  InventoryTransaction,
+} from "@/types/inventory-types";
+import type { Label, SupplierLabel } from "@/types/label-types";
+import type {
+  Category,
+  Material,
+  SupplierMaterial,
+} from "@/types/material-types";
+import type { Packaging, SupplierPackaging } from "@/types/packaging-types";
+import type {
   Recipe,
+  RecipeIngredient,
   RecipeVariant,
+} from "@/types/recipe-types";
+import type {
   Product,
   ProductVariant,
   ProductionBatch,
   PurchaseOrder,
   TransportationCost,
 } from "@/types/shared-types";
-import type {
-  Category,
-  Material,
-  SupplierMaterial,
-} from "@/types/material-types";
-import type { Label, SupplierLabel } from "@/types/label-types";
-import type { Packaging, SupplierPackaging } from "@/types/packaging-types";
 import type { Supplier } from "@/types/supplier-types";
-import type {
-  InventoryItem,
-  InventoryTransaction,
-  InventoryAlert,
-} from "@/types/inventory-types";
-import { MATERIAL_CATEGORIES } from "./constants";
-import { SUPPLIERS } from "@/app/suppliers/components/suppliers-constants";
+import Dexie, { Table } from "dexie";
+import {
+  LABELS,
+  SUPPLIER_LABELS,
+} from "../app/labels/components/labels-constants";
 import {
   MATERIALS,
   SUPPLIER_MATERIALS,
@@ -34,25 +48,13 @@ import {
   SUPPLIER_PACKAGING,
 } from "../app/packaging/components/packaging-constants";
 import {
-  LABELS,
-  SUPPLIER_LABELS,
-} from "../app/labels/components/labels-constants";
-import {
   RECIPES,
   RECIPE_INGREDIENTS,
   RECIPE_VARIANTS,
 } from "../app/recipes/components/recipes-constants";
-import {
-  PRODUCT_VARIANTS,
-  PRODUCTS,
-} from "@/app/products/components/products-constants";
-import { PRODUCTION_BATCHES } from "@/app/batches/components/batches-constants";
-import {
-  MOCK_INVENTORY_ITEMS,
-  MOCK_TRANSACTIONS,
-} from "@/app/inventory/components/inventory-constants";
 import { sweepAndGenerateAlerts } from "../utils/inventory-alerts";
 import { autoGenerateMissingInventoryItems } from "./autoGenerateMissingInventoryItems";
+import { MATERIAL_CATEGORIES } from "./constants";
 
 export class CostingWizardDB extends Dexie {
   categories!: Table<Category>;

@@ -49,6 +49,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import { formatINR } from "@/utils/formatting-utils";
 
 interface SupplierLabelsTableProps {
   supplierLabels: SupplierLabelTableRow[];
@@ -227,12 +228,12 @@ export function SupplierLabelsTable({
           return (
             <div className="text-foreground">
               {/* Display the calculated unit price */}
-              <div className="font-medium">₹{value.toFixed(2)}</div>
+              <div className="font-medium">{formatINR(value)}</div>
 
               {/* Show bulk pricing details if applicable */}
               {hasBulkPricing && row.bulkPrice && (
                 <div className="text-xs text-muted-foreground mt-1">
-                  ₹{row.bulkPrice.toFixed(2)} for {row.quantityForBulkPrice}{" "}
+                  {formatINR(row.bulkPrice)} for {row.quantityForBulkPrice}{" "}
                   units
                 </div>
               )}
@@ -261,7 +262,7 @@ export function SupplierLabelsTable({
         sortable: true,
         render: (value: number) => (
           <div>
-            <div className="font-medium">₹{value.toFixed(2)}</div>
+            <div className="font-medium">{formatINR(value)}</div>
           </div>
         ),
       },

@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import type { RecipeDisplay } from "@/types/shared-types";
+import type { RecipeListItem } from "@/types/recipe-types";
 import { formatDate } from "@/utils/formatting-utils";
 import {
   FileText,
@@ -17,8 +17,8 @@ import {
 import { useMemo } from "react";
 import { getStatusColors } from "../recipe-colors";
 
-interface RecipeListProps {
-  recipes: RecipeDisplay[];
+interface RecipeListViewProps {
+  recipes: RecipeListItem[];
   selectedRecipeId: string | null;
   onSelectRecipe: (recipeId: string) => void;
   onAdd: () => void;
@@ -26,6 +26,10 @@ interface RecipeListProps {
   onSearchChange: (term: string) => void;
 }
 
+/**
+ * Recipe list view component - Displays filterable list of recipes
+ * Props: Minimal UI state only (no data fetching)
+ */
 export function RecipeListView({
   recipes,
   selectedRecipeId,
@@ -33,10 +37,11 @@ export function RecipeListView({
   onAdd,
   searchTerm,
   onSearchChange,
-}: RecipeListProps) {
-  // Filter recipes based on search
+}: RecipeListViewProps) {
+  // FILTERED RECIPES
   const filteredRecipes = useMemo(() => {
     if (!searchTerm.trim()) return recipes;
+
     const term = searchTerm.toLowerCase();
     return recipes.filter(
       (recipe) =>
@@ -46,10 +51,11 @@ export function RecipeListView({
     );
   }, [recipes, searchTerm]);
 
+  // RENDER
   return (
     <Card className="flex-1 flex flex-col border-none shadow-sm overflow-hidden">
       <CardContent className="p-4 flex flex-col flex-1 min-h-0">
-        {/* Search & Create Button */}
+        {/* ===== Search & Create Button ===== */}
         <div className="flex gap-2 mb-4">
           <div className="relative flex-1">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
@@ -71,9 +77,10 @@ export function RecipeListView({
           </Button>
         </div>
 
-        {/* Recipe List */}
+        {/* ===== Recipe List ===== */}
         <ScrollArea className="flex-1 -mx-4 px-4">
           {filteredRecipes.length === 0 ? (
+            // Empty state
             <div className="text-center py-12 text-slate-500">
               <Package className="w-12 h-12 mx-auto mb-3 text-slate-300" />
               <p className="font-medium">No recipes found</p>
@@ -84,13 +91,12 @@ export function RecipeListView({
               </p>
             </div>
           ) : (
+            // Recipe cards
             <div role="listbox" aria-label="Recipe list" className="space-y-2">
               {filteredRecipes.map((recipe) => {
                 const isSelected = selectedRecipeId === recipe.id;
                 const statusColors = getStatusColors(recipe.status);
-                const variance = recipe.targetCostPerKg
-                  ? recipe.costPerKg - recipe.targetCostPerKg
-                  : 0;
+                const variance = recipe.varianceFromTarget || 0;
                 const isOverTarget = variance > 0;
 
                 return (
@@ -99,11 +105,7 @@ export function RecipeListView({
                     onClick={() => onSelectRecipe(recipe.id)}
                     role="option"
                     aria-selected={isSelected}
-                    aria-label={`Recipe: ${
-                      recipe.name
-                    }, Cost: ₹${recipe.costPerKg.toFixed(2)} per kg, Status: ${
-                      recipe.status
-                    }`}
+                    aria-label={`Recipe: ${recipe.name}, Cost: ₹${recipe.costPerKg.toFixed(2)} per kg, Status: ${recipe.status}`}
                     className={`w-full text-left p-3 rounded-xl border-2 transition-all duration-200 ${
                       isSelected
                         ? "border-blue-500 bg-blue-50 shadow-md"
@@ -126,11 +128,10 @@ export function RecipeListView({
                             {recipe.status}
                           </Badge>
                           <span className="text-xs text-slate-500">
-                            v{recipe.version || 1}
+                            v{recipe.version}
                           </span>
                           <span className="text-xs text-slate-500">
-                            • updated{" "}
-                            {formatDate(recipe.updatedAt || recipe.createdAt)}
+                            • updated {formatDate(recipe.updatedAt)}
                           </span>
                         </div>
                       </div>
@@ -186,7 +187,7 @@ export function RecipeListView({
           )}
         </ScrollArea>
 
-        {/* Results Summary */}
+        {/* ===== Results Summary ===== */}
         {searchTerm && (
           <div className="pt-3 border-t mt-2 text-xs text-slate-500 text-center">
             Showing {filteredRecipes.length} of {recipes.length} recipes

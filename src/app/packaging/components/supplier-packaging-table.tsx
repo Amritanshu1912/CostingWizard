@@ -34,6 +34,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import { formatINR } from "@/utils/formatting-utils";
 import type {
   BuildMaterial,
   PackagingType,
@@ -211,12 +212,12 @@ export function SupplierPackagingTable({
           return (
             <div className="text-foreground">
               {/* Display the calculated unit price */}
-              <div className="font-medium">₹{(value ?? 0).toFixed(2)}</div>
+              <div className="font-medium">{formatINR(value ?? 0)}</div>
 
               {/* Show bulk pricing details if applicable */}
               {hasBulkPricing && row.bulkPrice && (
                 <div className="text-xs text-muted-foreground mt-1">
-                  ₹{row.bulkPrice.toFixed(2)} for {row.quantityForBulkPrice}{" "}
+                  {formatINR(row.bulkPrice)} for {row.quantityForBulkPrice}{" "}
                   units
                 </div>
               )}
@@ -246,7 +247,7 @@ export function SupplierPackagingTable({
         render: (value: number, row: SupplierPackagingTableRow) => {
           return (
             <div className="text-foreground">
-              <div className="font-medium">₹{row.priceWithTax.toFixed(2)}</div>
+              <div className="font-medium">{formatINR(row.priceWithTax)}</div>
               <div className="text-xs text-muted-foreground">per unit</div>
             </div>
           );

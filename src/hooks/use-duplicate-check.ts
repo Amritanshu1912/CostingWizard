@@ -1,4 +1,4 @@
-import { findSimilarItems } from "@/utils/text-utils";
+import { findSimilarItems } from "@/utils/shared-utils";
 import { useCallback, useMemo, useState } from "react";
 
 /**

@@ -10,6 +10,11 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { useMaterialPriceComparison } from "@/hooks/material-hooks/use-materials-queries";
+import {
+  formatINR,
+  formatNumber,
+  formatPercentage,
+} from "@/utils/formatting-utils";
 import { AlertCircle, Clock, Star, TrendingDown } from "lucide-react";
 
 /**
@@ -74,10 +79,10 @@ export function MaterialsPriceComparison() {
                       Potential Savings
                     </div>
                     <div className="text-2xl font-bold text-accent">
-                      ₹{comparison.savings.toFixed(2)}
+                      {formatINR(comparison.savings)}
                     </div>
                     <div className="text-xs text-accent font-medium">
-                      {comparison.savingsPercentage.toFixed(1)}% cheaper
+                      {formatPercentage(comparison.savingsPercentage)} cheaper
                     </div>
                   </div>
                 </div>
@@ -145,7 +150,7 @@ export function MaterialsPriceComparison() {
                                   </div>
                                   <div className="text-xs text-muted-foreground flex items-center gap-1">
                                     <Star className="h-3 w-3 text-yellow-500 fill-current" />
-                                    {supplier.supplierRating.toFixed(1)}
+                                    {formatNumber(supplier.supplierRating, 1)}
                                   </div>
                                 </div>
                               </div>
@@ -154,7 +159,7 @@ export function MaterialsPriceComparison() {
                             {/* Price */}
                             <td className="py-4 px-4 text-right">
                               <div className="font-semibold text-foreground">
-                                ₹{supplier.unitPrice.toFixed(2)}
+                                {formatINR(supplier.unitPrice)}
                               </div>
                               <div className="text-xs text-muted-foreground">
                                 per {supplier.capacityUnit}
@@ -164,7 +169,7 @@ export function MaterialsPriceComparison() {
                             {/* Price + Tax */}
                             <td className="py-4 px-4 text-right">
                               <div className="font-medium text-foreground">
-                                ₹{supplier.priceWithTax.toFixed(2)}
+                                {formatINR(supplier.priceWithTax)}
                               </div>
                             </td>
 
@@ -202,15 +207,13 @@ export function MaterialsPriceComparison() {
                               ) : (
                                 <div className="text-right">
                                   <div className="text-sm font-medium text-red-600">
-                                    +₹{priceDiff.toFixed(2)}
+                                    +{formatINR(priceDiff)}
                                   </div>
                                   <div className="text-xs text-muted-foreground">
                                     +
-                                    {(
-                                      (priceDiff / cheapest.unitPrice) *
-                                      100
-                                    ).toFixed(1)}
-                                    %
+                                    {formatPercentage(
+                                      (priceDiff / cheapest.unitPrice) * 100
+                                    )}
                                   </div>
                                 </div>
                               )}
@@ -227,14 +230,14 @@ export function MaterialsPriceComparison() {
                   <div className="text-muted-foreground">
                     Average price across all suppliers:{" "}
                     <span className="font-medium text-foreground">
-                      ₹{comparison.averagePrice.toFixed(2)}
+                      {formatINR(comparison.averagePrice)}
                     </span>
                   </div>
                   <div className="text-muted-foreground">
                     Price range:{" "}
                     <span className="font-medium text-foreground">
-                      ₹{cheapest.unitPrice.toFixed(2)} - ₹
-                      {mostExpensive.unitPrice.toFixed(2)}
+                      {formatINR(cheapest.unitPrice)} -{" "}
+                      {formatINR(mostExpensive.unitPrice)}
                     </span>
                   </div>
                 </div>

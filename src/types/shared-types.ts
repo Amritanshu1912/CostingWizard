@@ -2,6 +2,7 @@
 import { ItemWithoutInventory } from "./inventory-types";
 import { SupplierLabelTableRow } from "./label-types";
 import { SupplierPackagingTableRow } from "./packaging-types";
+import type { Recipe, RecipeVariant } from "./recipe-types";
 
 // ============================================================================
 // BASE TYPES
@@ -21,135 +22,8 @@ export interface BulkDiscount {
 export type CapacityUnit = "kg" | "L" | "ml" | "gm" | "pcs";
 
 // ============================================================================
-// RECIPES
-// ============================================================================
-
-export interface LockedPricing {
-  unitPrice: number; // locked supplier unit price
-  tax: number; // Locked tax percentage
-  lockedAt: Date;
-  reason?: "cost_analysis" | "quote" | "production_batch" | "other";
-  notes?: string;
-}
-// A single ingredient in a recipe formulation.
-
-export interface RecipeIngredient extends BaseEntity {
-  recipeId: string;
-  supplierMaterialId: string;
-  quantity: number;
-  unit: CapacityUnit;
-  lockedPricing?: LockedPricing;
-}
-
-// Recipe/Formulation - The formula for making a product substance
-
-export interface Recipe extends BaseEntity {
-  name: string;
-  description?: string;
-  targetCostPerKg?: number;
-  status: "draft" | "testing" | "active" | "archived" | "discontinued";
-  version?: number;
-  instructions?: string;
-  notes?: string;
-}
-
-export type OptimizationGoalType =
-  | "cost_reduction"
-  | "supplier_diversification"
-  | "custom";
-
-export interface RecipeVariant extends BaseEntity {
-  originalRecipeId: string;
-  name: string;
-  description?: string;
-
-  // Core formulation
-  ingredientIds: string[];
-  // Optional full snapshot of variant ingredients to avoid referencing mutable
-  // recipe ingredient records. This allows historic variants to stay immutable
-  // even if the base recipe changes.
-  ingredientsSnapshot?: VariantIngredientSnapshot[];
-
-  // Business context
-  optimizationGoal?:
-    | "cost_reduction"
-    | "quality_improvement"
-    | "supplier_diversification"
-    | "other";
-  isActive: boolean;
-
-  // Audit trail
-  changes?: RecipeVariantChange[];
-  notes?: string;
-}
-
-export interface RecipeVariantChange {
-  type:
-    | "quantity_change"
-    | "supplier_change"
-    | "ingredient_added"
-    | "ingredient_removed";
-  ingredientName?: string;
-  oldValue?: string | number;
-  newValue?: string | number;
-  reason?: string;
-  changedAt: Date; // Add timestamp for better audit
-}
-
-// --- Snapshot for variant (optional) ---
-// If you need the variant to be a full snapshot of formulation at that moment,
-// use this structure instead of referencing ingredientIds. This avoids future edits
-// to base ingredients from changing historic variants.
-export interface VariantIngredientSnapshot {
-  supplierMaterialId: string;
-  quantity: number;
-  unit: CapacityUnit;
-  lockedPricing?: LockedPricing;
-  notes?: string;
-}
-
-// Computed values for a recipe ingredient (NOT stored in DB)
-// These are calculated at runtime from SupplierMaterial data
-
-export interface RecipeIngredientDisplay extends RecipeIngredient {
-  displayQuantity: string;
-
-  // Material & supplier friendly fields (populated via join)
-  materialName?: string;
-  supplierName?: string;
-  displayName: string; // human-friendly: "Sodium Chloride (Supplier X)"
-
-  pricePerKg: number;
-  costForQuantity: number;
-  taxedPriceForQuantity: number;
-
-  priceSharePercentage: number; // share of recipe cost
-  isPriceLocked: boolean;
-  priceChangedSinceLock: boolean;
-  priceDifference?: number; // positive if current price > locked price
-  isAvailable: boolean;
-}
-
-// For UI display - computed from Recipe + RecipeIngredientDisplay[]
-export interface RecipeDisplay extends Recipe {
-  ingredients: RecipeIngredientDisplay[];
-  ingredientCount: number;
-  variantCount: number;
-
-  totalWeight: number;
-  totalCost: number;
-  taxedTotalCost: number;
-  costPerKg: number;
-  taxedCostPerKg: number;
-
-  varianceFromTarget?: number;
-  variancePercentage?: number;
-  isAboveTarget?: boolean;
-}
-
-// ============================================================================
 // PRODUCT SYSTEM (Final SKU)
-// ============================================================================
+// =========================================================================+++
 
 // Product - The master product definition/family
 export interface Product extends BaseEntity {

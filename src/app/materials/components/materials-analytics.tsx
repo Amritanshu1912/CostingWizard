@@ -27,6 +27,11 @@ import {
   CHART_YAXIS_CONFIG,
   PIE_CHART_CONFIG,
 } from "@/utils/chart-utils";
+import {
+  formatINR,
+  formatNumber,
+  formatPercentage,
+} from "@/utils/formatting-utils";
 import { AlertTriangle, DollarSign, Package, Users } from "lucide-react";
 import { useMemo } from "react";
 import {
@@ -139,7 +144,7 @@ export function MaterialsAnalytics() {
       {
         type: "standard",
         title: "Avg Price (with tax)",
-        value: `₹${analytics.avgPrice.toFixed(2)}`,
+        value: formatINR(analytics.avgPrice),
         icon: DollarSign,
         iconClassName: "text-accent",
         trend: {
@@ -154,7 +159,7 @@ export function MaterialsAnalytics() {
         value: materialsWithMultipleSuppliers.count,
         icon: Users,
         iconClassName: "text-primary",
-        description: `${materialsWithMultipleSuppliers.percentage.toFixed(0)}% have multiple suppliers`,
+        description: `${formatPercentage(materialsWithMultipleSuppliers.percentage)} have multiple suppliers`,
       },
     ];
   }, [analytics, materialsWithMultipleSuppliers]);
@@ -421,7 +426,10 @@ export function MaterialsAnalytics() {
                   <p className="text-sm text-muted-foreground">
                     {materialsWithMultipleSuppliers.count} materials have
                     multiple supplier options, giving you{" "}
-                    {materialsWithMultipleSuppliers.percentage.toFixed(0)}%
+                    {formatPercentage(
+                      materialsWithMultipleSuppliers.percentage,
+                      1
+                    )}
                     flexibility in sourcing.
                   </p>
                 </div>
@@ -437,8 +445,8 @@ export function MaterialsAnalytics() {
                   </h4>
                   <p className="text-sm text-muted-foreground">
                     Each material has an average of{" "}
-                    {avgSuppliersPerMaterial.toFixed(1)} suppliers, providing
-                    good market coverage.
+                    {formatNumber(avgSuppliersPerMaterial, 1)} suppliers,
+                    providing good market coverage.
                   </p>
                 </div>
               </div>

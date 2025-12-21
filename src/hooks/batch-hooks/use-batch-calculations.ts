@@ -5,8 +5,8 @@ import type {
   ItemWithoutInventory,
 } from "@/types/inventory-types";
 import type { SupplierMaterial } from "@/types/material-types";
+import type { RecipeIngredient } from "@/types/recipe-types";
 import type {
-  RecipeIngredient,
   RequirementItem,
   SupplierRequirement,
 } from "@/types/shared-types";

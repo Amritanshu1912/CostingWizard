@@ -39,19 +39,18 @@ export interface SupplierMaterial extends BaseEntity {
  * Material with basic category info and supplier details for lists/dropdowns
  * Used in: materials-list-drawer (table), dropdowns
  */
-export interface MaterialWithSupplierCount {
-  id: string;
+export interface MaterialWithSupplierCount extends BaseEntity {
   name: string;
   category: string;
   categoryColor: string;
   supplierCount: number;
   suppliers: Array<{
     id: string;
-    name: string;
+    supplierName: string;
     rating: number;
+    unitPrice: number;
+    moq?: number;
   }>;
-  createdAt: string;
-  updatedAt?: string;
 }
 
 /**

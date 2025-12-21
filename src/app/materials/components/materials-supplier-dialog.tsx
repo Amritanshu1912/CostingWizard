@@ -49,8 +49,8 @@ import { validateSupplierMaterialForm } from "@/hooks/material-hooks/use-materia
 import { useDuplicateCheck } from "@/hooks/use-duplicate-check";
 
 import { CAPACITY_UNITS } from "@/lib/constants";
-import { normalizeText } from "@/utils/text-utils";
 import { calculateUnitPrice } from "@/utils/unit-conversion-utils";
+import { formatINR } from "@/utils/formatting-utils";
 
 import { DEFAULT_SUPPLIER_MATERIAL_FORM } from "./materials-constants";
 
@@ -155,12 +155,12 @@ export function MaterialsSupplierDialog({
 
   // Check if we're creating new material/category (only prevent if exact match exists)
   const hasExactMaterialMatch = materials.some(
-    (m) => normalizeText(m.name) === normalizeText(materialSearch)
+    (m) => m.name.toLowerCase().trim() === materialSearch.toLowerCase().trim()
   );
   const isNewMaterial = !hasExactMaterialMatch && materialSearch.length > 0;
 
   const hasExactCategoryMatch = categories.some(
-    (c) => normalizeText(c.name) === normalizeText(categorySearch)
+    (c) => c.name.toLowerCase().trim() === categorySearch.toLowerCase().trim()
   );
   const isNewCategory = !hasExactCategoryMatch && categorySearch.length > 0;
 
@@ -712,7 +712,7 @@ export function MaterialsSupplierDialog({
                 {formData.quantityForBulkPrice > 1 &&
                   formData.bulkPrice > 0 && (
                     <div className="text-sm text-muted-foreground bg-muted/50 p-2 rounded">
-                      Unit price: ₹{calculatedUnitPrice.toFixed(2)} per{" "}
+                      Unit price: {formatINR(calculatedUnitPrice)} per{" "}
                       {formData.capacityUnit}
                     </div>
                   )}

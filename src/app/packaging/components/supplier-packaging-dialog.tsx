@@ -47,6 +47,7 @@ import { useEffect, useMemo, useState } from "react";
 
 import { useDuplicateCheck } from "@/hooks/use-duplicate-check";
 import { CAPACITY_UNITS } from "@/lib/constants";
+import { formatINR } from "@/utils/formatting-utils";
 import type {
   BuildMaterial,
   CapacityUnit,
@@ -56,7 +57,6 @@ import type {
 } from "@/types/packaging-types";
 import type { Supplier } from "@/types/supplier-types";
 import { cn } from "@/utils/shared-utils";
-import { normalizeText } from "@/utils/text-utils";
 import { BUILD_MATERIALS, PACKAGING_TYPES } from "./packaging-constants";
 
 interface SupplierPackagingDialogProps {
@@ -119,14 +119,14 @@ export function SupplierPackagingDialog({
   useEffect(() => {
     if (packagingSearch) {
       const filtered = packagingList.filter((m) =>
-        normalizeText(m.name).includes(normalizeText(packagingSearch))
+        m.name.toLowerCase().includes(packagingSearch.toLowerCase())
       );
       setFilteredPackaging(filtered);
 
       // Determine if this is a new packaging or existing one
-      const normalizedSearch = normalizeText(packagingSearch);
+      const normalizedSearch = packagingSearch.toLowerCase().trim();
       const exactMatchExists = packagingList.some(
-        (p) => normalizeText(p.name) === normalizedSearch
+        (p) => p.name.toLowerCase().trim() === normalizedSearch
       );
       setIsNewPackaging(!exactMatchExists);
 
@@ -750,7 +750,7 @@ export function SupplierPackagingDialog({
                       Unit Price (₹)
                     </Label>
                     <div className="flex justify-center items-center h-9 px-3 rounded-md bg-muted text-sm">
-                      ₹{calculatedUnitPrice.toFixed(2)}
+                      {formatINR(calculatedUnitPrice)}
                     </div>
                   </div>
                 </div>

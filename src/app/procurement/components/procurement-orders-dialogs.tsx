@@ -21,11 +21,8 @@ import {
 import { toast } from "sonner";
 import { Plus, XCircle } from "lucide-react";
 import { ORDER_STATUS_MAP } from "./procurement-constants"; // Assuming constants are in the same folder
-import type {
-  PurchaseOrder,
-  Supplier,
-  PurchaseOrderItem,
-} from "@/types/shared-types";
+import type { PurchaseOrder, PurchaseOrderItem } from "@/types/shared-types";
+import type { Supplier } from "@/types/supplier-types";
 import { SUPPLIERS } from "@/app/suppliers/components/suppliers-constants";
 import {
   MATERIALS,

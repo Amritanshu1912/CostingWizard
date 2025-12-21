@@ -10,22 +10,25 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import type { RecipeDisplay, RecipeVariant } from "@/types/shared-types";
+import type {
+  RecipeListItem,
+  RecipeVariantWithMetrics,
+} from "@/types/recipe-types";
 import { FlaskConical } from "lucide-react";
 
 interface RecipeLabSidebarProps {
-  recipes: RecipeDisplay[];
+  recipes: RecipeListItem[];
   selectedRecipeId: string;
-  variants: (RecipeVariant & {
-    costPerKg: number;
-    costDifference: number;
-    costDifferencePercentage: number;
-  })[];
+  variants: RecipeVariantWithMetrics[];
   loadedVariantName?: string | null;
   onSelectRecipe: (recipeId: string) => void;
-  onLoadVariant: (variant: RecipeVariant) => void;
+  onLoadVariant: (variant: RecipeVariantWithMetrics) => void;
 }
 
+/**
+ * Recipe Lab Sidebar Component
+ * Props: Minimal UI state only (no data fetching)
+ */
 export function RecipeLabSidebar({
   recipes,
   selectedRecipeId,
@@ -36,6 +39,7 @@ export function RecipeLabSidebar({
 }: RecipeLabSidebarProps) {
   return (
     <Card className="w-80 flex flex-col py-2">
+      {/* Header */}
       <div className="p-4 border-b">
         <h3 className="font-semibold text-lg flex items-center gap-2">
           <FlaskConical className="w-5 h-5 text-blue-600" />
@@ -59,9 +63,6 @@ export function RecipeLabSidebar({
                   <SelectItem key={recipe.id} value={recipe.id}>
                     <div className="flex items-center justify-between w-full min-w-[200px]">
                       <span className="truncate">{recipe.name}</span>
-                      {/* <span className="text-xs text-muted-foreground ml-2">
-                        ₹{recipe.costPerKg.toFixed(2)}/kg
-                      </span> */}
                     </div>
                   </SelectItem>
                 ))}
@@ -106,6 +107,32 @@ export function RecipeLabSidebar({
                         {variant.isActive ? "Active" : "Inactive"}
                       </Badge>
                     </div>
+
+                    {/* Cost Difference */}
+                    {variant.costDifference !== undefined && (
+                      <div className="mt-2 pt-2 border-t">
+                        <p className="text-xs text-muted-foreground">
+                          Cost Impact
+                        </p>
+                        <p
+                          className={`text-sm font-semibold ${
+                            variant.costDifference < 0
+                              ? "text-green-600"
+                              : "text-red-600"
+                          }`}
+                        >
+                          {variant.costDifference < 0 ? "-" : "+"}₹
+                          {Math.abs(variant.costDifference).toFixed(2)}/kg
+                          <span className="text-xs ml-1">
+                            (
+                            {Math.abs(variant.costDifferencePercentage).toFixed(
+                              1
+                            )}
+                            %)
+                          </span>
+                        </p>
+                      </div>
+                    )}
                   </Card>
                 ))
               )}
