@@ -135,35 +135,6 @@ export function calculateRecipeTotals(
 }
 
 /**
- * Calculate recipe cost from ingredients (legacy function for backward compatibility)
- * @deprecated Use calculateRecipeTotals instead
- */
-export function calculateRecipeCost(
-  ingredients: Array<{
-    supplierMaterialId: string;
-    quantity: number;
-    unit: string;
-    lockedPricing?: { unitPrice: number; tax: number };
-  }>,
-  supplierMaterials: SupplierMaterialForRecipe[]
-): {
-  totalCost: number;
-  totalCostWithTax: number;
-  totalWeight: number;
-  costPerKg: number;
-} {
-  const smMap = new Map(supplierMaterials.map((sm) => [sm.id, sm]));
-  const result = calculateRecipeTotals(ingredients, smMap);
-
-  return {
-    totalCost: result.totalCost,
-    totalCostWithTax: result.totalCostWithTax,
-    totalWeight: result.totalWeightGrams,
-    costPerKg: result.costPerKg,
-  };
-}
-
-/**
  * ================================================================================================
  * VARIANCE CALCULATION UTILITIES
  * ================================================================================================
@@ -238,31 +209,6 @@ export function calculateCostDifference(
   const percentage = baseCost > 0 ? (difference / baseCost) * 100 : 0;
 
   return { difference, percentage };
-}
-
-/**
- * Calculate absolute difference between two costs (for comparison views)
- * Used in: useTwoRecipeComparison
- *
- * @param cost1 - First cost
- * @param cost2 - Second cost
- * @returns absolute difference and percentage based on the higher cost
- */
-export function calculateAbsoluteDifference(
-  cost1: number,
-  cost2: number
-): {
-  difference: number;
-  percentage: number;
-} {
-  const diff = Math.abs(cost1 - cost2);
-  const base = Math.max(cost1, cost2);
-  const percentage = base > 0 ? (diff / base) * 100 : 0;
-
-  return {
-    difference: diff,
-    percentage,
-  };
 }
 
 /**
@@ -363,58 +309,18 @@ export function createVariantSnapshot(
   experimentIngredients: ExperimentIngredient[]
 ): VariantIngredientSnapshot[] {
   return experimentIngredients.map((ing) => ({
+    // BaseEntity fields from original ingredient
+    id: ing.id,
+    createdAt: ing.createdAt,
+    updatedAt: ing.updatedAt,
+
+    // Ingredient data
     supplierMaterialId: ing.supplierMaterialId,
     quantity: ing.quantity,
     unit: ing.unit,
     lockedPricing: ing.lockedPricing,
     notes: undefined,
   }));
-}
-
-/**
- * ================================================================================================
- * VALIDATION UTILITIES
- * ================================================================================================
- */
-
-/**
- * Validate recipe data before save
- */
-export function validateRecipeData(recipeData: {
-  name?: string;
-  ingredients?: Array<{ supplierMaterialId: string; quantity: number }>;
-  targetCostPerKg?: number;
-}): { valid: boolean; errors: string[] } {
-  const errors: string[] = [];
-
-  if (!recipeData.name?.trim()) {
-    errors.push("Recipe name is required");
-  }
-
-  if (!recipeData.ingredients || recipeData.ingredients.length === 0) {
-    errors.push("At least one ingredient is required");
-  }
-
-  if (recipeData.ingredients) {
-    const hasInvalidIngredients = recipeData.ingredients.some(
-      (ing) => !ing.supplierMaterialId || ing.quantity <= 0
-    );
-    if (hasInvalidIngredients) {
-      errors.push("All ingredients must have valid material and quantity > 0");
-    }
-  }
-
-  if (
-    recipeData.targetCostPerKg !== undefined &&
-    recipeData.targetCostPerKg < 0
-  ) {
-    errors.push("Target cost cannot be negative");
-  }
-
-  return {
-    valid: errors.length === 0,
-    errors,
-  };
 }
 
 /**
@@ -454,52 +360,6 @@ export function analyzeSupplierDistribution(
     supplierNames: names,
     supplierIds,
   };
-}
-
-/**
- * Count unique suppliers from ingredients
- * @deprecated Use analyzeSupplierDistribution instead
- */
-export function countUniqueSuppliers(
-  ingredients: Array<{ supplierMaterialId: string }>,
-  supplierMaterialsMap: Map<string, { supplierId: string }>
-): number {
-  const supplierIds = new Set<string>();
-
-  ingredients.forEach((ing) => {
-    const sm = supplierMaterialsMap.get(ing.supplierMaterialId);
-    if (sm) {
-      supplierIds.add(sm.supplierId);
-    }
-  });
-
-  return supplierIds.size;
-}
-
-/**
- * Get list of supplier names from ingredients
- * @deprecated Use analyzeSupplierDistribution instead
- */
-export function getSupplierNames(
-  ingredients: Array<{ supplierMaterialId: string }>,
-  supplierMaterialsMap: Map<string, { supplierId: string }>,
-  suppliersMap: Map<string, { name: string }>
-): string[] {
-  const supplierIds = new Set<string>();
-  const names: string[] = [];
-
-  ingredients.forEach((ing) => {
-    const sm = supplierMaterialsMap.get(ing.supplierMaterialId);
-    if (sm && !supplierIds.has(sm.supplierId)) {
-      supplierIds.add(sm.supplierId);
-      const supplier = suppliersMap.get(sm.supplierId);
-      if (supplier) {
-        names.push(supplier.name);
-      }
-    }
-  });
-
-  return names;
 }
 
 /**
@@ -594,13 +454,11 @@ export const recipeUtils = {
   getIngredientPrice,
   calculateIngredientCost,
   calculateRecipeTotals,
-  calculateRecipeCost,
 
   // Variance & comparison
   calculateVariance,
   calculateSavings,
   calculateCostDifference,
-  calculateAbsoluteDifference,
 
   // Data transformation
   createLookupMaps,
@@ -611,13 +469,8 @@ export const recipeUtils = {
   createVariantChanges,
   createVariantSnapshot,
 
-  // Validation
-  validateRecipeData,
-
   // Supplier analysis
   analyzeSupplierDistribution,
-  countUniqueSuppliers,
-  getSupplierNames,
 
   // Ingredient enrichment
   enrichIngredientWithCost,

@@ -82,7 +82,7 @@ export type OptimizationGoalType =
 /**
  * Snapshot of ingredient for variant historical record
  */
-export interface VariantIngredientSnapshot {
+export interface VariantIngredientSnapshot extends BaseEntity {
   supplierMaterialId: string;
   quantity: number;
   unit: CapacityUnit;
@@ -122,8 +122,7 @@ export interface RecipeVariantChange {
  * recipes.map(r => <RecipeCard key={r.id} recipe={r} />)
  * ```
  */
-export interface RecipeListItem {
-  id: string;
+export interface RecipeListItem extends BaseEntity {
   name: string;
   description?: string;
   status: Recipe["status"];
@@ -142,10 +141,6 @@ export interface RecipeListItem {
   varianceFromTarget?: number;
   variancePercentage?: number;
   isAboveTarget?: boolean;
-
-  // Metadata
-  updatedAt: string;
-  createdAt: string;
 }
 
 /**
@@ -181,9 +176,8 @@ export interface RecipeDetail extends Recipe {
  *
  * Includes enriched data from joined tables (materials, suppliers, inventory)
  */
-export interface RecipeIngredientDetail {
+export interface RecipeIngredientDetail extends BaseEntity {
   // Core ingredient data (from RecipeIngredient)
-  id: string;
   recipeId: string;
   supplierMaterialId: string;
   quantity: number;
@@ -197,6 +191,7 @@ export interface RecipeIngredientDetail {
 
   // Computed costs
   pricePerKg: number;
+  tax: number; // Tax percentage
   costForQuantity: number;
   taxedPriceForQuantity: number;
   priceSharePercentage: number; // % of total recipe cost
@@ -209,10 +204,6 @@ export interface RecipeIngredientDetail {
   // Inventory status
   currentStock: number;
   stockStatus: string; // "in-stock" | "low-stock" | "out-of-stock"
-
-  // Metadata
-  createdAt: string;
-  updatedAt?: string;
 }
 
 /**
@@ -449,20 +440,4 @@ export interface RecipeStats {
   totalIngredients: number;
   totalVariants: number;
   targetAchievementRate: number; // % of recipes meeting target
-}
-
-/**
- * Optimization suggestion for cost reduction
- * Used in: Recipe Lab suggestions panel
- */
-export interface OptimizationSuggestion {
-  type: "supplier_switch" | "quantity_reduction";
-  ingredientName: string;
-  currentSupplier: string;
-  suggestedSupplier?: string;
-  currentPrice: number;
-  suggestedPrice?: number;
-  savings: number;
-  savingsPercent: number;
-  confidence: number; // 0-100
 }

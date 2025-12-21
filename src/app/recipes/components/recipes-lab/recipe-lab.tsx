@@ -243,10 +243,24 @@ export default function RecipeLab() {
         notes: variant.notes,
       });
 
-      // Reload variant
+      // Reload variant with dual strategy
       const saved = await db.recipeVariants.get(variant.id);
-      if (saved && saved.ingredientsSnapshot) {
-        loadVariant(saved, saved.ingredientsSnapshot);
+      if (saved) {
+        let ingredients;
+
+        // Dual strategy: prefer snapshot if available, fallback to database
+        if (saved.ingredientsSnapshot && saved.ingredientsSnapshot.length > 0) {
+          // Use snapshot for variants that have it (newer variants)
+          ingredients = saved.ingredientsSnapshot;
+        } else {
+          // Fallback to fetching ingredients by variant ID (legacy variants)
+          ingredients = await db.recipeIngredients
+            .where("recipeId")
+            .equals(saved.id)
+            .toArray();
+        }
+
+        loadVariant(saved, ingredients);
       }
     },
     [updateVariantMetadata, loadVariant]
@@ -254,7 +268,23 @@ export default function RecipeLab() {
 
   const handleLoadVariant = useCallback(
     async (variant: any) => {
-      const ingredients = variant.ingredientsSnapshot || [];
+      let ingredients;
+
+      // Dual strategy: prefer snapshot if available, fallback to database
+      if (
+        variant.ingredientsSnapshot &&
+        variant.ingredientsSnapshot.length > 0
+      ) {
+        // Use snapshot for variants that have it (newer variants)
+        ingredients = variant.ingredientsSnapshot;
+      } else {
+        // Fallback to fetching ingredients by variant ID (legacy variants)
+        ingredients = await db.recipeIngredients
+          .where("recipeId")
+          .equals(variant.id)
+          .toArray();
+      }
+
       loadVariant(variant, ingredients);
     },
     [loadVariant]

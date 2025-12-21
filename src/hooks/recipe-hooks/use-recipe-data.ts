@@ -197,6 +197,7 @@ export function useRecipeIngredients(
         supplierName,
         displayName: `${materialName} (${supplierName})`,
         pricePerKg: costDetails.pricePerKg,
+        tax: costDetails.tax,
         costForQuantity: costDetails.costForQuantity,
         taxedPriceForQuantity: costDetails.taxedPriceForQuantity,
         priceSharePercentage: costDetails.priceSharePercentage,

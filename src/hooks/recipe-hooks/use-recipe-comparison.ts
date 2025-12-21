@@ -8,7 +8,7 @@ import type {
 import { recipeUtils } from "@/utils/recipe-utils";
 import { useLiveQuery } from "dexie-react-hooks";
 import { useMemo } from "react";
-import { useRecipeDetail, useRecipeList } from "./use-recipe-data";
+import { useRecipeList } from "./use-recipe-data";
 
 /**
  * Get all items available for comparison (recipes + variants)
@@ -36,6 +36,9 @@ export function useComparableItems(): ComparisonItem[] {
     recipes.forEach((recipe) => {
       const ingredients = ingredientsByRecipe.get(recipe.id) || [];
 
+      // Calculate totals using centralized utility (same as variants)
+      const totals = recipeUtils.calculateRecipeTotals(ingredients, smMap);
+
       // Use centralized supplier analysis
       const supplierAnalysis = recipeUtils.analyzeSupplierDistribution(
         ingredients,
@@ -45,9 +48,9 @@ export function useComparableItems(): ComparisonItem[] {
 
       items.push({
         ...recipe,
-        totalWeight: 0,
-        totalCost: 0,
-        taxedTotalCost: 0,
+        totalWeight: totals.totalWeightGrams,
+        totalCost: totals.totalCost,
+        taxedTotalCost: totals.totalCostWithTax,
         instructions: undefined,
         notes: undefined,
         itemType: "recipe" as const,
@@ -63,7 +66,25 @@ export function useComparableItems(): ComparisonItem[] {
       );
       if (!parentRecipe) return;
 
-      const ingredients = variant.ingredientsSnapshot || [];
+      let ingredients;
+
+      if (
+        variant.ingredientsSnapshot &&
+        variant.ingredientsSnapshot.length > 0
+      ) {
+        // New variants with embedded snapshots
+        ingredients = variant.ingredientsSnapshot;
+      } else {
+        // Legacy variants: fetch ingredients from database
+        ingredients = recipeIngredients
+          .filter((ing) => ing.recipeId === variant.id)
+          .map((ing) => ({
+            supplierMaterialId: ing.supplierMaterialId,
+            quantity: ing.quantity,
+            unit: ing.unit,
+            lockedPricing: ing.lockedPricing,
+          }));
+      }
 
       // Calculate totals
       const totals = recipeUtils.calculateRecipeTotals(ingredients, smMap);
@@ -265,11 +286,32 @@ export function useIngredientComparison(
 
     // Process variants
     variants.forEach((variant) => {
-      if (!variant || !variant.ingredientsSnapshot) return;
-      processIngredients(variant.id, variant.ingredientsSnapshot);
+      if (!variant) return;
+
+      if (
+        variant.ingredientsSnapshot &&
+        variant.ingredientsSnapshot.length > 0
+      ) {
+        // New variants with embedded snapshots
+        processIngredients(variant.id, variant.ingredientsSnapshot);
+      } else {
+        // Legacy variants: fetch ingredients from database
+        const ingredients = allIngredients.filter(
+          (ing) => ing.recipeId === variant.id
+        );
+        processIngredients(
+          variant.id,
+          ingredients.map((ing) => ({
+            supplierMaterialId: ing.supplierMaterialId,
+            quantity: ing.quantity,
+            unit: ing.unit,
+            lockedPricing: ing.lockedPricing,
+          }))
+        );
+      }
     });
 
-    // Fill missing values
+    // ENSURE COMPLETE COVERAGE: Every material must have an entry for every itemId
     comparisonMap.forEach((comparison) => {
       itemIds.forEach((id) => {
         if (!comparison.values[id]) {
@@ -284,42 +326,33 @@ export function useIngredientComparison(
       });
     });
 
+    // If no ingredients found at all, create placeholder entries
+    if (comparisonMap.size === 0) {
+      itemIds.forEach((itemId) => {
+        comparisonMap.set(`empty-${itemId}`, {
+          materialId: `empty-${itemId}`,
+          materialName: "No ingredients",
+          values: {},
+        });
+      });
+      // Fill all itemIds for the empty entries
+      comparisonMap.forEach((comparison) => {
+        itemIds.forEach((id) => {
+          comparison.values[id] = {
+            quantity: 0,
+            unit: "-",
+            supplier: "-",
+            cost: 0,
+            present: false,
+          };
+        });
+      });
+    }
+
     return Array.from(comparisonMap.values()).sort((a, b) =>
       a.materialName.localeCompare(b.materialName)
     );
   }, [itemIds]);
 
   return data || [];
-}
-
-/**
- * Compare two specific recipes side-by-side
- * FIXED: Uses correct absolute difference calculation
- */
-export function useTwoRecipeComparison(recipeId1: string, recipeId2: string) {
-  const recipe1 = useRecipeDetail(recipeId1);
-  const recipe2 = useRecipeDetail(recipeId2);
-
-  return useMemo(() => {
-    if (!recipe1 || !recipe2) return null;
-
-    // FIXED: Use absolute difference calculation (not relative to base)
-    const comparison = recipeUtils.calculateAbsoluteDifference(
-      recipe1.costPerKg,
-      recipe2.costPerKg
-    );
-
-    const cheaper = recipe1.costPerKg < recipe2.costPerKg ? recipe1 : recipe2;
-    const expensive =
-      recipe1.costPerKg >= recipe2.costPerKg ? recipe1 : recipe2;
-
-    return {
-      recipe1,
-      recipe2,
-      difference: comparison.difference,
-      differencePercentage: comparison.percentage,
-      cheaperRecipe: cheaper,
-      expensiveRecipe: expensive,
-    };
-  }, [recipe1, recipe2]);
 }

@@ -252,15 +252,17 @@ export function useRecipeExperiment(recipe: RecipeDetail | null) {
 
   const loadVariant = useCallback((variant: any, ingredients: any[]) => {
     const variantIngredients: ExperimentIngredient[] = ingredients.map(
-      (ing) => ({
-        id: ing.id,
-        recipeId: ing.recipeId,
+      (ing, index) => ({
+        // Handle backward compatibility for variants created before BaseEntity extension
+        id: ing.id || `${variant.id}-ing-${index}`,
+        recipeId: variant.originalRecipeId, // Use variant's original recipe ID
         supplierMaterialId: ing.supplierMaterialId,
         quantity: ing.quantity,
         unit: ing.unit,
         lockedPricing: ing.lockedPricing,
-        createdAt: ing.createdAt,
-        updatedAt: ing.updatedAt,
+        // Fallback for legacy variants
+        createdAt: ing.createdAt || new Date().toISOString(),
+        updatedAt: ing.updatedAt || new Date().toISOString(),
         _originalQuantity: ing.quantity,
         _originalSupplierId: ing.supplierMaterialId,
         _changeTypes: new Set<"quantity" | "supplier">(),

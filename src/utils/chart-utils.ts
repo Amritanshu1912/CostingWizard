@@ -155,7 +155,7 @@ export function formatCompactChartValue(value: number): string {
 
 /**
  * Formats percentage values for charts
- * @param value - Percentage value (as decimal, e.g., 0.15 for 15%)
+ * @param value - Percentage value (e.g., 15 for 15%)
  * @param decimals - Number of decimal places
  * @returns Formatted percentage string
  */
@@ -163,7 +163,7 @@ export function formatChartPercentage(
   value: number,
   decimals: number = 1
 ): string {
-  return `${(value * 100).toFixed(decimals)}%`;
+  return `${value.toFixed(decimals)}%`;
 }
 
 // ============================================================================
@@ -245,12 +245,13 @@ export function limitChartData<T>(
 
 /**
  * Standard X-axis configuration for charts
+ * Using direct hex values instead of CSS variables for Recharts compatibility
  */
 export const CHART_XAXIS_CONFIG = {
-  axisLine: { stroke: "hsl(var(--border))" },
-  tickLine: { stroke: "hsl(var(--border))" },
+  axisLine: { stroke: "#1e293b", strokeWidth: 1 }, // slate-800 for good contrast
+  tickLine: { stroke: "#1e293b", strokeWidth: 1 },
   tick: {
-    fill: "hsl(var(--foreground))",
+    fill: "#1e293b",
     fontSize: 12,
     fontFamily: "var(--font-sans)",
   },
@@ -258,12 +259,13 @@ export const CHART_XAXIS_CONFIG = {
 
 /**
  * Standard Y-axis configuration for charts
+ * Using direct hex values instead of CSS variables for Recharts compatibility
  */
 export const CHART_YAXIS_CONFIG = {
-  axisLine: { stroke: "hsl(var(--border))" },
-  tickLine: { stroke: "hsl(var(--border))" },
+  axisLine: { stroke: "#1e293b", strokeWidth: 1 }, // slate-800 for good contrast
+  tickLine: { stroke: "#1e293b", strokeWidth: 1 },
   tick: {
-    fill: "hsl(var(--foreground))",
+    fill: "#1e293b",
     fontSize: 12,
     fontFamily: "var(--font-sans)",
   },

@@ -417,7 +417,7 @@ export function RecipeDetailTabs({
                   ing.stockStatus === "in-stock" ? "In Stock" : "Out of Stock";
                 const taxRate = ing.lockedPricing
                   ? ing.lockedPricing.tax
-                  : ing.pricePerKg || 0;
+                  : ing.tax;
 
                 return (
                   <Card key={ing.id} className="border-slate-200 py-0">

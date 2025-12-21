@@ -223,6 +223,17 @@ export function ComparisonTable({ items }: { items: ComparisonItem[] }) {
                   </td>
                   {items.map((item) => {
                     const value = ing.values[item.id];
+                    // DEFENSIVE CHECK: Ensure value exists
+                    if (!value) {
+                      return (
+                        <td key={item.id} className="p-2 text-sm">
+                          <span className="text-muted-foreground flex items-center gap-1">
+                            <Minus className="w-3 h-3" />
+                            Loading...
+                          </span>
+                        </td>
+                      );
+                    }
                     return (
                       <td key={item.id} className="p-2 text-sm">
                         {value.present ? (
