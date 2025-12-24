@@ -131,7 +131,8 @@ export function RecipeListView({
                             v{recipe.version}
                           </span>
                           <span className="text-xs text-slate-500">
-                            • updated {formatDate(recipe.updatedAt)}
+                            • updated{" "}
+                            {formatDate(recipe.updatedAt || recipe.createdAt)}
                           </span>
                         </div>
                       </div>
