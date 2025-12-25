@@ -42,7 +42,7 @@ export function SupplierWiseRequirements({
     <Card>
       <Collapsible open={isExpanded} onOpenChange={setIsExpanded}>
         <CollapsibleTrigger asChild>
-          <CardHeader className="cursor-pointer hover:bg-accent/50 transition-colors">
+          <CardHeader className="cursor-pointer">
             <CardTitle className="flex items-center gap-2">
               {isExpanded ? (
                 <ChevronDown className="h-5 w-5" />
