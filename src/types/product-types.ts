@@ -1,21 +1,20 @@
-// ============================================================================
-// PRODUCT SYSTEM (Final SKU)
-// =========================================================================+++
+// src/types/product-types.ts
 
-import { SupplierLabelTableRow } from "./label-types";
-import { CapacityUnit, SupplierPackagingTableRow } from "./packaging-types";
-import { Recipe, RecipeVariant } from "./recipe-types";
 import { BaseEntity } from "./shared-types";
+import { CapacityUnit } from "./packaging-types";
+import { RecipeVariant } from "./recipe-types";
 
-// Product - The master product definition/family
+/**
+ * Product entity - The master product definition/family
+ * Stored in: db.products
+ */
 export interface Product extends BaseEntity {
   name: string; // e.g., "Harpic Toilet Cleaner"
   description?: string;
 
   // Recipe reference - can be original recipe OR a variant
-  recipeId: string; // This is EITHER a Recipe.id OR RecipeVariant.id
-  isRecipeVariant: boolean; // true if recipeId points to RecipeVariant
-
+  recipeId: string; // Recipe.id OR RecipeVariant.id
+  isRecipeVariant: boolean;
   // Product metadata
   status: "draft" | "active" | "discontinued";
   barcode?: string;
@@ -27,9 +26,7 @@ export interface Product extends BaseEntity {
 }
 
 /**
- * ProductVariant - Size/packaging variations of a product
- * Each variant represents a different SKU (e.g., "Harpic 1kg", "Harpic 500gm")
- * STORED IN INDEXEDDB
+ * ProductVariant entity - Size/packaging variations of a product
  */
 export interface ProductVariant extends BaseEntity {
   productId: string; // References Product.id
@@ -67,44 +64,61 @@ export interface ProductVariant extends BaseEntity {
 }
 
 // ============================================================================
-// PRODUCT COMPUTED TYPES (Calculated on-the-fly, NOT stored)
+// VIEW MODELS - For displaying data in components (with joins)
 // ============================================================================
 
 /**
- * ProductVariantWithDetails - Product variant with joined data
- * Computed by joining with Product, Recipe, Packaging, Labels
+ * Minimal product data for list views
  */
-export interface ProductVariantWithDetails extends ProductVariant {
-  // Joined product info
-  product?: Product;
-  productName: string;
-  productCategory?: string;
+export interface ProductListItem extends BaseEntity {
+  name: string;
+  description?: string;
+  status: Product["status"];
 
+  // Display data
+  recipeName: string;
+  variantCount: number;
+
+  // Quick metrics (optional - for future enhancement)
+  bestMargin?: number;
+  worstMargin?: number;
+}
+
+/**
+ * Product with enriched data for detail views
+ */
+export interface ProductDetail extends Product {
   // Joined recipe info
-  recipe?: Recipe;
   recipeName: string;
   recipeVariant?: RecipeVariant;
 
-  // Joined packaging info
-  packaging?: SupplierPackagingTableRow;
+  // Counts
+  variantCount: number;
+}
+
+/**
+ * Variant with essential joined data for list/card display
+ */
+export interface ProductVariantDetail extends ProductVariant {
+  // Joined recipe info (for display only)
+  recipeName: string;
+
+  // Joined packaging info (essential fields only)
   packagingName: string;
   packagingCapacity: number;
   packagingUnit: CapacityUnit;
 
-  // Joined label info
-  frontLabel?: SupplierLabelTableRow;
+  // Joined label info (optional)
   frontLabelName?: string;
-  backLabel?: SupplierLabelTableRow;
   backLabelName?: string;
-
-  // Display helpers
-  displayName: string; // "Harpic 1kg Bottle"
-  displaySku: string;
 }
 
+// ============================================================================
+// COST ANALYSIS TYPES - Computation results (not stored in DB)
+// ============================================================================
+
 /**
- * ProductVariantCostAnalysis - Complete cost breakdown
- * Computed from current prices of recipe, packaging, labels
+ * Computed on-demand from current prices of recipe, packaging, labels
  */
 export interface ProductVariantCostAnalysis {
   variantId: string;
@@ -179,68 +193,93 @@ export interface ProductVariantCostAnalysis {
   hasAvailabilityIssues: boolean;
 }
 
+// ============================================================================
+// FORM MODELS - For create/update operations
+// ============================================================================
+
 /**
- * ProductFamilyAnalysis - Analysis across all variants of a product
- * Useful for comparing different sizes
+ * Form data for creating/updating products
  */
-export interface ProductFamilyAnalysis {
+export interface ProductFormData {
+  name: string;
+  description?: string;
+  status: Product["status"];
+  recipeId: string;
+  isRecipeVariant: boolean;
+  barcode?: string;
+  imageUrl?: string;
+  tags?: string[];
+  shelfLife?: number;
+  notes?: string;
+}
+
+/**
+ * Form data for creating/updating product variants
+ */
+export interface VariantFormData {
   productId: string;
-  productName: string;
-
-  variants: ProductVariantCostAnalysis[];
-  variantCount: number;
-  activeVariantCount: number;
-
-  // Aggregate metrics
-  averageMargin: number;
-  bestMarginVariant?: {
-    variantId: string;
-    variantName: string;
-    margin: number;
-  };
-  worstMarginVariant?: {
-    variantId: string;
-    variantName: string;
-    margin: number;
-  };
-
-  // Size comparison
-  mostEconomicalSize?: {
-    variantId: string;
-    variantName: string;
-    costPerKg: number;
-  };
-
-  // Revenue potential (if you track sales data later)
-  totalPotentialRevenue?: number;
-}
-
-/**
- * Component cost summary for a product variant
- * Used in UI tables/cards
- */
-export interface ComponentCostSummary {
-  componentType: "recipe" | "packaging" | "label";
-  itemName: string;
-  quantity: number;
-  unit?: string;
-  unitPrice: number;
-  tax: number;
-  totalCost: number;
-  totalCostWithTax: number;
-}
-
-/**
- * Quick variant comparison view
- * For showing multiple variants side-by-side
- */
-export interface VariantComparison {
-  variantId: string;
+  name: string;
   sku: string;
-  size: string; // e.g., "1kg", "500gm"
-  sellingPrice: number;
-  cost: number;
-  margin: number;
-  costPerKg: number;
+  fillQuantity: number;
+  fillUnit: CapacityUnit;
+  packagingSelectionId: string;
+  frontLabelSelectionId?: string;
+  backLabelSelectionId?: string;
+  labelsPerUnit: number;
+  sellingPricePerUnit: number;
+  targetProfitMargin?: number;
+  minimumProfitMargin?: number;
+  distributionChannels?: string[];
+  unitsPerCase?: number;
+  sellingPricePerCase?: number;
   isActive: boolean;
+  notes?: string;
+}
+
+/**
+ * Form validation errors
+ */
+export interface ProductFormErrors {
+  name?: string;
+  recipeId?: string;
+  sellingPricePerUnit?: string;
+  packagingSelectionId?: string;
+  sku?: string;
+}
+
+// ============================================================================
+// HELPER TYPES - For specific use cases
+// ============================================================================
+
+/**
+ * Packaging option for dropdowns
+ * Minimal data needed for selection UI
+ */
+export interface PackagingOption {
+  id: string;
+  displayName: string;
+  unitPrice: number;
+  capacity: number;
+  capacityUnit: CapacityUnit;
+}
+
+/**
+ * Label option for dropdowns
+ * Minimal data needed for selection UI
+ */
+export interface LabelOption {
+  id: string;
+  displayName: string;
+  unitPrice: number;
+}
+
+/**
+ * Recipe option for dropdowns
+ * Minimal data needed for selection UI
+ */
+export interface RecipeOption {
+  id: string;
+  name: string;
+  costPerKg: number;
+  isVariant?: boolean;
 }

@@ -23,6 +23,9 @@ interface DeleteProductDialogProps {
   onCancel: () => void;
 }
 
+/**
+ * Confirmation dialog for deleting a product and all its variants
+ */
 export function DeleteProductDialog({
   open,
   productName,
@@ -65,6 +68,9 @@ interface DeleteVariantDialogProps {
   onCancel: () => void;
 }
 
+/**
+ * Confirmation dialog for deleting a single product variant
+ */
 export function DeleteVariantDialog({
   open,
   variantName,
@@ -107,6 +113,9 @@ interface ValidationErrorDialogProps {
   onClose: () => void;
 }
 
+/**
+ * Generic dialog for displaying validation errors
+ */
 export function ValidationErrorDialog({
   open,
   title,

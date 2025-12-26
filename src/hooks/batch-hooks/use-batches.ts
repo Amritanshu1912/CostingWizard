@@ -4,8 +4,8 @@ import type {
   BatchCostAnalysis,
   BatchRequirementsAnalysis,
   BatchWithDetails,
-  ProductVariant,
 } from "@/types/shared-types";
+import type { ProductVariant } from "@/types/product-types";
 import { useLiveQuery } from "dexie-react-hooks";
 
 import {
@@ -14,7 +14,7 @@ import {
   normalizeToKg,
 } from "@/utils/unit-conversion-utils";
 
-import { getRecipeCostPerKg } from "@/hooks/use-products";
+import { getRecipeCostPerKg } from "@/hooks/product-hooks/use-product-costs";
 import {
   aggregateRequirements,
   calculateCostWithTax,

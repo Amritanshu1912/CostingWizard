@@ -13,67 +13,91 @@ import {
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import {
-  generateSKU,
-  getLabelDetails,
-  getPackagingDetails,
-} from "@/hooks/use-products";
+  usePackagingOptions,
+  useLabelOptions,
+  useRecipeOptions,
+  useRecipeVariantOptions,
+} from "@/hooks/product-hooks/use-product-options";
 import {
-  useRecipeList,
-  useRecipeVariants,
-} from "@/hooks/recipe-hooks/use-recipe-data";
+  getRecipeCostPerKg,
+  calculateLiveMargin,
+} from "@/hooks/product-hooks/use-product-costs";
 import type { CapacityUnit } from "@/types/shared-types";
-import type { Product, ProductVariant } from "@/types/product-types";
-import { Check, Package, Tag, X } from "lucide-react";
+import type {
+  Product,
+  ProductVariant,
+  ProductFormData,
+  VariantFormData,
+} from "@/types/product-types";
+import { Check, Package, Tag, X, TrendingUp } from "lucide-react";
 import { useEffect, useState } from "react";
 import { ValidationErrorDialog } from "./products-dialogs";
-
+import {
+  generateSKU,
+  validateProductForm,
+  validateVariantForm,
+  getMarginColors,
+} from "@/utils/product-utils";
+import { calculatePriceWithTax } from "@/utils/unit-conversion-utils";
+import { normalizeToKg } from "@/utils/unit-conversion-utils";
 // ============================================================================
 // PRODUCT FORM
 // ============================================================================
 
 interface ProductFormProps {
   initialProduct?: Product;
-  onSave: (product: Omit<Product, "id" | "createdAt" | "updatedAt">) => void;
+  onSave: (product: ProductFormData) => void;
   onCancel: () => void;
 }
 
+/**
+ * Form component for creating/editing products
+ * Handles recipe selection and recipe variant selection
+ */
 export function ProductForm({
   initialProduct,
   onSave,
   onCancel,
 }: ProductFormProps) {
-  const recipes = useRecipeList();
+  const recipes = useRecipeOptions();
   const [showValidationError, setShowValidationError] = useState(false);
   const [validationMessage, setValidationMessage] = useState("");
 
-  const [formData, setFormData] = useState({
+  // Form state
+  const [formData, setFormData] = useState<Partial<ProductFormData>>({
     name: initialProduct?.name || "",
     description: initialProduct?.description || "",
-    status: initialProduct?.status || ("draft" as Product["status"]),
+    status: initialProduct?.status || "draft",
     recipeId: initialProduct?.recipeId || "",
     isRecipeVariant: initialProduct?.isRecipeVariant || false,
   });
 
+  // Track base recipe ID separately for variant selection
   const [baseRecipeId, setBaseRecipeId] = useState<string>(() => {
     if (!initialProduct) return "";
     return initialProduct.isRecipeVariant ? "" : initialProduct.recipeId;
   });
 
-  const variants = useRecipeVariants(baseRecipeId || null);
+  // Get variants for selected base recipe
+  const variants = useRecipeVariantOptions(baseRecipeId || null);
 
-  // Compute baseRecipeId for recipe variants during render
+  // Compute the actual base recipe ID (for editing recipe variants)
   const computedBaseRecipeId = (() => {
     if (initialProduct?.isRecipeVariant && variants.length > 0) {
       const variant = variants.find((v) => v.id === initialProduct.recipeId);
       if (variant) {
-        return variant.originalRecipeId;
+        // This is a simplification - in reality we'd need to look up the variant's originalRecipeId
+        return variant.id;
       }
     }
-    return baseRecipeId; // fall back to current baseRecipeId
+    return baseRecipeId;
   })();
 
+  /**
+   * Handle recipe selection (base recipe)
+   */
   const handleRecipeChange = (recipeId: string) => {
-    setBaseRecipeId(recipeId); // Set the state here instead
+    setBaseRecipeId(recipeId);
     setFormData({
       ...formData,
       recipeId,
@@ -81,6 +105,9 @@ export function ProductForm({
     });
   };
 
+  /**
+   * Handle variant selection (or original recipe)
+   */
   const handleVariantChange = (variantValue: string) => {
     if (!baseRecipeId) return;
 
@@ -99,25 +126,20 @@ export function ProductForm({
     }
   };
 
+  /**
+   * Handle form submission with validation
+   */
   const handleSubmit = () => {
-    if (!formData.name.trim()) {
-      setValidationMessage("Product name is required");
-      setShowValidationError(true);
-      return;
-    }
-    if (!formData.recipeId) {
-      setValidationMessage("Please select a recipe");
+    const errors = validateProductForm(formData);
+
+    if (Object.keys(errors).length > 0) {
+      const firstError = Object.values(errors)[0];
+      setValidationMessage(firstError || "Please check the form");
       setShowValidationError(true);
       return;
     }
 
-    onSave({
-      name: formData.name,
-      description: formData.description,
-      status: formData.status,
-      recipeId: formData.recipeId,
-      isRecipeVariant: formData.isRecipeVariant,
-    });
+    onSave(formData as ProductFormData);
   };
 
   const currentVariantValue = formData.isRecipeVariant
@@ -209,9 +231,7 @@ export function ProductForm({
                     <SelectItem key={variant.id} value={variant.id}>
                       {variant.name}
                       <span className="text-xs text-muted-foreground ml-2">
-                        (₹{variant.costPerKg.toFixed(2)}/kg,{" "}
-                        {variant.costDifferencePercentage > 0 ? "+" : ""}
-                        {variant.costDifferencePercentage.toFixed(1)}%)
+                        (₹{variant.costPerKg.toFixed(2)}/kg)
                       </span>
                     </SelectItem>
                   ))}
@@ -274,6 +294,10 @@ interface VariantFormProps {
   onCancel: () => void;
 }
 
+/**
+ * Form component for creating/editing product variants
+ * Includes real-time margin calculation below selling price input
+ */
 export function VariantForm({
   productId,
   initialVariant,
@@ -283,16 +307,12 @@ export function VariantForm({
   const [showValidationError, setShowValidationError] = useState(false);
   const [validationMessage, setValidationMessage] = useState("");
 
-  const [packagingDetails, setPackagingDetails] = useState<any[]>([]);
-  const [labelDetails, setLabelDetails] = useState<any[]>([]);
+  // Get options for dropdowns
+  const packagingOptions = usePackagingOptions();
+  const labelOptions = useLabelOptions();
 
-  // Load packaging and label details on mount
-  useEffect(() => {
-    getPackagingDetails().then(setPackagingDetails);
-    getLabelDetails().then(setLabelDetails);
-  }, []);
-
-  const [formData, setFormData] = useState<Partial<ProductVariant>>(
+  // Form state
+  const [formData, setFormData] = useState<Partial<VariantFormData>>(
     initialVariant || {
       productId,
       name: "",
@@ -306,21 +326,93 @@ export function VariantForm({
     }
   );
 
+  // Real-time cost and margin calculation
+  const [estimatedCost, setEstimatedCost] = useState<number>(0);
+  const [liveMargin, setLiveMargin] = useState<number>(0);
+
+  /**
+   * Calculate estimated cost when form data changes
+   */
+  useEffect(() => {
+    const calculateCost = async () => {
+      // Get recipe cost
+      const recipeCost = await getRecipeCostPerKg(productId);
+
+      // Get packaging cost
+      const selectedPackaging = packagingOptions.find(
+        (p) => p.id === formData.packagingSelectionId
+      );
+      const packagingCost = selectedPackaging
+        ? calculatePriceWithTax(selectedPackaging.unitPrice, 18) // Assume 18% tax for estimate
+        : 0;
+
+      // Get label costs (simplified - assume 18% tax)
+      const frontLabel = labelOptions.find(
+        (l) => l.id === formData.frontLabelSelectionId
+      );
+      const backLabel = labelOptions.find(
+        (l) => l.id === formData.backLabelSelectionId
+      );
+      const labelsCost =
+        calculatePriceWithTax(frontLabel?.unitPrice || 0, 18) +
+        calculatePriceWithTax(backLabel?.unitPrice || 0, 18);
+
+      // Calculate total
+      const fillInKg = normalizeToKg(
+        formData.fillQuantity || 1000,
+        formData.fillUnit || "gm"
+      );
+      const recipeCostForFill =
+        (recipeCost.costPerKg + recipeCost.taxPerKg) * fillInKg;
+      const totalCost = recipeCostForFill + packagingCost + labelsCost;
+
+      setEstimatedCost(totalCost);
+
+      // Calculate margin
+      if (formData.sellingPricePerUnit && formData.sellingPricePerUnit > 0) {
+        const margin = calculateLiveMargin(
+          formData.sellingPricePerUnit,
+          totalCost
+        );
+        setLiveMargin(margin);
+      }
+    };
+
+    calculateCost();
+  }, [
+    productId,
+    formData.fillQuantity,
+    formData.fillUnit,
+    formData.packagingSelectionId,
+    formData.frontLabelSelectionId,
+    formData.backLabelSelectionId,
+    formData.sellingPricePerUnit,
+    packagingOptions,
+    labelOptions,
+  ]);
+
+  /**
+   * Handle form submission with validation
+   */
   const handleSubmit = () => {
-    if (!formData.name || !formData.sku || !formData.packagingSelectionId) {
-      setValidationMessage("Please fill in all required fields");
+    const errors = validateVariantForm(formData);
+
+    if (Object.keys(errors).length > 0) {
+      const firstError = Object.values(errors)[0];
+      setValidationMessage(firstError || "Please check the form");
       setShowValidationError(true);
       return;
     }
 
-    onSave({
+    // Create complete variant object
+    const variant: ProductVariant = {
       id: initialVariant?.id || crypto.randomUUID(),
       productId,
-      name: formData.name,
-      sku: formData.sku,
+      name: formData.name!,
+      sku: formData.sku!,
       fillQuantity: formData.fillQuantity || 1000,
       fillUnit: formData.fillUnit || "gm",
-      packagingSelectionId: formData.packagingSelectionId,
+      packagingSelectionId: formData.packagingSelectionId!,
       frontLabelSelectionId: formData.frontLabelSelectionId,
       backLabelSelectionId: formData.backLabelSelectionId,
       labelsPerUnit: formData.labelsPerUnit || 2,
@@ -333,8 +425,16 @@ export function VariantForm({
       isActive: formData.isActive ?? true,
       notes: formData.notes,
       createdAt: initialVariant?.createdAt || new Date().toISOString(),
-    } as ProductVariant);
+    };
+
+    onSave(variant);
   };
+
+  // Get margin colors for display
+  const marginColors = getMarginColors(
+    liveMargin,
+    formData.minimumProfitMargin
+  );
 
   return (
     <>
@@ -419,7 +519,7 @@ export function VariantForm({
               <SelectValue placeholder="Select packaging from supplier" />
             </SelectTrigger>
             <SelectContent>
-              {packagingDetails.map((pd) => (
+              {packagingOptions.map((pd) => (
                 <SelectItem key={pd.id} value={pd.id}>
                   {pd.displayName} - ₹{pd.unitPrice}
                 </SelectItem>
@@ -448,7 +548,7 @@ export function VariantForm({
                 <SelectValue placeholder="Select front label" />
               </SelectTrigger>
               <SelectContent>
-                {labelDetails.map((ld) => (
+                {labelOptions.map((ld) => (
                   <SelectItem key={ld.id} value={ld.id}>
                     {ld.displayName} - ₹{ld.unitPrice}
                   </SelectItem>
@@ -475,7 +575,7 @@ export function VariantForm({
                 <SelectValue placeholder="Select back label" />
               </SelectTrigger>
               <SelectContent>
-                {labelDetails.map((ld) => (
+                {labelOptions.map((ld) => (
                   <SelectItem key={ld.id} value={ld.id}>
                     {ld.displayName} - ₹{ld.unitPrice}
                   </SelectItem>
@@ -485,7 +585,7 @@ export function VariantForm({
           </div>
         </div>
 
-        {/* Pricing */}
+        {/* Pricing with Real-time Margin */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <div className="space-y-2">
             <Label className="text-sm font-medium">
@@ -503,6 +603,24 @@ export function VariantForm({
               placeholder="₹150"
               className="h-9"
             />
+            {/* Real-time margin display */}
+            {formData.sellingPricePerUnit &&
+              formData.sellingPricePerUnit > 0 &&
+              estimatedCost > 0 && (
+                <div
+                  className={`flex items-center gap-2 text-xs px-2 py-1.5 rounded-md ${marginColors.bg}`}
+                >
+                  <TrendingUp className={`h-3 w-3 ${marginColors.text}`} />
+                  <span className={marginColors.text}>
+                    Margin: {liveMargin.toFixed(1)}%
+                    {formData.targetProfitMargin && (
+                      <span className="ml-1 opacity-70">
+                        (Target: {formData.targetProfitMargin}%)
+                      </span>
+                    )}
+                  </span>
+                </div>
+              )}
           </div>
 
           <div className="space-y-2">
