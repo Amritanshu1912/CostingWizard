@@ -2,55 +2,60 @@
 "use client";
 
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { useProducts } from "@/hooks/use-products";
-import type { Product } from "@/types/shared-types";
-import { useMemo, useState } from "react";
+import {
+  useProductDetail,
+  useProductList,
+} from "@/hooks/product-hooks/use-product-data";
+import type { ProductDetail, ProductListItem } from "@/types/product-types";
+import { useEffect, useState } from "react";
 import { ProductsDetailPanel } from "./products-detail-panel";
 import { ProductsList } from "./products-list";
 
+/**
+ * Main products manager component
+ * Coordinates product list and detail views
+ * Simplified state management with proper memoization
+ */
 export function ProductsManager() {
-  const products = useProducts();
+  // Fetch product list using hook
+  const products = useProductList();
+
+  // State management
   const [selectedProductId, setSelectedProductId] = useState<
     string | undefined
   >(undefined);
   const [isCreatingNew, setIsCreatingNew] = useState(false);
 
-  // Compute selected product from ID and products list
-  const selectedProduct = useMemo(() => {
-    if (!selectedProductId) return null;
-    return products.find((p) => p.id === selectedProductId) || null;
-  }, [selectedProductId, products]);
+  // Fetch selected product detail using hook
+  const selectedProduct = useProductDetail(selectedProductId || null);
 
-  // Auto-select first product on initial load only
-  const initialSelectedProductId = useMemo(() => {
+  /**
+   * Auto-select first product on initial load
+   * Only runs once when products are first loaded
+   */
+  useEffect(() => {
     if (products.length > 0 && !selectedProductId && !isCreatingNew) {
-      return products[0].id;
+      setSelectedProductId(products[0].id);
     }
-    return selectedProductId;
-  }, [products, selectedProductId, isCreatingNew]);
+  }, [products.length, selectedProductId, isCreatingNew, products]);
 
-  // Sync selected product with database changes
-  const syncedSelectedProductId = useMemo(() => {
-    if (initialSelectedProductId && products.length > 0) {
-      const productExists = products.some(
-        (p) => p.id === initialSelectedProductId
-      );
-      if (productExists) {
-        return initialSelectedProductId;
-      } else {
-        // Product was deleted, select first available
-        return products[0]?.id || undefined;
+  /**
+   * Handle product selection changes
+   * If selected product is deleted, select first available
+   */
+  useEffect(() => {
+    if (selectedProductId && products.length > 0) {
+      const productExists = products.some((p) => p.id === selectedProductId);
+      if (!productExists) {
+        // Selected product was deleted, select first available
+        setSelectedProductId(products[0]?.id || undefined);
       }
     }
-    return initialSelectedProductId;
-  }, [initialSelectedProductId, products]);
+  }, [selectedProductId, products]);
 
-  // Set the computed selected product ID
-  useState(() => {
-    if (syncedSelectedProductId !== selectedProductId) {
-      setSelectedProductId(syncedSelectedProductId);
-    }
-  });
+  // ============================================================================
+  // EVENT HANDLERS
+  // ============================================================================
 
   /**
    * Handle product creation trigger
@@ -61,9 +66,9 @@ export function ProductsManager() {
   };
 
   /**
-   * Handle product created
+   * Handle product created successfully
    */
-  const handleProductCreated = (product: Product) => {
+  const handleProductCreated = (product: ProductDetail) => {
     setSelectedProductId(product.id);
     setIsCreatingNew(false);
   };
@@ -81,10 +86,18 @@ export function ProductsManager() {
   };
 
   /**
-   * Handle product selection
+   * Handle product selection from list
    */
-  const handleSelectProduct = (product: Product) => {
+  const handleSelectProduct = (product: ProductListItem) => {
     setSelectedProductId(product.id);
+    setIsCreatingNew(false);
+  };
+
+  /**
+   * Handle product update
+   * LiveQuery will automatically refresh the data
+   */
+  const handleProductUpdated = () => {
     setIsCreatingNew(false);
   };
 
@@ -125,10 +138,7 @@ export function ProductsManager() {
                 product={selectedProduct}
                 isCreating={isCreatingNew}
                 onProductCreated={handleProductCreated}
-                onProductUpdated={() => {
-                  // LiveQuery will auto-refresh
-                  setIsCreatingNew(false);
-                }}
+                onProductUpdated={handleProductUpdated}
                 onProductDeleted={handleProductDeleted}
               />
             </div>

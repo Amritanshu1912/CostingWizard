@@ -4,27 +4,32 @@
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { calculateVariantCostAnalysis } from "@/hooks/product-hooks/use-product-costs";
 import {
-  calculateVariantCostAnalysis,
   createProduct,
   deleteProduct,
   deleteProductVariant,
-  getProductVariantsWithDetails,
   saveProductVariant,
   updateProduct,
-} from "@/hooks/use-products";
+  useProductVariants,
+} from "@/hooks/product-hooks/use-product-data";
 import type {
-  Product,
+  ProductDetail,
+  ProductFormData,
   ProductVariant,
   ProductVariantCostAnalysis,
-  ProductVariantWithDetails,
-} from "@/types/shared-types";
+} from "@/types/product-types";
+import { getStatusBadgeVariant } from "@/utils/product-utils";
 import { ArrowLeft, Edit2, Package, Plus, Trash2 } from "lucide-react";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { DeleteProductDialog, DeleteVariantDialog } from "./products-dialogs";
 import { ProductForm, VariantForm } from "./products-forms";
 import { VariantCard } from "./products-variant-card";
 
+/**
+ * View state for the detail panel
+ * Simplified state management - only tracks current view
+ */
 type ViewState =
   | { type: "VIEWING_VARIANTS" }
   | { type: "CREATING_PRODUCT" }
@@ -32,13 +37,18 @@ type ViewState =
   | { type: "CREATING_VARIANT" };
 
 interface ProductsDetailPanelProps {
-  product: Product | null;
+  product: ProductDetail | null;
   isCreating?: boolean;
-  onProductCreated?: (product: Product) => void;
+  onProductCreated?: (product: ProductDetail) => void;
   onProductUpdated?: () => void;
   onProductDeleted?: () => void;
 }
 
+/**
+ * Product detail panel component
+ * Manages product/variant CRUD operations and displays cost analysis
+ * Simplified state management - no unnecessary props drilling
+ */
 export function ProductsDetailPanel({
   product,
   isCreating = false,
@@ -56,8 +66,8 @@ export function ProductsDetailPanel({
   // View state management
   const [viewState, setViewState] = useState<ViewState>(initialViewState);
 
-  // Data state
-  const [variants, setVariants] = useState<ProductVariantWithDetails[]>([]);
+  // Data state - using hooks for data fetching
+  const variants = useProductVariants(product?.id || null);
   const [costAnalyses, setCostAnalyses] = useState<
     Map<string, ProductVariantCostAnalysis>
   >(new Map());
@@ -76,52 +86,51 @@ export function ProductsDetailPanel({
   }, [initialViewState]);
 
   /**
-   * Load product variants with cost analysis
+   * Load cost analyses for all variants
+   * Memoized to prevent unnecessary recalculations
    */
-  const loadVariants = useCallback(async () => {
-    if (!product) return;
-
-    const variantsData = await getProductVariantsWithDetails(product.id);
-    setVariants(variantsData);
+  const loadCostAnalyses = useCallback(async () => {
+    if (variants.length === 0) return;
 
     const analyses = new Map();
-    for (const variant of variantsData) {
+    for (const variant of variants) {
       try {
         const analysis = await calculateVariantCostAnalysis(variant);
         analyses.set(variant.id, analysis);
       } catch (error) {
-        console.error("Error calculating cost:", error);
+        console.error(
+          `Error calculating cost for variant ${variant.id}:`,
+          error
+        );
       }
     }
     setCostAnalyses(analyses);
-  }, [product]);
+  }, [variants]);
 
-  // Load variants when product changes and we're viewing variants
-  const shouldLoadVariants = product && viewState.type === "VIEWING_VARIANTS";
-
+  // Load cost analyses when variants change and we're viewing variants
   useEffect(() => {
-    if (shouldLoadVariants) {
-      loadVariants();
+    if (viewState.type === "VIEWING_VARIANTS" && variants.length > 0) {
+      loadCostAnalyses();
     }
-  }, [shouldLoadVariants, loadVariants]);
+  }, [viewState.type, variants.length, loadCostAnalyses]);
+
+  // ============================================================================
+  // EVENT HANDLERS
+  // ============================================================================
 
   /**
    * Handle product creation
    */
-  const handleCreateProduct = async (
-    productData: Omit<Product, "id" | "createdAt" | "updatedAt">
-  ) => {
+  const handleCreateProduct = async (productData: ProductFormData) => {
     const newProduct = await createProduct(productData);
     setViewState({ type: "VIEWING_VARIANTS" });
-    onProductCreated?.(newProduct);
+    onProductCreated?.(newProduct as ProductDetail);
   };
 
   /**
    * Handle product update
    */
-  const handleUpdateProduct = async (
-    productData: Omit<Product, "id" | "createdAt" | "updatedAt">
-  ) => {
+  const handleUpdateProduct = async (productData: ProductFormData) => {
     if (!product) return;
     await updateProduct(product.id, productData);
     setViewState({ type: "VIEWING_VARIANTS" });
@@ -148,8 +157,7 @@ export function ProductsDetailPanel({
   const handleSaveVariant = async (variant: ProductVariant) => {
     await saveProductVariant(variant);
     setViewState({ type: "VIEWING_VARIANTS" });
-    // Reload variants to reflect changes
-    await loadVariants();
+    // Cost analyses will reload automatically via useEffect
   };
 
   /**
@@ -157,7 +165,7 @@ export function ProductsDetailPanel({
    */
   const handleUpdateVariant = async (variant: ProductVariant) => {
     await saveProductVariant(variant);
-    await loadVariants();
+    // Cost analyses will reload automatically via useEffect
   };
 
   /**
@@ -170,12 +178,16 @@ export function ProductsDetailPanel({
   const confirmDeleteVariant = async () => {
     await deleteProductVariant(deleteVariantDialog.variantId);
     setDeleteVariantDialog({ open: false, variantId: "", variantName: "" });
-    await loadVariants();
+    // Variants will reload automatically via hook
   };
 
   // ============================================================================
-  // VIEW: CREATE PRODUCT
+  // VIEW RENDERERS
   // ============================================================================
+
+  /**
+   * Render: Create Product View
+   */
   if (viewState.type === "CREATING_PRODUCT") {
     return (
       <Card className="h-full shadow-sm">
@@ -191,7 +203,6 @@ export function ProductsDetailPanel({
               if (product) {
                 setViewState({ type: "VIEWING_VARIANTS" });
               } else {
-                // If no product exists, we can't go back to viewing variants
                 onProductDeleted?.();
               }
             }}
@@ -201,9 +212,9 @@ export function ProductsDetailPanel({
     );
   }
 
-  // ============================================================================
-  // VIEW: EDIT PRODUCT
-  // ============================================================================
+  /**
+   * Render: Edit Product View
+   */
   if (viewState.type === "EDITING_PRODUCT" && product) {
     return (
       <Card className="h-full shadow-sm">
@@ -234,9 +245,9 @@ export function ProductsDetailPanel({
     );
   }
 
-  // ============================================================================
-  // VIEW: CREATE VARIANT
-  // ============================================================================
+  /**
+   * Render: Create Variant View
+   */
   if (viewState.type === "CREATING_VARIANT" && product) {
     return (
       <Card className="h-full shadow-sm">
@@ -253,15 +264,7 @@ export function ProductsDetailPanel({
               </Button>
               <div className="flex items-center gap-2">
                 <CardTitle className="text-xl">{product.name}</CardTitle>
-                <Badge
-                  variant={
-                    product.status === "active"
-                      ? "default"
-                      : product.status === "draft"
-                        ? "secondary"
-                        : "destructive"
-                  }
-                >
+                <Badge variant={getStatusBadgeVariant(product.status)}>
                   {product.status}
                 </Badge>
               </div>
@@ -284,9 +287,9 @@ export function ProductsDetailPanel({
     );
   }
 
-  // ============================================================================
-  // VIEW: NO PRODUCT SELECTED
-  // ============================================================================
+  /**
+   * Render: No Product Selected
+   */
   if (!product) {
     return (
       <Card className="h-full shadow-sm">
@@ -309,9 +312,9 @@ export function ProductsDetailPanel({
     );
   }
 
-  // ============================================================================
-  // VIEW: VIEWING VARIANTS (Default)
-  // ============================================================================
+  /**
+   * Render: Viewing Variants (Default View)
+   */
   return (
     <>
       <Card className="h-full shadow-sm">
@@ -321,11 +324,7 @@ export function ProductsDetailPanel({
             <div className="flex-1">
               <div className="flex items-center gap-3 mb-2">
                 <CardTitle className="text-xl">{product.name}</CardTitle>
-                <Badge
-                  variant={
-                    product.status === "active" ? "default" : "secondary"
-                  }
-                >
+                <Badge variant={getStatusBadgeVariant(product.status)}>
                   {product.status}
                 </Badge>
                 <Button
@@ -346,9 +345,7 @@ export function ProductsDetailPanel({
                 </Button>
               </div>
               <div className="flex text-sm text-muted-foreground gap-2">
-                <span>
-                  Recipe: {variants[0]?.recipeName || "Unknown Recipe"}
-                </span>
+                <span>Recipe: {product.recipeName}</span>
                 <span>•</span>
                 <span>
                   {variants.length} variant{variants.length !== 1 ? "s" : ""}

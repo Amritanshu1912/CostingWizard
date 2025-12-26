@@ -1,6 +1,7 @@
 // components/batches/batch-requirements/index.tsx
 "use client";
 
+import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import type { ProductionBatch } from "@/types/shared-types";
 import { AlertCircle } from "lucide-react";
@@ -52,33 +53,71 @@ export function BatchRequirements({ batch }: BatchRequirementsProps) {
         onShortageClick={handleShortageClick}
       />
 
-      {/* Inventory Warnings */}
-      {requirements.itemsWithoutInventory &&
-        requirements.itemsWithoutInventory.length > 0 && (
-          <InventoryWarningsAlert
-            items={requirements.itemsWithoutInventory}
-            onAddToInventory={handleAddToInventory}
-          />
-        )}
+      {/* Alerts Row */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        {/* Inventory Warnings */}
+        {requirements.itemsWithoutInventory &&
+          requirements.itemsWithoutInventory.length > 0 && (
+            <InventoryWarningsAlert
+              items={requirements.itemsWithoutInventory}
+              onAddToInventory={handleAddToInventory}
+            />
+          )}
 
-      {/* Critical Shortages Alert */}
-      {requirements.criticalShortages.length > 0 && (
-        <div className="p-4 border-2 border-red-200 dark:border-red-900 bg-red-50 dark:bg-red-950/20 rounded-lg">
-          <div className="flex items-start gap-3">
-            <AlertCircle className="h-5 w-5 text-red-600 dark:text-red-400 flex-shrink-0 mt-0.5" />
-            <div>
-              <h3 className="font-semibold text-red-900 dark:text-red-100 mb-1">
-                Critical Shortages Detected
-              </h3>
-              <p className="text-sm text-red-800 dark:text-red-200">
-                {requirements.criticalShortages.length} items are currently
-                short of stock. Production cannot start until these are
-                procured.
-              </p>
+        {/* Critical Shortages Alert */}
+        {requirements.criticalShortages.length > 0 && (
+          <div className="p-4 border-2 border-red-200 dark:border-red-900 bg-red-50 dark:bg-red-950/20 rounded-lg">
+            <div className="flex items-start gap-3">
+              <AlertCircle className="h-5 w-5 text-red-600 dark:text-red-400 flex-shrink-0 mt-0.5" />
+              <div className="flex-1 space-y-3">
+                <div>
+                  <h3 className="font-semibold text-red-900 dark:text-red-100 mb-1">
+                    Critical Shortages Detected
+                  </h3>
+                  <p className="text-sm text-red-800 dark:text-red-200">
+                    {requirements.criticalShortages.length} items are currently
+                    short of stock. Production cannot start until these are
+                    procured.
+                  </p>
+                </div>
+
+                <div className="space-y-2">
+                  {requirements.criticalShortages.map((item) => (
+                    <div
+                      key={`${item.itemType}-${item.itemId}-${item.supplierId}`}
+                      className="flex items-center justify-between p-2 rounded bg-red-100/50 dark:bg-red-900/20"
+                    >
+                      <div className="flex items-center gap-2 flex-1 min-w-0">
+                        <span className="text-lg">
+                          {item.itemType === "material" && "🧪"}
+                          {item.itemType === "packaging" && "📦"}
+                          {item.itemType === "label" && "🏷️"}
+                        </span>
+                        <div className="flex-1 min-w-0">
+                          <p className="font-medium text-sm truncate">
+                            {item.itemName}
+                          </p>
+                          <p className="text-xs text-red-700 dark:text-red-300">
+                            {item.supplierName}
+                          </p>
+                        </div>
+                      </div>
+                      <div className="text-right">
+                        <Badge
+                          variant="outline"
+                          className="text-xs bg-red-200 dark:bg-red-900 border-red-300 dark:border-red-800"
+                        >
+                          Shortage: {item.shortage.toFixed(2)} {item.unit}
+                        </Badge>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
             </div>
           </div>
-        </div>
-      )}
+        )}
+      </div>
 
       {/* Requirements by Category */}
       <div id="categories-section">

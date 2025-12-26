@@ -1,10 +1,17 @@
 // src/app/products/components/products-constants.tsx
-import type { Product, ProductVariant } from "@/types/shared-types";
+
+import type { Product, ProductVariant } from "@/types/product-types";
 
 // ============================================================================
 // MOCK PRODUCTS - Single source of truth for seeding
+// Used during development for testing and demonstration
 // ============================================================================
 
+/**
+ * Mock product data
+ * Each product represents a product family (e.g., "Harpic Toilet Cleaner")
+ * Products can have multiple variants (different sizes/packaging)
+ */
 export const PRODUCTS: Product[] = [
   {
     id: "product-1",
@@ -67,8 +74,13 @@ export const PRODUCTS: Product[] = [
 
 // ============================================================================
 // MOCK PRODUCT VARIANTS - Different sizes and packaging for each product
+// Each variant represents a unique SKU with specific packaging and pricing
 // ============================================================================
 
+/**
+ * Mock product variant data
+ * Each variant is a specific SKU (e.g., "Premium Floor Cleaner 5L Bottle")
+ */
 export const PRODUCT_VARIANTS: ProductVariant[] = [
   // Premium Floor Cleaner variants
   {

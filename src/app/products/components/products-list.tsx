@@ -13,19 +13,23 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { useDebounce } from "@/hooks/use-debounce";
-import { useVariantCountMap } from "@/hooks/use-products";
-import type { Product } from "@/types/shared-types";
+import type { ProductListItem } from "@/types/product-types";
 import { cn } from "@/utils/shared-utils";
+import { getStatusBadgeVariant } from "@/utils/product-utils";
 import { Package2, Plus, Search } from "lucide-react";
 import { useMemo, useState } from "react";
 
 interface ProductsListProps {
-  products: Product[];
+  products: ProductListItem[];
   selectedProductId?: string;
-  onSelectProduct: (product: Product) => void;
+  onSelectProduct: (product: ProductListItem) => void;
   onCreateProduct: () => void;
 }
 
+/**
+ * Product list component with search, filter, and sort functionality
+ * Displays products in a scrollable list with status badges and variant counts
+ */
 export function ProductsList({
   products,
   selectedProductId,
@@ -34,39 +38,42 @@ export function ProductsList({
 }: ProductsListProps) {
   // --- UI State ---
   const [search, setSearch] = useState("");
-  const [statusFilter, setStatusFilter] = useState<"all" | Product["status"]>(
-    "all"
-  );
+  const [statusFilter, setStatusFilter] = useState<
+    "all" | "active" | "draft" | "discontinued"
+  >("all");
   const [sort, setSort] = useState<"name" | "recent">("name");
 
+  // Debounce search for better performance
   const debouncedSearch = useDebounce(search, 200);
 
   // --- Filtering + Sorting ---
-  const filtered = useMemo(() => {
+  const filteredProducts = useMemo(() => {
     let list = [...products];
 
+    // Apply search filter
     if (debouncedSearch.trim()) {
-      const q = debouncedSearch.toLowerCase();
-      list = list.filter((p) => p.name.toLowerCase().includes(q));
+      const query = debouncedSearch.toLowerCase();
+      list = list.filter((p) => p.name.toLowerCase().includes(query));
     }
 
+    // Apply status filter
     if (statusFilter !== "all") {
       list = list.filter((p) => p.status === statusFilter);
     }
 
+    // Apply sorting
     if (sort === "name") {
       list.sort((a, b) => a.name.localeCompare(b.name));
     } else if (sort === "recent") {
       list.sort(
         (a, b) =>
-          new Date(b.updatedAt!).getTime() - new Date(a.updatedAt!).getTime()
+          new Date(b.updatedAt || b.createdAt).getTime() -
+          new Date(a.updatedAt || a.createdAt).getTime()
       );
     }
 
     return list;
   }, [products, debouncedSearch, statusFilter, sort]);
-
-  const variantCountMap = useVariantCountMap();
 
   return (
     <Card className="h-full shadow-sm">
@@ -97,7 +104,7 @@ export function ProductsList({
           {/* Status Filter */}
           <Select
             value={statusFilter}
-            onValueChange={(v) => setStatusFilter(v as any)}
+            onValueChange={(v) => setStatusFilter(v as typeof statusFilter)}
           >
             <SelectTrigger className="w-[130px]">
               <SelectValue placeholder="Status" />
@@ -109,14 +116,12 @@ export function ProductsList({
               <SelectItem value="discontinued">Discontinued</SelectItem>
             </SelectContent>
           </Select>
-          <Select
-            value={sort}
-            onValueChange={(v) => setSort(v as "name" | "recent")}
-          >
+
+          {/* Sort */}
+          <Select value={sort} onValueChange={(v) => setSort(v as typeof sort)}>
             <SelectTrigger className="w-[130px]">
               <SelectValue placeholder="Sort" />
             </SelectTrigger>
-
             <SelectContent>
               <SelectItem value="name">Name (A–Z)</SelectItem>
               <SelectItem value="recent">Recently Updated</SelectItem>
@@ -128,8 +133,7 @@ export function ProductsList({
       {/* List */}
       <CardContent className="p-0">
         <div className="space-y-2 px-4 max-h-[calc(100vh-300px)] overflow-y-auto">
-          {filtered.map((product) => {
-            const variantCount = variantCountMap.get(product.id) || 0;
+          {filteredProducts.map((product) => {
             const isSelected = selectedProductId === product.id;
 
             return (
@@ -147,36 +151,27 @@ export function ProductsList({
                 <div className="flex items-center justify-between gap-2">
                   {/* Icon + Name */}
                   <div className="flex items-center gap-2 min-w-0">
-                    <div
-                      className={
-                        "flex items-center justify-center rounded bg-primary/15 text-primary h-8 w-8"
-                      }
-                    >
-                      <Package2 className={"h-4 w-4"} />
+                    <div className="flex items-center justify-center rounded bg-primary/15 text-primary h-8 w-8">
+                      <Package2 className="h-4 w-4" />
                     </div>
 
                     <div className="flex flex-col min-w-0">
-                      <span className={"font-medium truncate text-sm"}>
+                      <span className="font-medium truncate text-sm">
                         {product.name}
                       </span>
                       <div className="flex flex-row space-x-1 text-xs text-muted-foreground min-w-0">
                         <span className="whitespace-nowrap">
-                          {variantCount} variant{variantCount !== 1 ? "s" : ""}
+                          {product.variantCount} variant
+                          {product.variantCount !== 1 ? "s" : ""}
                         </span>
                       </div>
                     </div>
                   </div>
 
-                  {/* Status */}
+                  {/* Status Badge */}
                   <Badge
-                    variant={
-                      product.status === "active"
-                        ? "default"
-                        : product.status === "draft"
-                          ? "secondary"
-                          : "destructive"
-                    }
-                    className={"text-xs capitalize"}
+                    variant={getStatusBadgeVariant(product.status)}
+                    className="text-xs capitalize"
                   >
                     {product.status}
                   </Badge>
@@ -185,7 +180,8 @@ export function ProductsList({
             );
           })}
 
-          {filtered.length === 0 && (
+          {/* No Results State */}
+          {filteredProducts.length === 0 && products.length > 0 && (
             <div className="text-center py-12 text-muted-foreground">
               No products found.
             </div>
