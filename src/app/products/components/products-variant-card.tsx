@@ -10,7 +10,7 @@ import type {
   ProductVariant,
   ProductVariantCostAnalysis,
   ProductVariantWithDetails,
-} from "@/types/shared-types";
+} from "@/types/product-types";
 import {
   AlertCircle,
   ChevronDown,

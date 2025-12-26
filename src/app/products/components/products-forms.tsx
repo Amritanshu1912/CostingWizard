@@ -21,11 +21,8 @@ import {
   useRecipeList,
   useRecipeVariants,
 } from "@/hooks/recipe-hooks/use-recipe-data";
-import type {
-  CapacityUnit,
-  Product,
-  ProductVariant,
-} from "@/types/shared-types";
+import type { CapacityUnit } from "@/types/shared-types";
+import type { Product, ProductVariant } from "@/types/product-types";
 import { Check, Package, Tag, X } from "lucide-react";
 import { useEffect, useState } from "react";
 import { ValidationErrorDialog } from "./products-dialogs";

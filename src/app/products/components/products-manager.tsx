@@ -3,7 +3,7 @@
 
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useProducts } from "@/hooks/use-products";
-import type { Product } from "@/types/shared-types";
+import type { Product } from "@/types/product-types";
 import { useMemo, useState } from "react";
 import { ProductsDetailPanel } from "./products-detail-panel";
 import { ProductsList } from "./products-list";

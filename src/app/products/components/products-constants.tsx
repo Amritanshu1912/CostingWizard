@@ -1,5 +1,5 @@
 // src/app/products/components/products-constants.tsx
-import type { Product, ProductVariant } from "@/types/shared-types";
+import type { Product, ProductVariant } from "@/types/product-types";
 
 // ============================================================================
 // MOCK PRODUCTS - Single source of truth for seeding

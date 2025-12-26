@@ -14,7 +14,7 @@ import {
 } from "@/components/ui/select";
 import { useDebounce } from "@/hooks/use-debounce";
 import { useVariantCountMap } from "@/hooks/use-products";
-import type { Product } from "@/types/shared-types";
+import type { Product } from "@/types/product-types";
 import { cn } from "@/utils/shared-utils";
 import { Package2, Plus, Search } from "lucide-react";
 import { useMemo, useState } from "react";

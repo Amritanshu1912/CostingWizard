@@ -5,7 +5,7 @@ import type {
   ProductVariant,
   ProductVariantCostAnalysis,
   ProductVariantWithDetails,
-} from "@/types/shared-types";
+} from "@/types/product-types";
 import { useLiveQuery } from "dexie-react-hooks";
 import { useMemo } from "react";
 import { normalizeToKg } from "../utils/unit-conversion-utils";
