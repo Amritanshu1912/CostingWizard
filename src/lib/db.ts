@@ -8,6 +8,7 @@ import {
   PRODUCTS,
   PRODUCT_VARIANTS,
 } from "@/app/products/components/products-constants";
+import { PURCHASE_ORDERS } from "./constants";
 import { SUPPLIERS } from "@/app/suppliers/components/suppliers-constants";
 import type {
   InventoryAlert,
@@ -27,12 +28,11 @@ import type {
   RecipeVariant,
 } from "@/types/recipe-types";
 import type {
-  Product,
-  ProductVariant,
   ProductionBatch,
   PurchaseOrder,
   TransportationCost,
 } from "@/types/shared-types";
+import type { Product, ProductVariant } from "@/types/product-types";
 import type { Supplier } from "@/types/supplier-types";
 import Dexie, { Table } from "dexie";
 import {
@@ -204,6 +204,11 @@ export class CostingWizardDB extends Dexie {
             procurementRequired: { materials: [], packaging: [], labels: [] },
           }))
         );
+      }
+
+      const hasPurchaseOrders = (await db.purchaseOrders.count()) > 0;
+      if (!hasPurchaseOrders) {
+        await db.purchaseOrders.bulkAdd(PURCHASE_ORDERS);
       }
 
       // Seed inventory items
