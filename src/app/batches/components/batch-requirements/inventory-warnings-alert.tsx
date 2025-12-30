@@ -2,7 +2,7 @@
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import type { ItemWithoutInventory } from "@/types/inventory-types";
+import type { ItemWithoutInventory } from "@/types/shared-types";
 import { AlertTriangle, Plus, X } from "lucide-react";
 import { useState } from "react";
 

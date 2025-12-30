@@ -11,7 +11,11 @@ import {
   useBatchCostAnalysis,
   useBatchDetails,
 } from "@/hooks/batch-hooks/use-batches";
-import type { ProductionBatch } from "@/types/shared-types";
+import type {
+  ProductionBatch,
+  BatchProductDetails,
+  BatchVariantDetails,
+} from "@/types/batch-types";
 import { cn } from "@/utils/shared-utils";
 import { convertToDisplayUnit } from "@/utils/unit-conversion-utils";
 import {
@@ -319,7 +323,7 @@ export function BatchDetailsPanel({
               ) : batchDetails.products.length > 0 ? (
                 <div className="space-y-3">
                   <h3 className="font-semibold">Products & Variants</h3>
-                  {batchDetails.products.map((product) => (
+                  {batchDetails.products.map((product: BatchProductDetails) => (
                     <div
                       key={product.productId}
                       className="border rounded-lg p-4"
@@ -328,30 +332,32 @@ export function BatchDetailsPanel({
                         {product.productName}
                       </h4>
                       <div className="space-y-2">
-                        {product.variants.map((variant) => {
-                          const displayQty = convertToDisplayUnit(
-                            variant.totalFillQuantity,
-                            "kg"
-                          );
-                          return (
-                            <div
-                              key={variant.variantId}
-                              className="flex items-center justify-between text-sm p-2 bg-muted/30 rounded"
-                            >
-                              <span>{variant.variantName}</span>
-                              <div className="flex items-center gap-4 text-xs text-muted-foreground">
-                                <span>
-                                  {displayQty.quantity.toFixed(2)}{" "}
-                                  {displayQty.unit}
-                                </span>
-                                <span>→</span>
-                                <span className="font-medium text-foreground">
-                                  {variant.units} units
-                                </span>
+                        {product.variants.map(
+                          (variant: BatchVariantDetails) => {
+                            const displayQty = convertToDisplayUnit(
+                              variant.totalFillQuantity,
+                              "kg"
+                            );
+                            return (
+                              <div
+                                key={variant.variantId}
+                                className="flex items-center justify-between text-sm p-2 bg-muted/30 rounded"
+                              >
+                                <span>{variant.variantName}</span>
+                                <div className="flex items-center gap-4 text-xs text-muted-foreground">
+                                  <span>
+                                    {displayQty.quantity.toFixed(2)}{" "}
+                                    {displayQty.unit}
+                                  </span>
+                                  <span>→</span>
+                                  <span className="font-medium text-foreground">
+                                    {variant.units} units
+                                  </span>
+                                </div>
                               </div>
-                            </div>
-                          );
-                        })}
+                            );
+                          }
+                        )}
                       </div>
                     </div>
                   ))}

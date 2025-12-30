@@ -1,5 +1,5 @@
 // components/batches/batch-requirements/requirements-overview.tsx
-import type { BatchRequirementsAnalysis } from "@/types/shared-types";
+import type { BatchRequirementsAnalysis } from "@/types/batch-types";
 import {
   AlertCircle,
   Building2,
@@ -20,24 +20,25 @@ export function RequirementsOverview({
   onSupplierClick,
   onShortageClick,
 }: RequirementsOverviewProps) {
-  const hasShortages = requirements.criticalShortages.length > 0;
-  const totalItems =
-    requirements.materials.length +
-    requirements.packaging.length +
-    requirements.labels.length;
+  const hasShortages = (requirements.criticalShortages?.length ?? 0) > 0;
+  const totalItems = requirements.overview.totalItems;
 
   // Calculate cost breakdown percentages
   const materialPercent =
-    requirements.totalCost > 0
-      ? (requirements.totalMaterialCost / requirements.totalCost) * 100
+    requirements.overview.totalCost > 0
+      ? (requirements.overview.materialCost / requirements.overview.totalCost) *
+        100
       : 0;
   const packagingPercent =
-    requirements.totalCost > 0
-      ? (requirements.totalPackagingCost / requirements.totalCost) * 100
+    requirements.overview.totalCost > 0
+      ? (requirements.overview.packagingCost /
+          requirements.overview.totalCost) *
+        100
       : 0;
   const labelPercent =
-    requirements.totalCost > 0
-      ? (requirements.totalLabelCost / requirements.totalCost) * 100
+    requirements.overview.totalCost > 0
+      ? (requirements.overview.labelCost / requirements.overview.totalCost) *
+        100
       : 0;
 
   return (
@@ -53,15 +54,21 @@ export function RequirementsOverview({
         <div className="space-y-1 text-xs">
           <div className="flex items-center justify-between">
             <span className="text-muted-foreground">🧪 Materials</span>
-            <span className="font-medium">{requirements.materials.length}</span>
+            <span className="font-medium">
+              {requirements.overview.materialCount}
+            </span>
           </div>
           <div className="flex items-center justify-between">
             <span className="text-muted-foreground">📦 Packaging</span>
-            <span className="font-medium">{requirements.packaging.length}</span>
+            <span className="font-medium">
+              {requirements.overview.packagingCount}
+            </span>
           </div>
           <div className="flex items-center justify-between">
             <span className="text-muted-foreground">🏷️ Labels</span>
-            <span className="font-medium">{requirements.labels.length}</span>
+            <span className="font-medium">
+              {requirements.overview.labelCount}
+            </span>
           </div>
         </div>
       </MetricCardWithChildren>
@@ -69,7 +76,7 @@ export function RequirementsOverview({
       {/* Total Cost */}
       <MetricCardWithChildren
         title="Total Cost"
-        value={`₹${requirements.totalCost.toFixed(1)}k`}
+        value={`₹${(requirements.overview.totalCost / 1000).toFixed(1)}k`}
         icon={DollarSign}
         description="procurement cost"
         variant="info"
@@ -93,14 +100,14 @@ export function RequirementsOverview({
       {/* Suppliers */}
       <MetricCardWithChildren
         title="Suppliers"
-        value={requirements.bySupplier.length}
+        value={requirements.bySupplier?.length ?? 0}
         icon={Building2}
         description="to contact"
         variant="default"
         onClick={onSupplierClick}
       >
         <div className="space-y-1 text-xs">
-          {requirements.bySupplier.slice(0, 3).map((supplier) => (
+          {requirements.bySupplier?.slice(0, 3).map((supplier) => (
             <div
               key={supplier.supplierId}
               className="flex items-center justify-between"
@@ -113,9 +120,9 @@ export function RequirementsOverview({
               </span>
             </div>
           ))}
-          {requirements.bySupplier.length > 3 && (
+          {(requirements.bySupplier?.length ?? 0) > 3 && (
             <p className="text-muted-foreground text-center pt-1">
-              +{requirements.bySupplier.length - 3} more
+              +{(requirements.bySupplier?.length ?? 0) - 3} more
             </p>
           )}
         </div>
@@ -124,7 +131,7 @@ export function RequirementsOverview({
       {/* Shortages */}
       <MetricCardWithChildren
         title="Shortages"
-        value={requirements.criticalShortages.length}
+        value={requirements.criticalShortages?.length ?? 0}
         icon={hasShortages ? AlertCircle : TrendingUp}
         description={hasShortages ? "items short" : "all available"}
         variant={hasShortages ? "danger" : "success"}
@@ -132,7 +139,7 @@ export function RequirementsOverview({
       >
         {hasShortages ? (
           <div className="space-y-1 text-xs">
-            {requirements.criticalShortages.slice(0, 3).map((item, idx) => (
+            {requirements.criticalShortages?.slice(0, 3).map((item, idx) => (
               <div
                 key={idx}
                 className="flex items-center justify-between text-red-600 dark:text-red-400"
@@ -143,9 +150,9 @@ export function RequirementsOverview({
                 </span>
               </div>
             ))}
-            {requirements.criticalShortages.length > 3 && (
+            {(requirements.criticalShortages?.length ?? 0) > 3 && (
               <p className="text-center pt-1 font-medium">
-                +{requirements.criticalShortages.length - 3} more
+                +{(requirements.criticalShortages?.length ?? 0) - 3} more
               </p>
             )}
           </div>

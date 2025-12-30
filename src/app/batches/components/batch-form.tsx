@@ -16,7 +16,7 @@ import {
 import { Textarea } from "@/components/ui/textarea";
 import { convertToDisplayUnit } from "@/utils/unit-conversion-utils";
 import { db } from "@/lib/db";
-import type { BatchProductItem, ProductionBatch } from "@/types/shared-types";
+import type { BatchProductItem, ProductionBatch } from "@/types/batch-types";
 import { cn } from "@/utils/shared-utils";
 import { useLiveQuery } from "dexie-react-hooks";
 import { AlertCircle, Check, Package2, Plus, Trash2, X } from "lucide-react";

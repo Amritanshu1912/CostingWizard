@@ -27,11 +27,8 @@ import type {
   RecipeIngredient,
   RecipeVariant,
 } from "@/types/recipe-types";
-import type {
-  ProductionBatch,
-  PurchaseOrder,
-  TransportationCost,
-} from "@/types/shared-types";
+import type { ProductionBatch } from "@/types/batch-types";
+import type { PurchaseOrder, TransportationCost } from "@/types/shared-types";
 import type { Product, ProductVariant } from "@/types/product-types";
 import type { Supplier } from "@/types/supplier-types";
 import Dexie, { Table } from "dexie";

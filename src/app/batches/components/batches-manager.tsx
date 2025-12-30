@@ -4,7 +4,7 @@
 import { Card, CardContent } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { db } from "@/lib/db";
-import type { ProductionBatch } from "@/types/shared-types";
+import type { ProductionBatch } from "@/types/batch-types";
 import { useLiveQuery } from "dexie-react-hooks";
 import { useEffect, useState } from "react";
 import { BatchDetailsPanel } from "./batch-details-panel";

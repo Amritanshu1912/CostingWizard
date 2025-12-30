@@ -1,6 +1,6 @@
 // hooks/use-batch-operations.ts
 import { db } from "@/lib/db";
-import type { ProductionBatch } from "@/types/shared-types";
+import type { ProductionBatch } from "@/types/batch-types";
 
 /**
  * Create a new batch

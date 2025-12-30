@@ -3,7 +3,7 @@
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
-import type { BatchCostAnalysis } from "@/types/shared-types";
+import type { BatchCostAnalysis } from "@/types/batch-types";
 import {
   BAR_CHART_CONFIG,
   CHART_COLOR_SCHEMES,

@@ -1,15 +1,10 @@
 // hooks/use-batch-calculations.ts
 import { db } from "@/lib/db";
-import type {
-  InventoryItem,
-  ItemWithoutInventory,
-} from "@/types/inventory-types";
+import type { InventoryItem } from "@/types/inventory-types";
 import type { SupplierMaterial } from "@/types/material-types";
 import type { RecipeIngredient } from "@/types/recipe-types";
-import type {
-  RequirementItem,
-  SupplierRequirement,
-} from "@/types/shared-types";
+import type { RequirementItem, SupplierRequirement } from "@/types/batch-types";
+import type { ItemWithoutInventory } from "@/types/shared-types";
 import { normalizeToKg } from "@/utils/unit-conversion-utils";
 
 // ============================================================================
@@ -435,6 +430,8 @@ export function groupBySupplier(
         packaging: [],
         labels: [],
         totalCost: 0,
+        itemCount: 0,
+        shortageCount: 0,
       });
     }
 
@@ -445,6 +442,8 @@ export function groupBySupplier(
     if (item.itemType === "label") supplier.labels.push(item);
 
     supplier.totalCost += item.totalCost;
+    supplier.itemCount++;
+    if (item.shortage > 0) supplier.shortageCount++;
   }
 
   return Array.from(supplierMap.values());

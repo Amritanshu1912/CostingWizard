@@ -5,7 +5,7 @@ import {
   CollapsibleContent,
   CollapsibleTrigger,
 } from "@/components/ui/collapsible";
-import type { RequirementItem } from "@/types/shared-types";
+import type { RequirementItem } from "@/types/batch-types";
 import { ChevronDown, ChevronRight, Package2 } from "lucide-react";
 import { useState } from "react";
 import { TotalCostDisplay } from "../../utils/price-display";

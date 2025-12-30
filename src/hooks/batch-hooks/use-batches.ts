@@ -2,9 +2,11 @@
 import { db } from "@/lib/db";
 import type {
   BatchCostAnalysis,
-  BatchRequirementsAnalysis,
   BatchWithDetails,
-} from "@/types/shared-types";
+  BatchRequirementsAnalysis,
+  BatchProductItem,
+  BatchVariantItem,
+} from "@/types/batch-types";
 import type { ProductVariant } from "@/types/product-types";
 import { useLiveQuery } from "dexie-react-hooks";
 
@@ -55,12 +57,12 @@ export function useBatchDetails(batchId: string | null) {
     if (!batch) return null;
 
     const products = await Promise.all(
-      batch.items.map(async (item) => {
+      batch.items.map(async (item: BatchProductItem) => {
         const product = await db.products.get(item.productId);
         if (!product) return null;
 
         const variants = await Promise.all(
-          item.variants.map(async (variantItem) => {
+          item.variants.map(async (variantItem: BatchVariantItem) => {
             const variant = await db.productVariants.get(variantItem.variantId);
             if (!variant) return null;
 
@@ -103,7 +105,9 @@ export function useBatchDetails(batchId: string | null) {
 
     return {
       ...batch,
-      products: products.filter((p): p is NonNullable<typeof p> => p !== null),
+      products: products.filter(
+        (p: any): p is NonNullable<typeof p> => p !== null
+      ),
     };
   }, [batchId]);
 }
@@ -413,21 +417,41 @@ export function useBatchRequirements(batchId: string | null) {
       labels
     );
 
-    return {
+    // Create overview object
+    const overview = {
       batchId: batch.id,
+      totalItems: materials.length + packaging.length + labels.length,
+      totalCost,
+      supplierCount: bySupplier.length,
+      shortageCount: criticalShortages.length,
+      materialCount: materials.length,
+      packagingCount: packaging.length,
+      labelCount: labels.length,
+      materialCost: totalMaterialCost,
+      packagingCost: totalPackagingCost,
+      labelCost: totalLabelCost,
+    };
+
+    // Create byCategory object
+    const byCategory = {
       materials,
       packaging,
       labels,
       totalMaterialCost,
       totalPackagingCost,
       totalLabelCost,
-      totalCost,
-      totalItemsToOrder: materials.length + packaging.length + labels.length,
-      totalProcurementCost: totalCost,
-      criticalShortages,
+    };
+
+    return {
+      batchId: batch.id,
+      overview,
+      byCategory,
       bySupplier,
       byProduct,
-      itemsWithoutInventory,
+      criticalShortages:
+        criticalShortages.length > 0 ? criticalShortages : undefined,
+      itemsWithoutInventory:
+        itemsWithoutInventory.length > 0 ? itemsWithoutInventory : undefined,
     };
   }, [batchId]);
 }
