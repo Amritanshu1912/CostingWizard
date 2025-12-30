@@ -133,13 +133,6 @@ export interface ReferenceDataBundle {
 // UTILITY
 // ============================================================================
 
-export interface ItemWithoutInventory {
-  itemType: "material" | "packaging" | "label";
-  itemId: string;
-  itemName: string;
-  supplierName: string;
-}
-
 /**
  * Convert boolean to number for Dexie storage
  */
