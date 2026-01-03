@@ -1,5 +1,5 @@
 // src/lib/db.ts
-import { PRODUCTION_BATCHES } from "@/app/batches/components/batches-constants";
+import { PRODUCTION_BATCHES } from "@/app/batches/components/batch-constants";
 import {
   MOCK_INVENTORY_ITEMS,
   MOCK_TRANSACTIONS,

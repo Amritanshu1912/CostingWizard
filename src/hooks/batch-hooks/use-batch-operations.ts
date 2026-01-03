@@ -1,20 +1,25 @@
-// hooks/use-batch-operations.ts
+// src/hooks/batch-hooks/use-batch-operations.ts
 import { db } from "@/lib/db";
 import type { ProductionBatch } from "@/types/batch-types";
+import { generateId } from "@/utils/shared-utils";
 
 /**
- * Create a new batch
- * Calculations are done on-the-fly by hooks, not stored
+ * Creates a new production batch
+ *
+ * @param batchData - Batch data without id and timestamps
+ * @returns Newly created batch with generated id and timestamps
  */
 export async function createBatch(
   batchData: Omit<ProductionBatch, "id" | "createdAt" | "updatedAt">
 ): Promise<ProductionBatch> {
-  const batchId = crypto.randomUUID();
+  const batchId = generateId("batch");
+  const now = new Date().toISOString();
 
   const newBatch: ProductionBatch = {
     id: batchId,
     ...batchData,
-    createdAt: new Date().toISOString(),
+    createdAt: now,
+    updatedAt: now,
   };
 
   await db.productionBatches.add(newBatch);
@@ -22,7 +27,11 @@ export async function createBatch(
 }
 
 /**
- * Update existing batch
+ * Updates an existing production batch
+ *
+ * @param batchId - ID of batch to update
+ * @param batchData - Updated batch data
+ * @throws Error if batch not found
  */
 export async function updateBatch(
   batchId: string,
@@ -30,26 +39,30 @@ export async function updateBatch(
 ): Promise<void> {
   const existingBatch = await db.productionBatches.get(batchId);
   if (!existingBatch) {
-    throw new Error("Batch not found");
+    throw new Error(`Batch with id ${batchId} not found`);
   }
 
   const updatedBatch: ProductionBatch = {
     ...existingBatch,
     ...batchData,
+    updatedAt: new Date().toISOString(),
   };
 
   await db.productionBatches.put(updatedBatch);
 }
 
 /**
- * Delete a batch
+ * Deletes a production batch
+ *
+ * @param batchId - ID of batch to delete
  */
 export async function deleteBatch(batchId: string): Promise<void> {
   await db.productionBatches.delete(batchId);
 }
 
 /**
- * Hook for batch operations (convenience wrapper)
+ * Hook that returns batch operation functions
+ * Use this in components instead of importing functions directly
  */
 export function useBatchOperations() {
   return {

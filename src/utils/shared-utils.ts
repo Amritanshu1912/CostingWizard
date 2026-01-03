@@ -340,19 +340,14 @@ export function getInitials(name: string): string {
 }
 
 /**
- * Gets rating color class based on rating value
- * Maps numerical ratings to Tailwind CSS color classes
+ * Generates a unique ID with the specified prefix
+ * Format: {prefix}_{timestamp}_{randomSuffix}
  *
- * @param rating - Numerical rating (typically 1-5 scale)
- * @returns Tailwind CSS text color class
- *
- * @example
- * getRatingColor(4.8) // "text-green-600"
- * getRatingColor(3.2) // "text-yellow-600"
- * getRatingColor(2.1) // "text-red-600"
+ * @param prefix - The prefix for the ID (e.g., "batch", "product")
+ * @returns A unique string ID
  */
-export function getRatingColor(rating: number): string {
-  if (rating >= 4.5) return "text-green-600";
-  if (rating >= 3.5) return "text-yellow-600";
-  return "text-red-600";
+export function generateId(prefix: string): string {
+  const timestamp = Date.now();
+  const randomSuffix = Math.random().toString(36).substring(2, 8);
+  return `${prefix}_${timestamp}_${randomSuffix}`;
 }

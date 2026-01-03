@@ -1,67 +1,38 @@
-// hooks/use-batch-calculations.ts
+// src/utils/batch-requirements-utils.ts
 import { db } from "@/lib/db";
-import type { InventoryItem } from "@/types/inventory-types";
-import type { SupplierMaterial } from "@/types/material-types";
-import type { RecipeIngredient } from "@/types/recipe-types";
-import type { RequirementItem, SupplierRequirement } from "@/types/batch-types";
+import type {
+  InventoryAvailability,
+  LabelRequirement,
+  MaterialRequirement,
+  PackagingRequirement,
+  ProductRequirements,
+  RequirementItem,
+  SupplierRequirement,
+} from "@/types/batch-types";
 import type { ItemWithoutInventory } from "@/types/shared-types";
+import {
+  calculateCostWithTax,
+  resolveIngredientPrice,
+} from "@/utils/batch-calculation-utils";
 import { normalizeToKg } from "@/utils/unit-conversion-utils";
-
-// ============================================================================
-// PRICE RESOLUTION
-// ============================================================================
-
-/**
- * Resolves the price to use for a recipe ingredient
- * Priority: lockedPricing → current SupplierMaterial price
- */
-export function resolveIngredientPrice(
-  ingredient: RecipeIngredient,
-  supplierMaterial: SupplierMaterial
-): { unitPrice: number; tax: number; isLocked: boolean } {
-  if (ingredient.lockedPricing) {
-    return {
-      unitPrice: ingredient.lockedPricing.unitPrice,
-      tax: ingredient.lockedPricing.tax,
-      isLocked: true,
-    };
-  }
-
-  return {
-    unitPrice: supplierMaterial.unitPrice,
-    tax: supplierMaterial.tax,
-    isLocked: false,
-  };
-}
-
-/**
- * Calculate total cost with tax
- */
-export function calculateCostWithTax(
-  quantity: number,
-  unitPrice: number,
-  taxPercent: number
-): number {
-  return quantity * unitPrice * (1 + taxPercent / 100);
-}
 
 // ============================================================================
 // INVENTORY CHECKS
 // ============================================================================
 
 /**
- * Get inventory item and calculate availability
+ * Checks inventory availability for an item
+ *
+ * @param itemId - Item ID from supplier table
+ * @param itemType - Type of item
+ * @param requiredQty - Required quantity
+ * @returns Inventory availability info
  */
 export async function checkInventoryAvailability(
   itemId: string,
   itemType: string,
   requiredQty: number
-): Promise<{
-  inventoryItem: InventoryItem | null;
-  available: number;
-  shortage: number;
-  hasInventoryTracking: boolean;
-}> {
+): Promise<InventoryAvailability> {
   const inventoryItem = await db.inventoryItems
     .where("[itemId+itemType]")
     .equals([itemId, itemType])
@@ -69,7 +40,7 @@ export async function checkInventoryAvailability(
 
   if (!inventoryItem) {
     return {
-      inventoryItem: null,
+      itemId,
       available: 0,
       shortage: requiredQty,
       hasInventoryTracking: false,
@@ -78,8 +49,9 @@ export async function checkInventoryAvailability(
 
   const available = inventoryItem.currentStock;
   const shortage = Math.max(0, requiredQty - available);
+
   return {
-    inventoryItem,
+    itemId,
     available,
     shortage,
     hasInventoryTracking: true,
@@ -87,37 +59,45 @@ export async function checkInventoryAvailability(
 }
 
 // ============================================================================
-// MATERIAL REQUIREMENTS CALCULATION
+// MATERIAL REQUIREMENTS
 // ============================================================================
 
-export interface MaterialRequirement extends RequirementItem {
-  isLocked: boolean;
+interface MaterialRequirementParams {
   productId: string;
   productName: string;
   variantId: string;
   variantName: string;
+  fillQtyInKg: number;
+  recipeId: string;
 }
 
 /**
- * Calculate material requirements for a single variant
+ * Calculates material requirements for a variant
+ * Scales recipe ingredients based on batch quantity
+ *
+ * @param params - Material requirement parameters
+ * @returns Array of material requirements
  */
 export async function calculateVariantMaterialRequirements(
-  productId: string,
-  productName: string,
-  variantId: string,
-  variantName: string,
-  fillQtyInKg: number,
-  recipeId: string
+  params: MaterialRequirementParams
 ): Promise<MaterialRequirement[]> {
+  const {
+    productId,
+    productName,
+    variantId,
+    variantName,
+    fillQtyInKg,
+    recipeId,
+  } = params;
   const materials: MaterialRequirement[] = [];
 
-  // Get recipe ingredients
+  // Get all recipe ingredients
   const ingredients = await db.recipeIngredients
     .where("recipeId")
     .equals(recipeId)
     .toArray();
 
-  // IMPORTANT: Calculate total recipe weight first
+  // Calculate total recipe weight
   let totalRecipeWeightInKg = 0;
   const ingredientData = [];
 
@@ -131,7 +111,6 @@ export async function calculateVariantMaterialRequirements(
       ingredient.quantity,
       ingredient.unit
     );
-
     totalRecipeWeightInKg += ingredientQtyInKg;
 
     ingredientData.push({
@@ -141,14 +120,10 @@ export async function calculateVariantMaterialRequirements(
     });
   }
 
-  console.log(`📊 Recipe total weight: ${totalRecipeWeightInKg} kg`);
-  console.log(`🎯 Target fill qty: ${fillQtyInKg} kg`);
-
-  // Calculate scaling factor
+  // Calculate scale factor
   const scaleFactor = fillQtyInKg / totalRecipeWeightInKg;
-  console.log(`⚖️ Scale factor: ${scaleFactor.toFixed(4)}`);
 
-  // Now calculate requirements for each ingredient
+  // Calculate requirements for each ingredient
   for (const data of ingredientData) {
     const { ingredient, supplierMaterial, ingredientQtyInKg } = data;
 
@@ -158,12 +133,8 @@ export async function calculateVariantMaterialRequirements(
     // Resolve pricing (locked or current)
     const pricing = resolveIngredientPrice(ingredient, supplierMaterial);
 
-    // Calculate quantity needed using scale factor
+    // Scale quantity
     const requiredQty = ingredientQtyInKg * scaleFactor;
-
-    console.log(
-      `  ${material?.name}: ${ingredientQtyInKg} kg × ${scaleFactor.toFixed(2)} = ${requiredQty.toFixed(2)} kg`
-    );
 
     // Check inventory
     const inventory = await checkInventoryAvailability(
@@ -202,28 +173,38 @@ export async function calculateVariantMaterialRequirements(
 
   return materials;
 }
+
 // ============================================================================
-// PACKAGING REQUIREMENTS CALCULATION
+// PACKAGING REQUIREMENTS
 // ============================================================================
 
-export interface PackagingRequirement extends RequirementItem {
+interface PackagingRequirementParams {
   productId: string;
   productName: string;
   variantId: string;
   variantName: string;
+  units: number;
+  packagingSelectionId: string;
 }
 
 /**
- * Calculate packaging requirements for a single variant
+ * Calculates packaging requirements for a variant
+ *
+ * @param params - Packaging requirement parameters
+ * @returns Array of packaging requirements
  */
 export async function calculateVariantPackagingRequirements(
-  productId: string,
-  productName: string,
-  variantId: string,
-  variantName: string,
-  units: number,
-  packagingSelectionId: string
+  params: PackagingRequirementParams
 ): Promise<PackagingRequirement[]> {
+  const {
+    productId,
+    productName,
+    variantId,
+    variantName,
+    units,
+    packagingSelectionId,
+  } = params;
+
   if (!packagingSelectionId || units === 0) return [];
 
   const packaging = await db.supplierPackaging.get(packagingSelectionId);
@@ -269,33 +250,40 @@ export async function calculateVariantPackagingRequirements(
 }
 
 // ============================================================================
-// LABEL REQUIREMENTS CALCULATION
+// LABEL REQUIREMENTS
 // ============================================================================
 
-export interface LabelRequirement extends RequirementItem {
+interface LabelRequirementParams {
   productId: string;
   productName: string;
   variantId: string;
   variantName: string;
-  labelType: "front" | "back";
+  units: number;
+  frontLabelId?: string;
+  backLabelId?: string;
 }
-
 /**
- * Calculate label requirements for a single variant
- */
+
+Calculates label requirements for a variant
+
+@param params - Label requirement parameters
+@returns Array of label requirements
+*/
 export async function calculateVariantLabelRequirements(
-  productId: string,
-  productName: string,
-  variantId: string,
-  variantName: string,
-  units: number,
-  frontLabelId?: string,
-  backLabelId?: string
+  params: LabelRequirementParams
 ): Promise<LabelRequirement[]> {
+  const {
+    productId,
+    productName,
+    variantId,
+    variantName,
+    units,
+    frontLabelId,
+    backLabelId,
+  } = params;
   const labels: LabelRequirement[] = [];
 
   if (units === 0) return labels;
-
   // Front label
   if (frontLabelId) {
     const label = await db.supplierLabels.get(frontLabelId);
@@ -314,7 +302,6 @@ export async function calculateVariantLabelRequirements(
         label.unitPrice,
         label.tax || 0
       );
-
       labels.push({
         itemType: "label",
         itemId: label.id,
@@ -336,7 +323,6 @@ export async function calculateVariantLabelRequirements(
       });
     }
   }
-
   // Back label
   if (backLabelId) {
     const label = await db.supplierLabels.get(backLabelId);
@@ -355,7 +341,6 @@ export async function calculateVariantLabelRequirements(
         label.unitPrice,
         label.tax || 0
       );
-
       labels.push({
         itemType: "label",
         itemId: label.id,
@@ -377,17 +362,19 @@ export async function calculateVariantLabelRequirements(
       });
     }
   }
-
   return labels;
 }
-
 // ============================================================================
 // AGGREGATION FUNCTIONS
 // ============================================================================
-
 /**
- * Aggregate requirements by composite key (item + supplier)
- */
+
+Aggregates requirements by composite key (item + supplier)
+Combines duplicate items from different variants
+
+@param requirements - Array of requirements
+@returns Aggregated requirements
+*/
 export function aggregateRequirements<T extends RequirementItem>(
   requirements: T[]
 ): T[] {
@@ -395,7 +382,6 @@ export function aggregateRequirements<T extends RequirementItem>(
 
   for (const req of requirements) {
     const key = `${req.itemType}-${req.itemId}-${req.supplierId}`;
-
     if (map.has(key)) {
       const existing = map.get(key)!;
       existing.required += req.required;
@@ -405,14 +391,19 @@ export function aggregateRequirements<T extends RequirementItem>(
       map.set(key, { ...req });
     }
   }
-
   return Array.from(map.values());
 }
 
 /**
- * Group requirements by supplier
- */
-export function groupBySupplier(
+
+Groups requirements by supplier
+
+@param materials - Material requirements
+@param packaging - Packaging requirements
+@param labels - Label requirements
+@returns Array of supplier requirements
+*/
+export function groupRequirementsBySupplier(
   materials: RequirementItem[],
   packaging: RequirementItem[],
   labels: RequirementItem[]
@@ -420,7 +411,6 @@ export function groupBySupplier(
   const supplierMap = new Map<string, SupplierRequirement>();
 
   const allItems = [...materials, ...packaging, ...labels];
-
   for (const item of allItems) {
     if (!supplierMap.has(item.supplierId)) {
       supplierMap.set(item.supplierId, {
@@ -434,7 +424,6 @@ export function groupBySupplier(
         shortageCount: 0,
       });
     }
-
     const supplier = supplierMap.get(item.supplierId)!;
 
     if (item.itemType === "material") supplier.materials.push(item);
@@ -445,33 +434,19 @@ export function groupBySupplier(
     supplier.itemCount++;
     if (item.shortage > 0) supplier.shortageCount++;
   }
-
   return Array.from(supplierMap.values());
 }
-
 /**
- * Group requirements by product (for product-wise view)
- */
-export interface ProductRequirements {
-  productId: string;
-  productName: string;
-  variants: VariantRequirements[];
-  totalMaterials: RequirementItem[];
-  totalPackaging: RequirementItem[];
-  totalLabels: RequirementItem[];
-  totalCost: number;
-}
 
-export interface VariantRequirements {
-  variantId: string;
-  variantName: string;
-  materials: RequirementItem[];
-  packaging: RequirementItem[];
-  labels: RequirementItem[];
-  totalCost: number;
-}
+Groups requirements by product
+Maintains variant-level detail and creates product-level aggregates
 
-export function groupByProduct(
+@param materials - Material requirements with context
+@param packaging - Packaging requirements with context
+@param labels - Label requirements with context
+@returns Array of product requirements
+*/
+export function groupRequirementsByProduct(
   materials: MaterialRequirement[],
   packaging: PackagingRequirement[],
   labels: LabelRequirement[]
@@ -484,7 +459,6 @@ export function groupByProduct(
     ...packaging.map((p) => ({ ...p, type: "packaging" as const })),
     ...labels.map((l) => ({ ...l, type: "label" as const })),
   ];
-
   for (const req of allRequirements) {
     // Initialize product if needed
     if (!productMap.has(req.productId)) {
@@ -498,7 +472,6 @@ export function groupByProduct(
         totalCost: 0,
       });
     }
-
     const product = productMap.get(req.productId)!;
 
     // Find or create variant
@@ -525,7 +498,7 @@ export function groupByProduct(
     }
     variant.totalCost += req.totalCost;
 
-    // Add to product totals (will aggregate later)
+    // Add to product totals
     if (req.type === "material") {
       product.totalMaterials.push(req);
     } else if (req.type === "packaging") {
@@ -535,21 +508,23 @@ export function groupByProduct(
     }
     product.totalCost += req.totalCost;
   }
-
   // Aggregate product-level totals
   for (const product of productMap.values()) {
     product.totalMaterials = aggregateRequirements(product.totalMaterials);
     product.totalPackaging = aggregateRequirements(product.totalPackaging);
     product.totalLabels = aggregateRequirements(product.totalLabels);
   }
-
   return Array.from(productMap.values());
 }
+/**
 
-// ============================================================================
-// ITEMS WITHOUT INVENTORY TRACKING
-// ============================================================================
+Finds items without inventory tracking
 
+@param materials - Material requirements
+@param packaging - Packaging requirements
+@param labels - Label requirements
+@returns Array of items without inventory
+*/
 export function findItemsWithoutInventory(
   materials: RequirementItem[],
   packaging: RequirementItem[],
@@ -568,10 +543,8 @@ export function findItemsWithoutInventory(
       });
     }
   };
-
   materials.forEach(checkItem);
   packaging.forEach(checkItem);
   labels.forEach(checkItem);
-
   return itemsWithoutTracking;
 }
