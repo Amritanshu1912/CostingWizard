@@ -1,43 +1,32 @@
-// components/batches/batch-requirements/product-wise-requirements.tsx
+// src/app/batches/components/batch-requirements/batch-requirements-products.tsx
+"use client";
+
+import { useState } from "react";
+import { ChevronDown, ChevronRight, Package2 } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   Collapsible,
   CollapsibleContent,
   CollapsibleTrigger,
 } from "@/components/ui/collapsible";
-import type { RequirementItem } from "@/types/batch-types";
-import { ChevronDown, ChevronRight, Package2 } from "lucide-react";
-import { useState } from "react";
-import { TotalCostDisplay } from "../../utils/price-display";
-import { RequirementItemRowCompact } from "./requirement-item-row";
-import { Button } from "@/components/ui/button";
+import type {
+  ProductRequirements,
+  VariantRequirements,
+} from "@/types/batch-types";
+import { RequirementItemRowCompact } from "./batch-requirement-item";
 
-interface ProductRequirements {
-  productId: string;
-  productName: string;
-  variants: VariantRequirements[];
-  totalMaterials: RequirementItem[];
-  totalPackaging: RequirementItem[];
-  totalLabels: RequirementItem[];
-  totalCost: number;
-}
-
-interface VariantRequirements {
-  variantId: string;
-  variantName: string;
-  materials: RequirementItem[];
-  packaging: RequirementItem[];
-  labels: RequirementItem[];
-  totalCost: number;
-}
-
-interface ProductWiseRequirementsProps {
+interface BatchRequirementsProductsProps {
   products: ProductRequirements[];
 }
 
-export function ProductWiseRequirements({
+/**
+ * Product-wise requirements component
+ * Shows requirements grouped by product and variant
+ */
+export function BatchRequirementsProducts({
   products,
-}: ProductWiseRequirementsProps) {
+}: BatchRequirementsProductsProps) {
   const [isExpanded, setIsExpanded] = useState(false);
 
   return (
@@ -68,6 +57,9 @@ export function ProductWiseRequirements({
   );
 }
 
+/**
+ * Individual product card with variant breakdown
+ */
 interface ProductCardProps {
   product: ProductRequirements;
 }
@@ -85,7 +77,6 @@ function ProductCard({ product }: ProductCardProps) {
       <Collapsible open={isExpanded} onOpenChange={setIsExpanded}>
         <CardContent className="p-4 space-y-4">
           {/* Product Header */}
-
           <div className="flex items-center justify-between gap-4 hover:bg-accent/50 p-2 rounded-lg transition-colors">
             <div className="flex items-center gap-3 flex-1 min-w-0">
               <div className="h-12 w-12 rounded-lg bg-primary/10 flex items-center justify-center flex-shrink-0">
@@ -110,61 +101,99 @@ function ProductCard({ product }: ProductCardProps) {
             </div>
           </div>
 
-          {/* Total Cost Display */}
+          {/* Total Cost Breakdown */}
           <div className="p-3 bg-primary/5 rounded-lg border">
-            <TotalCostDisplay
-              totalCost={product.totalCost}
-              breakdown={[
-                {
-                  icon: "🧪",
-                  label: "Materials",
-                  amount: product.totalMaterials.reduce(
-                    (sum, m) => sum + m.totalCost,
-                    0
-                  ),
-                  totalItems: product.totalMaterials.length,
-                  percentage:
-                    (product.totalMaterials.reduce(
-                      (sum, m) => sum + m.totalCost,
-                      0
-                    ) /
-                      product.totalCost) *
-                    100,
-                },
-                {
-                  icon: "📦",
-                  label: "Packaging",
-                  amount: product.totalPackaging.reduce(
-                    (sum, p) => sum + p.totalCost,
-                    0
-                  ),
-                  totalItems: product.totalPackaging.length,
-                  percentage:
-                    (product.totalPackaging.reduce(
-                      (sum, p) => sum + p.totalCost,
-                      0
-                    ) /
-                      product.totalCost) *
-                    100,
-                },
-                {
-                  icon: "🏷️",
-                  label: "Labels",
-                  amount: product.totalLabels.reduce(
-                    (sum, l) => sum + l.totalCost,
-                    0
-                  ),
-                  totalItems: product.totalLabels.length,
-                  percentage:
-                    (product.totalLabels.reduce(
-                      (sum, l) => sum + l.totalCost,
-                      0
-                    ) /
-                      product.totalCost) *
-                    100,
-                },
-              ]}
-            />
+            <div className="space-y-2">
+              <div className="flex items-center justify-between text-sm">
+                <div className="flex items-center gap-2">
+                  <span>🧪</span>
+                  <span className="text-muted-foreground">Materials</span>
+                  <span className="text-xs text-muted-foreground">
+                    ({product.totalMaterials.length})
+                  </span>
+                </div>
+                <div className="text-right">
+                  <span className="font-medium">
+                    ₹
+                    {product.totalMaterials
+                      .reduce((sum, m) => sum + m.totalCost, 0)
+                      .toFixed(2)}
+                  </span>
+                  <span className="text-xs text-muted-foreground ml-2">
+                    (
+                    {(
+                      (product.totalMaterials.reduce(
+                        (sum, m) => sum + m.totalCost,
+                        0
+                      ) /
+                        product.totalCost) *
+                      100
+                    ).toFixed(0)}
+                    %)
+                  </span>
+                </div>
+              </div>
+
+              <div className="flex items-center justify-between text-sm">
+                <div className="flex items-center gap-2">
+                  <span>📦</span>
+                  <span className="text-muted-foreground">Packaging</span>
+                  <span className="text-xs text-muted-foreground">
+                    ({product.totalPackaging.length})
+                  </span>
+                </div>
+                <div className="text-right">
+                  <span className="font-medium">
+                    ₹
+                    {product.totalPackaging
+                      .reduce((sum, p) => sum + p.totalCost, 0)
+                      .toFixed(2)}
+                  </span>
+                  <span className="text-xs text-muted-foreground ml-2">
+                    (
+                    {(
+                      (product.totalPackaging.reduce(
+                        (sum, p) => sum + p.totalCost,
+                        0
+                      ) /
+                        product.totalCost) *
+                      100
+                    ).toFixed(0)}
+                    %)
+                  </span>
+                </div>
+              </div>
+
+              <div className="flex items-center justify-between text-sm">
+                <div className="flex items-center gap-2">
+                  <span>🏷️</span>
+                  <span className="text-muted-foreground">Labels</span>
+                  <span className="text-xs text-muted-foreground">
+                    ({product.totalLabels.length})
+                  </span>
+                </div>
+                <div className="text-right">
+                  <span className="font-medium">
+                    ₹
+                    {product.totalLabels
+                      .reduce((sum, l) => sum + l.totalCost, 0)
+                      .toFixed(2)}
+                  </span>
+                  <span className="text-xs text-muted-foreground ml-2">
+                    (
+                    {(
+                      (product.totalLabels.reduce(
+                        (sum, l) => sum + l.totalCost,
+                        0
+                      ) /
+                        product.totalCost) *
+                      100
+                    ).toFixed(0)}
+                    %)
+                  </span>
+                </div>
+              </div>
+            </div>
           </div>
 
           {/* Show/Hide Details Button */}
@@ -179,9 +208,9 @@ function ProductCard({ product }: ProductCardProps) {
 
           {/* Expanded Content */}
           <CollapsibleContent className="space-y-4 pt-2">
-            {/* Combined Requirements Collapsible Card */}
+            {/* Combined Requirements */}
             <Collapsible defaultOpen={false}>
-              <Card className="py-3 gap-0">
+              <Card className="py-3">
                 <CollapsibleTrigger asChild>
                   <CardHeader className="cursor-pointer p-3">
                     <div className="flex items-center gap-2">
@@ -193,7 +222,7 @@ function ProductCard({ product }: ProductCardProps) {
                   </CardHeader>
                 </CollapsibleTrigger>
                 <CollapsibleContent>
-                  <CardContent className="py-3 pr-3 pl-6 p space-y-3">
+                  <CardContent className="py-3 pr-3 pl-6 space-y-3">
                     {product.totalMaterials.length > 0 && (
                       <div className="space-y-1">
                         <p className="text-xs font-medium text-muted-foreground">
@@ -239,6 +268,7 @@ function ProductCard({ product }: ProductCardProps) {
                 </CollapsibleContent>
               </Card>
             </Collapsible>
+
             {/* Variant Breakdown */}
             {product.variants.length > 1 && (
               <div className="space-y-3 pt-3 border-t">
@@ -255,6 +285,9 @@ function ProductCard({ product }: ProductCardProps) {
   );
 }
 
+/**
+ * Individual variant card
+ */
 interface VariantCardProps {
   variant: VariantRequirements;
 }

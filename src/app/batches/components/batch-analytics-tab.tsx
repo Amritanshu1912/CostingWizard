@@ -1,6 +1,7 @@
-// src/app/batches/components/batch-analytics.tsx
+// src/app/batches/components/batch-analytics-tab.tsx
 "use client";
 
+import { AlertCircle, DollarSign, Package, TrendingUp } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import type { BatchCostAnalysis } from "@/types/batch-types";
@@ -18,8 +19,6 @@ import {
   CHART_YAXIS_CONFIG,
   PIE_CHART_CONFIG,
 } from "@/utils/chart-utils";
-import { formatINR, formatPercentage } from "@/utils/formatting-utils";
-import { AlertCircle, DollarSign, Package, TrendingUp } from "lucide-react";
 import {
   Bar,
   BarChart,
@@ -34,25 +33,23 @@ import {
   YAxis,
 } from "recharts";
 
-interface BatchAnalyticsProps {
-  costAnalysis: BatchCostAnalysis | null;
+interface BatchAnalyticsTabProps {
+  costAnalysis: BatchCostAnalysis;
 }
 
+/** Chart colors for consistency */
 const COLORS = {
   materials: CHART_COLOR_SCHEMES.default[0],
   packaging: CHART_COLOR_SCHEMES.default[1],
   labels: CHART_COLOR_SCHEMES.default[2],
 };
 
-export function BatchAnalytics({ costAnalysis }: BatchAnalyticsProps) {
-  if (!costAnalysis) {
-    return (
-      <div className="flex items-center justify-center py-12">
-        <p className="text-muted-foreground">No analytics available</p>
-      </div>
-    );
-  }
-
+/**
+ * Batch analytics tab component
+ * Displays cost breakdown and profitability charts
+ */
+export function BatchAnalyticsTab({ costAnalysis }: BatchAnalyticsTabProps) {
+  // Prepare cost breakdown data for pie chart
   const costBreakdownData = [
     {
       name: "Materials",
@@ -71,6 +68,7 @@ export function BatchAnalytics({ costAnalysis }: BatchAnalyticsProps) {
     },
   ];
 
+  // Prepare variant comparison data for bar chart
   const variantComparisonData = (costAnalysis.variantCosts || []).map((v) => ({
     name: `${v.productName} ${v.variantName}`,
     cost: Math.round(v.totalCost),
@@ -89,7 +87,7 @@ export function BatchAnalytics({ costAnalysis }: BatchAnalyticsProps) {
               <DollarSign className="h-4 w-4 text-muted-foreground" />
             </div>
             <div className="text-2xl font-bold">
-              {formatINR(costAnalysis.totalCost)}
+              ₹{costAnalysis.totalCost.toFixed(0)}
             </div>
             <div className="text-xs text-muted-foreground mt-1">incl. tax</div>
           </CardContent>
@@ -104,7 +102,7 @@ export function BatchAnalytics({ costAnalysis }: BatchAnalyticsProps) {
               <TrendingUp className="h-4 w-4 text-muted-foreground" />
             </div>
             <div className="text-2xl font-bold text-green-600">
-              {formatINR(costAnalysis.totalRevenue)}
+              ₹{costAnalysis.totalRevenue.toFixed(0)}
             </div>
             <div className="text-xs text-muted-foreground mt-1">incl. tax</div>
           </CardContent>
@@ -119,7 +117,7 @@ export function BatchAnalytics({ costAnalysis }: BatchAnalyticsProps) {
               <Package className="h-4 w-4 text-muted-foreground" />
             </div>
             <div className="text-2xl font-bold text-green-600">
-              {formatINR(costAnalysis.totalProfit)}
+              ₹{costAnalysis.totalProfit.toFixed(0)}
             </div>
             <div className="text-xs text-muted-foreground mt-1">incl. tax</div>
           </CardContent>
@@ -142,7 +140,7 @@ export function BatchAnalytics({ costAnalysis }: BatchAnalyticsProps) {
                     : "text-red-600"
               }`}
             >
-              {formatPercentage(costAnalysis.profitMargin)}
+              {costAnalysis.profitMargin.toFixed(1)}%
             </div>
           </CardContent>
         </Card>
@@ -227,8 +225,7 @@ export function BatchAnalytics({ costAnalysis }: BatchAnalyticsProps) {
                               : COLORS.labels,
                       }}
                     >
-                      {formatINR(item.value)} (
-                      {formatPercentage(item.percentage)})
+                      ₹{item.value.toFixed(0)} ({item.percentage.toFixed(1)}%)
                     </div>
                   </div>
                 ))}
@@ -318,7 +315,7 @@ export function BatchAnalytics({ costAnalysis }: BatchAnalyticsProps) {
                       </p>
                     </div>
                     <div className={`text-2xl font-bold ${marginColor}`}>
-                      {formatPercentage(variant.margin)}
+                      {variant.margin.toFixed(1)}%
                     </div>
                   </div>
 
@@ -326,25 +323,25 @@ export function BatchAnalytics({ costAnalysis }: BatchAnalyticsProps) {
                     <div>
                       <div className="text-muted-foreground">Cost/Unit</div>
                       <div className="font-medium">
-                        {formatINR(variant.costPerUnit)}
+                        ₹{variant.costPerUnit.toFixed(2)}
                       </div>
                     </div>
                     <div>
                       <div className="text-muted-foreground">Selling Price</div>
                       <div className="font-medium">
-                        {formatINR(variant.revenuePerUnit)}
+                        ₹{variant.revenuePerUnit.toFixed(2)}
                       </div>
                     </div>
                     <div>
                       <div className="text-muted-foreground">Total Cost</div>
                       <div className="font-medium">
-                        {formatINR(variant.totalCost)}
+                        ₹{variant.totalCost.toFixed(2)}
                       </div>
                     </div>
                     <div>
                       <div className="text-muted-foreground">Total Profit</div>
                       <div className="font-medium text-green-600">
-                        {formatINR(variant.profit)}
+                        ₹{variant.profit.toFixed(2)}
                       </div>
                     </div>
                   </div>
@@ -354,7 +351,7 @@ export function BatchAnalytics({ costAnalysis }: BatchAnalyticsProps) {
                     <div className="flex justify-between text-xs mb-1">
                       <span>Profit Margin</span>
                       <span className={marginColor}>
-                        {formatPercentage(variant.margin)}
+                        {variant.margin.toFixed(1)}%
                       </span>
                     </div>
                     <Progress
@@ -392,8 +389,8 @@ export function BatchAnalytics({ costAnalysis }: BatchAnalyticsProps) {
                   </div>
                   <div className="text-sm text-yellow-800 dark:text-yellow-200">
                     Your batch has a margin of{" "}
-                    {formatPercentage(costAnalysis.profitMargin)}. Consider
-                    reviewing supplier prices or adjusting selling prices.
+                    {costAnalysis.profitMargin.toFixed(1)}%. Consider reviewing
+                    supplier prices or adjusting selling prices.
                   </div>
                 </div>
               </div>
@@ -408,8 +405,8 @@ export function BatchAnalytics({ costAnalysis }: BatchAnalyticsProps) {
                   </div>
                   <div className="text-sm text-blue-800 dark:text-blue-200">
                     Materials account for{" "}
-                    {formatPercentage(costAnalysis.materialsPercentage)} of
-                    costs. Look for bulk discounts or alternative suppliers.
+                    {costAnalysis.materialsPercentage.toFixed(1)}% of costs.
+                    Look for bulk discounts or alternative suppliers.
                   </div>
                 </div>
               </div>
