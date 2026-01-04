@@ -1,12 +1,7 @@
-// src/app/batches/components/batches-list-view.tsx
+// src/app/batches/components/batch-list.tsx
 "use client";
 
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import type { ProductionBatch } from "@/types/shared-types";
-import { cn } from "@/utils/shared-utils";
+import { useState } from "react";
 import {
   Calendar,
   CheckCircle,
@@ -16,59 +11,68 @@ import {
   Search,
   XCircle,
 } from "lucide-react";
-import { useState } from "react";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import type { ProductionBatch, BatchStatus } from "@/types/batch-types";
+import { cn } from "@/utils/shared-utils";
 
-interface BatchesListViewProps {
+interface BatchListProps {
   batches: ProductionBatch[];
   selectedBatchId?: string;
   onSelectBatch: (batch: ProductionBatch) => void;
   onCreateBatch: () => void;
 }
 
+/** Status configuration for badges and icons */
 const STATUS_CONFIG = {
   draft: {
-    color: "secondary",
+    color: "secondary" as const,
     icon: Calendar,
     label: "Draft",
     textColor: "text-muted-foreground",
   },
   scheduled: {
-    color: "default",
+    color: "default" as const,
     icon: Clock,
     label: "Scheduled",
     textColor: "text-blue-600 dark:text-blue-400",
   },
   "in-progress": {
-    color: "default",
+    color: "default" as const,
     icon: Factory,
     label: "In Progress",
     textColor: "text-green-600 dark:text-green-400",
   },
   completed: {
-    color: "default",
+    color: "default" as const,
     icon: CheckCircle,
     label: "Completed",
     textColor: "text-green-600 dark:text-green-400",
   },
   cancelled: {
-    color: "destructive",
+    color: "destructive" as const,
     icon: XCircle,
     label: "Cancelled",
     textColor: "text-red-600 dark:text-red-400",
   },
 } as const;
 
-export function BatchesListView({
+/**
+ * Batch list component
+ * Shows searchable, filterable list of batches
+ */
+export function BatchList({
   batches,
   selectedBatchId,
   onSelectBatch,
   onCreateBatch,
-}: BatchesListViewProps) {
+}: BatchListProps) {
   const [searchQuery, setSearchQuery] = useState("");
-  const [statusFilter, setStatusFilter] = useState<
-    ProductionBatch["status"] | "all"
-  >("all");
+  const [statusFilter, setStatusFilter] = useState<BatchStatus | "all">("all");
 
+  // Filter batches based on search and status
   const filteredBatches = batches.filter((batch) => {
     const matchesSearch =
       batch.batchName.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -83,6 +87,7 @@ export function BatchesListView({
   return (
     <Card className="h-full flex flex-col">
       <CardHeader className="flex-shrink-0">
+        {/* Header with count and create button */}
         <div className="flex items-center justify-between mb-4">
           <div>
             <CardTitle className="text-lg">Production Batches</CardTitle>
@@ -96,7 +101,7 @@ export function BatchesListView({
           </Button>
         </div>
 
-        {/* Search */}
+        {/* Search input */}
         <div className="relative">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
@@ -107,7 +112,7 @@ export function BatchesListView({
           />
         </div>
 
-        {/* Status Filter */}
+        {/* Status filter buttons */}
         <div className="flex gap-2 flex-wrap">
           {(
             [
@@ -139,6 +144,12 @@ export function BatchesListView({
             const Icon = config.icon;
             const isSelected = selectedBatchId === batch.id;
 
+            // Calculate variant count
+            const variantCount = batch.items.reduce(
+              (sum, item) => sum + item.variants.length,
+              0
+            );
+
             return (
               <div
                 key={batch.id}
@@ -165,6 +176,7 @@ export function BatchesListView({
 
                   {/* Content */}
                   <div className="flex-1 min-w-0">
+                    {/* Title and status */}
                     <div className="flex items-start justify-between gap-2 mb-2">
                       <h4 className="font-semibold text-sm truncate">
                         {batch.batchName}
@@ -177,13 +189,15 @@ export function BatchesListView({
                       </Badge>
                     </div>
 
+                    {/* Description */}
                     {batch.description && (
                       <p className="text-xs text-muted-foreground line-clamp-2 mb-2">
                         {batch.description}
                       </p>
                     )}
 
-                    <div className="flex items-center gap-3 text-xs text-muted-foreground">
+                    {/* Date range */}
+                    <div className="flex items-center gap-3 text-xs text-muted-foreground mb-2">
                       <span className="flex items-center gap-1">
                         <Calendar className="h-3 w-3" />
                         {batch.startDate}
@@ -192,17 +206,14 @@ export function BatchesListView({
                       <span>{batch.endDate}</span>
                     </div>
 
-                    <div className="flex items-center gap-2 mt-2">
+                    {/* Product and variant counts */}
+                    <div className="flex items-center gap-2">
                       <Badge variant="outline" className="text-xs">
                         {batch.items.length} product
                         {batch.items.length !== 1 ? "s" : ""}
                       </Badge>
                       <Badge variant="outline" className="text-xs">
-                        {batch.items.reduce(
-                          (sum, item) => sum + item.variants.length,
-                          0
-                        )}{" "}
-                        variants
+                        {variantCount} variants
                       </Badge>
                     </div>
                   </div>
@@ -211,6 +222,7 @@ export function BatchesListView({
             );
           })}
 
+          {/* No results */}
           {filteredBatches.length === 0 && (
             <div className="text-center py-12 px-4">
               {batches.length === 0 ? (
@@ -230,7 +242,7 @@ export function BatchesListView({
               ) : (
                 <>
                   <Search className="h-12 w-12 mx-auto text-muted-foreground/30 mb-3" />
-                  <p className="text-sm text-muted-foreground">
+                  <p className="text-sm text-muted-foreground mb-4">
                     No batches match your filters
                   </p>
                   <Button
@@ -240,7 +252,6 @@ export function BatchesListView({
                       setSearchQuery("");
                       setStatusFilter("all");
                     }}
-                    className="mt-3"
                   >
                     Clear Filters
                   </Button>

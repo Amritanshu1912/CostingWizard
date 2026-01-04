@@ -1,5 +1,5 @@
 // src/app/batches/components/batches-constants.tsx
-import { ProductionBatch } from "@/types/shared-types";
+import { ProductionBatch } from "@/types/batch-types";
 import {
   AlertCircle,
   Calendar,

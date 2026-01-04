@@ -1,6 +1,8 @@
 // src/app/batches/components/batch-form.tsx
 "use client";
 
+import { useState } from "react";
+import { AlertCircle, Check, Package2, Plus, Trash2, X } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -14,45 +16,47 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
-import { convertToDisplayUnit } from "@/utils/unit-conversion-utils";
 import { db } from "@/lib/db";
-import type { BatchProductItem, ProductionBatch } from "@/types/shared-types";
+import type { BatchProductItem, ProductionBatch, BatchStatus } from "@/types/batch-types";
 import { cn } from "@/utils/shared-utils";
+import { convertToDisplayUnit } from "@/utils/unit-conversion-utils";
 import { useLiveQuery } from "dexie-react-hooks";
-import { AlertCircle, Check, Package2, Plus, Trash2, X } from "lucide-react";
-import { useState } from "react";
 
 interface BatchFormProps {
   initialBatch?: ProductionBatch;
-  onSave: (
-    batch: Omit<ProductionBatch, "id" | "createdAt" | "updatedAt">
-  ) => void;
+  onSave: (batch: Omit<ProductionBatch, "id" | "createdAt" | "updatedAt">) => void;
   onCancel: () => void;
   onDelete?: () => void;
 }
 
+/**
+ * Batch form for creating/editing batches
+ */
 export function BatchForm({
   initialBatch,
   onSave,
   onCancel,
   onDelete,
 }: BatchFormProps) {
+  // Form state
   const [formData, setFormData] = useState({
     batchName: initialBatch?.batchName || "",
     description: initialBatch?.description || "",
     startDate: initialBatch?.startDate || "",
     endDate: initialBatch?.endDate || "",
-    status: initialBatch?.status || ("draft" as ProductionBatch["status"]),
+    status: (initialBatch?.status || "draft") as BatchStatus,
   });
 
-  const [items, setItems] = useState<BatchProductItem[]>(
-    initialBatch?.items || []
-  );
-
-  const products = useLiveQuery(() => db.products.toArray(), []);
+  const [items, setItems] = useState<BatchProductItem[]>(initialBatch?.items || []);
   const [selectedProductId, setSelectedProductId] = useState<string>("");
   const [errors, setErrors] = useState<Record<string, string>>({});
 
+  // Fetch products for dropdown
+  const products = useLiveQuery(() => db.products.toArray(), []);
+
+  /**
+   * Validate form data
+   */
   const validateForm = () => {
     const newErrors: Record<string, string> = {};
 
@@ -68,11 +72,7 @@ export function BatchForm({
       newErrors.endDate = "End date is required";
     }
 
-    if (
-      formData.startDate &&
-      formData.endDate &&
-      formData.startDate > formData.endDate
-    ) {
+    if (formData.startDate && formData.endDate && formData.startDate > formData.endDate) {
       newErrors.endDate = "End date must be after start date";
     }
 
@@ -85,14 +85,16 @@ export function BatchForm({
     );
 
     if (items.length > 0 && !hasQuantities) {
-      newErrors.quantities =
-        "Please specify quantities for at least one variant";
+      newErrors.quantities = "Please specify quantities for at least one variant";
     }
 
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
 
+  /**
+   * Add product to batch
+   */
   const handleAddProduct = async () => {
     if (!selectedProductId) return;
 
@@ -128,10 +130,16 @@ export function BatchForm({
     setErrors({ ...errors, product: "", items: "" });
   };
 
+  /**
+   * Remove product from batch
+   */
   const handleRemoveProduct = (productId: string) => {
     setItems(items.filter((item) => item.productId !== productId));
   };
 
+  /**
+   * Update variant quantity
+   */
   const handleVariantQuantityChange = (
     productId: string,
     variantId: string,
@@ -155,11 +163,13 @@ export function BatchForm({
     setErrors({ ...errors, quantities: "" });
   };
 
-  const handleSubmit = async () => {
-    if (!validateForm()) {
-      return;
-    }
+  /**
+   * Submit form
+   */
+  const handleSubmit = () => {
+    if (!validateForm()) return;
 
+    // Filter out variants with 0 quantity
     const filteredItems = items
       .map((item) => ({
         ...item,
@@ -167,26 +177,21 @@ export function BatchForm({
       }))
       .filter((item) => item.variants.length > 0);
 
-    const batch = {
+    onSave({
       batchName: formData.batchName,
       description: formData.description,
       startDate: formData.startDate,
       endDate: formData.endDate,
       status: formData.status,
       items: filteredItems,
-    };
-
-    onSave(batch as any);
+    } as any);
   };
 
+  // Calculate stats
   const totalProducts = items.length;
-  const totalVariants = items.reduce(
-    (sum, item) => sum + item.variants.length,
-    0
-  );
+  const totalVariants = items.reduce((sum, item) => sum + item.variants.length, 0);
   const variantsWithQuantity = items.reduce(
-    (sum, item) =>
-      sum + item.variants.filter((v) => v.totalFillQuantity > 0).length,
+    (sum, item) => sum + item.variants.filter((v) => v.totalFillQuantity > 0).length,
     0
   );
 
@@ -231,10 +236,7 @@ export function BatchForm({
           <Select
             value={formData.status}
             onValueChange={(value) =>
-              setFormData({
-                ...formData,
-                status: value as ProductionBatch["status"],
-              })
+              setFormData({ ...formData, status: value as BatchStatus })
             }
           >
             <SelectTrigger className="h-9">
@@ -339,6 +341,7 @@ export function BatchForm({
             Add
           </Button>
         </div>
+        
         {errors.product && (
           <p className="text-xs text-red-600">{errors.product}</p>
         )}
@@ -365,9 +368,7 @@ export function BatchForm({
           <div className="text-center py-12 text-muted-foreground border-2 border-dashed rounded-lg bg-muted/10">
             <Package2 className="h-16 w-16 mx-auto mb-3 opacity-30" />
             <p className="text-sm font-medium mb-1">No products added yet</p>
-            <p className="text-xs">
-              Add products above to start planning your batch
-            </p>
+            <p className="text-xs">Add products above to start planning your batch</p>
           </div>
         )}
       </div>
@@ -392,26 +393,18 @@ export function BatchForm({
   );
 }
 
-// Product Item Card Component (Enhanced)
+/**
+ * Product item card component
+ * Shows product with its variants and quantity inputs
+ */
 interface ProductItemCardProps {
   item: BatchProductItem;
   onRemove: () => void;
-  onVariantChange: (
-    productId: string,
-    variantId: string,
-    quantity: number
-  ) => void;
+  onVariantChange: (productId: string, variantId: string, quantity: number) => void;
 }
 
-function ProductItemCard({
-  item,
-  onRemove,
-  onVariantChange,
-}: ProductItemCardProps) {
-  const product = useLiveQuery(
-    () => db.products.get(item.productId),
-    [item.productId]
-  );
+function ProductItemCard({ item, onRemove, onVariantChange }: ProductItemCardProps) {
+  const product = useLiveQuery(() => db.products.get(item.productId), [item.productId]);
 
   const variants = useLiveQuery(
     async () => {
@@ -429,9 +422,7 @@ function ProductItemCard({
 
   if (!product) return null;
 
-  const variantsWithQty = item.variants.filter(
-    (v) => v.totalFillQuantity > 0
-  ).length;
+  const variantsWithQty = item.variants.filter((v) => v.totalFillQuantity > 0).length;
 
   return (
     <Card className="border-2 hover:border-primary/50 transition-colors">
@@ -443,9 +434,7 @@ function ProductItemCard({
               <Package2 className="h-6 w-6 text-primary" />
             </div>
             <div className="flex-1 min-w-0">
-              <h4 className="font-semibold text-base truncate">
-                {product.name}
-              </h4>
+              <h4 className="font-semibold text-base truncate">{product.name}</h4>
               <div className="flex items-center gap-2 mt-1">
                 <p className="text-xs text-muted-foreground">
                   {item.variants.length} variants
@@ -473,9 +462,7 @@ function ProductItemCard({
 
         {/* Variants */}
         <div className="space-y-2">
-          <Label className="text-xs text-muted-foreground">
-            Variant Quantities
-          </Label>
+          <Label className="text-xs text-muted-foreground">Variant Quantities</Label>
           {variants.map((v) => {
             if (!v.variant) return null;
 

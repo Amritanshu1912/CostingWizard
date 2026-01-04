@@ -1,13 +1,7 @@
-// components/batches/batch-requirements/supplier-wise-requirements.tsx
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import {
-  Collapsible,
-  CollapsibleContent,
-  CollapsibleTrigger,
-} from "@/components/ui/collapsible";
-import type { SupplierRequirement } from "@/types/shared-types";
+// src/app/batches/components/batch-requirements/batch-requirements-suppliers.tsx
+"use client";
+
+import { useState } from "react";
 import {
   Building2,
   ChevronDown,
@@ -16,28 +10,41 @@ import {
   FileText,
   Mail,
 } from "lucide-react";
-import { useState } from "react";
-import { ShortageBadge } from "../../utils/shortage-badge";
-import { RequirementItemRowCompact } from "./requirement-item-row";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from "@/components/ui/collapsible";
 import {
   Tooltip,
+  TooltipContent,
   TooltipProvider,
   TooltipTrigger,
-  TooltipContent,
 } from "@/components/ui/tooltip";
+import type { SupplierRequirement } from "@/types/batch-types";
+import { RequirementItemRowCompact } from "./batch-requirement-item";
+import { ShortageBadge } from "@/components/ui/shortage-badge";
 
-interface SupplierWiseRequirementsProps {
+interface BatchRequirementsSuppliersProps {
   suppliers: SupplierRequirement[];
   onGeneratePO?: (supplierId: string) => void;
   onContactSupplier?: (supplierId: string) => void;
 }
 
-export function SupplierWiseRequirements({
+/**
+ * Supplier-wise requirements component
+ * Shows requirements grouped by supplier with PO generation
+ */
+export function BatchRequirementsSuppliers({
   suppliers,
   onGeneratePO,
   onContactSupplier,
-}: SupplierWiseRequirementsProps) {
-  const [isExpanded, setIsExpanded] = useState(false);
+}: BatchRequirementsSuppliersProps) {
+  const [isExpanded, setIsExpanded] = useState(true);
+
   return (
     <Card>
       <Collapsible open={isExpanded} onOpenChange={setIsExpanded}>
@@ -73,6 +80,9 @@ export function SupplierWiseRequirements({
   );
 }
 
+/**
+ * Individual supplier card component
+ */
 interface SupplierCardProps {
   supplier: SupplierRequirement;
   onGeneratePO?: (supplierId: string) => void;
@@ -86,18 +96,7 @@ function SupplierCard({
 }: SupplierCardProps) {
   const [isExpanded, setIsExpanded] = useState(false);
 
-  const totalItems =
-    supplier.materials.length +
-    supplier.packaging.length +
-    supplier.labels.length;
-
-  const shortageCount = [
-    ...supplier.materials,
-    ...supplier.packaging,
-    ...supplier.labels,
-  ].filter((item) => item.shortage > 0).length;
-
-  const hasShortages = shortageCount > 0;
+  const hasShortages = supplier.shortageCount > 0;
 
   return (
     <Card
@@ -120,7 +119,7 @@ function SupplierCard({
                   {supplier.supplierName}
                 </h3>
                 <p className="text-xs text-muted-foreground">
-                  {totalItems} item{totalItems !== 1 ? "s" : ""}
+                  {supplier.itemCount} item{supplier.itemCount !== 1 ? "s" : ""}
                 </p>
               </div>
             </div>
@@ -165,7 +164,8 @@ function SupplierCard({
             variant="outline"
             className="w-full justify-center bg-red-100 dark:bg-red-950 border-red-200 dark:border-red-900 text-red-700 dark:text-red-300"
           >
-            ⚠️ {shortageCount} item{shortageCount !== 1 ? "s" : ""} short
+            ⚠️ {supplier.shortageCount} item
+            {supplier.shortageCount !== 1 ? "s" : ""} short
           </Badge>
         )}
 
@@ -220,7 +220,6 @@ function SupplierCard({
                 <p className="text-xs font-medium text-muted-foreground">
                   Packaging
                 </p>
-
                 {supplier.packaging.map((item) => (
                   <div
                     key={`${item.itemId}-${item.supplierId}`}

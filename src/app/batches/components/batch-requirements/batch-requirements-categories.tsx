@@ -1,12 +1,7 @@
-// components/batches/batch-requirements/requirements-category-list.tsx
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import {
-  Collapsible,
-  CollapsibleContent,
-  CollapsibleTrigger,
-} from "@/components/ui/collapsible";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import type { RequirementItem } from "@/types/shared-types";
+// src/app/batches/components/batch-requirements/batch-requirements-categories.tsx
+"use client";
+
+import { useState } from "react";
 import {
   ChevronDown,
   ChevronRight,
@@ -14,33 +9,34 @@ import {
   Package,
   Tag,
 } from "lucide-react";
-import { useState } from "react";
-import { TotalCostDisplay } from "../../utils/price-display";
-import { RequirementItemRow } from "./requirement-item-row";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from "@/components/ui/collapsible";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import type { BatchRequirementsByCategory } from "@/types/batch-types";
+import { BatchRequirementItem } from "./batch-requirement-item";
 
-interface RequirementsCategoryListProps {
-  materials: RequirementItem[];
-  packaging: RequirementItem[];
-  labels: RequirementItem[];
-  totalMaterialCost: number;
-  totalPackagingCost: number;
-  totalLabelCost: number;
+interface BatchRequirementsCategoriesProps {
+  byCategory: BatchRequirementsByCategory;
 }
 
-export function RequirementsCategoryList({
-  materials,
-  packaging,
-  labels,
-  totalMaterialCost,
-  totalPackagingCost,
-  totalLabelCost,
-}: RequirementsCategoryListProps) {
-  const [isExpanded, setIsExpanded] = useState(false);
+/**
+ * Requirements by category component
+ * Shows materials/packaging/labels in separate tabs
+ */
+export function BatchRequirementsCategories({
+  byCategory,
+}: BatchRequirementsCategoriesProps) {
+  const [isExpanded, setIsExpanded] = useState(true);
+
   return (
     <Card>
       <Collapsible open={isExpanded} onOpenChange={setIsExpanded}>
         <CollapsibleTrigger asChild>
-          <CardHeader className="cursor-pointer ">
+          <CardHeader className="cursor-pointer">
             <CardTitle className="text-lg flex items-center gap-2">
               {isExpanded ? (
                 <ChevronDown className="h-5 w-5" />
@@ -57,34 +53,42 @@ export function RequirementsCategoryList({
               <TabsList className="grid w-full grid-cols-3">
                 <TabsTrigger value="materials" className="gap-2">
                   <FlaskConical className="h-4 w-4" />
-                  Materials ({materials.length})
+                  Materials ({byCategory.materials.length})
                 </TabsTrigger>
                 <TabsTrigger value="packaging" className="gap-2">
                   <Package className="h-4 w-4" />
-                  Packaging ({packaging.length})
+                  Packaging ({byCategory.packaging.length})
                 </TabsTrigger>
                 <TabsTrigger value="labels" className="gap-2">
                   <Tag className="h-4 w-4" />
-                  Labels ({labels.length})
+                  Labels ({byCategory.labels.length})
                 </TabsTrigger>
               </TabsList>
 
+              {/* Materials Tab */}
               <TabsContent value="materials" className="space-y-4">
                 <div className="flex items-center justify-between p-4 bg-muted/50 rounded-lg">
                   <div className="flex items-center gap-2">
                     <FlaskConical className="h-5 w-5 text-primary" />
                     <span className="font-semibold">All Materials</span>
                     <span className="text-sm text-muted-foreground">
-                      ({materials.length} items)
+                      ({byCategory.materials.length} items)
                     </span>
                   </div>
-                  <TotalCostDisplay totalCost={totalMaterialCost} />
+                  <div className="text-right">
+                    <div className="text-2xl font-bold">
+                      ₹{byCategory.totalMaterialCost.toFixed(2)}
+                    </div>
+                    <div className="text-xs text-muted-foreground">
+                      incl. tax
+                    </div>
+                  </div>
                 </div>
 
-                {materials.length > 0 ? (
+                {byCategory.materials.length > 0 ? (
                   <div className="space-y-3">
-                    {materials.map((item) => (
-                      <RequirementItemRow
+                    {byCategory.materials.map((item) => (
+                      <BatchRequirementItem
                         key={`material-${item.itemId}-${item.supplierId}`}
                         item={item}
                       />
@@ -98,22 +102,30 @@ export function RequirementsCategoryList({
                 )}
               </TabsContent>
 
+              {/* Packaging Tab */}
               <TabsContent value="packaging" className="space-y-4">
                 <div className="flex items-center justify-between p-4 bg-muted/50 rounded-lg">
                   <div className="flex items-center gap-2">
                     <Package className="h-5 w-5 text-primary" />
                     <span className="font-semibold">All Packaging</span>
                     <span className="text-sm text-muted-foreground">
-                      ({packaging.length} items)
+                      ({byCategory.packaging.length} items)
                     </span>
                   </div>
-                  <TotalCostDisplay totalCost={totalPackagingCost} />
+                  <div className="text-right">
+                    <div className="text-2xl font-bold">
+                      ₹{byCategory.totalPackagingCost.toFixed(2)}
+                    </div>
+                    <div className="text-xs text-muted-foreground">
+                      incl. tax
+                    </div>
+                  </div>
                 </div>
 
-                {packaging.length > 0 ? (
+                {byCategory.packaging.length > 0 ? (
                   <div className="space-y-3">
-                    {packaging.map((item) => (
-                      <RequirementItemRow
+                    {byCategory.packaging.map((item) => (
+                      <BatchRequirementItem
                         key={`packaging-${item.itemId}-${item.supplierId}`}
                         item={item}
                       />
@@ -127,22 +139,30 @@ export function RequirementsCategoryList({
                 )}
               </TabsContent>
 
+              {/* Labels Tab */}
               <TabsContent value="labels" className="space-y-4">
                 <div className="flex items-center justify-between p-4 bg-muted/50 rounded-lg">
                   <div className="flex items-center gap-2">
                     <Tag className="h-5 w-5 text-primary" />
                     <span className="font-semibold">All Labels</span>
                     <span className="text-sm text-muted-foreground">
-                      ({labels.length} items)
+                      ({byCategory.labels.length} items)
                     </span>
                   </div>
-                  <TotalCostDisplay totalCost={totalLabelCost} />
+                  <div className="text-right">
+                    <div className="text-2xl font-bold">
+                      ₹{byCategory.totalLabelCost.toFixed(2)}
+                    </div>
+                    <div className="text-xs text-muted-foreground">
+                      incl. tax
+                    </div>
+                  </div>
                 </div>
 
-                {labels.length > 0 ? (
+                {byCategory.labels.length > 0 ? (
                   <div className="space-y-3">
-                    {labels.map((item) => (
-                      <RequirementItemRow
+                    {byCategory.labels.map((item) => (
+                      <BatchRequirementItem
                         key={`label-${item.itemId}-${item.supplierId}`}
                         item={item}
                       />

@@ -1,4 +1,7 @@
-// components/batches/batch-requirements/requirement-item-row.tsx
+// src/app/batches/components/batch-requirements/batch-requirement-item.tsx
+"use client";
+
+import { Building2, Lock, MoreVertical, ShoppingCart } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -7,13 +10,17 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import type { RequirementItem } from "@/types/shared-types";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
+import type { RequirementItem } from "@/types/batch-types";
 import { cn } from "@/utils/shared-utils";
-import { Building2, MoreVertical, ShoppingCart } from "lucide-react";
-import { PriceDisplay } from "../../utils/price-display";
-import { ShortageBadge } from "../../utils/shortage-badge";
+import { ShortageBadge } from "@/components/ui/shortage-badge";
 
-interface RequirementItemRowProps {
+interface BatchRequirementItemProps {
   item: RequirementItem & { isLocked?: boolean };
   showSupplier?: boolean;
   variant?: "default" | "compact";
@@ -21,21 +28,27 @@ interface RequirementItemRowProps {
   onViewDetails?: (item: RequirementItem) => void;
 }
 
-export function RequirementItemRow({
+/**
+ * Requirement item row component
+ * Shows item details with pricing, quantities, and actions
+ */
+export function BatchRequirementItem({
   item,
   showSupplier = true,
   variant = "default",
   onAddToCart,
   onViewDetails,
-}: RequirementItemRowProps) {
+}: BatchRequirementItemProps) {
   const hasShortage = item.shortage > 0;
   const hasInventoryTracking =
     item.available > 0 || item.shortage < item.required;
 
+  // Compact variant
   if (variant === "compact") {
     return <RequirementItemRowCompact item={item} />;
   }
 
+  // Default full variant
   return (
     <div
       className={cn(
@@ -228,4 +241,61 @@ export function RequirementItemRowCompact({
       </div>
     </div>
   );
+}
+
+/**
+ * Price display component with locked pricing indicator
+ */
+interface PriceDisplayProps {
+  amount: number;
+  isLocked?: boolean;
+  showPerUnit?: boolean;
+  unit?: string;
+  size?: "sm" | "md" | "lg";
+}
+
+function PriceDisplay({
+  amount,
+  isLocked = false,
+  showPerUnit = false,
+  unit,
+  size = "md",
+}: PriceDisplayProps) {
+  const sizeClasses = {
+    sm: "text-sm",
+    md: "text-base",
+    lg: "text-lg font-semibold",
+  };
+
+  const content = (
+    <span
+      className={cn(
+        "inline-flex items-center gap-1",
+        isLocked
+          ? "text-blue-600 dark:text-blue-400 font-semibold"
+          : "text-foreground",
+        sizeClasses[size]
+      )}
+    >
+      {isLocked && <Lock className="h-3 w-3" />}₹{amount.toFixed(2)}
+      {showPerUnit && unit && (
+        <span className="text-muted-foreground text-xs">/{unit}</span>
+      )}
+    </span>
+  );
+
+  if (isLocked) {
+    return (
+      <TooltipProvider>
+        <Tooltip>
+          <TooltipTrigger asChild>{content}</TooltipTrigger>
+          <TooltipContent>
+            <p className="text-xs">Locked pricing from recipe/formulation</p>
+          </TooltipContent>
+        </Tooltip>
+      </TooltipProvider>
+    );
+  }
+
+  return content;
 }
