@@ -1,3 +1,4 @@
+// src/app/orders/components/order-constants.tsx
 import type { Supplier } from "@/types/supplier-types";
 import {
   DollarSign,

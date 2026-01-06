@@ -30,39 +30,6 @@ export interface ItemWithoutInventory {
 }
 
 // ============================================================================
-// PROCUREMENT & ORDERS
-// ============================================================================
-
-export interface PurchaseOrderItem {
-  id: string;
-  materialId: string;
-  materialName: string;
-  quantity: number;
-  unit: string;
-  costPerKg: number;
-  totalCost: number;
-}
-
-export interface PurchaseOrder extends BaseEntity {
-  id: string;
-  orderId: string;
-  supplierId: string;
-  supplierName: string;
-  items: PurchaseOrderItem[];
-  totalCost: number;
-  status:
-    | "draft"
-    | "submitted"
-    | "pending"
-    | "confirmed"
-    | "shipped"
-    | "delivered"
-    | "cancelled";
-  dateCreated: string;
-  deliveryDate: string;
-}
-
-// ============================================================================
 // TRANSPORTATION COSTS
 // ============================================================================
 

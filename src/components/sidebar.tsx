@@ -77,8 +77,8 @@ const navigation = [
   //   icon: Calendar,
   // },
   {
-    name: "Procurement",
-    href: "/procurement",
+    name: "Orders",
+    href: "/orders",
     icon: ShoppingCart,
   },
   {
