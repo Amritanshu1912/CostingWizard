@@ -1,15 +1,11 @@
 // src/lib/constants.ts
 import type { Category } from "@/types/material-types";
-import type { PurchaseOrder } from "@/types/shared-types";
 import {
-  AlertTriangle,
   Calendar,
-  CheckCircle,
   DollarSign,
   FlaskConical as Flask,
   Package,
   ShoppingCart,
-  XCircle,
 } from "lucide-react";
 
 // ============================================================================
@@ -80,120 +76,6 @@ export const MATERIAL_CATEGORIES: Category[] = [
     description: "Miscellaneous materials",
     color: "#6b7280", // gray-500
     createdAt: "2024-01-01",
-  },
-];
-
-export const AVAILABILITY_MAP = {
-  "in-stock": {
-    label: "In Stock",
-    variant: "default" as const,
-    icon: CheckCircle,
-  },
-  limited: {
-    label: "Limited Stock",
-    variant: "secondary" as const,
-    icon: AlertTriangle,
-  },
-  "out-of-stock": {
-    label: "Out of Stock",
-    variant: "destructive" as const,
-    icon: XCircle,
-  },
-  default: {
-    label: "Unknown",
-    variant: "outline" as const,
-    icon: Package,
-  },
-} as const;
-
-// ============================================================================
-// PURCHASE_ORDERS
-// ============================================================================
-
-export const PURCHASE_ORDERS: PurchaseOrder[] = [
-  {
-    id: "PO-001",
-    orderId: "PO-001",
-    supplierId: "1",
-    supplierName: "ChemCorp Industries",
-    items: [
-      {
-        id: "PO001-I1", // Added unique ID
-        materialId: "1",
-        materialName: "Acid Blue Color",
-        quantity: 50,
-        unit: "kg", // Added unit
-        costPerKg: 1650,
-        totalCost: 82500,
-      },
-      {
-        id: "PO001-I2", // Added unique ID
-        materialId: "5",
-        materialName: "Citric Acid",
-        quantity: 100,
-        unit: "kg", // Added unit
-        costPerKg: 95,
-        totalCost: 9500,
-      },
-    ],
-    totalCost: 92000,
-    status: "confirmed",
-    dateCreated: "2024-01-15", // Renamed from orderDate
-    deliveryDate: "2024-01-22", // Renamed from expectedDelivery
-    createdAt: "2024-01-15",
-  },
-  {
-    id: "PO-002",
-    orderId: "PO-002",
-    supplierId: "2",
-    supplierName: "ColorTech Solutions",
-    items: [
-      {
-        id: "PO002-I1", // Added unique ID
-        materialId: "9",
-        materialName: "AOS Powder 96%",
-        quantity: 75,
-        unit: "kg", // Added unit
-        costPerKg: 152,
-        totalCost: 11400,
-      },
-    ],
-    totalCost: 11400,
-    status: "submitted",
-    dateCreated: "2024-01-18", // Renamed from orderDate
-    deliveryDate: "2024-01-25", // Renamed from expectedDelivery
-    createdAt: "2024-01-18",
-  },
-  {
-    id: "PO-003",
-    orderId: "PO-003",
-    supplierId: "3",
-    supplierName: "BulkChem Traders",
-    items: [
-      {
-        id: "PO003-I1", // Added unique ID
-        materialId: "6",
-        materialName: "NaCl",
-        quantity: 1000,
-        unit: "kg", // Added unit
-        costPerKg: 5.8,
-        totalCost: 5800,
-      },
-      {
-        id: "PO003-I2", // Added unique ID
-        materialId: "8",
-        materialName: "Soda Ash",
-        quantity: 500,
-        unit: "kg", // Added unit
-        costPerKg: 39,
-        totalCost: 19500,
-      },
-    ],
-    totalCost: 25300,
-    status: "delivered",
-    dateCreated: "2024-01-10", // Renamed from orderDate
-    deliveryDate: "2024-01-17", // Renamed from expectedDelivery
-    createdAt: "2024-01-10",
   },
 ];
 

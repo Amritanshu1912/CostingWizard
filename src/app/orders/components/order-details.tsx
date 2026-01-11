@@ -204,10 +204,10 @@ export function OrderDetails({ order, onEdit, onDeleted }: OrderDetailsProps) {
                       {item.quantityReceived} {item.unit}
                     </td>
                     <td className="p-3 text-right">
-                      ₹{item.unitPrice.toFixed(2)}
+                      ₹{(item.unitPrice || 0).toFixed(2)}
                     </td>
                     <td className="p-3 text-right font-medium">
-                      ₹{item.totalCost.toFixed(2)}
+                      ₹{(item.totalCost || 0).toFixed(2)}
                     </td>
                   </tr>
                 ))}

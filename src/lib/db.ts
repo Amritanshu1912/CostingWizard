@@ -8,7 +8,7 @@ import {
   PRODUCTS,
   PRODUCT_VARIANTS,
 } from "@/app/products/components/products-constants";
-import { PURCHASE_ORDERS } from "./constants";
+import { PURCHASE_ORDERS } from "@/app/orders/components/order-constants";
 import { SUPPLIERS } from "@/app/suppliers/components/suppliers-constants";
 import type {
   InventoryAlert,
@@ -28,7 +28,8 @@ import type {
   RecipeVariant,
 } from "@/types/recipe-types";
 import type { ProductionBatch } from "@/types/batch-types";
-import type { PurchaseOrder, TransportationCost } from "@/types/shared-types";
+import type { TransportationCost } from "@/types/shared-types";
+import type { PurchaseOrder } from "@/types/order-types";
 import type { Product, ProductVariant } from "@/types/product-types";
 import type { Supplier } from "@/types/supplier-types";
 import Dexie, { Table } from "dexie";

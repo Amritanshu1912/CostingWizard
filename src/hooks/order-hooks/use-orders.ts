@@ -1,6 +1,7 @@
 import { useLiveQuery } from "dexie-react-hooks";
 import { db } from "@/lib/db";
 import type { PurchaseOrder, PurchaseOrderItem } from "@/types/order-types";
+import { useAdjustStock } from "@/hooks/inventory-hooks/use-inventory-mutations";
 
 /**
  * Fetches all purchase orders
@@ -70,7 +71,36 @@ export function useOrdersByStatus(
   }, [status]);
 }
 
+/**
+ * Helper function to find inventory item ID by supplier item details
+ * Maps order item types to inventory item types and finds the corresponding inventory item
+ */
+async function findInventoryItemId(
+  itemType: PurchaseOrderItem["itemType"],
+  itemId: string
+): Promise<string | null> {
+  // Map order item type to inventory item type
+  const inventoryTypeMap = {
+    material: "supplierMaterial",
+    packaging: "supplierPackaging",
+    label: "supplierLabel",
+  } as const;
+
+  const inventoryItemType = inventoryTypeMap[itemType];
+  if (!inventoryItemType) return null;
+
+  // Find inventory item by type and itemId
+  const inventoryItem = await db.inventoryItems
+    .where("[itemType+itemId]")
+    .equals([inventoryItemType, itemId])
+    .first();
+
+  return inventoryItem?.id || null;
+}
+
 export function useOrderOperations() {
+  const adjustStock = useAdjustStock();
+
   const createOrder = async (
     orderData: Omit<PurchaseOrder, "id" | "createdAt" | "updatedAt">
   ) => {
@@ -119,18 +149,35 @@ export function useOrderOperations() {
     const order = await db.purchaseOrders.get(orderId);
     if (!order) return;
 
-    // Update quantities received for each item
-    const updatedItems = order.items.map((item: PurchaseOrderItem) => {
-      const receivedItem = receivedItems.find((ri) => ri.itemId === item.id);
-      if (receivedItem) {
-        return {
-          ...item,
-          quantityReceived:
-            item.quantityReceived + receivedItem.quantityReceived,
-        };
-      }
-      return item;
-    });
+    // Update quantities received for each item and update inventory
+    const updatedItems = await Promise.all(
+      order.items.map(async (item: PurchaseOrderItem) => {
+        const receivedItem = receivedItems.find((ri) => ri.itemId === item.id);
+        if (receivedItem) {
+          // Update inventory stock level
+          const inventoryItemId = await findInventoryItemId(
+            item.itemType,
+            item.itemId
+          );
+          if (inventoryItemId) {
+            await adjustStock(
+              inventoryItemId,
+              receivedItem.quantityReceived,
+              "Order Receipt",
+              orderId,
+              `Received ${receivedItem.quantityReceived} ${item.unit} for order ${order.orderId}`
+            );
+          }
+
+          return {
+            ...item,
+            quantityReceived:
+              item.quantityReceived + receivedItem.quantityReceived,
+          };
+        }
+        return item;
+      })
+    );
 
     // Check if all items are fully received
     const allItemsReceived = updatedItems.every(

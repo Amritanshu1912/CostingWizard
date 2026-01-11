@@ -70,12 +70,6 @@ const navigation = [
     href: "/batches",
     icon: Container,
   },
-
-  // {
-  //   name: "Planning",
-  //   href: "/planning",
-  //   icon: Calendar,
-  // },
   {
     name: "Orders",
     href: "/orders",

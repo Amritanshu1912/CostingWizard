@@ -1,8 +1,4 @@
-/**
- * @fileoverview Receive items dialog
- * Dialog for recording partial or full delivery of order items
- */
-
+// src/app/orders/components/receive-items-dialog.tsx
 "use client";
 
 import { useState } from "react";
