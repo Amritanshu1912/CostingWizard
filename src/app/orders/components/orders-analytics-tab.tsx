@@ -2,16 +2,26 @@
 "use client";
 
 import { useMemo } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { MetricCard } from "@/components/ui/metric-card";
+import { Badge } from "@/components/ui/badge";
+import { Progress } from "@/components/ui/progress";
 import {
   Package,
   DollarSign,
   TrendingUp,
   CheckCircle,
   Clock,
+  Sparkles,
 } from "lucide-react";
 import type { PurchaseOrder } from "@/types/order-types";
+import { AI_INSIGHTS } from "./order-constants";
 import {
   PieChart,
   Pie,
@@ -199,61 +209,64 @@ export function OrdersAnalyticsTab({ orders }: OrdersAnalyticsTabProps) {
         </Card>
       </div>
 
-      {/* Insights */}
-      <Card>
+      {/* AI Insights */}
+      <Card className="card-enhanced border-2 border-primary/20 shadow-lg">
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <TrendingUp className="h-5 w-5 text-primary" />
-            Key Insights
-          </CardTitle>
+          <div className="flex items-center gap-3">
+            <div className="p-2 rounded-lg bg-gradient-to-br from-primary/20 to-accent/20">
+              <Sparkles className="h-5 w-5 text-primary" />
+            </div>
+            <div>
+              <CardTitle className="text-foreground">
+                AI-Powered Insights
+              </CardTitle>
+              <CardDescription>
+                Automated recommendations and predictions
+              </CardDescription>
+            </div>
+          </div>
         </CardHeader>
         <CardContent>
-          <div className="space-y-4">
-            {metrics.activeOrders > 5 && (
-              <div className="p-4 bg-blue-50 dark:bg-blue-950/20 rounded-lg border border-blue-200 dark:border-blue-800">
-                <h4 className="font-semibold text-blue-900 dark:text-blue-100 mb-2">
-                  📦 High Order Volume
-                </h4>
-                <p className="text-sm text-blue-700 dark:text-blue-300">
-                  You have {metrics.activeOrders} active orders. Monitor
-                  delivery timelines to ensure inventory availability.
-                </p>
+          <p className="mb-6 text-sm text-muted-foreground italic bg-muted/50 p-3 rounded-lg border border-border/50">
+            Note: The AI-Powered Insights shown here are currently hardcoded
+            sample data for demonstration purposes only.
+          </p>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {AI_INSIGHTS.map((insight, index) => (
+              <div
+                key={index}
+                className="group p-5 rounded-xl bg-gradient-to-br from-card to-muted/30 border border-border/50 hover:border-primary/30 hover:shadow-md transition-all duration-300"
+              >
+                <div className="flex items-start justify-between mb-3">
+                  <div className="flex-1">
+                    <h4 className="font-semibold text-foreground mb-2 group-hover:text-primary transition-colors">
+                      {insight.title}
+                    </h4>
+                    <p className="text-sm text-muted-foreground leading-relaxed">
+                      {insight.description}
+                    </p>
+                  </div>
+                </div>
+                <div className="flex items-center justify-between mt-4 pt-4 border-t border-border/50">
+                  <div className="flex items-center gap-2">
+                    <Badge
+                      variant={
+                        insight.impact === "High" ? "default" : "secondary"
+                      }
+                      className="text-xs font-medium"
+                    >
+                      {insight.impact} Impact
+                    </Badge>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <div className="text-xs font-medium text-muted-foreground">
+                      {insight.confidence}% confidence
+                    </div>
+                    <Progress value={insight.confidence} className="h-1 w-16" />
+                  </div>
+                </div>
               </div>
-            )}
-
-            {metrics.deliveryRate < 70 && orders.length > 5 && (
-              <div className="p-4 bg-yellow-50 dark:bg-yellow-950/20 rounded-lg border border-yellow-200 dark:border-yellow-800">
-                <h4 className="font-semibold text-yellow-900 dark:text-yellow-100 mb-2">
-                  ⚠️ Low Delivery Rate
-                </h4>
-                <p className="text-sm text-yellow-700 dark:text-yellow-300">
-                  Only {metrics.deliveryRate.toFixed(0)}% of orders have been
-                  delivered. Review supplier performance and follow up on
-                  pending orders.
-                </p>
-              </div>
-            )}
-
-            {metrics.deliveryRate >= 90 && orders.length > 5 && (
-              <div className="p-4 bg-green-50 dark:bg-green-950/20 rounded-lg border border-green-200 dark:border-green-800">
-                <h4 className="font-semibold text-green-900 dark:text-green-100 mb-2">
-                  ✓ Excellent Delivery Rate
-                </h4>
-                <p className="text-sm text-green-700 dark:text-green-300">
-                  {metrics.deliveryRate.toFixed(0)}% delivery rate indicates
-                  strong supplier relationships. Keep maintaining these
-                  standards.
-                </p>
-              </div>
-            )}
-
-            {orders.length === 0 && (
-              <div className="p-4 bg-muted/50 rounded-lg border text-center">
-                <p className="text-sm text-muted-foreground">
-                  No orders yet. Create your first order to see insights.
-                </p>
-              </div>
-            )}
+            ))}
           </div>
         </CardContent>
       </Card>
